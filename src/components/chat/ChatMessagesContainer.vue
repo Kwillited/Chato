@@ -1,7 +1,9 @@
 <template>
-  <div ref="chatMessagesContainer" class="flex-1 p-6 overflow-y-auto space-y-6 scrollbar-thin transition-colors duration-300 ease-in-out bg-inherit" @scroll="checkScrollPosition">
-    <!-- 聊天消息列表 -->
-    <ChatMessage v-for="message in chatMessages" :key="message.timestamp" :message="message" :chatStyleDocument="settingsStore.systemSettings.chatStyleDocument" />
+  <div class="flex-1 p-6 overflow-y-auto bg-inherit">
+    <!-- 聊天消息列表容器 - 添加与UserInputBox相同的宽度限制 -->
+    <div ref="chatMessagesContainer" class="w-full max-w-4xl mx-auto space-y-6 scrollbar-thin transition-colors duration-300 ease-in-out" @scroll="checkScrollPosition">
+      <ChatMessage v-for="message in chatMessages" :key="message.timestamp" :message="message" :chatStyleDocument="settingsStore.systemSettings.chatStyleDocument" />
+    </div>
   </div>
 </template>
 
