@@ -1,26 +1,10 @@
 """向量存储服务 - 处理嵌入模型和向量数据库的核心功能"""
 import os
-import logging
 from typing import List, Dict, Any, Optional
 from app.core.config import config_manager
+from app.services.base_service import BaseService
 
-# 配置日志系统
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# 创建控制台处理器
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.INFO)
-
-# 创建日志格式
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-console_handler.setFormatter(formatter)
-
-# 添加处理器到日志器
-if not logger.handlers:
-    logger.addHandler(console_handler)
-
-class VectorStoreService:
+class VectorStoreService(BaseService):
     """向量存储服务类 - 处理嵌入模型和向量数据库的所有操作"""
     
     # 类级别的缓存设置
@@ -65,7 +49,7 @@ class VectorStoreService:
     def embeddings(self):
         """获取嵌入模型实例（懒加载）"""
         if self._embeddings is None:
-            logger.info("Embeddings not initialized, starting initialization...")
+            self.log_info("Embeddings not initialized, starting initialization...")
             self._ensure_directories()
             self._init_embeddings()
         return self._embeddings
@@ -74,9 +58,9 @@ class VectorStoreService:
     def vector_store(self):
         """获取向量存储实例（懒加载）"""
         if self._vector_store is None:
-            logger.info("Vector store not initialized, starting initialization...")
+            self.log_info("Vector store not initialized, starting initialization...")
             if self.embeddings is None:  # 确保嵌入模型已初始化
-                logger.info("Embeddings not available, initializing first...")
+                self.log_info("Embeddings not available, initializing first...")
                 self._ensure_directories()
                 self._init_embeddings()
             self._init_vector_store()
@@ -124,11 +108,11 @@ class VectorStoreService:
             for directory in directories:
                 os.makedirs(directory, exist_ok=True)
             
-            logger.info(f"初始化目录结构完成: embedding_models_dir={self.embedding_models_dir}")
+            self.log_info(f"初始化目录结构完成: embedding_models_dir={self.embedding_models_dir}")
             self._directories_ensured = True
             return True
         except Exception as e:
-            logger.error(f"初始化目录失败: {e}")
+            self.log_error(f"初始化目录失败: {e}")
             return False
     
     def _init_embeddings(self) -> bool:
@@ -170,7 +154,7 @@ class VectorStoreService:
             
             # 加载模型
             if model_path:
-                logger.info(f"找到嵌入模型路径: {model_path}")
+                self.log_info(f"找到嵌入模型路径: {model_path}")
                 self._embeddings = HuggingFaceEmbeddings(
                     model_name=model_path,
                     model_kwargs={'device': 'cpu'},
@@ -178,7 +162,7 @@ class VectorStoreService:
                 )
             else:
                 # 从HuggingFace下载模型
-                logger.info(f"从HuggingFace下载嵌入模型: {self.embedder_model}")
+                self.log_info(f"从HuggingFace下载嵌入模型: {self.embedder_model}")
                 self._embeddings = HuggingFaceEmbeddings(
                     model_name=self.embedder_model,
                     model_kwargs={'device': 'cpu'},
@@ -187,17 +171,17 @@ class VectorStoreService:
                 )
                 model_path = self.embedder_model
             
-            logger.info(f"嵌入模型初始化成功: {model_path}")
+            self.log_info(f"嵌入模型初始化成功: {model_path}")
             return True
             
         except Exception as e:
-            logger.error(f"嵌入模型初始化失败: {e}")
+            self.log_error(f"嵌入模型初始化失败: {e}")
             
             # 尝试使用替代缓存位置
             try:
                 alternative_cache_dir = os.path.join(os.path.dirname(__file__), '.cache', 'sentence-transformers', self.embedder_model)
                 if os.path.exists(alternative_cache_dir):
-                    logger.info(f"尝试使用替代本地缓存模型: {alternative_cache_dir}")
+                    self.log_info(f"尝试使用替代本地缓存模型: {alternative_cache_dir}")
                     self._embeddings = HuggingFaceEmbeddings(
                         model_name=alternative_cache_dir,
                         model_kwargs={'device': 'cpu'},
@@ -205,7 +189,7 @@ class VectorStoreService:
                     )
                     return True
             except Exception as alt_error:
-                logger.error(f"替代模型加载也失败: {alt_error}")
+                self.log_error(f"替代模型加载也失败: {alt_error}")
                 
             self._embeddings = None
             return False
@@ -221,7 +205,7 @@ class VectorStoreService:
             
             # 确保嵌入模型已初始化
             if not self._embeddings:
-                logger.error("无法初始化向量存储：嵌入模型未初始化")
+                self.log_error("无法初始化向量存储：嵌入模型未初始化")
                 return False
             
             # 如果向量库路径存在，则加载现有的向量库
@@ -230,18 +214,18 @@ class VectorStoreService:
                     persist_directory=self.vector_db_path,
                     embedding_function=self._embeddings
                 )
-                logger.info("向量库加载成功")
+                self.log_info("向量库加载成功")
             else:
                 # 如果没有现有向量库，创建一个空的
                 self._vector_store = Chroma(
                     persist_directory=self.vector_db_path,
                     embedding_function=self._embeddings
                 )
-                logger.info("向量库创建成功")
+                self.log_info("向量库创建成功")
             
             return True
         except Exception as e:
-            logger.error(f"向量库初始化失败: {e}")
+            self.log_error(f"向量库初始化失败: {e}")
             self._vector_store = None
             return False
     
@@ -256,20 +240,20 @@ class VectorStoreService:
         """
         try:
             if not documents:
-                logger.warning("没有找到文档或文档为空")
+                self.log_warning("没有找到文档或文档为空")
                 return False
             
             if not self.vector_store:
-                logger.error("向量存储未初始化")
+                self.log_error("向量存储未初始化")
                 return False
             
             # 将文档片段添加到向量库
             self.vector_store.add_documents(documents)
             
-            logger.info(f"成功将 {len(documents)} 个文档片段添加到向量库")
+            self.log_info(f"成功将 {len(documents)} 个文档片段添加到向量库")
             return True
         except Exception as e:
-            logger.error(f"添加文档失败: {e}")
+            self.log_error(f"添加文档失败: {e}")
             return False
     
     def clear_vector_store(self) -> bool:
@@ -285,7 +269,7 @@ class VectorStoreService:
             try:
                 # 检查向量存储是否初始化
                 if not self.vector_store:
-                    logger.error("向量存储未初始化")
+                    self.log_error("向量存储未初始化")
                     return False
                 
                 # 获取集合并清空
@@ -294,7 +278,7 @@ class VectorStoreService:
                         # 尝试使用不同的方式清空集合
                         # 方法1: 尝试删除所有文档，不指定where条件
                         self.vector_store._collection.delete()
-                        logger.info("向量库清空成功")
+                        self.log_info("向量库清空成功")
                         return True
                     except Exception as e1:
                         try:
@@ -303,10 +287,10 @@ class VectorStoreService:
                             all_ids = self.vector_store._collection.get()['ids']
                             if all_ids:
                                 self.vector_store._collection.delete(ids=all_ids)
-                            logger.info("向量库清空成功")
+                            self.log_info("向量库清空成功")
                             return True
                         except Exception as e2:
-                            logger.warning(f"尝试清空集合失败: {e1}, {e2}")
+                            self.log_warning(f"尝试清空集合失败: {e1}, {e2}")
                             # 继续执行备选方案
                 else:
                     # 备选方案：重新初始化向量存储
@@ -323,7 +307,7 @@ class VectorStoreService:
                     return self._init_vector_store()
             
             except Exception as e:
-                logger.error(f"清空向量库失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                self.log_error(f"清空向量库失败 (尝试 {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
                     import time
                     time.sleep(retry_delay)
@@ -357,12 +341,12 @@ class VectorStoreService:
                 try:
                     stats['total_vectors'] = self.vector_store._collection.count()
                 except Exception as e:
-                    logger.error(f"获取向量数量失败: {e}")
+                    self.log_error(f"获取向量数量失败: {e}")
                     stats['total_vectors'] = 0
             
             return stats
         except Exception as e:
-            logger.error(f"获取向量库统计信息失败: {e}")
+            self.log_error(f"获取向量库统计信息失败: {e}")
             return {
                 'status': 'error',
                 'error': str(e),
@@ -387,7 +371,7 @@ class VectorStoreService:
                            key=lambda k: self._query_cache[k][1])
             # 移除最旧的缓存项
             del self._query_cache[oldest_key]
-            logger.debug(f"缓存大小超过限制，移除最旧项: {oldest_key[:50]}...")
+            self.log_debug(f"缓存大小超过限制，移除最旧项: {oldest_key[:50]}...")
     
     def search_documents(self, query: str, k: int = 5, score_threshold: Optional[float] = None, search_type: str = "similarity", fetch_k: int = 20) -> List[Any]:
         """搜索相关文档 - 支持多种搜索类型
@@ -413,11 +397,11 @@ class VectorStoreService:
                            score_threshold=score_threshold,
                            search_type=search_type)
             
-            logger.info(f"Starting search for query: '{query[:50]}...' with k={k}, score_threshold={score_threshold}, search_type={search_type}, fetch_k={fetch_k}")
+            self.log_info(f"Starting search for query: '{query[:50]}...' with k={k}, score_threshold={score_threshold}, search_type={search_type}, fetch_k={fetch_k}")
             
             # 检查向量存储初始化
             if not self.vector_store:
-                logger.error("搜索失败：向量存储未初始化")
+                self.log_error("搜索失败：向量存储未初始化")
                 trigger_callback('error', 
                                event='search',
                                error="向量存储未初始化")
@@ -432,7 +416,7 @@ class VectorStoreService:
                 cached_result, cache_time = self._query_cache[cache_key]
                 # 检查缓存是否过期
                 if current_time - cache_time < self._CACHE_TTL:
-                    logger.debug(f"查询缓存命中: {query[:50]}...")
+                    self.log_debug(f"查询缓存命中: {query[:50]}...")
                     trigger_callback('search_end', 
                                    query=query[:50] + "..." if len(query) > 50 else query,
                                    result_count=len(cached_result),
@@ -441,14 +425,14 @@ class VectorStoreService:
                 else:
                     # 缓存过期，移除
                     del self._query_cache[cache_key]
-                    logger.debug(f"查询缓存过期: {query[:50]}...")
+                    self.log_debug(f"查询缓存过期: {query[:50]}...")
             
             result = []
             
             # 根据搜索类型执行不同的搜索方法
             if search_type == "mmr":
                 # 使用最大边缘相关性搜索
-                logger.info(f"执行MMR搜索，k={k}, fetch_k={fetch_k}")
+                self.log_info(f"执行MMR搜索，k={k}, fetch_k={fetch_k}")
                 result = self.vector_store.max_marginal_relevance_search(
                     query=query,
                     k=k,
@@ -456,7 +440,7 @@ class VectorStoreService:
                 )
             elif search_type == "similarity_score_threshold" and score_threshold is not None:
                 # 使用带分数阈值的相似性搜索
-                logger.info(f"执行带分数阈值的相似性搜索，k={k}, 分数阈值={score_threshold}")
+                self.log_info(f"执行带分数阈值的相似性搜索，k={k}, 分数阈值={score_threshold}")
                 result = self.vector_store.similarity_search_with_score(
                     query=query,
                     k=k,
@@ -466,7 +450,7 @@ class VectorStoreService:
                 result = [doc for doc, _ in result]
             elif score_threshold is not None:
                 # 执行带分数的相似性搜索并手动过滤
-                logger.info(f"执行带分数的相似性搜索，k={k}, 分数阈值={score_threshold}")
+                self.log_info(f"执行带分数的相似性搜索，k={k}, 分数阈值={score_threshold}")
                 results_with_scores = self.vector_store.similarity_search_with_score(query, k=k)
                 
                 # 过滤结果
@@ -476,10 +460,10 @@ class VectorStoreService:
                         result.append(doc)
             else:
                 # 执行普通相似性搜索
-                logger.info(f"执行普通相似性搜索，k={k}")
+                self.log_info(f"执行普通相似性搜索，k={k}")
                 result = self.vector_store.similarity_search(query, k=k)
             
-            logger.info(f"搜索完成，找到 {len(result)} 个相关文档")
+            self.log_info(f"搜索完成，找到 {len(result)} 个相关文档")
             
             # 触发搜索结束回调
             trigger_callback('search_end', 
@@ -492,10 +476,10 @@ class VectorStoreService:
             
             return result
         except Exception as e:
-            logger.error(f"搜索文档失败: {str(e)}")
-            logger.error(f"错误类型: {type(e).__name__}")
+            self.log_error(f"搜索文档失败: {str(e)}")
+            self.log_error(f"错误类型: {type(e).__name__}")
             import traceback
-            logger.error(f"错误堆栈: {traceback.format_exc()}")
+            self.log_error(f"错误堆栈: {traceback.format_exc()}")
             
             # 触发错误回调
             from app.utils.callback_manager import trigger_callback

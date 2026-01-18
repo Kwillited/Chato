@@ -345,29 +345,7 @@ class ChatService(BaseService):
             return None, {'error': '模型未配置，无法调用'}, 400
         return model, None, None
     
-    def get_version_config(self, model, version_id):
-        """
-        获取模型的版本配置
-        
-        参数:
-            model: 模型对象
-            version_id: 模型版本名称或自定义名称
-            
-        返回:
-            版本配置字典
-        """
-        # 尝试从模型对象中获取版本配置
-        if 'versions' in model and isinstance(model['versions'], list):
-            # 查找匹配的版本，支持version_name和custom_name
-            for version in model['versions']:
-                if version.get('version_name') == version_id or version.get('custom_name') == version_id:
-                    return version
-        # 如果没有找到匹配的版本或模型没有versions字段，返回默认配置
-        return {
-            'streaming_config': True,  # 默认启用流式传输
-            'temperature': 0.7,  # 默认温度
-            'max_tokens': 4096  # 默认最大令牌数
-        }
+
 
 
 

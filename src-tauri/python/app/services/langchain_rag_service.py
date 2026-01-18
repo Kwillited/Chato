@@ -82,7 +82,7 @@ class LangChainRAGService(BaseService):
             
             # 获取向量存储
             if not self.vector_service.vector_store:
-                print("❌ 向量存储未初始化")
+                self.log_error("向量存储未初始化")
                 return question
             
             # 执行相似性搜索
@@ -105,7 +105,7 @@ class LangChainRAGService(BaseService):
             
             return question
         except Exception as e:
-            print(f"❌ RAG增强提示生成失败: {str(e)}")
+            self.log_error(f"RAG增强提示生成失败: {str(e)}")
             return question
     
     def generate_response(self, question: str, rag_config: Dict[str, Any] = None, llm=None) -> Dict[str, Any]:
@@ -161,7 +161,7 @@ class LangChainRAGService(BaseService):
                 'sources': sources
             }
         except Exception as e:
-            print(f"❌ RAG响应生成失败: {str(e)}")
+            self.log_error(f"RAG响应生成失败: {str(e)}")
             
             # 触发错误回调
             trigger_callback('error', 
@@ -228,7 +228,7 @@ class LangChainRAGService(BaseService):
                 'message': f"成功处理 {len(all_documents)} 个文档，生成 {len(split_documents)} 个文本块"
             }
         except Exception as e:
-            print(f"❌ 使用LangChain添加文档失败: {str(e)}")
+            self.log_error(f"使用LangChain添加文档失败: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
