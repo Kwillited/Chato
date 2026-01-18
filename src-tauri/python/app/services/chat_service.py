@@ -375,11 +375,18 @@ class ChatService(BaseService):
         
         # 自动更新对话标题（如果是首次消息且标题还是默认的"新对话"）
         new_title = chat['title']
-        if len(chat['messages']) == 2 and chat['title'] == '新对话':
-            # 使用用户的第一条消息作为标题（截取前30个字符）
-            new_title = message_text[:30] + (message_text[30:] and '...')
-            chat['title'] = new_title
-            logger.debug(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
+        if chat['title'] == '新对话':
+            # 检查是否是首次添加消息到对话（用户消息+AI消息）
+            # 或者是否是首次调用update_chat_and_save且已有用户消息
+            has_user_message = any(msg['role'] == 'user' for msg in chat['messages'])
+            has_ai_message = any(msg['role'] == 'assistant' for msg in chat['messages'])
+            
+            # 当有用户消息且（有AI消息或没有AI消息但不是首次保存）时更新标题
+            if has_user_message:
+                # 使用用户的第一条消息作为标题（截取前30个字符）
+                new_title = message_text[:30] + (message_text[30:] and '...')
+                chat['title'] = new_title
+                logger.debug(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
         
         try:
             # 开始事务
