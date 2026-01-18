@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Form, File, UploadFile, Query, Path, HTTPException, Depends
 
 # 导入RAG服务层
-from app.services.rag_service import RAGService
+from app.services.rag.rag_service import RAGService
 from app.utils.decorators import handle_exception
 from app.dependencies import get_rag_service
 
@@ -118,6 +118,15 @@ def delete_document(foldername: str = Path(...), filename: str = Path(...), rag_
     # 调用服务层方法，传递foldername参数
     result = rag_service.delete_document(filename, foldername)
     
+    # 检查结果是否成功
+    if result.get('success') is False:
+        # 处理失败情况
+        return {
+            'success': False,
+            'message': result.get('error', '删除文档失败')
+        }
+    
+    # 处理成功情况
     return {
         'success': True,
         'message': result['message'],
@@ -132,6 +141,15 @@ def delete_folder(folder_id: str = Query(..., description='文件夹ID'), rag_se
     # 调用服务层方法，现在使用folder_id参数
     result = rag_service.delete_folder_by_id(folder_id)
     
+    # 检查结果是否成功
+    if result.get('success') is False:
+        # 处理失败情况
+        return {
+            'success': False,
+            'message': result.get('error', '删除文件夹失败')
+        }
+    
+    # 处理成功情况
     return {
         'success': True,
         'message': result['message'],
@@ -146,6 +164,15 @@ def delete_all_documents(rag_service: RAGService = Depends(get_rag_service)):
     # 调用服务层方法
     result = rag_service.delete_all_documents()
     
+    # 检查结果是否成功
+    if result.get('success') is False:
+        # 处理失败情况
+        return {
+            'success': False,
+            'message': result.get('error', '删除所有文档失败')
+        }
+    
+    # 处理成功情况
     return {
         'success': True,
         'message': result['message'],

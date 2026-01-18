@@ -290,7 +290,7 @@ class ChatService(BaseService):
         return formatted_messages
 
     def get_rag_enhanced_prompt(self, question, rag_config=None):
-        """RAG增强提示 - 使用LangChain RAG服务"""
+        """RAG增强提示 - 直接使用生成服务的build_prompt方法"""
         # 只使用前端传递的enabled状态，其余配置从系统获取
         enabled = False
         if rag_config and isinstance(rag_config, dict):
@@ -300,10 +300,28 @@ class ChatService(BaseService):
             return question
         
         try:
-            # 使用新的LangChain RAG服务，它会从配置系统获取完整配置
-            from app.services.langchain_rag_service import LangChainRAGService
-            rag_service = LangChainRAGService.get_instance()
-            return rag_service.get_enhanced_prompt(question, {'enabled': enabled})
+            # 直接使用生成服务的build_prompt方法，避免通过LangChainRAGService间接调用
+            from app.core.config import config_manager
+            from app.services.rag.generation_service import GenerationService
+            from app.services.rag.rag_coordinator import RagCoordinator
+            
+            generation_service = GenerationService()
+            rag_coordinator = RagCoordinator()
+            
+            # 从配置中获取参数
+            rag_config = config_manager.get('rag', {})
+            k = rag_config.get('top_k', 3)
+            score_threshold = rag_config.get('score_threshold', 0.7)
+            
+            # 执行相似性搜索
+            context_docs = rag_coordinator.vector_service.search_documents(
+                query=question,
+                k=k,
+                score_threshold=score_threshold
+            )
+            
+            # 使用生成服务的build_prompt方法构建提示
+            return generation_service.build_prompt(question, context_docs)
         except Exception as e:
             # 使用BaseService的日志方法
             BaseService.log_error(f"RAG调用失败: {str(e)}")

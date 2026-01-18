@@ -6,12 +6,14 @@ from app.repositories.chat_repository import ChatRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.model_repository import ModelRepository
 from app.repositories.setting_repository import SettingRepository
-from app.services.chat_service import ChatService
-from app.services.model_service import ModelService
+from app.services.chat.chat_service import ChatService
+from app.services.data_service import DataService
+from app.services.model.model_service import ModelService
 from app.services.mcp_service import MCPService
-from app.services.rag_service import RAGService
+from app.services.rag.rag_service import RAGService
 from app.services.setting_service import SettingService
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector.vector_store_service import VectorStoreService
+from app.services.vector.vector_db_service import VectorDBService
 
 
 # 数据库会话依赖
@@ -69,11 +71,16 @@ def get_mcp_service(setting_service: SettingService = Depends(get_setting_servic
     return MCPService(setting_service)
 
 
+def get_vector_db_service():
+    """获取向量数据库服务实例"""
+    return VectorDBService()
+
+
 def get_vector_store_service():
     """获取向量存储服务实例"""
     return VectorStoreService()
 
 
-def get_rag_service(vector_store_service: VectorStoreService = Depends(get_vector_store_service)):
+def get_rag_service():
     """获取RAG服务实例"""
-    return RAGService(vector_store_service)
+    return RAGService()

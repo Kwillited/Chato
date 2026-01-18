@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 import os
 
 # 导入模型服务层
-from app.services.model_service import ModelService
+from app.services.model.model_service import ModelService
 from app.utils.decorators import handle_exception
 from app.dependencies import get_model_service
 

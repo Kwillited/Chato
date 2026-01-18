@@ -5,8 +5,8 @@ import os
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.services.langchain_rag_service import LangChainRAGService
-from app.services.vector_store_service import VectorStoreService
+from app.services.rag.langchain_rag_service import LangChainRAGService
+from app.services.vector.vector_store_service import VectorStoreService
 from app.utils.callback_manager import register_callback
 
 

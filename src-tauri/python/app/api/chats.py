@@ -1,7 +1,7 @@
 """对话相关API路由"""
 from fastapi import APIRouter, Body, Path, HTTPException, Depends
 from fastapi.responses import StreamingResponse
-from app.services.chat_service import ChatService  # 导入对话服务类
+from app.services.chat.chat_service import ChatService  # 导入对话服务类
 from app.utils.decorators import handle_exception
 from app.dependencies import get_chat_service
 from app.models.pydantic_models import (

@@ -2,7 +2,7 @@
 import logging
 from typing import List, Dict, Optional, Any
 from langchain_core.documents import Document
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector.vector_store_service import VectorStoreService
 
 class VectorService:
     """向量服务类 - 封装文档向量化、向量检索等功能"""

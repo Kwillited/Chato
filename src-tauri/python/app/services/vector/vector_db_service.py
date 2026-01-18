@@ -1,22 +1,19 @@
-"""向量存储服务 - 处理嵌入模型和向量数据库的核心功能"""
+"""向量数据库服务 - 管理向量存储的初始化和操作，位于数据层"""
 import os
 from typing import List, Dict, Any, Optional
 from app.core.config import config_manager
 from app.services.base_service import BaseService
+from app.repositories.vector_repository import VectorRepository
 
-class VectorStoreService(BaseService):
-    """向量存储服务类 - 处理嵌入模型和向量数据库的所有操作"""
-    
-    # 类级别的缓存设置
-    _CACHE_SIZE = 100  # 缓存大小限制
-    _CACHE_TTL = 3600  # 缓存过期时间（秒）
+class VectorDBService(BaseService):
+    """向量数据库服务类，管理向量存储的初始化和操作"""
     
     # 单例实例
     _instance = None
     _lock = None  # 用于线程安全的单例实现
     
     def __init__(self, vector_db_path=None, embedder_model='all-MiniLM-L6-v2'):
-        """初始化向量存储服务
+        """初始化向量数据库服务
         
         Args:
             vector_db_path: 向量数据库的存储路径
@@ -32,18 +29,15 @@ class VectorStoreService(BaseService):
         )
         
         self.embedder_model = embedder_model
-        self._embeddings = None  # 改为私有属性，通过getter访问
-        self._vector_store = None  # 改为私有属性，通过getter访问
+        self._embeddings = None  # 嵌入模型实例
+        self._vector_store = None  # 向量存储实例
         self._directories_ensured = False  # 目录是否已创建
         
         # 创建标准的embedding模型目录
         self.embedding_models_dir = os.path.join(self.user_data_dir, 'models', 'embedding')
         
-        # 初始化查询缓存
-        self._query_cache = {}  # 缓存字典：key为查询特征，value为(结果, 时间戳)
-        
-        # 只进行基本的属性初始化，不执行耗时操作
-        # 资源密集型操作将在实际使用时懒加载
+        # 初始化向量数据库Repository
+        self.vector_repository = VectorRepository()
     
     @property
     def embeddings(self):
@@ -59,7 +53,7 @@ class VectorStoreService(BaseService):
         """获取向量存储实例（懒加载）"""
         if self._vector_store is None:
             self.log_info("Vector store not initialized, starting initialization...")
-            if self.embeddings is None:  # 确保嵌入模型已初始化
+            if self._embeddings is None:  # 确保嵌入模型已初始化
                 self.log_info("Embeddings not available, initializing first...")
                 self._ensure_directories()
                 self._init_embeddings()
@@ -75,7 +69,7 @@ class VectorStoreService(BaseService):
             embedder_model: 使用的嵌入模型名称
             
         Returns:
-            VectorStoreService: 向量存储服务单例实例
+            VectorDBService: 向量数据库服务单例实例
         """
         # 延迟初始化锁，避免导入时的循环依赖
         if cls._lock is None:
@@ -122,31 +116,43 @@ class VectorStoreService(BaseService):
             bool: 是否成功初始化嵌入模型
         """
         try:
-            from langchain_community.embeddings import HuggingFaceEmbeddings
+            # 尝试从新位置导入（推荐方式）
+            try:
+                from langchain_huggingface import HuggingFaceEmbeddings
+                self.log_info("使用langchain-huggingface包中的HuggingFaceEmbeddings")
+            except ImportError:
+                # 兼容旧版本
+                self.log_warning("langchain-huggingface包未安装，尝试使用langchain_community中的HuggingFaceEmbeddings")
+                from langchain_community.embeddings import HuggingFaceEmbeddings
             
             # 模型路径搜索逻辑 - 优化版：减少不必要的文件系统调用
             model_path = None
             
-            # 1. 如果直接指定了本地路径且存在，优先使用
-            if os.path.exists(self.embedder_model):
+            # 1. 优先检查用户指定的本地模型路径
+            user_local_model_path = r'C:\Users\Admin\.cache\modelscope\hub\models\Qwen\Qwen3-Embedding-0___6B'
+            if os.path.exists(user_local_model_path):
+                self.log_info(f"使用用户指定的本地模型路径: {user_local_model_path}")
+                model_path = user_local_model_path
+            elif os.path.exists(self.embedder_model):
+                # 2. 如果直接指定了本地路径且存在，优先使用
                 model_path = self.embedder_model
             else:
-                # 2. 构建并检查标准用户数据目录下的模型路径
+                # 3. 构建并检查标准用户数据目录下的模型路径
                 standard_model_path = os.path.join(self.embedding_models_dir, self.embedder_model)
                 if os.path.exists(standard_model_path):
                     model_path = standard_model_path
                 else:
-                    # 3. 检查特定的qwen3-embedding模型路径
+                    # 4. 检查特定的qwen3-embedding模型路径
                     qwen_model_path = os.path.join(self.embedding_models_dir, 'qwen3-embedding')
                     if os.path.exists(qwen_model_path):
                         model_path = qwen_model_path
                     else:
-                        # 4. 检查本地缓存路径
+                        # 5. 检查本地缓存路径
                         local_cache_path = os.path.join(os.path.dirname(__file__), '.cache', self.embedder_model)
                         if os.path.exists(local_cache_path):
                             model_path = local_cache_path
                         else:
-                            # 5. 检查HuggingFace缓存路径
+                            # 6. 检查HuggingFace缓存路径
                             hf_cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'huggingface', 'hub', 
                                                        f'models--{self.embedder_model.replace('/', '--')}', 'snapshots')
                             if os.path.exists(hf_cache_path):
@@ -174,6 +180,11 @@ class VectorStoreService(BaseService):
             self.log_info(f"嵌入模型初始化成功: {model_path}")
             return True
             
+        except ImportError as e:
+            self.log_error(f"嵌入模型依赖包未安装: {e}")
+            self.log_info("请安装必要的包: pip install langchain-huggingface sentence-transformers")
+            self._embeddings = None
+            return False
         except Exception as e:
             self.log_error(f"嵌入模型初始化失败: {e}")
             
@@ -223,6 +234,8 @@ class VectorStoreService(BaseService):
                 )
                 self.log_info("向量库创建成功")
             
+            # 将向量存储实例传递给Repository
+            self.vector_repository.set_vector_store(self._vector_store)
             return True
         except Exception as e:
             self.log_error(f"向量库初始化失败: {e}")
@@ -247,11 +260,12 @@ class VectorStoreService(BaseService):
                 self.log_error("向量存储未初始化")
                 return False
             
-            # 将文档片段添加到向量库
-            self.vector_store.add_documents(documents)
+            # 使用Repository添加文档
+            result = self.vector_repository.add_documents(documents)
             
-            self.log_info(f"成功将 {len(documents)} 个文档片段添加到向量库")
-            return True
+            if result:
+                self.log_info(f"成功将 {len(documents)} 个文档片段添加到向量库")
+            return result
         except Exception as e:
             self.log_error(f"添加文档失败: {e}")
             return False
@@ -267,45 +281,16 @@ class VectorStoreService(BaseService):
         
         for attempt in range(max_retries):
             try:
-                # 检查向量存储是否初始化
                 if not self.vector_store:
                     self.log_error("向量存储未初始化")
                     return False
                 
-                # 获取集合并清空
-                if hasattr(self.vector_store, '_collection'):
-                    try:
-                        # 尝试使用不同的方式清空集合
-                        # 方法1: 尝试删除所有文档，不指定where条件
-                        self.vector_store._collection.delete()
-                        self.log_info("向量库清空成功")
-                        return True
-                    except Exception as e1:
-                        try:
-                            # 方法2: 使用更明确的删除方式
-                            # 获取所有文档ID然后删除
-                            all_ids = self.vector_store._collection.get()['ids']
-                            if all_ids:
-                                self.vector_store._collection.delete(ids=all_ids)
-                            self.log_info("向量库清空成功")
-                            return True
-                        except Exception as e2:
-                            self.log_warning(f"尝试清空集合失败: {e1}, {e2}")
-                            # 继续执行备选方案
-                else:
-                    # 备选方案：重新初始化向量存储
-                    import shutil
-                    # 关闭向量存储（如果有方法）
-                    if hasattr(self.vector_store, 'delete_collection'):
-                        self.vector_store.delete_collection()
-                    
-                    # 删除向量库目录
-                    if os.path.exists(self.vector_db_path):
-                        shutil.rmtree(self.vector_db_path)
-                    
-                    # 重新初始化
-                    return self._init_vector_store()
-            
+                # 使用Repository清空向量存储
+                result = self.vector_repository.clear_vector_store()
+                
+                if result:
+                    self.log_info("向量库清空成功")
+                    return True
             except Exception as e:
                 self.log_error(f"清空向量库失败 (尝试 {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
@@ -336,13 +321,8 @@ class VectorStoreService(BaseService):
                 'total_vectors': 0
             }
             
-            # 尝试获取向量数量
-            if hasattr(self.vector_store, '_collection'):
-                try:
-                    stats['total_vectors'] = self.vector_store._collection.count()
-                except Exception as e:
-                    self.log_error(f"获取向量数量失败: {e}")
-                    stats['total_vectors'] = 0
+            # 使用Repository获取向量数量
+            stats['total_vectors'] = self.vector_repository.get_vector_count()
             
             return stats
         except Exception as e:
@@ -353,29 +333,10 @@ class VectorStoreService(BaseService):
                 'total_vectors': 0
             }
     
-    def _update_cache(self, cache_key: str, result: List[Any], current_time: float) -> None:
-        """更新查询缓存
-        
-        Args:
-            cache_key: 缓存键
-            result: 搜索结果
-            current_time: 当前时间戳
-        """
-        # 添加新的缓存项
-        self._query_cache[cache_key] = (result, current_time)
-        
-        # 如果缓存大小超过限制，移除最旧的缓存项
-        if len(self._query_cache) > self._CACHE_SIZE:
-            # 找到最旧的缓存项
-            oldest_key = min(self._query_cache.keys(), 
-                           key=lambda k: self._query_cache[k][1])
-            # 移除最旧的缓存项
-            del self._query_cache[oldest_key]
-            self.log_debug(f"缓存大小超过限制，移除最旧项: {oldest_key[:50]}...")
-    
-    def search_documents(self, query: str, k: int = 5, score_threshold: Optional[float] = None, search_type: str = "similarity", fetch_k: int = 20) -> List[Any]:
+    def search_documents(self, query: str, k: int = 5, score_threshold: Optional[float] = None, 
+                       search_type: str = "similarity", fetch_k: int = 20) -> List[Any]:
         """搜索相关文档 - 支持多种搜索类型
-
+        
         Args:
             query: 查询文本
             k: 返回结果数量
@@ -399,7 +360,6 @@ class VectorStoreService(BaseService):
             
             self.log_info(f"Starting search for query: '{query[:50]}...' with k={k}, score_threshold={score_threshold}, search_type={search_type}, fetch_k={fetch_k}")
             
-            # 检查向量存储初始化
             if not self.vector_store:
                 self.log_error("搜索失败：向量存储未初始化")
                 trigger_callback('error', 
@@ -407,61 +367,14 @@ class VectorStoreService(BaseService):
                                error="向量存储未初始化")
                 return []
             
-            # 构建缓存键：包含所有搜索参数
-            cache_key = f"{query}:{k}:{score_threshold}:{search_type}:{fetch_k}"
-            current_time = time.time()
-            
-            # 检查缓存
-            if cache_key in self._query_cache:
-                cached_result, cache_time = self._query_cache[cache_key]
-                # 检查缓存是否过期
-                if current_time - cache_time < self._CACHE_TTL:
-                    self.log_debug(f"查询缓存命中: {query[:50]}...")
-                    trigger_callback('search_end', 
-                                   query=query[:50] + "..." if len(query) > 50 else query,
-                                   result_count=len(cached_result),
-                                   cache_hit=True)
-                    return cached_result
-                else:
-                    # 缓存过期，移除
-                    del self._query_cache[cache_key]
-                    self.log_debug(f"查询缓存过期: {query[:50]}...")
-            
-            result = []
-            
-            # 根据搜索类型执行不同的搜索方法
-            if search_type == "mmr":
-                # 使用最大边缘相关性搜索
-                self.log_info(f"执行MMR搜索，k={k}, fetch_k={fetch_k}")
-                result = self.vector_store.max_marginal_relevance_search(
-                    query=query,
-                    k=k,
-                    fetch_k=fetch_k
-                )
-            elif search_type == "similarity_score_threshold" and score_threshold is not None:
-                # 使用带分数阈值的相似性搜索
-                self.log_info(f"执行带分数阈值的相似性搜索，k={k}, 分数阈值={score_threshold}")
-                result = self.vector_store.similarity_search_with_score(
-                    query=query,
-                    k=k,
-                    score_threshold=score_threshold
-                )
-                # 只保留文档，不保留分数
-                result = [doc for doc, _ in result]
-            elif score_threshold is not None:
-                # 执行带分数的相似性搜索并手动过滤
-                self.log_info(f"执行带分数的相似性搜索，k={k}, 分数阈值={score_threshold}")
-                results_with_scores = self.vector_store.similarity_search_with_score(query, k=k)
-                
-                # 过滤结果
-                result = []
-                for doc, score in results_with_scores:
-                    if score <= score_threshold:
-                        result.append(doc)
-            else:
-                # 执行普通相似性搜索
-                self.log_info(f"执行普通相似性搜索，k={k}")
-                result = self.vector_store.similarity_search(query, k=k)
+            # 使用Repository搜索文档
+            result = self.vector_repository.search_documents(
+                query=query,
+                k=k,
+                score_threshold=score_threshold,
+                search_type=search_type,
+                fetch_k=fetch_k
+            )
             
             self.log_info(f"搜索完成，找到 {len(result)} 个相关文档")
             
@@ -470,9 +383,6 @@ class VectorStoreService(BaseService):
                            query=query[:50] + "..." if len(query) > 50 else query,
                            result_count=len(result),
                            cache_hit=False)
-            
-            # 更新缓存
-            self._update_cache(cache_key, result, current_time)
             
             return result
         except Exception as e:

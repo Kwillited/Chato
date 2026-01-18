@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector.vector_store_service import VectorStoreService
 from app.core.config import config_manager
 from app.services.base_service import BaseService
 
@@ -96,12 +96,10 @@ class LangChainRAGService(BaseService):
             )
             
             if results:
-                # 构建增强上下文
-                context = "\n".join([
-                    f"参考文档{i+1}：{doc.page_content[:200]}..." 
-                    for i, doc in enumerate(results)
-                ])
-                return f"参考文档：{context}\n问题：{question}"
+                # 使用生成服务的build_prompt方法构建提示，避免重复实现
+                from app.services.rag.generation_service import GenerationService
+                generation_service = GenerationService()
+                return generation_service.build_prompt(question, results)
             
             return question
         except Exception as e:
