@@ -168,15 +168,15 @@ class ChatService(BaseService):
         """更新对话置顶状态"""
         try:
             # 获取当前对话信息
-            chat_row = self.chat_repo.get_chat_by_id(chat_id)
-            if not chat_row:
+            chat = self.chat_repo.get_chat_by_id(chat_id)
+            if not chat:
                 return False
             
             # 处理可能的字段缺失情况
-            chat_id = chat_row[0]
-            title = chat_row[1] if len(chat_row) > 1 else '未命名对话'
-            preview = chat_row[2] if len(chat_row) > 2 else ''
-            created_at = chat_row[3] if len(chat_row) > 3 else datetime.now().isoformat()
+            chat_id = chat.id
+            title = chat.title or '未命名对话'
+            preview = chat.preview or ''
+            created_at = chat.created_at or datetime.now().isoformat()
             updated_at = datetime.now().isoformat()
             
             # 更新数据库中的对话置顶状态
@@ -184,10 +184,10 @@ class ChatService(BaseService):
             
             # 更新内存数据库中的对话
             chats = DataService.get_chats()
-            for chat in chats:
-                if chat['id'] == chat_id:
-                    chat['pinned'] = bool(pinned)
-                    chat['updatedAt'] = updated_at
+            for chat_item in chats:
+                if chat_item['id'] == chat_id:
+                    chat_item['pinned'] = bool(pinned)
+                    chat_item['updatedAt'] = updated_at
                     break
             
             return True
