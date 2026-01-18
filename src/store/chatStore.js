@@ -635,7 +635,8 @@ export const useChatStore = defineStore('chat', {
         console.log('API调用成功，响应:', response);
         
         if (response && response.chats) {
-          this.chats = response.chats;
+          // 确保chats是数组
+          this.chats = Array.isArray(response.chats) ? response.chats : [];
           
           // 确保数据一致性
           this.ensureDataIntegrity();

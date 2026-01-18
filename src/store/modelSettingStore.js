@@ -94,7 +94,8 @@ export const useModelSettingStore = defineStore('modelSetting', {
         
         // 从后端加载模型列表
         const response = await apiService.models.getModels();
-        this.models = response.models || [];
+        // 确保models是数组
+        this.models = Array.isArray(response.models) ? response.models : [];
         
         // 更新可用模型列表
         this.updateAvailableModels();

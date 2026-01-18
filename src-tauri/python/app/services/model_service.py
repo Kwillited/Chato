@@ -25,32 +25,34 @@ class ModelService(BaseService):
             
             # 从数据库加载所有模型版本
             models = []
-            for model_row in db_models:
-                model_id = model_row[0]
-                name = model_row[1]
-                description = model_row[2]
-                configured = bool(model_row[3])
-                enabled = bool(model_row[4])
-                icon_class = model_row[5]
-                icon_bg = model_row[6]
-                icon_color = model_row[7]
-                icon_url = model_row[8]
-                icon_blob = model_row[9]
+            for model in db_models:
+                # 直接访问对象属性，而不是使用下标访问
+                model_id = model.id
+                name = model.name
+                description = model.description
+                configured = bool(model.configured)
+                enabled = bool(model.enabled)
+                icon_class = model.icon_class
+                icon_bg = model.icon_bg
+                icon_color = model.icon_color
+                icon_url = model.icon_url
+                icon_blob = model.icon_blob
                 
                 # 获取模型版本
                 versions = self.model_repo.get_model_versions(model_id)
                 version_list = []
-                for version_row in versions:
+                for version in versions:
+                    # 直接访问对象属性，而不是使用下标访问
                     version_list.append({
-                        'version_name': version_row[3],
-                        'custom_name': version_row[4],
-                        'api_key': version_row[5],
-                        'api_base_url': version_row[6],
-                        'streaming_config': bool(version_row[7])
+                        'version_name': version.version_name,
+                        'custom_name': version.custom_name,
+                        'api_key': version.api_key,
+                        'api_base_url': version.api_base_url,
+                        'streaming_config': bool(version.streaming_config)
                     })
                 
                 # 构建模型对象
-                model = {
+                model_dict = {
                     'name': name,
                     'description': description,
                     'configured': configured,
@@ -67,13 +69,13 @@ class ModelService(BaseService):
                 db_model = DataService.get_model_by_name(name)
                 if db_model:
                     # 更新现有模型
-                    db_model.update(model)
+                    db_model.update(model_dict)
                 else:
                     # 添加新模型
-                    DataService.get_models().append(model)
+                    DataService.get_models().append(model_dict)
                 
                 # 过滤掉icon_blob字段，避免JSON序列化错误
-                filtered_model = {k: v for k, v in model.items() if k != 'icon_blob'}
+                filtered_model = {k: v for k, v in model_dict.items() if k != 'icon_blob'}
                 models.append(filtered_model)
             
             return models

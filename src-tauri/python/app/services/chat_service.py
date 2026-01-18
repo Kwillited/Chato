@@ -29,8 +29,9 @@ class ChatService(BaseService):
             chats = self.chat_repo.get_all_chats()
             
             chat_list = []
-            for chat_row in chats:
-                chat_id = chat_row[0]
+            for chat in chats:
+                # 直接访问对象属性，而不是使用下标访问
+                chat_id = chat.id
                 
                 # 获取对话的所有消息
                 messages = self.message_repo.get_messages_by_chat_id(chat_id)
@@ -39,7 +40,7 @@ class ChatService(BaseService):
                 formatted_messages = build_message_list(messages)
                 
                 # 使用公共函数构建对话字典
-                chat_dict = build_chat_dict(chat_row, formatted_messages)
+                chat_dict = build_chat_dict(chat, formatted_messages)
                 
                 # 添加对话到列表
                 chat_list.append(chat_dict)
