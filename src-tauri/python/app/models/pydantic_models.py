@@ -111,7 +111,7 @@ class FileInfo(BaseModel):
 
 class SendMessageRequest(BaseModel):
     """发送消息请求模型"""
-    message: str = Field(..., min_length=1, description="消息内容")
+    message: str = Field("", description="消息内容")
     model: str = Field(..., description="模型名称")
     modelParams: Optional[ModelParam] = Field(default_factory=ModelParam)
     ragConfig: Optional[RAGConfig] = Field(default_factory=RAGConfig)

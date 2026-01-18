@@ -418,7 +418,7 @@ export const useChatStore = defineStore('chat', {
           }
         } else {
           // 使用普通消息发送
-          const response = await apiService.chat.sendMessage(
+          let response = await apiService.chat.sendMessage(
             currentChat.id,         // chatId
             content.trim(),         // message
             this.uploadedFiles,     // files
@@ -431,6 +431,14 @@ export const useChatStore = defineStore('chat', {
             }
           );
           
+          // 添加调试日志，查看实际响应格式
+          console.log('非流式API响应:', JSON.stringify(response, null, 2));
+          
+          // 修复：处理API返回的数组格式 [response_data, status_code]
+          if (Array.isArray(response) && response.length >= 1) {
+            response = response[0]; // 获取实际的响应数据对象
+          }
+          
           // 更新之前添加的typing消息，替换为实际的AI回复
           const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
           if (typingMessageIndex !== -1) {
@@ -439,11 +447,26 @@ export const useChatStore = defineStore('chat', {
           }
           
           // 添加AI回复，并使用ref包装
-          if (response && response.ai_message && response.ai_message.content) {
+          if (response && response.error) {
+            // 处理后端返回的错误响应
             const aiMessageRef = ref({
               id: generateId('msg'),
               role: 'ai',
-              content: response.ai_message.content,
+              content: '',
+              timestamp: Date.now(),
+              error: `⚠️ 发送失败: ${response.error}`,
+              status: 'error',
+              isTyping: false,
+            });
+            
+            currentChat.messages.push(aiMessageRef);
+            currentChat.updatedAt = Date.now();
+          } else if (response && response.ai_message) {
+            // 确保ai_message存在，无论content是否为空
+            const aiMessageRef = ref({
+              id: generateId('msg'),
+              role: 'ai',
+              content: response.ai_message.content || '（空回复）', // 处理空内容情况
               timestamp: Date.now(),
               status: 'received',
               isTyping: false,
@@ -474,12 +497,14 @@ export const useChatStore = defineStore('chat', {
               this.playNotificationSound();
             }
           } else {
+            // 处理其他情况，显示更详细的调试信息
             const aiMessageRef = ref({
               id: generateId('msg'),
               role: 'ai',
-              content: '抱歉，未能获取到AI回复。',
+              content: '',
               timestamp: Date.now(),
-              status: 'received',
+              error: `⚠️ 发送失败: 无效的API响应格式 ${JSON.stringify(response)}`,
+              status: 'error',
               isTyping: false,
             });
             

@@ -673,8 +673,12 @@ class ChatService(BaseService):
             from app.models.model_manager import ModelManager
             response = ModelManager.chat(parsed_model_name, model, version_config, messages, temperature)
             
-            # 获取模型回复内容
-            ai_reply = response['content']
+            # 获取模型回复内容 - 处理不同返回格式
+            if isinstance(response, dict) and 'content' in response:
+                ai_reply = response['content']
+            else:
+                # 直接返回字符串的情况
+                ai_reply = response
         except Exception as e:
             # 捕获所有异常并返回错误信息
             BaseService.log_error(f'调用模型失败: {str(e)}')
