@@ -25,7 +25,14 @@ class ChatService(BaseService):
     def get_chats(self):
         """获取所有对话"""
         try:
-            # 先从数据库加载最新数据
+            # 先从内存数据库获取对话
+            memory_chats = DataService.get_chats()
+            
+            # 如果内存中有对话数据，直接返回
+            if memory_chats:
+                return memory_chats
+            
+            # 内存中没有对话数据，从SQLite数据库加载
             chats = self.chat_repo.get_all_chats()
             
             chat_list = []
@@ -63,9 +70,6 @@ class ChatService(BaseService):
             
             title = title or '新对话'
             
-            # 使用Repository插入到SQLite数据库
-            self.chat_repo.create_chat(chat_id, title, '', now, now)
-            
             # 创建对话对象
             new_chat = {
                 'id': chat_id,
@@ -76,14 +80,22 @@ class ChatService(BaseService):
                 'messages': []
             }
             
-            # 更新内存数据库
+            # 先更新内存数据库
             DataService.add_chat(new_chat)
+            
+            # 再保存到SQLite数据库
+            self.chat_repo.create_chat(chat_id, title, '', now, now)
             
             return new_chat
         except Exception as e:
             # 使用BaseService的日志方法
             BaseService.log_error(f"创建对话失败: {str(e)}")
-            # 回退到内存操作
+            # 尝试从内存中移除（如果已添加）
+            try:
+                DataService.remove_chat(chat_id)
+            except:
+                pass
+            # 重新创建并只保存到内存
             chat_id = str(uuid.uuid4())
             now = datetime.now().isoformat()
             title = title or '新对话'
@@ -133,63 +145,79 @@ class ChatService(BaseService):
     def delete_chat(self, chat_id):
         """删除单个对话记录（按ID）"""
         try:
-            # 从数据库中删除对话（级联删除消息）
-            self.chat_repo.delete_chat(chat_id)
-            
-            # 更新内存数据库
+            # 先从内存数据库中删除
             DataService.remove_chat(chat_id)
+            
+            # 再从SQLite数据库中删除对话（级联删除消息）
+            self.chat_repo.delete_chat(chat_id)
             
             return True
         except Exception as e:
             # 使用BaseService的日志方法
             BaseService.log_error(f"删除对话失败: {str(e)}")
-            # 尝试从内存中删除
-            DataService.remove_chat(chat_id)
+            # 尝试重新添加到内存（如果删除SQLite失败）
+            try:
+                # 从SQLite重新加载该对话
+                chat = self.get_chat(chat_id)
+                if chat:
+                    DataService.add_chat(chat)
+            except:
+                pass
             return True
 
     def delete_all_chats(self):
         """删除所有对话记录"""
         try:
-            # 从数据库中删除所有对话和消息
+            # 先清空内存中的对话数据
+            DataService.clear_chats()
+            
+            # 再从数据库中删除所有对话和消息
             self.message_repo.delete_all_messages()
             self.chat_repo.delete_all_chats()
-            
-            # 清空内存中的对话数据
-            DataService.clear_chats()
             
             return True
         except Exception as e:
             # 使用BaseService的日志方法
             BaseService.log_error(f"删除所有对话失败: {str(e)}")
-            # 尝试清空内存
-            DataService.clear_chats()
+            # 尝试从SQLite重新加载数据（如果删除SQLite失败）
+            try:
+                # 重新加载所有对话到内存
+                self.get_chats()
+            except:
+                pass
             return True
     
     def update_chat_pin(self, chat_id, pinned):
         """更新对话置顶状态"""
         try:
-            # 获取当前对话信息
-            chat = self.chat_repo.get_chat_by_id(chat_id)
+            # 先从内存获取对话信息
+            chat = DataService.get_chat_by_id(chat_id)
             if not chat:
-                return False
+                # 如果内存中没有，从SQLite加载
+                chat_row = self.chat_repo.get_chat_by_id(chat_id)
+                if not chat_row:
+                    return False
+                # 获取对话的所有消息
+                messages = self.message_repo.get_messages_by_chat_id(chat_id)
+                # 构建对话字典并添加到内存
+                formatted_messages = build_message_list(messages)
+                chat_dict = build_chat_dict(chat_row, formatted_messages)
+                DataService.get_chats().append(chat_dict)
+                chat = chat_dict
             
-            # 处理可能的字段缺失情况
-            chat_id = chat.id
-            title = chat.title or '未命名对话'
-            preview = chat.preview or ''
-            created_at = chat.created_at or datetime.now().isoformat()
+            # 更新内存中的对话
             updated_at = datetime.now().isoformat()
+            chat['pinned'] = bool(pinned)
+            chat['updatedAt'] = updated_at
             
-            # 更新数据库中的对话置顶状态
-            self.chat_repo.update_chat(chat_id, title, preview, updated_at, int(pinned))
-            
-            # 更新内存数据库中的对话
-            chats = DataService.get_chats()
-            for chat_item in chats:
-                if chat_item['id'] == chat_id:
-                    chat_item['pinned'] = bool(pinned)
-                    chat_item['updatedAt'] = updated_at
-                    break
+            # 再更新SQLite数据库
+            self.chat_repo.update_chat(
+                chat_id=chat['id'],
+                title=chat['title'] or '未命名对话',
+                preview=chat.get('preview', ''),
+                updated_at=updated_at,
+                pinned=int(pinned)
+            )
             
             return True
         except Exception as e:
@@ -366,6 +394,11 @@ class ChatService(BaseService):
         
         logger.debug(f"开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
         
+        # 先设置脏标记，确保数据会被保存
+        DataService.set_dirty_flag('chats', True)
+        logger.debug(f"设置脏标记: chats=True")
+        
+        # 先更新内存中的对话
         # 更新对话的更新时间
         chat['updatedAt'] = now
         
@@ -389,16 +422,20 @@ class ChatService(BaseService):
                 chat['title'] = new_title
                 logger.debug(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
         
+        # 保存AI消息到内存（如果存在）
+        if ai_message:
+            ai_msg_id = ai_message['id']
+            # 添加AI回复到对话（内存）
+            chat['messages'].append(ai_message)
+            logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
+        
         try:
             # 开始事务
             from app.core.database import get_db
             db_session = next(get_db())
             logger.debug(f"开始事务: chat_id={chat_id}")
             
-            # 先设置脏标记，确保数据会被保存
-            DataService.set_dirty_flag('chats', True)
-            logger.debug(f"设置脏标记: chats=True")
-            
+            # 再保存到SQLite数据库
             # 检查用户消息是否已经存在于数据库中，避免重复保存
             existing_user_message = self.message_repo.get_message_by_id(user_message['id'])
             if not existing_user_message:
@@ -421,10 +458,6 @@ class ChatService(BaseService):
             # 保存AI消息到数据库（如果存在）
             if ai_message:
                 ai_msg_id = ai_message['id']
-                # 添加AI回复到对话（内存）
-                chat['messages'].append(ai_message)
-                logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
-                
                 # 检查AI消息是否已经存在于数据库中，避免重复保存
                 existing_ai_message = self.message_repo.get_message_by_id(ai_msg_id)
                 if not existing_ai_message:
@@ -446,7 +479,7 @@ class ChatService(BaseService):
                 else:
                     logger.info(f"⚠️ AI消息已存在，跳过保存: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
             
-            # 更新对话信息
+            # 更新对话信息到数据库
             logger.debug(f"更新对话信息: chat_id={chat_id}, title={new_title}")
             self.chat_repo.update_chat(
                 chat_id=chat['id'],

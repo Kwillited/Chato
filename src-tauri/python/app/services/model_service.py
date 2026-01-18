@@ -20,7 +20,19 @@ class ModelService(BaseService):
     def get_all_models(self):
         """获取所有模型供应商以及模型版本"""
         try:
-            # 从数据库加载最新数据
+            # 先从内存数据库获取模型
+            memory_models = DataService.get_models()
+            
+            # 如果内存中有模型数据，直接返回
+            if memory_models:
+                # 过滤掉icon_blob字段，避免JSON序列化错误
+                models = []
+                for model in memory_models:
+                    filtered_model = {k: v for k, v in model.items() if k != 'icon_blob'}
+                    models.append(filtered_model)
+                return models
+            
+            # 内存中没有模型数据，从SQLite数据库加载
             db_models = self.model_repo.get_all_models()
             
             # 从数据库加载所有模型版本
@@ -101,16 +113,16 @@ class ModelService(BaseService):
             元组: (成功标志, 消息, 模型对象)
         """
         try:
-            # 从数据库获取模型信息，确保使用最新数据
-            model_row = self.model_repo.get_model_by_name(model_name)
-            if not model_row:
-                return False, '模型不存在', None
-            
             # 查找匹配名称的模型
             model = DataService.get_model_by_name(model_name)
             
             # 如果内存数据库中找不到模型，从数据库构建模型对象并添加到内存数据库
             if not model:
+                # 从数据库获取模型信息
+                model_row = self.model_repo.get_model_by_name(model_name)
+                if not model_row:
+                    return False, '模型不存在', None
+                
                 # 构建模型对象
                 model_id = model_row.id
                 name = model_row.name
@@ -194,7 +206,14 @@ class ModelService(BaseService):
             if is_first_configuration:
                 model['enabled'] = True
             
-            # 更新数据库中的模型信息
+            # 先设置脏标记，确保数据会被保存
+            DataService.set_dirty_flag('models')
+            
+            # 从数据库获取模型ID（用于后续数据库更新）
+            model_row = self.model_repo.get_model_by_name(model_name)
+            model_id = model_row.id
+            
+            # 再更新数据库中的模型信息
             self.model_repo.update_model(
                 name=model['name'],
                 description=model['description'],
@@ -208,7 +227,6 @@ class ModelService(BaseService):
             )
             
             # 更新或创建模型版本
-            model_id = model_row.id  # 从SQLAlchemy模型对象获取模型ID
             self.model_repo.update_model_version(
                 model_id=model_id,
                 version_name=version['version_name'],
@@ -217,9 +235,6 @@ class ModelService(BaseService):
                 api_base_url=version.get('api_base_url', ''),
                 streaming_config=version.get('streaming_config', False)
             )
-            
-            # 设置脏标记，确保数据被保存
-            DataService.set_dirty_flag('models')
             
             # 过滤掉icon_blob字段，避免JSON序列化错误
             filtered_model = {k: v for k, v in model.items() if k != 'icon_blob'}
@@ -240,16 +255,17 @@ class ModelService(BaseService):
             元组: (成功标志, 消息)
         """
         try:
-            # 从数据库获取模型信息，确保使用最新数据
-            model_row = self.model_repo.get_model_by_name(model_name)
-            if not model_row:
-                return False, '模型不存在'
-            
             # 查找匹配名称的模型
             model = DataService.get_model_by_name(model_name)
             if not model:
                 return False, '模型不存在'
             
+            # 从数据库获取模型信息
+            model_row = self.model_repo.get_model_by_name(model_name)
+            if not model_row:
+                return False, '模型不存在'
+            
+            # 先更新内存中的模型配置
             # 清空versions数组
             if 'versions' in model:
                 model['versions'] = []
@@ -260,7 +276,10 @@ class ModelService(BaseService):
                 'enabled': False
             })
             
-            # 更新数据库中的模型信息
+            # 设置脏标记，确保数据会被保存
+            DataService.set_dirty_flag('models')
+            
+            # 再更新数据库中的模型信息
             self.model_repo.update_model(
                 name=model['name'],
                 description=model['description'],
@@ -278,9 +297,6 @@ class ModelService(BaseService):
             versions = self.model_repo.get_model_versions(model_id)
             for version in versions:
                 self.model_repo.delete_model_version(model_id, version.version_name)
-            
-            # 设置脏标记，确保数据被保存
-            DataService.set_dirty_flag('models')
             
             return True, f'模型 {model_name} 配置已删除'
         except Exception as e:
@@ -300,20 +316,60 @@ class ModelService(BaseService):
             元组: (成功标志, 消息)
         """
         try:
-            # 从数据库获取模型信息，确保使用最新数据
-            model_row = self.model_repo.get_model_by_name(model_name)
-            if not model_row:
-                return False, '模型不存在'
-            
-            # 查找匹配名称的模型
+            # 先从内存获取模型
             model = DataService.get_model_by_name(model_name)
             if not model:
-                return False, '模型不存在'
+                # 如果内存中没有，从SQLite加载
+                model_row = self.model_repo.get_model_by_name(model_name)
+                if not model_row:
+                    return False, '模型不存在'
+                
+                # 构建模型对象
+                model_id = model_row.id
+                name = model_row.name
+                description = model_row.description
+                configured = bool(model_row.configured)
+                enabled = bool(model_row.enabled)
+                icon_class = model_row.icon_class
+                icon_bg = model_row.icon_bg
+                icon_color = model_row.icon_color
+                icon_url = model_row.icon_url
+                icon_blob = model_row.icon_blob
+                
+                # 获取模型版本
+                versions = self.model_repo.get_model_versions(model_id)
+                version_list = []
+                for version_row in versions:
+                    version_list.append({
+                        'version_name': version_row.version_name,
+                        'custom_name': version_row.custom_name,
+                        'api_key': version_row.api_key,
+                        'api_base_url': version_row.api_base_url,
+                        'streaming_config': bool(version_row.streaming_config)
+                    })
+                
+                # 创建模型对象并添加到内存
+                model = {
+                    'name': name,
+                    'description': description,
+                    'configured': configured,
+                    'enabled': enabled,
+                    'icon_class': icon_class,
+                    'icon_bg': icon_bg,
+                    'icon_color': icon_color,
+                    'icon_url': icon_url,
+                    'icon_blob': icon_blob,
+                    'versions': version_list
+                }
+                DataService.get_models().append(model)
             
-            # 更新模型启用状态
+            # 先更新内存中的模型启用状态
             model['enabled'] = enabled
             
-            # 更新数据库中的模型信息
+            # 设置脏标记，确保数据会被保存
+            DataService.set_dirty_flag('models')
+            
+            # 再更新数据库中的模型信息
             self.model_repo.update_model(
                 name=model['name'],
                 description=model['description'],
@@ -325,9 +381,6 @@ class ModelService(BaseService):
                 icon_url=model['icon_url'],
                 icon_blob=model.get('icon_blob', None)
             )
-            
-            # 设置脏标记，确保数据被保存
-            DataService.set_dirty_flag('models')
             
             return True, f'模型 {model_name} 启用状态已更新'
         except Exception as e:
@@ -347,15 +400,52 @@ class ModelService(BaseService):
             元组: (成功标志, 消息, 模型对象)
         """
         try:
-            # 从数据库获取模型信息，确保使用最新数据
-            model_row = self.model_repo.get_model_by_name(model_name)
-            if not model_row:
-                return False, '模型不存在', None
-            
-            # 查找匹配名称的模型
+            # 先从内存获取模型
             model = DataService.get_model_by_name(model_name)
             if not model:
-                return False, '模型不存在', None
+                # 如果内存中没有，从SQLite加载
+                model_row = self.model_repo.get_model_by_name(model_name)
+                if not model_row:
+                    return False, '模型不存在', None
+                
+                # 构建模型对象
+                model_id = model_row.id
+                name = model_row.name
+                description = model_row.description
+                configured = bool(model_row.configured)
+                enabled = bool(model_row.enabled)
+                icon_class = model_row.icon_class
+                icon_bg = model_row.icon_bg
+                icon_color = model_row.icon_color
+                icon_url = model_row.icon_url
+                icon_blob = model_row.icon_blob
+                
+                # 获取模型版本
+                versions = self.model_repo.get_model_versions(model_id)
+                version_list = []
+                for version_row in versions:
+                    version_list.append({
+                        'version_name': version_row.version_name,
+                        'custom_name': version_row.custom_name,
+                        'api_key': version_row.api_key,
+                        'api_base_url': version_row.api_base_url,
+                        'streaming_config': bool(version_row.streaming_config)
+                    })
+                
+                # 创建模型对象并添加到内存
+                model = {
+                    'name': name,
+                    'description': description,
+                    'configured': configured,
+                    'enabled': enabled,
+                    'icon_class': icon_class,
+                    'icon_bg': icon_bg,
+                    'icon_color': icon_color,
+                    'icon_url': icon_url,
+                    'icon_blob': icon_blob,
+                    'versions': version_list
+                }
+                DataService.get_models().append(model)
             
             # 检查模型是否有versions数组
             if 'versions' not in model or not model['versions']:
@@ -366,7 +456,7 @@ class ModelService(BaseService):
             if version_index is None:
                 return False, '版本不存在', None
             
-            # 从versions数组中删除该版本
+            # 先从内存的versions数组中删除该版本
             del model['versions'][version_index]
 
             # 如果模型没有版本了，设置为未配置
@@ -374,7 +464,14 @@ class ModelService(BaseService):
                 model['configured'] = False
                 model['enabled'] = False
             
-            # 更新数据库中的模型信息
+            # 设置脏标记，确保数据会被保存
+            DataService.set_dirty_flag('models')
+            
+            # 从数据库获取模型ID
+            model_row = self.model_repo.get_model_by_name(model_name)
+            model_id = model_row.id
+            
+            # 再更新数据库中的模型信息
             self.model_repo.update_model(
                 name=model['name'],
                 description=model['description'],
@@ -388,11 +485,7 @@ class ModelService(BaseService):
             )
             
             # 从数据库中删除模型版本
-            model_id = model_row.id  # 从SQLAlchemy模型对象获取模型ID
             self.model_repo.delete_model_version(model_id, version_name)
-            
-            # 设置脏标记，确保数据被保存
-            DataService.set_dirty_flag('models')
             
             # 过滤掉icon_blob字段，避免JSON序列化错误
             filtered_model = {k: v for k, v in model.items() if k != 'icon_blob'}

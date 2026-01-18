@@ -39,11 +39,11 @@ class SettingService(BaseService):
         # 合并通知设置
         DataService.get_settings()['notification'].update(data)
         
-        # 使用Repository保存设置到数据库
-        self.setting_repo.create_or_update_setting('notification', DataService.get_settings()['notification'])
-        
-        # 设置脏标记
+        # 先设置脏标记
         DataService.set_dirty_flag('settings')
+        
+        # 再使用Repository保存设置到数据库
+        self.setting_repo.create_or_update_setting('notification', DataService.get_settings()['notification'])
         
         return DataService.get_settings()['notification']
     
@@ -69,11 +69,11 @@ class SettingService(BaseService):
         # 合并MCP设置
         DataService.get_settings()['mcp'].update(data)
         
-        # 使用Repository保存设置到数据库
-        self.setting_repo.create_or_update_setting('mcp', DataService.get_settings()['mcp'])
-        
-        # 设置脏标记
+        # 先设置脏标记
         DataService.set_dirty_flag('settings')
+        
+        # 再使用Repository保存设置到数据库
+        self.setting_repo.create_or_update_setting('mcp', DataService.get_settings()['mcp'])
         
         return DataService.get_settings()['mcp']
     
@@ -95,11 +95,11 @@ class SettingService(BaseService):
         # 合并基本设置
         DataService.get_settings()['system'].update(data)
         
-        # 使用Repository保存设置到数据库
-        self.setting_repo.create_or_update_setting('system', DataService.get_settings()['system'])
-        
-        # 设置脏标记
+        # 先设置脏标记
         DataService.set_dirty_flag('settings')
+        
+        # 再使用Repository保存设置到数据库
+        self.setting_repo.create_or_update_setting('system', DataService.get_settings()['system'])
         
         return DataService.get_settings()['system']
     
