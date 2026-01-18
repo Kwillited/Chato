@@ -352,6 +352,7 @@ export const apiService = {
             return {
               name: file.name,
               content: content,
+              type: file.type,  // 保留文件类型
               size: file.size  // 保留文件大小
             };
           }

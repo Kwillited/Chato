@@ -78,8 +78,8 @@
               <div
                 v-for="chat in group.chats"
                 :key="chat.id"
-                class="p-2 rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:bg-gray-50 dark:hover:bg-dark-bg-tertiary hover:shadow-md hover:-translate-y-0.5 min-h-9 flex items-center relative focus-within:outline-2 focus-within:outline-primary focus-within:outline-offset-2"
-                :class="{ 'font-semibold': isActiveChat(chat.id), pinned: chat.pinned }"
+                class="p-2 rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-dark-500 hover:shadow-md hover:-translate-y-0.5 min-h-9 flex items-center relative focus-within:outline-2 focus-within:outline-gray-400 dark:focus-within:outline-gray-500 focus-within:outline-offset-2"
+                :class="{ 'font-semibold bg-gray-200 dark:bg-dark-500': isActiveChat(chat.id), pinned: chat.pinned }"
                 @click="handleChatSelect(chat.id)"
               >
                 <div class="flex items-center w-full">
@@ -392,8 +392,15 @@ const handleDeleteAllConfirm = async () => {
 const handleDeleteChat = async (chatId) => {
   console.log('删除对话:', chatId);
   try {
+    const wasCurrentChat = chatStore.currentChatId === chatId;
     await chatStore.deleteChat(chatId);
     showNotification('对话已删除', 'success');
+    
+    // 检查是否删除了最后一个对话
+    if (chatStore.chats.length === 0 || (wasCurrentChat && chatStore.chats.length === 0)) {
+      // 切换回sendMessageContent视图
+      settingsStore.setActiveContent('sendMessage');
+    }
   } catch (error) {
     showNotification('删除失败: ' + error.message, 'error');
   }

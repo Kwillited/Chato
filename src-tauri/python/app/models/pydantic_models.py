@@ -107,6 +107,7 @@ class FileInfo(BaseModel):
     name: str
     content: str
     type: Optional[str] = None
+    size: Optional[int] = None
 
 
 class SendMessageRequest(BaseModel):

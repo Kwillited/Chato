@@ -703,16 +703,15 @@ const handleCancelStreaming = () => {
 
 // 检查是否有活动的流式输出
 const checkForActiveStreaming = () => {
-  if (!settingsStore.systemSettings.streamingEnabled) {
-    hasActiveStreaming.value = false;
-    return;
-  }
-  
   const currentMessages = chatStore.currentChatMessages;
   if (currentMessages.length > 0) {
     const lastMessage = currentMessages[currentMessages.length - 1];
     const messageData = lastMessage?.value || lastMessage;
-    hasActiveStreaming.value = messageData?.status === 'streaming' || messageData?.isTyping === true;
+    
+    // 无论是否启用流式输出，都要检查isTyping状态
+    // 只有启用流式输出时，才检查streaming状态
+    hasActiveStreaming.value = messageData?.isTyping === true || 
+                              (settingsStore.systemSettings.streamingEnabled && messageData?.status === 'streaming');
   } else {
     hasActiveStreaming.value = false;
   }
@@ -905,6 +904,23 @@ const handleClickOutside = (event) => {
 // 生命周期钩子
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  
+  // 立即检查isTyping状态，确保按钮显示正确
+  checkForActiveStreaming();
+  
+  // 监听chatStore.isLoading状态变化，立即更新按钮状态
+  watch(
+    () => chatStore.isLoading,
+    () => {
+      // 无论isLoading状态如何变化，都立即检查isTyping状态
+      checkForActiveStreaming();
+    }
+  );
+  
+  // 额外添加一个定时器，确保在组件完全渲染后再次检查状态
+  setTimeout(() => {
+    checkForActiveStreaming();
+  }, 0);
 });
 
 onUnmounted(() => {

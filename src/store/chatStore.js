@@ -163,6 +163,11 @@ export const useChatStore = defineStore('chat', {
       const currentChat = this.currentChat;
       if (!currentChat) return;
 
+      // 立即设置isLoading为true，确保按钮状态立即更新
+      this.isLoading = true;
+      this.messageInput = '';
+      this.clearError();
+
       // 添加用户消息，并使用ref包装确保完整响应式
       const userMessageRef = ref({
         id: generateId('msg'),
@@ -193,10 +198,9 @@ export const useChatStore = defineStore('chat', {
         model: model // 使用传入的model参数，避免显示默认的"NeoVAI"
       });
       currentChat.messages.push(typingMessageRef);
-
-      this.isLoading = true;
-      this.messageInput = '';
-      this.clearError();
+      
+      // 强制更新currentChat，确保所有组件都能感知到变化
+      this.currentChat = { ...this.currentChat };
 
       try {
         // 获取store实例
@@ -569,6 +573,11 @@ export const useChatStore = defineStore('chat', {
             } else {
               this.currentChatId = null;
             }
+          }
+          
+          // 新增：无论删除的是不是当前对话，只要删除后chats数组为空，就将currentChatId设置为null
+          if (this.chats.length === 0) {
+            this.currentChatId = null;
           }
         }
       } catch (error) {

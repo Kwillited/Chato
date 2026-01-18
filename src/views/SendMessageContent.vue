@@ -169,11 +169,11 @@ const handleSendMessage = async (message, model, deepThinking = false, webSearch
       await chatStore.createNewChat(model);
     }
     
-    // 使用store方法切换到ChatContent视图
-    settingsStore.setActiveContent('chat');
-    
-    // 然后发送消息（此时视图已切换，用户可以看到实时效果）
+    // 先发送消息，确保isTyping消息立即添加
     chatStore.sendMessage(message, model, deepThinking, webSearchEnabled);
+    
+    // 然后切换到ChatContent视图（此时isTyping消息已经添加，用户可以看到AI正在输入）
+    settingsStore.setActiveContent('chat');
   }
 };
 </script>
