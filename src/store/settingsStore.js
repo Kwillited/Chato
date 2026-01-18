@@ -327,7 +327,45 @@ export const useSettingsStore = defineStore('settings', {
       }
     },
 
-    // 从存储中加载设置
+    // 仅从存储中加载设置，不请求API
+    async loadSettingsFromStorageOnly() {
+      try {
+        this.setLoading(true);
+        
+        // 只从localStorage加载设置，不请求API
+        const savedSettings = StorageManager.getItem(STORAGE_KEYS.SETTINGS);
+        if (savedSettings) {
+          this.mergeSavedSettings(savedSettings);
+        }
+
+        // 应用保存的设置
+        this.applyDarkMode();
+        if (this.systemSettings.fontSize) {
+          document.documentElement.style.fontSize = `${this.systemSettings.fontSize}px`;
+        }
+        if (this.systemSettings.fontFamily) {
+          document.body.style.fontFamily = this.systemSettings.fontFamily;
+        }
+
+        // 确保activePanel和ragConfig.enabled状态一致
+        if (this.ragConfig.enabled && this.activePanel !== 'rag') {
+          this.activePanel = 'rag';
+        } else if (!this.ragConfig.enabled && this.activePanel === 'rag') {
+          this.activePanel = 'history';
+        }
+
+        // 记录最后使用时间
+        this.updateLastUsedTime();
+      } catch (error) {
+        console.error('仅从存储加载设置失败:', error);
+        // 加载失败时使用默认设置
+        this.resetSettings();
+      } finally {
+        this.setLoading(false);
+      }
+    },
+
+    // 从存储中加载设置（包含API请求）
     async loadSettings() {
       try {
         this.setLoading(true);

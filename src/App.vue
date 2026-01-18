@@ -65,9 +65,6 @@ import { apiService } from './services/apiService.js';
 
 // 初始化应用
 onMounted(async () => {
-  // 加载用户设置和数据
-  settingsStore.loadSettings();
-  
   let isBackendHealthy = false;
   
   // 执行健康检查，使用优化后的重试机制
@@ -90,9 +87,12 @@ onMounted(async () => {
     isBackendHealthy = false;
   }
   
-  // 只有在后端服务健康时，才加载模型和聊天历史
+  // 只有在后端服务健康时，才加载设置、模型和聊天历史
   if (isBackendHealthy) {
     console.log('后端服务健康，开始加载应用数据...');
+    
+    // 加载用户设置和数据
+    await settingsStore.loadSettings();
     
     // 加载模型数据
     try {
@@ -107,6 +107,8 @@ onMounted(async () => {
     });
   } else {
     console.error('后端服务不可用，应用将以有限功能运行');
+    // 仅从本地存储加载设置，不请求API
+    await settingsStore.loadSettingsFromStorageOnly();
     // 可以在这里添加用户友好的提示，比如显示一个通知
     // showNotification('后端服务连接失败，请检查服务状态', 'error');
   }
