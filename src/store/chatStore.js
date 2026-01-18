@@ -246,11 +246,15 @@ export const useChatStore = defineStore('chat', {
         // 使用流式消息发送
         let aiMessage = null;
 
+        // 立即清空上传文件列表，提供更好的用户体验
+        const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
+        this.uploadedFiles = []; // 立即清空
+
         try {
           await apiService.chat.sendStreamingMessage(
             currentChat.id,         // chatId
             content.trim(),         // message
-            this.uploadedFiles,     // files
+            filesToSend,            // 使用保存的文件列表
             {
               model: formattedModel, // 确保使用name-version.version_name格式的模型名称
               deepThinking: deepThinking, // 使用传递的深度思考参数
@@ -418,10 +422,14 @@ export const useChatStore = defineStore('chat', {
           }
         } else {
           // 使用普通消息发送
+          // 立即清空上传文件列表，提供更好的用户体验
+          const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
+          this.uploadedFiles = []; // 立即清空
+          
           let response = await apiService.chat.sendMessage(
             currentChat.id,         // chatId
             content.trim(),         // message
-            this.uploadedFiles,     // files
+            filesToSend,            // 使用保存的文件列表
             {
               model: formattedModel, // 确保使用name-version.version_name格式的模型名称
               stream: false,  // 非流式输出
