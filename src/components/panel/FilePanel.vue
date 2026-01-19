@@ -1,14 +1,14 @@
 <template>
   <div id="ragPanel" class="h-full flex flex-col">
     <!-- 头部组件 -->
-    <RagPanelHeader :currentFolder="currentFolder" />
+    <FilePanelHeader :currentFolder="currentFolder" />
 
     <!-- 主内容区域 -->
     <div class="overflow-y-auto h-[calc(100%-57px)] scrollbar-thin">
       <!-- 文件夹样式的根目录 -->
       <div class="folder-container p-2">
         <!-- 工具栏组件 -->
-        <RagToolbar :loading="ragStore.loading" />
+        <RagToolbar :loading="fileStore.loading" />
         
         <!-- 文件夹列表 - 根目录视图 -->
         <div v-if="!currentFolder">
@@ -31,7 +31,7 @@
     </div>
 
     <!-- 加载状态指示器 -->
-    <div v-if="ragStore.loading" class="loading-overlay absolute inset-0 bg-white/80 flex items-center justify-center z-50">
+    <div v-if="fileStore.loading" class="loading-overlay absolute inset-0 bg-white/80 flex items-center justify-center z-50">
       <Loading type="spin" size="medium" text="处理中..." />
     </div>
     
@@ -70,12 +70,13 @@
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useRagStore } from '../../store/ragStore.js';
+import { fileStore } from '../../store/fileStore.js';
 import api from '../../services/apiService.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../services/notificationUtils.js';
 
 // 导入子组件
-import RagPanelHeader from '../rag/RagPanelHeader.vue';
+import FilePanelHeader from '../rag/FilePanelHeader.vue';
 import RagToolbar from '../rag/RagToolbar.vue';
 import FolderList from '../rag/FolderList.vue';
 import FileList from '../rag/FileList.vue';
@@ -146,31 +147,34 @@ onUnmounted(() => {
 
 // 加载文件列表
 const loadFiles = async () => {
-  await ragStore.loadFiles();
+  loadingFiles.value = true;
+  try {
+    await fileStore.loadFiles();
+  } catch (error) {
+    console.error('加载文件列表失败:', error);
+    showNotification(`加载文件列表失败: ${error.message || String(error)}`, 'error');
+  } finally {
+    loadingFiles.value = false;
+  }
 };
 
 // 加载文件夹列表
 const loadFolders = async () => {
   loadingFolders.value = true;
   try {
-    // 通过ragStore加载文件夹列表
-    const result = await ragStore.loadFolders();
-    folders.value = result || [];
+    // 通过fileStore加载文件夹列表
+    await fileStore.loadFolders();
+    folders.value = fileStore.folders || [];
     
     // 建立文件夹ID到名称的映射，方便通过ID获取名称
-    folderIdMap.value = {};
-    folders.value.forEach(folder => {
-      if (folder.id) {
-        folderIdMap.value[folder.id] = folder.name;
-      }
-    });
+    folderIdMap.value = fileStore.folderIdMap || {};
   } catch (error) {
     console.error('加载文件夹失败:', error);
     showNotification(`加载文件夹失败: ${error.message || String(error)}`, 'error');
   } finally {
     loadingFolders.value = false;
   }
-};
+}
 
 // 处理返回上一级
 const handleBackToParent = () => {
@@ -231,7 +235,7 @@ const handleDeleteAllConfirm = async () => {
   isDeletingAll.value = true;
   
   try {
-    const result = await ragStore.deleteAllFiles();
+    const result = await fileStore.deleteAllDocuments();
     if (result.success) {
       showNotification(result.message, 'success');
       // 删除成功后，重新加载文件和文件夹列表
@@ -254,8 +258,8 @@ const handleDeleteAllConfirm = async () => {
 const loadFilesInFolder = async (folder) => {
   loadingFiles.value = true;
   try {
-    // 通过ragStore加载文件夹中的文件
-    const result = await ragStore.loadFilesInFolder(folder);
+    // 通过fileStore加载文件夹中的文件
+    const result = await fileStore.loadFilesInFolder(folder);
     currentFiles.value = result || [];
   } catch (error) {
     console.error('加载文件失败:', error);
@@ -289,19 +293,28 @@ const handleFolderDoubleClick = async (event) => {
         // 处理每个文件
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
-          const validation = ragStore.validateFile(file);
-          
-          if (!validation.valid) {
-            showNotification(`文件验证失败: ${file.name} - ${validation.message}`, 'error');
-            failedFiles.push(file.name);
-            continue;
-          }
+          // 简单的文件验证
+      const maxSize = 50 * 1024 * 1024; // 50MB
+      const supportedTypes = ['pdf', 'docx', 'txt', 'csv', 'xlsx', 'pptx', 'md'];
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+      
+      if (file.size > maxSize) {
+        showNotification(`文件太大: ${file.name} - 最大支持50MB`, 'error');
+        failedFiles.push(file.name);
+        continue;
+      }
+      
+      if (!supportedTypes.includes(fileExtension)) {
+        showNotification(`不支持的文件类型: ${file.name} - 支持类型: ${supportedTypes.join(', ')}`, 'error');
+        failedFiles.push(file.name);
+        continue;
+      }
           
           try {
-              // 使用ragStore的uploadFile方法上传文件到指定文件夹（使用ID）
-              const success = await ragStore.uploadFile(file, folder.id);
-              if (!success) {
-                throw new Error('文件上传失败');
+              // 使用fileStore的uploadFile方法上传文件到指定文件夹（使用ID）
+              const result = await fileStore.uploadFile(file, folder.id);
+              if (!result.success) {
+                throw new Error(result.error || '文件上传失败');
               }
             
             successFiles.push(file.name);
@@ -379,10 +392,10 @@ const handleUploadToFolder = async (event) => {
               continue;
             }
             
-            // 使用ragStore的uploadFile方法上传文件到指定文件夹
-            const success = await ragStore.uploadFile(file, folder.name);
-            if (!success) {
-              throw new Error('文件上传失败');
+            // 使用fileStore的uploadFile方法上传文件到指定文件夹
+            const result = await fileStore.uploadFile(file, folder.id);
+            if (!result.success) {
+              throw new Error(result.error || '文件上传失败');
             }
             successFiles.push(file.name);
           } catch (fileError) {
@@ -421,9 +434,9 @@ const processFiles = async (files) => {
   if (files && files.length > 0) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const result = await ragStore.uploadFile(file);
-      if (!result) {
-        showNotification(`上传文件 ${file.name} 失败`, 'error');
+      const result = await fileStore.uploadFile(file);
+      if (!result.success) {
+        showNotification(`上传文件 ${file.name} 失败: ${result.error}`, 'error');
       }
     }
     // 显示成功提示
@@ -452,7 +465,7 @@ const handleDeleteFolderConfirm = async () => {
     // 调用后端API删除文件夹，现在使用folder_id而不是folder_name
     const config = {
       method: 'DELETE',
-      url: '/api/rag/folders',
+      url: '/api/files/folders',
       params: { folder_id: folder.id }
     };
     await api(config);

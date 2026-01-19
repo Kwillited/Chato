@@ -106,71 +106,6 @@ class RAGService(BaseService):
                 'vector_info': {}
             }
     
-    def get_documents(self):
-        """获取文档列表"""
-        # 尝试从缓存获取
-        cached = self._get_cached_data('documents')
-        if cached is not None:
-            return cached
-        
-        # 缓存不存在，从服务获取
-        documents = self.rag_coordinator.document_service.get_documents()
-        
-        # 设置缓存
-        self._set_cached_data('documents', documents)
-        return documents
-    
-    def delete_document(self, filename, folder_name=''):
-        """删除指定文档/文件"""
-        result = self.rag_coordinator.delete_document(filename, folder_name)
-        
-        # 使文档缓存失效
-        self._invalidate_cache('documents')
-        return result
-    
-    def get_folders(self):
-        """获取文件夹列表"""
-        # 尝试从缓存获取
-        cached = self._get_cached_data('folders')
-        if cached is not None:
-            return cached
-        
-        # 缓存不存在，从服务获取
-        folders = self.rag_coordinator.document_service.get_folders()
-        
-        # 设置缓存
-        self._set_cached_data('folders', folders)
-        return folders
-    
-    def create_folder(self, folder_name):
-        """创建文件夹/知识库"""
-        result = self.rag_coordinator.document_service.create_folder(folder_name)
-        
-        # 使文件夹缓存失效
-        self._invalidate_cache('folders')
-        return result
-    
-    def get_files_in_folder(self, folder_name):
-        """获取指定文件夹中的文件"""
-        return self.rag_coordinator.document_service.get_files_in_folder(folder_name)
-    
-    def get_files_in_folder_by_id(self, folder_id):
-        """通过folder_id获取指定文件夹中的文件"""
-        # 先获取文件夹名称
-        folders = self.get_folders()
-        folder_name = next((f['name'] for f in folders if f['id'] == folder_id), '')
-        if not folder_name:
-            raise ValueError('指定ID的文件夹不存在')
-        return self.get_files_in_folder(folder_name)
-    
-    def delete_all_documents(self):
-        """删除所有文档，包括所有文件夹和文件，并清空向量数据库"""
-        result = self.rag_coordinator.delete_all_documents()
-        
-        # 使所有缓存失效
-        self._invalidate_cache('documents', 'folders')
-        return result
-    
     def search_file_content(self, query):
         """搜索文件内容"""
         # 这里可以扩展为同时搜索文件内容和向量数据库
@@ -210,65 +145,14 @@ class RAGService(BaseService):
         
         return results
     
-    def get_document_details(self, file_id):
-        """获取文件详情"""
-        from app.services.rag.document_service import DocumentService
-        document_service = DocumentService()
-        
-        # 这里简化处理，直接将file_id视为文件名
-        file_name = file_id
-        
-        # 获取所有文档
-        documents = document_service.get_documents()
-        
-        # 查找匹配的文档
-        doc = next((d for d in documents if d['name'] == file_name), None)
-        if not doc:
-            raise ValueError('文件不存在')
-        
-        # 获取文件详情
-        import os
-        file_stats = os.stat(doc['path'])
-        file_details = {
-            'id': file_name,
-            'name': file_name,
-            'path': doc['path'],
-            'size': file_stats.st_size,
-            'created_at': file_stats.st_ctime,
-            'modified_at': file_stats.st_mtime,
-            'folder': doc['folder']
-        }
-        
-        return file_details
+
     
-    def delete_folder_by_id(self, folder_id):
-        """通过folder_id删除文件夹/知识库"""
-        # 先获取文件夹名称
-        folders = self.get_folders()
-        folder_name = next((f['name'] for f in folders if f['id'] == folder_id), '')
-        if not folder_name:
-            raise ValueError('指定ID的文件夹不存在')
-        return self.delete_folder(folder_name)
+
     
-    def delete_folder(self, folder_name):
-        """删除文件夹/知识库"""
-        result = self.rag_coordinator.delete_folder(folder_name)
-        
-        # 使所有缓存失效
-        self._invalidate_cache('documents', 'folders')
-        return result
+
     
     def reload_documents(self):
         """重新加载文档到向量库"""
         return self.rag_coordinator.reload_documents()
     
-    def _get_folder_name_by_id(self, folder_id):
-        """根据folder_id查找对应的文件夹名称"""
-        if not folder_id:
-            return ''
-        
-        folders = self.get_folders()
-        for folder in folders:
-            if folder.get('id') == folder_id:
-                return folder['name']
-        return ''
+

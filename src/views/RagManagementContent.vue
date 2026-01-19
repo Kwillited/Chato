@@ -205,6 +205,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { useRagStore } from '../store/ragStore.js';
+import { fileStore } from '../store/fileStore.js';
 import { useChatStore } from '../store/chatStore.js';
 import { eventBus } from '../services/eventBus.js';
 import { generateId, formatFileSize } from '../store/utils.js';
@@ -249,9 +250,9 @@ const fileIdToDelete = ref(null); // 要删除的文件ID
 // 初始化时加载文件夹
 const loadFolders = async () => {
   try {
-    // 使用ragStore加载文件夹列表
-    await ragStore.loadFolders();
-    folders.value = ragStore.folders || [];
+    // 使用fileStore加载文件夹列表
+    await fileStore.loadFolders();
+    folders.value = fileStore.folders || [];
   } catch (error) {
     console.error('加载文件夹失败:', error);
   }
@@ -527,11 +528,11 @@ const handleFolderClick = async (folder) => {
     // 保存选中的文件夹到本地存储
     localStorage.setItem('ragSelectedFolder', JSON.stringify(folder));
     
-    // 使用ragStore加载指定文件夹的文件
-    const folderFiles = await ragStore.loadFilesInFolder(folder);
+    // 使用fileStore加载指定文件夹的文件
+    const folderFiles = await fileStore.loadFilesInFolder(folder);
     // 更新store中的文件列表
     if (folderFiles && Array.isArray(folderFiles)) {
-      ragStore.files = folderFiles.map((file) => ({
+      fileStore.files = folderFiles.map((file) => ({
         id: generateId('file'),
         name: file.name,
         path: file.path || '',
@@ -605,7 +606,7 @@ onMounted(() => {
   // 监听文件夹选中事件
   eventBus.on('folderSelected', handleFolderSelected);
   
-  // 监听RagPanel中的文件上传完成事件
+  // 监听FilePanel中的文件上传完成事件
   eventBus.on('filesUploaded', handleFilesUploaded);
   
   // 监听视图切换事件

@@ -1,6 +1,6 @@
 """测试删除所有对话功能"""
 import pytest
-from app.services.chat_service import ChatService
+from app.services.chat.chat_service import ChatService
 from app.repositories.chat_repository import ChatRepository
 from app.repositories.message_repository import MessageRepository
 from app.services.data_service import DataService

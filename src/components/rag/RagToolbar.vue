@@ -59,14 +59,14 @@ const isRagManagementView = ref(false);
 
 // 处理新建知识库
 const handleCreateKnowledgeBase = () => {
-  // 触发创建知识库事件，由RagPanel组件处理并显示模态框
+  // 触发创建知识库事件，由FilePanel组件处理并显示模态框
   const event = new CustomEvent('createKnowledgeBase');
   window.dispatchEvent(event);
 };
 
 // 处理删除所有文件
 const handleDeleteAll = () => {
-  // 触发删除所有文件事件，由RagPanel组件处理并显示确认模态框
+  // 触发删除所有文件事件，由FilePanel组件处理并显示确认模态框
   const event = new CustomEvent('deleteAll');
   window.dispatchEvent(event);
 };

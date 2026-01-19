@@ -481,7 +481,7 @@ export const apiService = {
 
         return await requestWithRetry({
           method: 'POST',
-          url: '/api/rag/upload',
+          url: '/api/files/upload',
           data: formData,
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -491,19 +491,19 @@ export const apiService = {
     getDocuments: async () => {
       return await requestWithRetry({
         method: 'GET',
-        url: '/api/rag/documents',
+        url: '/api/files/documents',
       });
     },
     deleteDocument: async (filename, foldername = '') => {
       return await requestWithRetry({
         method: 'DELETE',
-        url: `/api/rag/${foldername}/${filename}`,
+        url: `/api/files/${foldername}/${filename}`,
       });
     },
     getFolders: async () => {
       return await requestWithRetry({
         method: 'GET',
-        url: '/api/rag/folders',
+        url: '/api/files/folders',
       });
     },
     // 验证向量数据库路径是否有效

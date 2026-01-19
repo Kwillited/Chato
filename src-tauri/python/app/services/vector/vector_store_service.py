@@ -1,6 +1,6 @@
 """向量存储服务 - 处理嵌入模型和向量数据库的核心功能"""
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import config_manager
 from app.services.base_service import BaseService
 from app.services.vector.vector_db_service import VectorDBService
@@ -140,32 +140,38 @@ class VectorStoreService(BaseService):
             # 调用VectorDBService删除知识库
             return VectorDBService.delete_knowledge_base(name)
     
-    def add_documents(self, documents: List[Any]) -> bool:
+    def add_documents(self, documents: List[Any]) -> Tuple[bool, str]:
         """将文档片段添加到向量库中
         
         Args:
             documents: 文档片段列表
             
         Returns:
-            bool: 是否成功添加
+            Tuple[bool, str]: (是否成功, 错误信息或"success")
         """
         try:
+            if not documents:
+                return False, "没有找到文档或文档为空"
+            
             self.log_info(f"[{self.knowledge_base_name}] 开始添加文档: 数量={len(documents)}")
             result = self.vector_db_service.add_documents(documents)
             if result:
                 self.log_info(f"[{self.knowledge_base_name}] 成功添加 {len(documents)} 个文档")
+                return True, "success"
             else:
-                self.log_warning(f"[{self.knowledge_base_name}] 添加文档失败")
-            return result
+                error_msg = f"添加文档失败"
+                self.log_warning(f"[{self.knowledge_base_name}] {error_msg}")
+                return False, error_msg
         except Exception as e:
-            self.log_error(f"[{self.knowledge_base_name}] 添加文档异常: {e}")
-            return False
+            error_msg = f"添加文档异常: {str(e)}"
+            self.log_error(f"[{self.knowledge_base_name}] {error_msg}")
+            return False, error_msg
     
-    def clear_vector_store(self) -> bool:
+    def clear_vector_store(self) -> Tuple[bool, str]:
         """清空向量库
         
         Returns:
-            bool: 是否成功清空
+            Tuple[bool, str]: (是否成功, 错误信息或"success")
         """
         try:
             self.log_info(f"[{self.knowledge_base_name}] 开始清空向量库")
@@ -175,12 +181,15 @@ class VectorStoreService(BaseService):
                 # 清空缓存
                 self._query_cache.clear()
                 self.log_info(f"[{self.knowledge_base_name}] 已清空查询缓存")
+                return True, "success"
             else:
-                self.log_warning(f"[{self.knowledge_base_name}] 向量库清空失败")
-            return result
+                error_msg = "向量库清空失败"
+                self.log_warning(f"[{self.knowledge_base_name}] {error_msg}")
+                return False, error_msg
         except Exception as e:
-            self.log_error(f"[{self.knowledge_base_name}] 清空向量库异常: {e}")
-            return False
+            error_msg = f"清空向量库异常: {str(e)}"
+            self.log_error(f"[{self.knowledge_base_name}] {error_msg}")
+            return False, error_msg
     
     def get_vector_statistics(self) -> Dict[str, Any]:
         """获取向量库统计信息

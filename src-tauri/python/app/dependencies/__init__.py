@@ -10,6 +10,7 @@ from app.services.chat.chat_service import ChatService
 from app.services.data_service import DataService
 from app.services.model.model_service import ModelService
 from app.services.mcp_service import MCPService
+from app.services.rag.document_service import DocumentService
 from app.services.rag.rag_service import RAGService
 from app.services.setting_service import SettingService
 from app.services.vector.vector_store_service import VectorStoreService
@@ -84,3 +85,13 @@ def get_vector_store_service():
 def get_rag_service():
     """获取RAG服务实例"""
     return RAGService()
+
+
+def get_document_service():
+    """获取文档服务实例"""
+    return DocumentService()
+
+
+def get_data_service():
+    """获取数据服务实例"""
+    return DataService()

@@ -253,9 +253,9 @@ export const useChatStore = defineStore('chat', {
         // 根据当前文件夹状态调整RAG检索范围
         let ragConfigToUse = { ...settingsStore.ragConfig };
         
-        // 如果有选中的文件夹，或者进入了二级菜单，设置检索范围为该文件夹
-        if (ragStore.currentSelectedFolder || ragStore.currentFolder) {
-          const targetFolder = ragStore.currentSelectedFolder || ragStore.currentFolder;
+        // 如果有选中的文件夹，设置检索范围为该文件夹
+        if (ragStore.currentSelectedFolder) {
+          const targetFolder = ragStore.currentSelectedFolder;
           ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
         } else {
           // 否则使用全局检索（清空selectedFolders和selectedKnowledgeBases）
@@ -266,7 +266,6 @@ export const useChatStore = defineStore('chat', {
         // 添加调试日志，查看实际发送给后端的ragConfig
         console.log('🔍 RAG配置调试:', {
           currentSelectedFolder: ragStore.currentSelectedFolder,
-          currentFolder: ragStore.currentFolder,
           selectedFolders: ragConfigToUse.selectedFolders,
           ragEnabled: ragConfigToUse.enabled
         });

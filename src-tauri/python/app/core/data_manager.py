@@ -362,15 +362,19 @@ def insert_default_models():
             model_id = model_obj.id
             
             # 插入模型版本
-            for version in model.get('versions', []):
+            def process_version(version_data):
+                """处理单个模型版本的创建或更新"""
                 model_repo.create_or_update_model_version(
                     model_id=model_id,
-                    version_name=version['version_name'],
-                    custom_name=version.get('custom_name', ''),
-                    api_key=version.get('api_key', ''),
-                    api_base_url=version.get('api_base_url', ''),
-                    streaming_config=version.get('streaming_config', False)
+                    version_name=version_data['version_name'],
+                    custom_name=version_data.get('custom_name', ''),
+                    api_key=version_data.get('api_key', ''),
+                    api_base_url=version_data.get('api_base_url', ''),
+                    streaming_config=version_data.get('streaming_config', False)
                 )
+            
+            for version in model.get('versions', []):
+                process_version(version)
         
         logger.info("默认模型数据插入完成")
         
@@ -720,15 +724,19 @@ def save_models_to_db(conn=None):
                 model_repo.delete_model_version(model_id, version_name)
             
             # 插入或更新版本
-            for version in new_versions:
+            def update_version(version_data):
+                """处理单个模型版本的更新"""
                 model_repo.update_model_version(
                     model_id=model_id,
-                    version_name=version['version_name'],
-                    custom_name=version.get('custom_name', ''),
-                    api_key=version.get('api_key', ''),
-                    api_base_url=version.get('api_base_url', ''),
-                    streaming_config=version.get('streaming_config', False)
+                    version_name=version_data['version_name'],
+                    custom_name=version_data.get('custom_name', ''),
+                    api_key=version_data.get('api_key', ''),
+                    api_base_url=version_data.get('api_base_url', ''),
+                    streaming_config=version_data.get('streaming_config', False)
                 )
+            
+            for version in new_versions:
+                update_version(version)
         
         from app.core.logging_config import logger
         logger.info("模型数据已保存到SQLite数据库")

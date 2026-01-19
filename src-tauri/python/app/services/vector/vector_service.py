@@ -1,220 +1,251 @@
-"""向量服务 - 负责文档的向量化、向量存储和向量检索"""
-import os
-import uuid
-from app.core.config import config_manager
+"""向量服务模块 - 封装文档向量化、向量存储和检索功能"""
 from app.services.base_service import BaseService
-from app.services.vector.vector_store_service import VectorStoreService
+from app.repositories.vector_repository import VectorRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
-from app.repositories.document_repository import DocumentRepository
-
-# 使用config_manager获取标准用户数据目录
-user_data_dir = config_manager.get_user_data_dir()
-VECTOR_DB_PATH = os.path.join(user_data_dir, 'Retrieval-Augmented Generation', 'vectorDb')
+from app.services.vector.vector_store_service import VectorStoreService
 
 class VectorService(BaseService):
-    """向量服务类 - 封装所有与向量数据库相关的操作"""
+    """向量服务类，封装所有向量相关的操作"""
     
-    def __init__(self, vector_store_service=None):
-        """初始化向量服务
+    def __init__(self):
+        """初始化向量服务"""
+        super().__init__()
+        self.chunk_repo = DocumentChunkRepository()
+        
+        # 获取向量存储服务实例
+        self.vector_store_service = VectorStoreService.get_instance()
+        # 访问vector_store属性，确保向量存储被初始化
+        _ = self.vector_store_service.vector_store
+        # 从向量存储服务中获取已初始化的向量存储实例
+        self.vector_repo = self.vector_store_service.vector_db_service.vector_repository
+        
+        self.log_info("向量服务初始化成功，使用已初始化的向量存储实例")
+    
+    def embed_document(self, doc_content: str, metadata: dict):
+        """将文档内容转换为向量表示并存储
         
         Args:
-            vector_store_service: 向量存储服务实例，用于依赖注入
+            doc_content (str): 文档内容
+            metadata (dict): 文档元数据
+            
+        Returns:
+            dict: 向量化结果
         """
-        self.vector_store_service = vector_store_service or VectorStoreService.get_instance(
-            vector_db_path=VECTOR_DB_PATH,
-            embedder_model=config_manager.get('rag.embedder_model', 'all-MiniLM-L6-v2')
-        )
-        # 初始化文档分块和文档Repository
-        self.document_chunk_repo = DocumentChunkRepository()
-        self.document_repo = DocumentRepository()
+        try:
+            self.log_info(f"📊 开始文档向量化处理: 内容长度={len(doc_content)} 字符")
+            
+            # 执行文档向量化
+            result = self.vector_repo.embed_document(doc_content, metadata)
+            
+            self.log_info(f"✅ 文档向量化成功: 生成 {result.get('chunk_count', 0)} 个向量")
+            
+            return {
+                'success': True,
+                'message': '文档向量化成功',
+                'chunk_count': result.get('chunk_count', 0),
+                'vector_result': result
+            }
+        except Exception as e:
+            self.log_error(f"❌ 文档向量化失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'文档向量化失败: {str(e)}',
+                'chunk_count': 0
+            }
     
-    def vectorize_documents(self, documents, document_id, source_file, folder_id=''):
-        """将文档向量化并存储到向量数据库
+    def search_vectors(self, query: str, k: int = 5, filter: dict = None):
+        """根据查询向量检索相关文档
         
         Args:
-            documents: 文档列表
+            query (str): 查询文本
+            k (int): 返回结果数量
+            filter (dict): 过滤条件
+            
+        Returns:
+            dict: 向量检索结果
+        """
+        try:
+            self.log_info(f"🔍 开始向量检索: 查询='{query}', 结果数量={k}")
+            
+            # 执行向量检索
+            results = self.vector_repo.search_vectors(query, k=k, filter=filter)
+            
+            self.log_info(f"✅ 向量检索成功: 找到 {len(results.get('results', []))} 个相关结果")
+            
+            # 格式化结果
+            formatted_results = []
+            for result in results.get('results', []):
+                formatted_results.append({
+                    'content': result.page_content,
+                    'metadata': result.metadata
+                })
+            
+            return {
+                'success': True,
+                'results': formatted_results,
+                'result_count': len(formatted_results)
+            }
+        except Exception as e:
+            self.log_error(f"❌ 向量检索失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'向量检索失败: {str(e)}',
+                'results': [],
+                'result_count': 0
+            }
+    
+    def manage_vector_store(self, action: str, params: dict = None):
+        """向量数据库管理
+        
+        Args:
+            action (str): 操作类型 (clear, stats)
+            params (dict): 操作参数
+            
+        Returns:
+            dict: 管理操作结果
+        """
+        try:
+            self.log_info(f"🗄️  开始向量数据库管理操作: action='{action}'")
+            
+            if action == 'clear':
+                # 清空向量数据库
+                self.vector_repo.clear_vector_store()
+                self.log_info("✅ 向量数据库已清空")
+                return {'success': True, 'message': '向量数据库已清空'}
+            elif action == 'stats':
+                # 获取向量数据库统计信息
+                stats = self.vector_repo.get_vector_store_stats()
+                self.log_info(f"✅ 获取向量数据库统计信息成功")
+                return {
+                    'success': True,
+                    'message': '获取统计信息成功',
+                    'stats': stats
+                }
+            else:
+                self.log_warning(f"⚠️  不支持的向量数据库管理操作: {action}")
+                return {'success': False, 'message': f'不支持的操作: {action}'}
+        except Exception as e:
+            self.log_error(f"❌ 向量数据库管理操作失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'向量数据库管理失败: {str(e)}'
+            }
+    
+    def delete_vectors_by_document_id(self, document_id: str):
+        """根据文档ID删除相关向量
+        
+        Args:
+            document_id (str): 文档ID
+            
+        Returns:
+            dict: 删除结果
+        """
+        try:
+            self.log_info(f"🗑️  开始删除文档相关向量: document_id='{document_id}'")
+            
+            # 删除相关向量
+            result = self.vector_repo.delete_vectors_by_document_id(document_id)
+            
+            self.log_info(f"✅ 删除文档相关向量成功: 删除 {result.get('deleted_count', 0)} 个向量")
+            
+            return {
+                'success': True,
+                'message': '文档向量删除成功',
+                'deleted_count': result.get('deleted_count', 0)
+            }
+        except Exception as e:
+            self.log_error(f"❌ 删除文档相关向量失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'文档向量删除失败: {str(e)}',
+                'deleted_count': 0
+            }
+    
+    def vectorize_documents(self, split_documents, document_id, file_path, folder_id=''):
+        """向量化并存储分割后的文档
+        
+        Args:
+            split_documents: 分割后的文档列表
             document_id: 文档ID
-            source_file: 源文件路径
+            file_path: 文件路径
             folder_id: 文件夹ID
             
         Returns:
-            dict: 向量化结果信息
+            dict: 向量化结果
         """
         try:
-            self.log_info(f"🔄 开始向量化: 文档ID='{document_id}', 源文件='{os.path.basename(source_file)}', 文档片段数={len(documents)}")
+            self.log_info(f"🔢 开始向量化文档: document_id='{document_id}', 文本块数量={len(split_documents)}")
             
-            # 验证文档是否适合向量化
-            if not documents:
-                self.log_warning("⚠️  没有可向量化的文档片段")
-                return {
-                    'vectorized': False,
-                    'error': "没有可向量化的文档片段"
-                }
+            # 为每个分块添加元数据
+            for chunk in split_documents:
+                chunk.metadata.update({
+                    'document_id': document_id,
+                    'file_path': file_path,
+                    'folder_id': folder_id
+                })
             
-            # 简单验证：检查文档片段内容长度
-            warnings = []
-            for i, doc in enumerate(documents):
-                if hasattr(doc, 'page_content') and len(doc.page_content) < 10:
-                    warnings.append(f"文档片段 {i+1} 内容过短，可能影响向量化质量")
-                elif isinstance(doc, dict) and 'page_content' in doc and len(doc['page_content']) < 10:
-                    warnings.append(f"文档片段 {i+1} 内容过短，可能影响向量化质量")
+            # 向量化并存储
+            self.vector_repo.add_documents(split_documents)
             
-            if warnings:
-                for warning in warnings:
-                    self.log_warning(f"⚠️ {warning}")
+            self.log_info(f"✅ 文档向量化成功: 生成 {len(split_documents)} 个向量")
             
-            # 为每个文档片段添加folder_id到metadata中
-            processed_documents = []
-            for doc in documents:
-                # 复制文档对象
-                processed_doc = doc.copy() if isinstance(doc, dict) else doc
-                
-                # 确保文档有metadata属性
-                if hasattr(processed_doc, 'metadata'):
-                    # 将folder_id添加到metadata
-                    processed_doc.metadata['folder_id'] = folder_id
-                elif isinstance(processed_doc, dict) and 'metadata' in processed_doc:
-                    # 处理字典类型的文档
-                    processed_doc['metadata']['folder_id'] = folder_id
-                else:
-                    # 如果没有metadata，创建一个
-                    if hasattr(processed_doc, 'page_content'):
-                        processed_doc.metadata = {'folder_id': folder_id}
-                    elif isinstance(processed_doc, dict) and 'page_content' in processed_doc:
-                        processed_doc['metadata'] = {'folder_id': folder_id}
-                
-                processed_documents.append(processed_doc)
-            
-            # 执行向量化操作
-            self.log_info(f"🚀 开始向量化 {len(processed_documents)} 个文档片段...")
-            vectorized = self.vector_store_service.add_documents(processed_documents)
-            
-            if vectorized:
-                self.log_info(f"✅ 成功向量化 {len(processed_documents)} 个文档片段")
-                
-                # 将文档分块信息保存到数据库
-                for i, doc in enumerate(processed_documents):
-                    # 生成分块ID
-                    chunk_id = str(uuid.uuid4())[:16]
-                    
-                    # 获取分块内容
-                    content = doc.page_content if hasattr(doc, 'page_content') else str(doc)
-                    
-                    # 获取分块元数据
-                    extra_metadata = str(doc.metadata) if hasattr(doc, 'metadata') else '{}'
-                    
-                    # 保存分块信息到数据库
-                    self.document_chunk_repo.create_chunk(
-                        chunk_id=chunk_id,
-                        document_id=document_id,
-                        chunk_index=i,
-                        content=content,
-                        extra_metadata=extra_metadata,
-                        vector_collection=self.vector_store_service.knowledge_base_name
-                    )
-                    
-                self.log_info(f"✅ 成功将 {len(documents)} 个文档分块信息保存到数据库")
-            else:
-                self.log_info(f"⚠️  向量化失败")
-            
-            # 准备返回信息
-            vector_info = {
-                'vectorized': vectorized,
-                'vector_count': len(documents) if vectorized else 0,
-                'embedding_model': config_manager.get('rag.embedder_model', 'all-MiniLM-L6-v2'),
-                'vector_store_type': 'chroma',
-                'document_id': document_id,
-                'source_file': source_file
+            return {
+                'vectorized': True,
+                'vector_count': len(split_documents),
+                'message': '文档向量化成功'
             }
-            
-            # 创建并添加向量化元数据
-            vector_metadata = {
-                'document_count': len(documents),
-                'total_tokens_estimate': sum(len(doc.page_content) // 4 for doc in documents) if hasattr(documents[0], 'page_content') else 0,
-                'source_file': source_file,
-                'document_id': document_id
-            }
-            vector_info['vector_metadata'] = vector_metadata
-            
-            self.log_info(f"📊 向量化完成: 向量数={vector_info['vector_count']}, 模型={vector_info['embedding_model']}")
-            
-            return vector_info
         except Exception as e:
-            self.log_error(f"❌ 向量化处理失败: {str(e)}")
+            self.log_error(f"❌ 文档向量化失败: {str(e)}")
             return {
                 'vectorized': False,
+                'vector_count': 0,
+                'message': f'文档向量化失败: {str(e)}',
                 'error': str(e)
             }
     
-    def search_documents(self, query, k=5, score_threshold=None, search_type="similarity", fetch_k=20, filter=None):
+    def search_documents(self, query: str, k: int = 3, score_threshold: float = 0.7, search_type: str = "similarity", filter: dict = None):
         """搜索相关文档
         
         Args:
-            query: 查询文本
-            k: 返回结果数量
-            score_threshold: 相似度分数阈值，低于该阈值的结果将被过滤
-            search_type: 搜索类型，可选值：similarity, mmr, similarity_score_threshold
-            fetch_k: 用于MMR搜索的候选文档数量
-            filter: 元数据过滤器，用于过滤特定条件的文档
+            query (str): 查询文本
+            k (int): 返回结果数量
+            score_threshold (float): 相似度分数阈值
+            search_type (str): 搜索类型
+            filter (dict): 过滤条件
             
         Returns:
             list: 相关文档列表
         """
         try:
-            results = self.vector_store_service.search_documents(
+            self.log_info(f"🔍 开始搜索相关文档: 查询='{query}', 结果数量={k}")
+            
+            # 调用向量仓库的search_documents方法
+            results = self.vector_repo.search_documents(
                 query=query,
                 k=k,
                 score_threshold=score_threshold,
                 search_type=search_type,
-                fetch_k=fetch_k,
                 filter=filter
             )
+            
+            self.log_info(f"✅ 找到 {len(results)} 个相关文档片段")
+            
             return results
         except Exception as e:
-            self.log_error(f"搜索文档失败: {str(e)}")
+            self.log_error(f"❌ 搜索文档失败: {str(e)}")
             return []
     
-    def get_vector_statistics(self):
-        """获取向量库统计信息"""
-        try:
-            stats = self.vector_store_service.get_vector_statistics()
-            return stats
-        except Exception as e:
-            self.log_error(f"获取向量库统计信息失败: {str(e)}")
-            return {
-                'status': 'error',
-                'error': str(e),
-                'total_vectors': 0
-            }
-    
     def clear_vector_store(self):
-        """清空向量库"""
+        """清空向量存储
+        
+        Returns:
+            bool: 是否成功清空
+        """
         try:
-            result = self.vector_store_service.clear_vector_store()
+            self.log_info("🗑️  开始清空向量存储...")
+            result = self.vector_repo.clear_vector_store()
+            self.log_info("✅ 向量存储已清空")
             return result
         except Exception as e:
-            self.log_error(f"清空向量库失败: {str(e)}")
+            self.log_error(f"❌ 清空向量存储失败: {str(e)}")
             return False
-    
-    def get_vector_store(self):
-        """获取向量存储实例"""
-        try:
-            return self.vector_store_service.vector_store
-        except Exception as e:
-            self.log_error(f"获取向量存储实例失败: {str(e)}")
-            return None
-    
-    def get_retriever(self, search_type="similarity", top_k=3, score_threshold=0.7):
-        """获取配置好的检索器"""
-        try:
-            retriever = self.vector_store_service.vector_store.as_retriever(
-                search_type=search_type,
-                search_kwargs={
-                    'k': top_k,
-                    'score_threshold': score_threshold
-                }
-            )
-            return retriever
-        except Exception as e:
-            self.log_error(f"获取检索器失败: {str(e)}")
-            return None

@@ -55,12 +55,6 @@ def setup():
 # 创建应用实例
 app = create_app()
 
-# 添加健康检查端点
-@app.get('/api/health')
-def health_check():
-    """健康检查端点"""
-    return {"status": "ok"}
-
 # 在应用启动前执行初始化
 setup()
 

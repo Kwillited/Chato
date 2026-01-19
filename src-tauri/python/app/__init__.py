@@ -23,12 +23,6 @@ def create_app():
         allow_headers=["*"],
     )
     
-    # 添加健康检查端点
-    @app.get('/api/health')
-    def health_check():
-        """健康检查端点"""
-        return {"status": "ok"}
-    
     # 注册路由
     from app.api import register_routes
     register_routes(app)

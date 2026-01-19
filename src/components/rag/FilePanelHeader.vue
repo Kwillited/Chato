@@ -31,7 +31,7 @@ const settingsStore = useSettingsStore();
 
 // 处理返回上一级
 const handleBackToParent = () => {
-  // 触发返回上一级事件，让RagPanel组件处理返回逻辑
+  // 触发返回上一级事件，让FilePanel组件处理返回逻辑
   window.dispatchEvent(new CustomEvent('backToParent'));
 };
 </script>

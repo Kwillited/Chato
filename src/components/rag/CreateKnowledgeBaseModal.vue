@@ -4,7 +4,7 @@
     title="新建知识库"
     confirm-text="创建"
     cancel-text="取消"
-    :loading="ragStore.loading"
+    :loading="fileStore.loading"
     loading-text="创建中..."
     confirm-type="primary"
     @confirm="handleCreate"
@@ -31,7 +31,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { useRagStore } from '../../store/ragStore.js';
+import { fileStore } from '../../store/fileStore.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
@@ -47,7 +47,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'created']);
 
 // Store
-const ragStore = useRagStore();
+// 使用fileStore替代ragStore
 
 // Refs
 const knowledgeBaseName = ref('');
@@ -81,8 +81,8 @@ const handleCreate = async () => {
   }
   
   try {
-    // 通过ragStore创建知识库
-    const result = await ragStore.createKnowledgeBase(knowledgeBaseName.value.trim());
+    // 通过fileStore创建知识库
+    const result = await fileStore.createFolder(knowledgeBaseName.value.trim());
     if (result.success) {
       // 显示成功提示
       showNotification(`已成功创建知识库: ${knowledgeBaseName.value.trim()}`, 'success');

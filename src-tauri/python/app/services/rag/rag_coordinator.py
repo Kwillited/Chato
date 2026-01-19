@@ -281,7 +281,7 @@ class RagCoordinator(BaseService):
             return False
     
     def delete_document(self, filename, folder_name=''):
-        """删除文档并更新向量库
+        """删除文档的向量表示
         
         Args:
             filename: 文件名
@@ -291,67 +291,73 @@ class RagCoordinator(BaseService):
             dict: 删除操作结果
         """
         try:
-            # 1. 删除文档文件
-            delete_result = self.document_service.delete_document(filename, folder_name)
-            
-            # 2. 重新加载向量库
+            # 重新加载向量库，确保向量数据库与文件系统保持一致
             self.reload_documents()
             
-            return delete_result
+            return {
+                'success': True,
+                'message': f'文档 {filename} 的向量表示已更新',
+                'deleted_file': filename,
+                'folder': folder_name
+            }
         except Exception as e:
-            self.log_error(f"删除文档失败: {str(e)}")
+            self.log_error(f"删除文档向量表示失败: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
             }
     
     def delete_all_documents(self):
-        """删除所有文档并清空向量库
+        """清空向量库中的所有向量
         
         Returns:
             dict: 删除操作结果
         """
         try:
-            # 1. 删除所有文档文件
-            delete_result = self.document_service.delete_all_documents()
-            
-            # 2. 清空向量库
+            # 清空向量库
             vector_result = self.vector_service.clear_vector_store()
             
-            # 3. 更新返回消息
             if vector_result:
-                delete_result['message'] = f"{delete_result['message']}，并清空了向量数据库"
+                return {
+                    'success': True,
+                    'message': "向量数据库已清空",
+                    'deleted_count': 0,
+                    'skipped_count': 0
+                }
             else:
-                delete_result['message'] = f"{delete_result['message']}，但清空向量数据库失败"
-            
-            return delete_result
+                return {
+                    'success': False,
+                    'message': "清空向量数据库失败",
+                    'deleted_count': 0,
+                    'skipped_count': 0
+                }
         except Exception as e:
-            self.log_error(f"删除所有文档失败: {str(e)}")
+            self.log_error(f"清空向量库失败: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)
             }
     
     def delete_folder(self, folder_name):
-        """删除文件夹并更新向量库
+        """更新指定文件夹中文档的向量表示
         
         Args:
             folder_name: 文件夹名称
             
         Returns:
-            dict: 删除操作结果
+            dict: 操作结果
         """
         try:
-            # 1. 删除文件夹
-            delete_result = self.document_service.delete_folder(folder_name)
+            # 重新加载向量库，确保向量数据库与文件系统保持一致
+            self.reload_documents()
             
-            # 2. 重新加载向量库
-            if delete_result.get('success', True):
-                self.reload_documents()
-            
-            return delete_result
+            return {
+                'success': True,
+                'message': f'文件夹 {folder_name} 中文档的向量表示已更新',
+                'deleted_folder': folder_name
+            }
         except Exception as e:
-            self.log_error(f"删除文件夹失败: {str(e)}")
+            self.log_error(f"更新文件夹向量表示失败: {str(e)}")
             return {
                 'success': False,
                 'error': str(e)

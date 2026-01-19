@@ -6,9 +6,8 @@ from werkzeug.utils import secure_filename
 import uuid
 from app.core.config import config_manager
 from app.services.base_service import BaseService
-from app.repositories.folder_repository import FolderRepository
-from app.repositories.document_repository import DocumentRepository
-from app.repositories.document_chunk_repository import DocumentChunkRepository
+from app.services.data_service import DataService
+from app.services.vector.vector_service import VectorService
 
 # 使用config_manager获取标准用户数据目录
 user_data_dir = config_manager.get_user_data_dir()
@@ -24,17 +23,16 @@ class DocumentService(BaseService):
     
     def __init__(self):
         """初始化文档管理服务"""
-        self.folder_repo = FolderRepository()
-        self.document_repo = DocumentRepository()
-        self.chunk_repo = DocumentChunkRepository()
+        self.data_service = DataService()
+        self.vector_service = VectorService()
     
     def _get_folder_name_by_id(self, folder_id):
         """根据folder_id查找对应的folder_name"""
         if not folder_id:
             return ''
         
-        # 从数据库查询文件夹名称
-        folder = self.folder_repo.get_folder_by_id(folder_id)
+        # 通过DataService获取文件夹名称
+        folder = self.data_service.get_folder_by_id(folder_id)
         return folder.name if folder else folder_id
     
     def _get_file_save_path(self, filename, folder_name):
@@ -83,8 +81,8 @@ class DocumentService(BaseService):
         # 获取当前时间
         now = datetime.now().isoformat()
         
-        # 将文档信息保存到数据库
-        self.document_repo.create_document(
+        # 将文档信息保存到数据库，通过DataService层
+        self.data_service.create_document(
             document_id=document_id,
             name=original_filename,
             path=file_path,
@@ -104,8 +102,8 @@ class DocumentService(BaseService):
     
     def get_documents(self):
         """获取文档列表"""
-        # 从数据库获取文档列表
-        db_documents = self.document_repo.get_all_documents()
+        # 通过DataService获取文档列表
+        db_documents = self.data_service.get_documents()
         
         # 转换为前端需要的格式
         documents = []
@@ -113,7 +111,7 @@ class DocumentService(BaseService):
             # 获取文件夹名称
             folder_name = ''
             if doc.folder_id:
-                folder = self.folder_repo.get_folder_by_id(doc.folder_id)
+                folder = self.data_service.get_folder_by_id(doc.folder_id)
                 folder_name = folder.name if folder else ''
             
             documents.append({
@@ -142,14 +140,14 @@ class DocumentService(BaseService):
         # 1. 获取folder_id（如果提供了folder_name）
         folder_id = None
         if folder_name:
-            folder = self.folder_repo.get_folder_by_name(folder_name)
+            folder = self.data_service.get_folder_by_name(folder_name)
             if folder:
                 folder_id = folder.id
         
         # 2. 从数据库中删除文档（级联删除文档分块）
-        document = self.document_repo.get_document_by_name(filename)
+        document = self.data_service.get_document_by_name(filename)
         if document and (not folder_id or document.folder_id == folder_id):
-            self.document_repo.delete_document(document.id)
+            self.data_service.delete_document(document.id)
         
         # 3. 删除文件系统中的文件
         if os.path.exists(file_path) and os.path.isfile(file_path):
@@ -181,8 +179,8 @@ class DocumentService(BaseService):
     
     def get_folders(self):
         """获取文件夹列表"""
-        # 从数据库获取文件夹列表
-        db_folders = self.folder_repo.get_all_folders()
+        # 通过DataService获取文件夹列表
+        db_folders = self.data_service.get_folders()
         
         # 转换为前端需要的格式
         folders = []
@@ -208,7 +206,7 @@ class DocumentService(BaseService):
             raise ValueError('文件夹名称不能为空')
         
         # 检查文件夹是否已存在（数据库中）
-        existing_folder = self.folder_repo.get_folder_by_name(folder_name)
+        existing_folder = self.data_service.get_folder_by_name(folder_name)
         if existing_folder:
             raise ValueError('文件夹已存在')
         
@@ -222,8 +220,8 @@ class DocumentService(BaseService):
         folder_path = os.path.join(DATA_DIR, folder_name)
         os.makedirs(folder_path, exist_ok=True)
         
-        # 在数据库中创建文件夹记录
-        self.folder_repo.create_folder(
+        # 在数据库中创建文件夹记录，通过DataService层
+        self.data_service.create_folder(
             folder_id=folder_id,
             name=folder_name,
             created_at=now,
@@ -240,12 +238,12 @@ class DocumentService(BaseService):
     def get_files_in_folder(self, folder_name):
         """获取指定文件夹中的文件"""
         # 根据文件夹名称获取folder_id
-        folder = self.folder_repo.get_folder_by_name(folder_name)
+        folder = self.data_service.get_folder_by_name(folder_name)
         if not folder:
             raise ValueError('文件夹不存在')
         
-        # 从数据库获取该文件夹下的所有文档
-        db_documents = self.document_repo.get_documents_by_folder_id(folder.id)
+        # 通过DataService获取该文件夹下的所有文档
+        db_documents = self.data_service.get_documents_by_folder_id(folder.id)
         
         # 转换为前端需要的格式
         files = []
@@ -278,25 +276,14 @@ class DocumentService(BaseService):
         skipped_count = 0
         
         # 1. 从数据库获取所有文档，用于统计数量
-        all_documents = self.document_repo.get_all_documents()
+        all_documents = self.data_service.get_documents()
         deleted_count = len(all_documents)
         
-        # 2. 删除数据库中的所有文档分块
-        from app.models.models import DocumentChunk as ChunkModel
-        self.chunk_repo.db.query(ChunkModel).delete()
-        self.chunk_repo.db.commit()
+        # 2. 删除数据库中的所有文档和文件夹（通过DataService）
+        self.data_service.delete_all_documents()
+        self.data_service.delete_all_folders()
         
-        # 3. 删除数据库中的所有文档
-        from app.models.models import Document as DocModel
-        self.document_repo.db.query(DocModel).delete()
-        self.document_repo.db.commit()
-        
-        # 4. 删除数据库中的所有文件夹
-        from app.models.models import Folder as FolderModel
-        self.folder_repo.db.query(FolderModel).delete()
-        self.folder_repo.db.commit()
-        
-        # 5. 递归删除文件系统中的所有文件和文件夹
+        # 3. 递归删除文件系统中的所有文件和文件夹
         for root, dirs, files in os.walk(DATA_DIR, topdown=False):
             # 先删除所有文件
             for file in files:
@@ -348,10 +335,10 @@ class DocumentService(BaseService):
         # 检查文件夹是否存在（文件系统）
         if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
             # 检查数据库中是否存在
-            folder = self.folder_repo.get_folder_by_name(folder_name)
+            folder = self.data_service.get_folder_by_name(folder_name)
             if folder:
                 # 数据库中存在但文件系统中不存在，直接删除数据库记录
-                self.folder_repo.delete_folder(folder.id)
+                self.data_service.delete_folder(folder.id)
                 return {
                     'deleted_folder': folder_name,
                     'message': f'文件夹 {folder_name} 已从数据库中删除',
@@ -366,7 +353,7 @@ class DocumentService(BaseService):
             }
         
         # 1. 获取文件夹ID
-        folder = self.folder_repo.get_folder_by_name(folder_name)
+        folder = self.data_service.get_folder_by_name(folder_name)
         if not folder:
             # 文件夹在文件系统中存在但数据库中不存在，直接删除文件系统中的文件夹
             shutil.rmtree(folder_path)
@@ -377,7 +364,7 @@ class DocumentService(BaseService):
             }
         
         # 2. 删除数据库中的文件夹（级联删除文件夹下的所有文档和分块）
-        self.folder_repo.delete_folder(folder.id)
+        self.data_service.delete_folder(folder.id)
         
         # 3. 删除文件系统中的文件夹
         try:
@@ -393,4 +380,106 @@ class DocumentService(BaseService):
                 'deleted_folder': folder_name,
                 'message': f'删除文件夹 {folder_name} 失败: {str(e)}',
                 'success': False
+            }
+    
+    def get_files_in_folder_by_id(self, folder_id):
+        """通过folder_id获取指定文件夹中的文件"""
+        if not folder_id:
+            raise ValueError('文件夹ID不能为空')
+        
+        # 通过DataService获取该文件夹下的所有文档
+        db_documents = self.data_service.get_documents_by_folder_id(folder_id)
+        
+        # 转换为前端需要的格式
+        files = []
+        for doc in db_documents:
+            # 从文件系统获取文件大小和修改时间
+            file_size = os.path.getsize(doc.path) if os.path.exists(doc.path) else 0
+            modified_at = os.path.getmtime(doc.path) if os.path.exists(doc.path) else 0
+            
+            files.append({
+                'name': doc.name,
+                'path': doc.path,
+                'size': file_size,
+                'modified_at': modified_at
+            })
+        return files
+    
+    def get_document_details(self, file_id):
+        """获取文件详情"""
+        if not file_id:
+            raise ValueError('文件ID不能为空')
+        
+        # 这里简化处理，直接将file_id视为文件名
+        file_name = file_id
+        
+        # 获取所有文档
+        documents = self.get_documents()
+        
+        # 查找匹配的文档
+        doc = next((d for d in documents if d['name'] == file_name), None)
+        if not doc:
+            raise ValueError('文件不存在')
+        
+        # 获取文件详情
+        file_stats = os.stat(doc['path'])
+        file_details = {
+            'id': file_name,
+            'name': file_name,
+            'path': doc['path'],
+            'size': file_stats.st_size,
+            'created_at': file_stats.st_ctime,
+            'modified_at': file_stats.st_mtime,
+            'folder': doc['folder']
+        }
+        
+        return file_details
+    
+    def delete_folder_by_id(self, folder_id):
+        """通过folder_id删除文件夹/知识库"""
+        if not folder_id:
+            raise ValueError('文件夹ID不能为空')
+        
+        # 通过DataService获取文件夹信息
+        folder = self.data_service.get_folder_by_id(folder_id)
+        if not folder:
+            raise ValueError('指定ID的文件夹不存在')
+        
+        # 调用现有的delete_folder方法
+        return self.delete_folder(folder.name)
+    
+    def upload_document(self, file, folder_id=''):
+        """上传文件到文件系统并进行向量化处理"""
+        try:
+            # 1. 保存文件到文件系统和数据库
+            save_result = self.save_document(file, folder_id)
+            
+            # 2. 读取文件内容
+            with open(save_result['full_path'], 'r', encoding='utf-8') as f:
+                doc_content = f.read()
+            
+            # 3. 调用向量服务进行向量化处理
+            vector_result = self.vector_service.embed_document(
+                doc_content=doc_content,
+                metadata={
+                    'file_path': save_result['full_path'],
+                    'folder_id': folder_id,
+                    'document_id': save_result['id']
+                }
+            )
+            
+            # 4. 返回整合结果
+            return {
+                'success': True,
+                'message': f'文件 {save_result["filename"]} 上传成功，生成 {vector_result.get("chunk_count", 0)} 个文本块',
+                'file_path': save_result['file_path'],
+                'vector_result': vector_result
+            }
+        except Exception as e:
+            self.log_error(f"❌ 文件上传失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'文件上传失败: {str(e)}',
+                'file_path': '',
+                'vector_result': None
             }

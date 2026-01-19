@@ -7,8 +7,8 @@
     <!-- 设置选项面板 -->
     <SettingsPanel v-if="activePanel === 'settings'" />
 
-    <!-- RAG配置面板 -->
-    <RagPanel v-if="activePanel === 'rag'" />
+    <!-- 文件管理面板 -->
+    <FilePanel v-if="activePanel === 'rag'" />
 
     <!-- MCP服务面板 -->
     <McpPanel v-if="activePanel === 'mcp'" />
@@ -21,7 +21,7 @@
 // 导入各个面板组件
 import HistoryPanel from './HistoryPanel.vue';
 import SettingsPanel from './SettingsPanel.vue';
-import RagPanel from './RagPanel.vue';
+import FilePanel from './FilePanel.vue';
 import McpPanel from './McpPanel.vue';
 
 

@@ -1,7 +1,5 @@
 # app/models/anthropic_model.py
 from app.models.base_model import BaseModel
-import json
-from typing import Dict, Any, Generator, List
 
 class AnthropicModel(BaseModel):
     """Anthropic模型驱动 (使用langchain)"""
@@ -10,11 +8,7 @@ class AnthropicModel(BaseModel):
         """初始化langchain的Anthropic LLM实例"""
         from langchain_anthropic import ChatAnthropic
         
-        # 检查多个可能的版本名称字段，确保兼容性
-        selected_version = self.version_config.get('name') or \
-                          self.version_config.get('version_name') or \
-                          self.version_config.get('custom_name') or \
-                          'claude-3-opus-20240229'  # 默认值
+        selected_version = self._get_selected_version('claude-3-opus-20240229')
         api_key = self.version_config.get('api_key')
         
         if not api_key:
@@ -26,27 +20,3 @@ class AnthropicModel(BaseModel):
             temperature=0.7,
             timeout=180
         )
-    
-    def chat(self, messages: List[Dict[str, str]], temperature: float, stream: bool = False) -> Dict[str, Any]:
-        """非流式调用Anthropic API"""
-        langchain_messages = self._convert_to_langchain_messages(messages)
-        self.llm.temperature = temperature
-        
-        response = self.llm.invoke(langchain_messages)
-        return self._format_response(response.content)
-    
-    def chat_stream(self, messages: List[Dict[str, str]], temperature: float) -> Generator[str, None, None]:
-        """流式调用Anthropic API"""
-        langchain_messages = self._convert_to_langchain_messages(messages)
-        self.llm.temperature = temperature
-        
-        for chunk in self.llm.stream(langchain_messages):
-            if hasattr(chunk, 'content') and chunk.content:
-                response_data = {
-                    'chunk': chunk.content,
-                    'content_struct': None
-                }
-                yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
-        
-        response_data = {'done': True}
-        yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'

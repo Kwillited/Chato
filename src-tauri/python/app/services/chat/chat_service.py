@@ -310,10 +310,10 @@ class ChatService(BaseService):
             # 直接使用生成服务的build_prompt方法，避免通过LangChainRAGService间接调用
             from app.core.config import config_manager
             from app.services.rag.generation_service import GenerationService
-            from app.services.rag.rag_coordinator import RagCoordinator
+            from app.services.vector.vector_service import VectorService
             
             generation_service = GenerationService()
-            rag_coordinator = RagCoordinator()
+            vector_service = VectorService()
             
             # 从配置中获取参数
             config_rag = config_manager.get('rag', {})
@@ -328,12 +328,18 @@ class ChatService(BaseService):
             
             # 执行相似性搜索
             self.log_info(f"🔍 正在搜索相关文档，参数: k={k}, score_threshold={score_threshold}, filter={filter}")
-            context_docs = rag_coordinator.vector_service.search_documents(
+            vector_results = vector_service.search_vectors(
                 query=question,
                 k=k,
-                score_threshold=score_threshold,
                 filter=filter
             )
+            
+            # 转换向量结果为文档列表
+            context_docs = []
+            if vector_results['success']:
+                for result in vector_results['results']:
+                    # 添加文档到上下文
+                    context_docs.append(result)
             
             self.log_info(f"✅ 找到 {len(context_docs)} 个相关文档片段")
             
@@ -347,6 +353,111 @@ class ChatService(BaseService):
             BaseService.log_error(f"RAG调用失败: {str(e)}")
             # 确保即使RAG失败，原始问题也能正常返回
             return question
+    
+    def generate_rag_response(self, query: str, chat_history: list, k=5):
+        """生成增强响应
+        
+        Args:
+            query (str): 用户查询
+            chat_history (list): 聊天历史
+            k (int): 返回结果数量
+            
+        Returns:
+            dict: 生成增强响应结果
+        """
+        try:
+            self.log_info(f"🚀 开始生成增强响应: 查询='{query[:50]}{'...' if len(query) > 50 else ''}'")
+            # 1. 调用向量服务获取相关文档
+            from app.services.vector.vector_service import VectorService
+            vector_service = VectorService()
+            vector_results = vector_service.search_vectors(query, k=k)
+            
+            if not vector_results['success']:
+                self.log_error(f"❌ 向量检索失败: {vector_results['message']}")
+                return {
+                    'success': False,
+                    'message': '向量检索失败',
+                    'response': '抱歉，我无法获取相关信息。'
+                }
+            
+            # 2. 构建RAG提示
+            from app.services.rag.generation_service import GenerationService
+            generation_service = GenerationService()
+            context = self._build_rag_context(vector_results['results'])
+            prompt = self._build_rag_prompt(query, context, chat_history)
+            
+            # 3. 调用LLM生成响应
+            llm_result = generation_service.generate_response(prompt)
+            
+            if llm_result['success']:
+                self.log_info(f"✅ 生成增强响应成功")
+                return {
+                    'success': True,
+                    'message': '生成增强响应成功',
+                    'response': llm_result['answer'],
+                    'context': context
+                }
+            else:
+                self.log_error(f"❌ 生成响应失败: {llm_result.get('error', '未知错误')}")
+                return {
+                    'success': False,
+                    'message': f'生成响应失败: {llm_result.get('error', '未知错误')}',
+                    'response': '抱歉，我无法生成响应。'
+                }
+        except Exception as e:
+            self.log_error(f"❌ 生成增强响应失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'生成增强响应失败: {str(e)}',
+                'response': '抱歉，我无法生成响应。'
+            }
+    
+    def _build_rag_context(self, vector_results):
+        """构建上下文
+        
+        Args:
+            vector_results: 向量检索结果
+            
+        Returns:
+            str: 构建好的上下文
+        """
+        context = []
+        for i, result in enumerate(vector_results):
+            context.append(f"参考文档{i+1}: {result['content']}")
+        return "\n".join(context)
+    
+    def _build_rag_prompt(self, query, context, chat_history):
+        """构建提示模板
+        
+        Args:
+            query: 用户查询
+            context: 上下文信息
+            chat_history: 聊天历史
+            
+        Returns:
+            str: 构建好的提示
+        """
+        prompt_template = """你是一个AI助手，使用以下上下文来回答用户问题。如果你不知道答案，就说你不知道。保持回答简洁明了。
+
+上下文：
+{context}
+
+聊天历史：
+{chat_history}
+
+用户问题：
+{query}
+
+回答："""
+        
+        # 格式化聊天历史
+        chat_history_str = "".join([f"用户: {msg['user']}\n助手: {msg['assistant']}\n" for msg in chat_history])
+        
+        return prompt_template.format(
+            context=context,
+            chat_history=chat_history_str,
+            query=query
+        )
 
     def parse_model_info(self, model_name):
         """

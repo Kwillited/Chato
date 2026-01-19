@@ -36,6 +36,7 @@
 import { ref } from 'vue';
 import ActionButton from '../common/ActionButton.vue';
 import { useRagStore } from '../../store/ragStore.js';
+import { fileStore } from '../../store/fileStore.js';
 
 // 初始化ragStore
 const ragStore = useRagStore();
@@ -89,9 +90,9 @@ const handleFolderDragOver = (event, folder) => {
     const files = Array.from(event.dataTransfer.files);
     
     if (files && files.length > 0) {
-      // 直接调用store方法上传文件到指定文件夹
-      ragStore.uploadFilesToFolder(folder, files);
-    }
+    // 直接调用fileStore方法批量上传文件到指定文件夹
+    fileStore.batchUploadFiles(files, folder.id);
+  }
   };
 
 // 处理文件夹点击事件
@@ -114,7 +115,7 @@ const handleFolderClick = (folder) => {
   
   // 设置定时器处理事件发送（延迟以区分双击）
   clickTimer = setTimeout(() => {
-    // 触发folderSelected事件，让RagPanel处理
+    // 触发folderSelected事件，让FilePanel处理
     const event = new CustomEvent('folderSelected', { detail: selectedFolder.value });
     window.dispatchEvent(event);
     
@@ -133,14 +134,14 @@ const handleFolderDoubleClick = (folder) => {
   // 重置上次点击的文件夹
   lastClickedFolder = null;
   
-  // 触发folderDoubleClick事件，让RagPanel处理
+  // 触发folderDoubleClick事件，让FilePanel处理
   const event = new CustomEvent('folderDoubleClick', { detail: folder });
   window.dispatchEvent(event);
 };
 
 // 处理删除文件夹
 const handleDeleteFolder = (folder) => {
-  // 触发deleteFolder事件，让RagPanel处理
+  // 触发deleteFolder事件，让FilePanel处理
   const event = new CustomEvent('deleteFolder', { detail: folder });
   window.dispatchEvent(event);
 };

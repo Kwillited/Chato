@@ -1,9 +1,11 @@
 """向量数据库服务 - 管理向量存储的初始化和操作，位于数据层"""
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import config_manager
+from app.core.knowledge_base_manager import KnowledgeBaseManager
 from app.services.base_service import BaseService
 from app.repositories.vector_repository import VectorRepository
+from app.utils.error_handler import handle_vector_errors
 
 class VectorDBService(BaseService):
     """向量数据库服务类，管理向量存储的初始化和操作"""
@@ -134,17 +136,13 @@ class VectorDBService(BaseService):
         Returns:
             VectorDBService: 新创建的向量数据库服务实例
         """
-        config_manager = cls.__get_config_manager()
+        # 使用KnowledgeBaseManager创建知识库
+        kb_manager = KnowledgeBaseManager()
+        kb_manager.create_knowledge_base(name, vector_db_path)
         
-        # 如果没有提供路径，生成默认路径
+        # 获取知识库路径
         if not vector_db_path:
-            user_data_dir = config_manager.get_user_data_dir()
-            vector_db_path = os.path.join(
-                user_data_dir, 'Retrieval-Augmented Generation', f'vectorDb_{name}'
-            )
-        
-        # 保存到配置
-        config_manager.add_knowledge_base(name, vector_db_path)
+            vector_db_path = kb_manager.get_knowledge_base_path(name)
         
         # 创建并返回实例
         with cls._lock:
@@ -165,23 +163,14 @@ class VectorDBService(BaseService):
         if name == "default":
             raise ValueError("默认知识库不能删除")
         
-        config_manager = cls.__get_config_manager()
-        
+        # 从实例注册表中移除
         with cls._lock:
-            # 从实例注册表中移除
             if name in cls._instances:
                 del cls._instances[name]
-            
-            # 从配置中移除
-            result = config_manager.remove_knowledge_base(name)
-            
-            return result
-    
-    @classmethod
-    def __get_config_manager(cls):
-        """获取配置管理器实例"""
-        from app.core.config import config_manager
-        return config_manager
+        
+        # 使用KnowledgeBaseManager删除知识库
+        kb_manager = KnowledgeBaseManager()
+        return kb_manager.delete_knowledge_base(name)
     
     def _ensure_directories(self) -> bool:
         """确保所有必要的目录存在
@@ -342,39 +331,46 @@ class VectorDBService(BaseService):
             self._vector_store = None
             return False
     
-    def add_documents(self, documents: List[Any]) -> bool:
+    @handle_vector_errors(default_return=(False, "添加文档失败: 未知错误"))
+    def add_documents(self, documents: List[Any]) -> Tuple[bool, str]:
         """将文档片段添加到向量库中
         
         Args:
             documents: 文档片段列表
             
         Returns:
-            bool: 是否成功添加
+            Tuple[bool, str]: (是否成功, 错误信息或"success")
         """
+        if not documents:
+            self.log_warning(f"[{self.knowledge_base_name}] 没有找到文档或文档为空")
+            return False, "没有找到文档或文档为空"
+        
+        if not self.vector_store:
+            self.log_error(f"[{self.knowledge_base_name}] 向量存储未初始化")
+            return False, "向量存储未初始化"
+        
+        # 使用Repository添加文档
         try:
-            if not documents:
-                self.log_warning(f"[{self.knowledge_base_name}] 没有找到文档或文档为空")
-                return False
-            
-            if not self.vector_store:
-                self.log_error(f"[{self.knowledge_base_name}] 向量存储未初始化")
-                return False
-            
-            # 使用Repository添加文档
             result = self.vector_repository.add_documents(documents)
             
             if result:
                 self.log_info(f"[{self.knowledge_base_name}] 成功将 {len(documents)} 个文档片段添加到向量库")
-            return result
+                return True, "success"
+            else:
+                error_msg = "添加文档失败"
+                self.log_warning(f"[{self.knowledge_base_name}] {error_msg}")
+                return False, error_msg
         except Exception as e:
-            self.log_error(f"[{self.knowledge_base_name}] 添加文档失败: {e}")
-            return False
+            error_msg = f"添加文档失败: {str(e)}"
+            self.log_error(f"[{self.knowledge_base_name}] {error_msg}")
+            return False, error_msg
     
-    def clear_vector_store(self) -> bool:
+    @handle_vector_errors(default_return=(False, "清空向量库失败: 未知错误"))
+    def clear_vector_store(self) -> Tuple[bool, str]:
         """清空向量库
         
         Returns:
-            bool: 是否成功清空
+            Tuple[bool, str]: (是否成功, 错误信息或"success")
         """
         max_retries = 3
         retry_delay = 1  # 秒
@@ -383,21 +379,28 @@ class VectorDBService(BaseService):
             try:
                 if not self.vector_store:
                     self.log_error(f"[{self.knowledge_base_name}] 向量存储未初始化")
-                    return False
+                    return False, "向量存储未初始化"
                 
                 # 使用Repository清空向量存储
                 result = self.vector_repository.clear_vector_store()
                 
                 if result:
                     self.log_info(f"[{self.knowledge_base_name}] 向量库清空成功")
-                    return True
+                    return True, "success"
+                else:
+                    error_msg = "清空向量库失败"
+                    self.log_warning(f"[{self.knowledge_base_name}] {error_msg}")
+                    return False, error_msg
             except Exception as e:
-                self.log_error(f"[{self.knowledge_base_name}] 清空向量库失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                error_msg = f"清空向量库失败 (尝试 {attempt + 1}/{max_retries}): {str(e)}"
+                self.log_error(f"[{self.knowledge_base_name}] {error_msg}")
                 if attempt < max_retries - 1:
                     import time
                     time.sleep(retry_delay)
                 
-        return False
+        final_error_msg = f"清空向量库失败: 已尝试 {max_retries} 次均失败"
+        self.log_error(f"[{self.knowledge_base_name}] {final_error_msg}")
+        return False, final_error_msg
     
     def get_vector_statistics(self) -> Dict[str, Any]:
         """获取向量库统计信息
