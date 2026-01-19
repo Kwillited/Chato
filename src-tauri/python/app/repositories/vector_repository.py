@@ -85,7 +85,8 @@ class VectorRepository(BaseRepository):
             raise e
     
     def search_documents(self, query: str, k: int = 5, score_threshold: Optional[float] = None, 
-                        search_type: str = "similarity", fetch_k: int = 20) -> List[Any]:
+                        search_type: str = "similarity", fetch_k: int = 20, 
+                        filter: Optional[Dict[str, Any]] = None) -> List[Any]:
         """搜索相关文档 - 支持多种搜索类型
         
         Args:
@@ -94,6 +95,7 @@ class VectorRepository(BaseRepository):
             score_threshold: 相似度分数阈值，低于该阈值的结果将被过滤
             search_type: 搜索类型，可选值：similarity, mmr, similarity_score_threshold
             fetch_k: 用于MMR搜索的候选文档数量
+            filter: 元数据过滤器，用于过滤特定条件的文档，格式为 {"key": "value"} 或 {"$and": [{"key1": "value1"}, {"key2": "value2"}]}
             
         Returns:
             list: 相关文档列表
@@ -104,26 +106,43 @@ class VectorRepository(BaseRepository):
             
             result = []
             
+            # 处理过滤器，转换为Chroma支持的格式
+            chroma_filter = None
+            if filter:
+                # 如果filter是简单的键值对，并且包含多个键，则转换为$and格式
+                if isinstance(filter, dict) and len(filter) > 1 and all(isinstance(v, (str, int, float, bool)) for v in filter.values()):
+                    # 转换为$and格式
+                    chroma_filter = {"$and": [{k: v} for k, v in filter.items()]}
+                else:
+                    # 单条件或已经是正确格式，直接使用
+                    chroma_filter = filter
+            
             # 根据搜索类型执行不同的搜索方法
             if search_type == "mmr":
                 # 使用最大边缘相关性搜索
                 result = self.vector_store.max_marginal_relevance_search(
                     query=query,
                     k=k,
-                    fetch_k=fetch_k
+                    fetch_k=fetch_k,
+                    filter=chroma_filter  # 添加元数据过滤
                 )
             elif search_type == "similarity_score_threshold" and score_threshold is not None:
                 # 使用带分数阈值的相似性搜索
                 result = self.vector_store.similarity_search_with_score(
                     query=query,
                     k=k,
-                    score_threshold=score_threshold
+                    score_threshold=score_threshold,
+                    filter=chroma_filter  # 添加元数据过滤
                 )
                 # 只保留文档，不保留分数
                 result = [doc for doc, _ in result]
             elif score_threshold is not None:
                 # 执行带分数的相似性搜索并手动过滤
-                results_with_scores = self.vector_store.similarity_search_with_score(query, k=k)
+                results_with_scores = self.vector_store.similarity_search_with_score(
+                    query=query, 
+                    k=k,
+                    filter=chroma_filter  # 添加元数据过滤
+                )
                 
                 # 过滤结果
                 result = []
@@ -132,7 +151,11 @@ class VectorRepository(BaseRepository):
                         result.append(doc)
             else:
                 # 执行普通相似性搜索
-                result = self.vector_store.similarity_search(query, k=k)
+                result = self.vector_store.similarity_search(
+                    query=query, 
+                    k=k,
+                    filter=chroma_filter  # 添加元数据过滤
+                )
             
             return result
         except Exception as e:

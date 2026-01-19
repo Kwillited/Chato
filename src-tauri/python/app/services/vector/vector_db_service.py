@@ -8,25 +8,39 @@ from app.repositories.vector_repository import VectorRepository
 class VectorDBService(BaseService):
     """向量数据库服务类，管理向量存储的初始化和操作"""
     
-    # 单例实例
-    _instance = None
-    _lock = None  # 用于线程安全的单例实现
+    # 实例注册表，支持多知识库管理
+    _instances: Dict[str, 'VectorDBService'] = {}
+    _lock = None  # 用于线程安全的实例管理
     
-    def __init__(self, vector_db_path=None, embedder_model='all-MiniLM-L6-v2'):
+    def __init__(self, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
         """初始化向量数据库服务
         
         Args:
             vector_db_path: 向量数据库的存储路径
             embedder_model: 使用的嵌入模型名称
+            knowledge_base_name: 知识库名称，用于标识不同的知识库实例
         """
         # 使用配置管理器获取用户数据目录
         self.config_manager = config_manager
         self.user_data_dir = self.config_manager.get_user_data_dir()
         
-        # 设置默认路径
-        self.vector_db_path = vector_db_path or os.path.join(
-            self.user_data_dir, 'Retrieval-Augmented Generation', 'vectorDb'
-        )
+        # 设置知识库名称
+        self.knowledge_base_name = knowledge_base_name or "default"
+        
+        # 设置向量数据库路径
+        if vector_db_path:
+            self.vector_db_path = vector_db_path
+        else:
+            # 从配置中获取知识库路径，如果不存在则使用默认路径
+            knowledge_bases = self.config_manager.get("rag.knowledge_bases", {})
+            if self.knowledge_base_name in knowledge_bases:
+                self.vector_db_path = knowledge_bases[self.knowledge_base_name]
+            else:
+                # 使用默认路径
+                self.vector_db_path = os.path.join(
+                    self.user_data_dir, 'Retrieval-Augmented Generation', 
+                    f'vectorDb_{self.knowledge_base_name}' if self.knowledge_base_name != "default" else 'vectorDb'
+                )
         
         self.embedder_model = embedder_model
         self._embeddings = None  # 嵌入模型实例
@@ -38,6 +52,8 @@ class VectorDBService(BaseService):
         
         # 初始化向量数据库Repository
         self.vector_repository = VectorRepository()
+        
+        self.log_info(f"初始化向量数据库服务: 知识库='{self.knowledge_base_name}', 路径='{self.vector_db_path}'")
     
     @property
     def embeddings(self):
@@ -61,27 +77,111 @@ class VectorDBService(BaseService):
         return self._vector_store
     
     @classmethod
-    def get_instance(cls, vector_db_path=None, embedder_model='all-MiniLM-L6-v2'):
-        """获取单例实例
+    def get_instance(cls, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
+        """获取或创建向量数据库服务实例
         
         Args:
             vector_db_path: 向量数据库的存储路径
             embedder_model: 使用的嵌入模型名称
+            knowledge_base_name: 知识库名称，用于标识不同的知识库实例
             
         Returns:
-            VectorDBService: 向量数据库服务单例实例
+            VectorDBService: 向量数据库服务实例
         """
         # 延迟初始化锁，避免导入时的循环依赖
         if cls._lock is None:
             import threading
             cls._lock = threading.Lock()
         
-        # 双重检查锁定模式 - 线程安全的单例实现
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = cls(vector_db_path, embedder_model)
-        return cls._instance
+        # 使用知识库名称作为实例键
+        instance_key = knowledge_base_name or "default"
+        
+        with cls._lock:
+            if instance_key not in cls._instances:
+                cls._instances[instance_key] = cls(vector_db_path, embedder_model, knowledge_base_name)
+            return cls._instances[instance_key]
+    
+    @classmethod
+    def get_instance_by_name(cls, name: str) -> Optional['VectorDBService']:
+        """根据知识库名称获取实例
+        
+        Args:
+            name: 知识库名称
+            
+        Returns:
+            VectorDBService: 向量数据库服务实例，不存在则返回None
+        """
+        return cls._instances.get(name)
+    
+    @classmethod
+    def list_instances(cls) -> Dict[str, 'VectorDBService']:
+        """列出所有向量数据库服务实例
+        
+        Returns:
+            Dict[str, VectorDBService]: 所有实例的字典
+        """
+        return cls._instances.copy()
+    
+    @classmethod
+    def create_knowledge_base(cls, name: str, vector_db_path: Optional[str] = None, embedder_model: str = 'qwen3-embedding-0.6b') -> 'VectorDBService':
+        """创建新的知识库
+        
+        Args:
+            name: 知识库名称
+            vector_db_path: 向量数据库路径，None则使用默认路径
+            embedder_model: 嵌入模型名称
+            
+        Returns:
+            VectorDBService: 新创建的向量数据库服务实例
+        """
+        config_manager = cls.__get_config_manager()
+        
+        # 如果没有提供路径，生成默认路径
+        if not vector_db_path:
+            user_data_dir = config_manager.get_user_data_dir()
+            vector_db_path = os.path.join(
+                user_data_dir, 'Retrieval-Augmented Generation', f'vectorDb_{name}'
+            )
+        
+        # 保存到配置
+        config_manager.add_knowledge_base(name, vector_db_path)
+        
+        # 创建并返回实例
+        with cls._lock:
+            instance = cls(vector_db_path, embedder_model, name)
+            cls._instances[name] = instance
+            return instance
+    
+    @classmethod
+    def delete_knowledge_base(cls, name: str) -> bool:
+        """删除知识库
+        
+        Args:
+            name: 知识库名称
+            
+        Returns:
+            bool: 是否成功删除
+        """
+        if name == "default":
+            raise ValueError("默认知识库不能删除")
+        
+        config_manager = cls.__get_config_manager()
+        
+        with cls._lock:
+            # 从实例注册表中移除
+            if name in cls._instances:
+                del cls._instances[name]
+            
+            # 从配置中移除
+            result = config_manager.remove_knowledge_base(name)
+            
+            return result
+    
+    @classmethod
+    def __get_config_manager(cls):
+        """获取配置管理器实例"""
+        from app.core.config import config_manager
+        return config_manager
     
     def _ensure_directories(self) -> bool:
         """确保所有必要的目录存在
@@ -253,21 +353,21 @@ class VectorDBService(BaseService):
         """
         try:
             if not documents:
-                self.log_warning("没有找到文档或文档为空")
+                self.log_warning(f"[{self.knowledge_base_name}] 没有找到文档或文档为空")
                 return False
             
             if not self.vector_store:
-                self.log_error("向量存储未初始化")
+                self.log_error(f"[{self.knowledge_base_name}] 向量存储未初始化")
                 return False
             
             # 使用Repository添加文档
             result = self.vector_repository.add_documents(documents)
             
             if result:
-                self.log_info(f"成功将 {len(documents)} 个文档片段添加到向量库")
+                self.log_info(f"[{self.knowledge_base_name}] 成功将 {len(documents)} 个文档片段添加到向量库")
             return result
         except Exception as e:
-            self.log_error(f"添加文档失败: {e}")
+            self.log_error(f"[{self.knowledge_base_name}] 添加文档失败: {e}")
             return False
     
     def clear_vector_store(self) -> bool:
@@ -282,17 +382,17 @@ class VectorDBService(BaseService):
         for attempt in range(max_retries):
             try:
                 if not self.vector_store:
-                    self.log_error("向量存储未初始化")
+                    self.log_error(f"[{self.knowledge_base_name}] 向量存储未初始化")
                     return False
                 
                 # 使用Repository清空向量存储
                 result = self.vector_repository.clear_vector_store()
                 
                 if result:
-                    self.log_info("向量库清空成功")
+                    self.log_info(f"[{self.knowledge_base_name}] 向量库清空成功")
                     return True
             except Exception as e:
-                self.log_error(f"清空向量库失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                self.log_error(f"[{self.knowledge_base_name}] 清空向量库失败 (尝试 {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
                     import time
                     time.sleep(retry_delay)
@@ -310,11 +410,13 @@ class VectorDBService(BaseService):
                 return {
                     'status': 'error',
                     'error': '向量存储未初始化',
-                    'total_vectors': 0
+                    'total_vectors': 0,
+                    'knowledge_base': self.knowledge_base_name
                 }
             
             stats = {
                 'status': 'ok',
+                'knowledge_base': self.knowledge_base_name,
                 'embedding_model': self.embedder_model,
                 'vector_store_type': 'chroma',
                 'vector_store_path': self.vector_db_path,
@@ -326,15 +428,17 @@ class VectorDBService(BaseService):
             
             return stats
         except Exception as e:
-            self.log_error(f"获取向量库统计信息失败: {e}")
+            self.log_error(f"[{self.knowledge_base_name}] 获取向量库统计信息失败: {e}")
             return {
                 'status': 'error',
                 'error': str(e),
-                'total_vectors': 0
+                'total_vectors': 0,
+                'knowledge_base': self.knowledge_base_name
             }
     
     def search_documents(self, query: str, k: int = 5, score_threshold: Optional[float] = None, 
-                       search_type: str = "similarity", fetch_k: int = 20) -> List[Any]:
+                       search_type: str = "similarity", fetch_k: int = 20, 
+                       filter: Optional[Dict[str, Any]] = None) -> List[Any]:
         """搜索相关文档 - 支持多种搜索类型
         
         Args:
@@ -343,6 +447,7 @@ class VectorDBService(BaseService):
             score_threshold: 相似度分数阈值，低于该阈值的结果将被过滤
             search_type: 搜索类型，可选值：similarity, mmr, similarity_score_threshold
             fetch_k: 用于MMR搜索的候选文档数量
+            filter: 元数据过滤器，用于过滤特定条件的文档，格式为 {"key": "value"}
             
         Returns:
             list: 相关文档列表
@@ -356,12 +461,13 @@ class VectorDBService(BaseService):
                            query=query[:50] + "..." if len(query) > 50 else query,
                            k=k,
                            score_threshold=score_threshold,
-                           search_type=search_type)
+                           search_type=search_type,
+                           filter=filter)
             
-            self.log_info(f"Starting search for query: '{query[:50]}...' with k={k}, score_threshold={score_threshold}, search_type={search_type}, fetch_k={fetch_k}")
+            self.log_info(f"[{self.knowledge_base_name}] 开始搜索: 查询='{query[:50]}...', k={k}, score_threshold={score_threshold}, search_type={search_type}, fetch_k={fetch_k}, filter={filter}")
             
             if not self.vector_store:
-                self.log_error("搜索失败：向量存储未初始化")
+                self.log_error(f"[{self.knowledge_base_name}] 搜索失败：向量存储未初始化")
                 trigger_callback('error', 
                                event='search',
                                error="向量存储未初始化")
@@ -373,23 +479,25 @@ class VectorDBService(BaseService):
                 k=k,
                 score_threshold=score_threshold,
                 search_type=search_type,
-                fetch_k=fetch_k
+                fetch_k=fetch_k,
+                filter=filter
             )
             
-            self.log_info(f"搜索完成，找到 {len(result)} 个相关文档")
+            self.log_info(f"[{self.knowledge_base_name}] 搜索完成，找到 {len(result)} 个相关文档")
             
             # 触发搜索结束回调
             trigger_callback('search_end', 
                            query=query[:50] + "..." if len(query) > 50 else query,
                            result_count=len(result),
-                           cache_hit=False)
+                           cache_hit=False,
+                           filter=filter)
             
             return result
         except Exception as e:
-            self.log_error(f"搜索文档失败: {str(e)}")
-            self.log_error(f"错误类型: {type(e).__name__}")
+            self.log_error(f"[{self.knowledge_base_name}] 搜索文档失败: {str(e)}")
+            self.log_error(f"[{self.knowledge_base_name}] 错误类型: {type(e).__name__}")
             import traceback
-            self.log_error(f"错误堆栈: {traceback.format_exc()}")
+            self.log_error(f"[{self.knowledge_base_name}] 错误堆栈: {traceback.format_exc()}")
             
             # 触发错误回调
             from app.utils.callback_manager import trigger_callback

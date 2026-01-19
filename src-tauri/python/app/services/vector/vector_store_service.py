@@ -12,22 +12,30 @@ class VectorStoreService(BaseService):
     _CACHE_SIZE = 100  # 缓存大小限制
     _CACHE_TTL = 3600  # 缓存过期时间（秒）
     
-    # 单例实例
-    _instance = None
-    _lock = None  # 用于线程安全的单例实现
+    # 实例注册表，支持多知识库管理
+    _instances = {}  # key为知识库名称，value为实例
+    _lock = None  # 用于线程安全的实例管理
     
-    def __init__(self, vector_db_path=None, embedder_model='all-MiniLM-L6-v2'):
+    def __init__(self, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
         """初始化向量存储服务
         
         Args:
             vector_db_path: 向量数据库的存储路径
             embedder_model: 使用的嵌入模型名称
+            knowledge_base_name: 知识库名称，用于标识不同的知识库实例
         """
+        # 设置知识库名称
+        self.knowledge_base_name = knowledge_base_name or "default"
+        
         # 初始化向量数据库服务（位于数据层）
-        self.vector_db_service = VectorDBService.get_instance(vector_db_path, embedder_model)
+        self.vector_db_service = VectorDBService.get_instance(
+            vector_db_path, embedder_model, self.knowledge_base_name
+        )
         
         # 初始化查询缓存
         self._query_cache = {}  # 缓存字典：key为查询特征，value为(结果, 时间戳)
+        
+        self.log_info(f"初始化向量存储服务: 知识库='{self.knowledge_base_name}'")
     
     @property
     def vector_db_service(self):
@@ -45,27 +53,92 @@ class VectorStoreService(BaseService):
         return self.vector_db_service.vector_store
     
     @classmethod
-    def get_instance(cls, vector_db_path=None, embedder_model='all-MiniLM-L6-v2'):
-        """获取单例实例
+    def get_instance(cls, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
+        """获取或创建向量存储服务实例
         
         Args:
             vector_db_path: 向量数据库的存储路径
             embedder_model: 使用的嵌入模型名称
+            knowledge_base_name: 知识库名称，用于标识不同的知识库实例
             
         Returns:
-            VectorStoreService: 向量存储服务单例实例
+            VectorStoreService: 向量存储服务实例
         """
         # 延迟初始化锁，避免导入时的循环依赖
         if cls._lock is None:
             import threading
             cls._lock = threading.Lock()
         
-        # 双重检查锁定模式 - 线程安全的单例实现
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = cls(vector_db_path, embedder_model)
-        return cls._instance
+        # 使用知识库名称作为实例键
+        instance_key = knowledge_base_name or "default"
+        
+        with cls._lock:
+            if instance_key not in cls._instances:
+                cls._instances[instance_key] = cls(vector_db_path, embedder_model, knowledge_base_name)
+            return cls._instances[instance_key]
+    
+    @classmethod
+    def get_instance_by_name(cls, name: str) -> Optional['VectorStoreService']:
+        """根据知识库名称获取实例
+        
+        Args:
+            name: 知识库名称
+            
+        Returns:
+            VectorStoreService: 向量存储服务实例，不存在则返回None
+        """
+        return cls._instances.get(name)
+    
+    @classmethod
+    def list_instances(cls) -> Dict[str, 'VectorStoreService']:
+        """列出所有向量存储服务实例
+        
+        Returns:
+            Dict[str, VectorStoreService]: 所有实例的字典
+        """
+        return cls._instances.copy()
+    
+    @classmethod
+    def create_knowledge_base(cls, name: str, vector_db_path: Optional[str] = None, embedder_model: str = 'qwen3-embedding-0.6b') -> 'VectorStoreService':
+        """创建新的知识库
+        
+        Args:
+            name: 知识库名称
+            vector_db_path: 向量数据库路径，None则使用默认路径
+            embedder_model: 嵌入模型名称
+            
+        Returns:
+            VectorStoreService: 新创建的向量存储服务实例
+        """
+        # 创建向量数据库服务实例
+        vector_db_instance = VectorDBService.create_knowledge_base(name, vector_db_path, embedder_model)
+        
+        # 创建向量存储服务实例
+        with cls._lock:
+            instance = cls(vector_db_path, embedder_model, name)
+            cls._instances[name] = instance
+            return instance
+    
+    @classmethod
+    def delete_knowledge_base(cls, name: str) -> bool:
+        """删除知识库
+        
+        Args:
+            name: 知识库名称
+            
+        Returns:
+            bool: 是否成功删除
+        """
+        if name == "default":
+            raise ValueError("默认知识库不能删除")
+        
+        with cls._lock:
+            # 从实例注册表中移除
+            if name in cls._instances:
+                del cls._instances[name]
+            
+            # 调用VectorDBService删除知识库
+            return VectorDBService.delete_knowledge_base(name)
     
     def add_documents(self, documents: List[Any]) -> bool:
         """将文档片段添加到向量库中
@@ -76,8 +149,17 @@ class VectorStoreService(BaseService):
         Returns:
             bool: 是否成功添加
         """
-        # 使用向量数据库服务添加文档
-        return self.vector_db_service.add_documents(documents)
+        try:
+            self.log_info(f"[{self.knowledge_base_name}] 开始添加文档: 数量={len(documents)}")
+            result = self.vector_db_service.add_documents(documents)
+            if result:
+                self.log_info(f"[{self.knowledge_base_name}] 成功添加 {len(documents)} 个文档")
+            else:
+                self.log_warning(f"[{self.knowledge_base_name}] 添加文档失败")
+            return result
+        except Exception as e:
+            self.log_error(f"[{self.knowledge_base_name}] 添加文档异常: {e}")
+            return False
     
     def clear_vector_store(self) -> bool:
         """清空向量库
@@ -85,8 +167,20 @@ class VectorStoreService(BaseService):
         Returns:
             bool: 是否成功清空
         """
-        # 使用向量数据库服务清空向量库
-        return self.vector_db_service.clear_vector_store()
+        try:
+            self.log_info(f"[{self.knowledge_base_name}] 开始清空向量库")
+            result = self.vector_db_service.clear_vector_store()
+            if result:
+                self.log_info(f"[{self.knowledge_base_name}] 向量库清空成功")
+                # 清空缓存
+                self._query_cache.clear()
+                self.log_info(f"[{self.knowledge_base_name}] 已清空查询缓存")
+            else:
+                self.log_warning(f"[{self.knowledge_base_name}] 向量库清空失败")
+            return result
+        except Exception as e:
+            self.log_error(f"[{self.knowledge_base_name}] 清空向量库异常: {e}")
+            return False
     
     def get_vector_statistics(self) -> Dict[str, Any]:
         """获取向量库统计信息
@@ -94,8 +188,20 @@ class VectorStoreService(BaseService):
         Returns:
             dict: 向量库统计信息
         """
-        # 使用向量数据库服务获取统计信息
-        return self.vector_db_service.get_vector_statistics()
+        try:
+            stats = self.vector_db_service.get_vector_statistics()
+            # 添加知识库名称到统计信息
+            stats['knowledge_base'] = self.knowledge_base_name
+            self.log_info(f"[{self.knowledge_base_name}] 获取向量库统计信息: {stats}")
+            return stats
+        except Exception as e:
+            self.log_error(f"[{self.knowledge_base_name}] 获取向量库统计信息异常: {e}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'total_vectors': 0,
+                'knowledge_base': self.knowledge_base_name
+            }
     
     def _update_cache(self, cache_key: str, result: List[Any], current_time: float) -> None:
         """更新查询缓存
@@ -117,7 +223,7 @@ class VectorStoreService(BaseService):
             del self._query_cache[oldest_key]
             self.log_debug(f"缓存大小超过限制，移除最旧项: {oldest_key[:50]}...")
     
-    def search_documents(self, query: str, k: int = 5, score_threshold: Optional[float] = None, search_type: str = "similarity", fetch_k: int = 20) -> List[Any]:
+    def search_documents(self, query: str, k: int = 5, score_threshold: Optional[float] = None, search_type: str = "similarity", fetch_k: int = 20, filter: Optional[Dict[str, Any]] = None) -> List[Any]:
         """搜索相关文档 - 支持多种搜索类型
         
         Args:
@@ -126,15 +232,19 @@ class VectorStoreService(BaseService):
             score_threshold: 相似度分数阈值，低于该阈值的结果将被过滤
             search_type: 搜索类型，可选值：similarity, mmr, similarity_score_threshold
             fetch_k: 用于MMR搜索的候选文档数量
+            filter: 元数据过滤器，用于过滤特定条件的文档，格式为 {"key": "value"}
             
         Returns:
             list: 相关文档列表
         """
         import time
+        import json
         
         try:
-            # 构建缓存键：包含所有搜索参数
-            cache_key = f"{query}:{k}:{score_threshold}:{search_type}:{fetch_k}"
+            # 构建缓存键：包含所有搜索参数，包括filter
+            # 将filter转换为JSON字符串以确保唯一性
+            filter_str = json.dumps(filter, sort_keys=True) if filter else "None"
+            cache_key = f"{query}:{k}:{score_threshold}:{search_type}:{fetch_k}:{filter_str}"
             current_time = time.time()
             
             # 检查缓存
@@ -155,7 +265,8 @@ class VectorStoreService(BaseService):
                 k=k,
                 score_threshold=score_threshold,
                 search_type=search_type,
-                fetch_k=fetch_k
+                fetch_k=fetch_k,
+                filter=filter
             )
             
             # 更新缓存
