@@ -2,15 +2,15 @@
   <div v-if="folders.length > 0" class="folders-list mt-3">
     <h3 class="text-sm font-medium text-gray-700 dark:text-white mb-2 px-2">知识库文件夹 ({{ folders.length }})</h3>
     <div v-for="folder in folders" :key="folder.id || folder.path"
-      class="folder-item bg-gray-50 border border-gray-200 dark:bg-dark-bg-secondary rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg-tertiary transition-all duration-300"
+      class="folder-item bg-gray-50 border border-gray-300 dark:bg-dark-bg-tertiary dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg-secondary transition-all duration-300"
       @dragover.prevent="handleFolderDragOver($event, folder)"
       @dragleave.prevent="handleFolderDragLeave"
       @drop.prevent="handleFolderDrop($event, folder)"
       @dblclick="handleFolderDoubleClick(folder)"
       @click="handleFolderClick(folder)"
       :class="{
-        'border-neutral-400 bg-neutral-100 dark:border-gray-600 dark:bg-dark-bg-tertiary': draggingFolder === folder,
-        'bg-neutral-100 dark:bg-dark-bg-tertiary border-neutral-400 dark:border-gray-600': selectedFolder === folder && draggingFolder !== folder
+        'border-gray-500 bg-gray-200 dark:border-gray-200 dark:bg-dark-bg-secondary': draggingFolder === folder,
+        'bg-gray-200 dark:bg-dark-bg-secondary border-gray-500 dark:border-gray-200': selectedFolder === folder && draggingFolder !== folder
       }"
     >
       <div class="folder-header flex items-center justify-between">
@@ -96,31 +96,30 @@ const handleFolderDragOver = (event, folder) => {
 
 // 处理文件夹点击事件
 const handleFolderClick = (folder) => {
-  // 如果两次点击的是不同文件夹，直接处理单击
-  if (lastClickedFolder !== folder) {
-    lastClickedFolder = folder;
-    
-    // 清除之前的定时器
-    if (clickTimer) {
-      clearTimeout(clickTimer);
-    }
-    
-    // 立即处理选中状态切换
-    if (selectedFolder.value === folder) {
-      selectedFolder.value = null;
-    } else {
-      selectedFolder.value = folder;
-    }
-    
-    // 设置定时器处理事件发送（延迟以区分双击）
-    clickTimer = setTimeout(() => {
-      // 触发folderSelected事件，让RagPanel处理
-      const event = new CustomEvent('folderSelected', { detail: selectedFolder.value });
-      window.dispatchEvent(event);
-      
-      clickTimer = null;
-    }, 300); // 300ms是一个常用的双击判断阈值
+  // 每次点击都处理选中状态切换
+  // 立即处理选中状态切换
+  if (selectedFolder.value === folder) {
+    selectedFolder.value = null;
+  } else {
+    selectedFolder.value = folder;
   }
+  
+  // 清除之前的定时器
+  if (clickTimer) {
+    clearTimeout(clickTimer);
+  }
+  
+  // 更新最后点击的文件夹
+  lastClickedFolder = folder;
+  
+  // 设置定时器处理事件发送（延迟以区分双击）
+  clickTimer = setTimeout(() => {
+    // 触发folderSelected事件，让RagPanel处理
+    const event = new CustomEvent('folderSelected', { detail: selectedFolder.value });
+    window.dispatchEvent(event);
+    
+    clickTimer = null;
+  }, 300); // 300ms是一个常用的双击判断阈值
 };
 
 // 处理文件夹双击事件

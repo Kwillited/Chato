@@ -478,6 +478,8 @@ const handleFolderSelected = (event) => {
   const selectedFolder = event.detail;
   // 保存选中的文件夹到localStorage，包含ID信息
   localStorage.setItem('ragSelectedFolder', JSON.stringify(selectedFolder));
+  // 更新ragStore的currentSelectedFolder状态
+  ragStore.setCurrentSelectedFolder(selectedFolder);
   // 发送事件到eventBus通知其他组件
   eventBus.emit('folderSelected', selectedFolder);
 };

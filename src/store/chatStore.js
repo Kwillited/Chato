@@ -3,6 +3,7 @@ import { apiService } from '../services/apiService';
 import { generateId } from './utils';
 import { useSettingsStore } from './settingsStore.js';
 import { useModelSettingStore } from './modelSettingStore.js';
+import { useRagStore } from './ragStore.js';
 import { showNotification } from '../services/notificationUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
@@ -246,6 +247,30 @@ export const useChatStore = defineStore('chat', {
         // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
         const shouldUseStreaming = systemStreamingEnabled && modelStreamingEnabled;
         
+        // 获取ragStore实例，用于检查当前文件夹状态
+        const ragStore = useRagStore();
+        
+        // 根据当前文件夹状态调整RAG检索范围
+        let ragConfigToUse = { ...settingsStore.ragConfig };
+        
+        // 如果有选中的文件夹，或者进入了二级菜单，设置检索范围为该文件夹
+        if (ragStore.currentSelectedFolder || ragStore.currentFolder) {
+          const targetFolder = ragStore.currentSelectedFolder || ragStore.currentFolder;
+          ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
+        } else {
+          // 否则使用全局检索（清空selectedFolders和selectedKnowledgeBases）
+          ragConfigToUse.selectedFolders = [];
+          ragConfigToUse.selectedKnowledgeBases = [];
+        }
+        
+        // 添加调试日志，查看实际发送给后端的ragConfig
+        console.log('🔍 RAG配置调试:', {
+          currentSelectedFolder: ragStore.currentSelectedFolder,
+          currentFolder: ragStore.currentFolder,
+          selectedFolders: ragConfigToUse.selectedFolders,
+          ragEnabled: ragConfigToUse.enabled
+        });
+        
         if (shouldUseStreaming) {
         // 使用流式消息发送
         let aiMessage = null;
@@ -262,7 +287,7 @@ export const useChatStore = defineStore('chat', {
             {
               model: formattedModel, // 确保使用name-version.version_name格式的模型名称
               deepThinking: deepThinking, // 使用传递的深度思考参数
-              ragConfig: { enabled: settingsStore.ragConfig.enabled }, // 仅发送RAG启用状态
+              ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
               webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
             },
               // 处理接收到的消息
@@ -438,7 +463,7 @@ export const useChatStore = defineStore('chat', {
               model: formattedModel, // 确保使用name-version.version_name格式的模型名称
               stream: false,  // 非流式输出
               deepThinking: deepThinking, // 使用传递的深度思考参数
-              ragConfig: { enabled: settingsStore.ragConfig.enabled }, // 仅发送RAG启用状态
+              ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
               webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
             }
           );

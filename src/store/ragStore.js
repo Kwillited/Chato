@@ -13,6 +13,8 @@ export const useRagStore = defineStore('rag', {
     folderIdMap: {},
     // 当前文件夹
     currentFolder: null,
+    // 当前选中的文件夹（用于RAG检索范围）
+    currentSelectedFolder: null,
     // 加载状态
     loading: false,
     // 错误信息
@@ -429,6 +431,11 @@ export const useRagStore = defineStore('rag', {
     // 选择文件夹
     selectFolder(folder) {
       this.currentFolder = folder;
+    },
+    
+    // 设置当前选中的文件夹（用于RAG检索范围）
+    setCurrentSelectedFolder(folder) {
+      this.currentSelectedFolder = folder;
     },
 
     // 进入文件夹

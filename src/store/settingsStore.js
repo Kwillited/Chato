@@ -74,6 +74,8 @@ export const useSettingsStore = defineStore('settings', {
       vectorDbPath: '', // 留空，让后端使用标准用户数据目录
       vectorDbType: 'chroma',
       knowledgeBasePath: '', // 留空，让后端使用标准用户数据目录
+      selectedFolders: [], // 新增：指定的文件夹ID列表，用于限制RAG检索范围
+      selectedKnowledgeBases: [], // 新增：指定的知识库ID列表，用于限制RAG检索范围
     },
 
     // MCP相关设置

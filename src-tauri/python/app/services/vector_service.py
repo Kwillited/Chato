@@ -84,7 +84,7 @@ class VectorService(BaseService):
                 'error': str(e)
             }
     
-    def search_documents(self, query, k=5, score_threshold=None, search_type="similarity", fetch_k=20):
+    def search_documents(self, query, k=5, score_threshold=None, search_type="similarity", fetch_k=20, filter=None):
         """搜索相关文档
         
         Args:
@@ -93,6 +93,7 @@ class VectorService(BaseService):
             score_threshold: 相似度分数阈值，低于该阈值的结果将被过滤
             search_type: 搜索类型，可选值：similarity, mmr, similarity_score_threshold
             fetch_k: 用于MMR搜索的候选文档数量
+            filter: 元数据过滤器，用于过滤特定条件的文档
             
         Returns:
             list: 相关文档列表
@@ -103,7 +104,8 @@ class VectorService(BaseService):
                 k=k,
                 score_threshold=score_threshold,
                 search_type=search_type,
-                fetch_k=fetch_k
+                fetch_k=fetch_k,
+                filter=filter
             )
             return results
         except Exception as e:

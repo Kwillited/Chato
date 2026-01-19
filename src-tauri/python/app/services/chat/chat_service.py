@@ -293,8 +293,11 @@ class ChatService(BaseService):
         """RAG增强提示 - 直接使用生成服务的build_prompt方法"""
         # 只使用前端传递的enabled状态，其余配置从系统获取
         enabled = False
+        selected_folders = []
         if rag_config and isinstance(rag_config, dict):
             enabled = rag_config.get('enabled', False)
+            # 从前端传递的rag_config中获取selectedFolders
+            selected_folders = rag_config.get('selectedFolders', [])
         
         self.log_info(f"📌 RAG功能状态: enabled={enabled}")
         
@@ -313,16 +316,23 @@ class ChatService(BaseService):
             rag_coordinator = RagCoordinator()
             
             # 从配置中获取参数
-            rag_config = config_manager.get('rag', {})
-            k = rag_config.get('top_k', 3)
-            score_threshold = rag_config.get('score_threshold', 0.7)
+            config_rag = config_manager.get('rag', {})
+            k = config_rag.get('top_k', 3)
+            score_threshold = config_rag.get('score_threshold', 0.7)
+            
+            # 构建过滤器
+            filter = None
+            if selected_folders:
+                # 如果有选中的文件夹，构建filter条件
+                filter = {'folder_id': {'$in': selected_folders}}
             
             # 执行相似性搜索
-            self.log_info(f"🔍 正在搜索相关文档，参数: k={k}, score_threshold={score_threshold}")
+            self.log_info(f"🔍 正在搜索相关文档，参数: k={k}, score_threshold={score_threshold}, filter={filter}")
             context_docs = rag_coordinator.vector_service.search_documents(
                 query=question,
                 k=k,
-                score_threshold=score_threshold
+                score_threshold=score_threshold,
+                filter=filter
             )
             
             self.log_info(f"✅ 找到 {len(context_docs)} 个相关文档片段")
@@ -869,7 +879,8 @@ class ChatService(BaseService):
         message_text = data.get('message')
         model_name = data.get('model', '')
         user_model_params = data.get('modelParams', {})
-        rag_enabled = data.get('ragConfig', {}).get('enabled', False)
+        rag_config = data.get('ragConfig', {})
+        rag_enabled = rag_config.get('enabled', False)
         stream = data.get('stream', False)
         deep_thinking = data.get('deepThinking', False)
         files = data.get('files', [])
@@ -879,6 +890,7 @@ class ChatService(BaseService):
             'model_name': model_name,
             'user_model_params': user_model_params,
             'rag_enabled': rag_enabled,
+            'rag_config': rag_config,  # 添加完整的ragConfig
             'stream': stream,
             'deep_thinking': deep_thinking,
             'files': files
@@ -924,6 +936,7 @@ class ChatService(BaseService):
         model_name = parsed_data['model_name']
         user_model_params = parsed_data['user_model_params']
         rag_enabled = parsed_data['rag_enabled']
+        rag_config = parsed_data['rag_config']
         stream = parsed_data['stream']
         deep_thinking = parsed_data['deep_thinking']
         files = parsed_data['files']
@@ -970,10 +983,11 @@ class ChatService(BaseService):
         # 调试RAG调用
         self.log_info(f"🔧 调试RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
         
-        # 调用RAG系统构造增强提示，仅根据enabled状态决定是否启用
+        # 调用RAG系统构造增强提示，传递完整的ragConfig
         if rag_enabled:
             self.log_info("📞 准备调用get_rag_enhanced_prompt方法")
-            enhanced_question = self.get_rag_enhanced_prompt(full_message_text, {'enabled': rag_enabled})
+            # 传递完整的ragConfig给RAG增强方法
+            enhanced_question = self.get_rag_enhanced_prompt(full_message_text, rag_config)
             self.log_info(f"📋 RAG增强完成，原始长度: {len(full_message_text)}, 增强后长度: {len(enhanced_question)}")
         else:
             self.log_info("⏭️  RAG未启用，使用原始问题")
