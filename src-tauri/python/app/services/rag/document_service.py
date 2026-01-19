@@ -23,6 +23,28 @@ class DocumentService(BaseService):
         """初始化文档管理服务"""
         pass
     
+    def _get_folder_name_by_id(self, folder_id):
+        """根据folder_id查找对应的folder_name"""
+        if not folder_id:
+            return ''
+        
+        # 遍历所有文件夹，查找匹配的folder_id
+        if os.path.exists(DATA_DIR):
+            for item in os.listdir(DATA_DIR):
+                item_path = os.path.join(DATA_DIR, item)
+                if os.path.isdir(item_path):
+                    marker_file_path = os.path.join(item_path, '.kb_marker.json')
+                    if os.path.exists(marker_file_path):
+                        try:
+                            import json
+                            with open(marker_file_path, 'r', encoding='utf-8') as f:
+                                marker_data = json.load(f)
+                                if marker_data.get('id') == folder_id:
+                                    return item
+                        except Exception:
+                            pass
+        return folder_id  # 如果找不到，返回原folder_id
+    
     def _get_file_save_path(self, filename, folder_name):
         """构建文件保存路径"""
         if folder_name:
@@ -43,11 +65,16 @@ class DocumentService(BaseService):
         # 安全保存文件
         filename = secure_filename(file.filename)
         
-        # 确定保存路径
-        file_path = self._get_file_save_path(filename, folder_id)
+        # 根据folder_id获取实际的folder_name
+        folder_name = self._get_folder_name_by_id(folder_id)
         
-        # 保存文件
-        file.save(file_path)
+        # 确定保存路径
+        file_path = self._get_file_save_path(filename, folder_name)
+        
+        # 保存文件 - 处理FastAPI UploadFile对象
+        with open(file_path, 'wb') as buffer:
+            content = file.file.read()
+            buffer.write(content)
         
         return {
             'filename': filename,

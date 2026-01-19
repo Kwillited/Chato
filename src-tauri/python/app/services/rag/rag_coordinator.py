@@ -80,8 +80,29 @@ class RagCoordinator(BaseService):
                     'error': f"不支持的文件类型: {file_ext}"
                 }
             
-            loader = loader_class(file_path)
-            documents = loader.load()
+            # 处理TextLoader的编码问题
+            try:
+                if loader_class == TextLoader:
+                    # 尝试使用utf-8编码，如果失败则使用其他编码
+                    loader = TextLoader(file_path, encoding='utf-8')
+                    documents = loader.load()
+                else:
+                    loader = loader_class(file_path)
+                    documents = loader.load()
+            except UnicodeDecodeError:
+                # 如果utf-8失败，尝试使用gbk编码（常见中文编码）
+                if loader_class == TextLoader:
+                    loader = TextLoader(file_path, encoding='gbk')
+                    documents = loader.load()
+                else:
+                    raise
+            except Exception as e:
+                # 捕获所有文档加载错误
+                return {
+                    'success': False,
+                    'error': f"文档加载失败: {str(e)}",
+                    'file_path': file_path
+                }
             
             # 3. 使用LangChain文本分割器分割文档
             split_documents = self.text_splitter.split_documents(documents)

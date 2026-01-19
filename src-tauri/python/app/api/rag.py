@@ -111,6 +111,28 @@ def get_document_details(file_id: str = Path(...), rag_service: RAGService = Dep
         'details': details
     }
 
+# 删除所有文档
+@router.delete('/documents/delete-all')
+@handle_exception
+def delete_all_documents(rag_service: RAGService = Depends(get_rag_service)):
+    # 调用服务层方法
+    result = rag_service.delete_all_documents()
+    
+    # 检查结果是否成功
+    if result.get('success') is False:
+        # 处理失败情况
+        return {
+            'success': False,
+            'message': result.get('error', '删除所有文档失败')
+        }
+    
+    # 处理成功情况
+    return {
+        'success': True,
+        'message': result['message'],
+        'deleted_count': result['deleted_count']
+    }
+
 # 删除文档
 @router.delete('/{foldername}/{filename}')
 @handle_exception
@@ -155,26 +177,4 @@ def delete_folder(folder_id: str = Query(..., description='文件夹ID'), rag_se
         'message': result['message'],
         'deleted_folder': result['deleted_folder'],
         'folder_id': folder_id
-    }
-
-# 删除所有文档
-@router.delete('/documents/delete-all')
-@handle_exception
-def delete_all_documents(rag_service: RAGService = Depends(get_rag_service)):
-    # 调用服务层方法
-    result = rag_service.delete_all_documents()
-    
-    # 检查结果是否成功
-    if result.get('success') is False:
-        # 处理失败情况
-        return {
-            'success': False,
-            'message': result.get('error', '删除所有文档失败')
-        }
-    
-    # 处理成功情况
-    return {
-        'success': True,
-        'message': result['message'],
-        'deleted_count': result['deleted_count']
     }
