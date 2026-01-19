@@ -269,6 +269,10 @@ const loadFilesInFolder = async (folder) => {
 const handleFolderDoubleClick = async (event) => {
   const folder = event.detail;
   currentFolder.value = folder;
+  // 设置当前文件夹为选中的文件夹，用于RAG检索范围
+  ragStore.setCurrentSelectedFolder(folder);
+  // 保存选中的文件夹到localStorage，包含ID信息
+  localStorage.setItem('ragSelectedFolder', JSON.stringify(folder));
   await loadFilesInFolder(folder);
 };
 

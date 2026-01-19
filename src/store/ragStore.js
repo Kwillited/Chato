@@ -104,8 +104,8 @@ export const useRagStore = defineStore('rag', {
       // 确保正确处理响应格式
       const files = response.success && response.files ? response.files : [];
       
-      // 确保currentFolder设置为正确的文件夹名称
-      this.currentFolder = this.folderIdMap[folder.id] || folder.name || null;
+      // 确保currentFolder设置为完整的文件夹对象，而不是字符串
+      this.currentFolder = folder;
       
       // 更新文件夹映射（如果API返回了相关信息）
       if (response.data && response.data.folder_id_map) {

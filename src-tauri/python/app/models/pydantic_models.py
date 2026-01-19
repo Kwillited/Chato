@@ -100,6 +100,18 @@ class ModelParam(BaseModel):
 class RAGConfig(BaseModel):
     """RAG配置模型"""
     enabled: bool = False
+    chunk_size: int = 1000
+    chunk_overlap: int = 100
+    k: int = 4
+    knowledgeBasePath: str = ""
+    retrievalMode: str = "vector"
+    scoreThreshold: float = 0.7
+    selectedFolders: List[str] = Field(default_factory=list)
+    selectedKnowledgeBases: List[str] = Field(default_factory=list)
+    topK: int = 3
+    vectorDbPath: str = ""
+    vectorDbType: str = "chroma"
+    embedderModel: str = "qwen3-embedding-0.6b"
 
 
 class FileInfo(BaseModel):

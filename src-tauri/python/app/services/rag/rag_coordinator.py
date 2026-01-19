@@ -132,11 +132,13 @@ class RagCoordinator(BaseService):
             
             # 5. 向量化并存储到向量数据库
             self.log_info("🔢 开始向量化文档...")
-            document_id = str(uuid.uuid4())
+            # 使用save_result中的document_id，保持一致性
+            document_id = save_result.get('id', str(uuid.uuid4()))
             vector_result = self.vector_service.vectorize_documents(
                 split_documents,
                 document_id,
-                file_path
+                file_path,
+                folder_id=folder_id
             )
             
             if vector_result['vectorized']:
