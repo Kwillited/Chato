@@ -663,6 +663,8 @@ export const useChatStore = defineStore('chat', {
 
     // 确保数据一致性
     ensureDataIntegrity() {
+      // 获取settingsStore实例
+      const settingsStore = useSettingsStore();
       // 过滤无效对话
       this.chats = this.chats.filter((chat) => chat && chat.id && chat.messages && Array.isArray(chat.messages));
 
@@ -692,8 +694,8 @@ export const useChatStore = defineStore('chat', {
             role: messageData.role || 'ai',
             // 确保content字段存在
             content: messageData.content || '',
-            // 确保model字段存在
-            model: messageData.model || chat.model || 'Chato',
+            // 确保model字段存在，使用正确的默认值，避免硬编码GPT4
+            model: messageData.model || chat.model || settingsStore.systemSettings.defaultModel || 'Chato',
             // 确保files字段存在（默认为空数组）
             files: Array.isArray(messageData.files) ? messageData.files : []
           };
@@ -705,7 +707,7 @@ export const useChatStore = defineStore('chat', {
           messages: processedMessages,
           createdAt: chat.createdAt || Date.now(),
           updatedAt: chat.updatedAt || Date.now(),
-          model: chat.model || 'GPT-4',
+          model: chat.model || settingsStore.systemSettings.defaultModel || 'Chato',
           pinned: chat.pinned || false,
           metadata: chat.metadata || {},
         };

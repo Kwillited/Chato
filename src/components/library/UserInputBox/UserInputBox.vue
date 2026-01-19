@@ -524,8 +524,9 @@ const currentModelDisplayName = computed(() => {
     return '暂无可用模型';
   }
   
+  // 当currentModel为空或无效时，使用默认模型名称
   if (!currentModel.value || !modelStore.allModels.length) {
-    return currentModel.value;
+    return currentModel.value || settingsStore.systemSettings.defaultModel || '默认模型';
   }
   
   // 遍历所有模型，找到匹配的模型
@@ -549,7 +550,8 @@ const currentModelDisplayName = computed(() => {
     }
   }
   
-  return currentModel.value;
+  // 如果当前模型不在可用模型列表中，返回当前模型值或默认名称
+  return currentModel.value || '默认模型';
 });
 
 // 获取格式化后的模型列表（包含displayName和原始model值），与默认模型下拉框显示规则保持一致
