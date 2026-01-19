@@ -20,6 +20,7 @@ class LangChainRAGService(BaseService):
         self.llm = None  # 懒加载LLM
         self.rag_chain = None  # 懒加载RAG链
         self.config = config_manager.get('rag', {})
+        self.log_info("✅ LangChain RAG服务已初始化")
     
     @classmethod
     def get_instance(cls):
@@ -126,14 +127,18 @@ class LangChainRAGService(BaseService):
             if rag_config:
                 self.config.update(rag_config)
             
+            self.log_info(f"🚀 开始RAG对话流程: 查询='{question[:50]}{'...' if len(question) > 50 else ''}'")
+            
             # 触发RAG链开始回调
             trigger_callback('rag_chain_start', 
                            question=question[:50] + "..." if len(question) > 50 else question)
             
             # 初始化RAG链
             rag_chain = self._init_rag_chain(llm)
+            self.log_info("📋 RAG链初始化完成")
             
             # 执行RAG链
+            self.log_info("🔍 正在搜索相关文档...")
             result = rag_chain.invoke({
                 "input": question
             })
@@ -141,12 +146,16 @@ class LangChainRAGService(BaseService):
             # 提取来源
             sources = []
             if 'context' in result:
+                context_count = len(result['context'])
+                self.log_info(f"✅ 找到 {context_count} 个相关文档片段")
                 for i, doc in enumerate(result['context']):
                     sources.append({
                         'id': i+1,
                         'content': doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
                         'metadata': doc.metadata
                     })
+            
+            self.log_info(f"📝 生成RAG响应完成: 答案长度={len(result['answer'])} 字符, 参考文档数={len(sources)}")
             
             # 触发RAG链结束回调
             trigger_callback('rag_chain_end', 

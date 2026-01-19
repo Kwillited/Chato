@@ -2,8 +2,8 @@
 import logging
 from functools import wraps
 
-# 获取日志记录器
-logger = logging.getLogger(__name__)
+# 使用项目统一的日志记录器
+from app.core.logging_config import logger
 
 class BaseService:
     """所有服务类的基类，封装公共方法"""

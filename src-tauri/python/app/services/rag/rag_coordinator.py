@@ -63,51 +63,75 @@ class RagCoordinator(BaseService):
             dict: 处理结果信息
         """
         try:
+            self.log_info(f"📋 开始处理文档: 文件名='{file.filename}', folder_id='{folder_id}'")
+            
             # 1. 初始化LangChain组件
+            self.log_info("🔧 初始化LangChain组件...")
             self._init_langchain_components()
+            self.log_info("✅ LangChain组件初始化完成")
             
             # 2. 保存文档到文件系统
+            self.log_info("💾 保存文档到文件系统...")
             save_result = self.document_service.save_document(file, folder_id)
             file_path = save_result['full_path']
+            self.log_info(f"✅ 文档已保存到: {file_path}")
             
             # 3. 使用LangChain加载器加载文档
             file_ext = os.path.splitext(file_path)[1].lower()
+            self.log_info(f"📄 加载文档，文件类型: {file_ext}")
+            
             loader_class = self.loader_mapping.get(file_ext)
             
             if not loader_class:
+                error_msg = f"不支持的文件类型: {file_ext}"
+                self.log_error(f"❌ {error_msg}")
                 return {
                     'success': False,
-                    'error': f"不支持的文件类型: {file_ext}"
+                    'error': error_msg
                 }
             
             # 处理TextLoader的编码问题
             try:
-                if loader_class == TextLoader:
+                # 获取TextLoader类的引用
+                from langchain_community.document_loaders import TextLoader as TextLoaderClass
+                
+                if loader_class == TextLoaderClass:
                     # 尝试使用utf-8编码，如果失败则使用其他编码
-                    loader = TextLoader(file_path, encoding='utf-8')
+                    loader = TextLoaderClass(file_path, encoding='utf-8')
+                    self.log_info("📑 使用utf-8编码加载文本文件")
                     documents = loader.load()
                 else:
                     loader = loader_class(file_path)
                     documents = loader.load()
+                self.log_info(f"✅ 成功加载文档，共 {len(documents)} 个文档对象")
             except UnicodeDecodeError:
                 # 如果utf-8失败，尝试使用gbk编码（常见中文编码）
-                if loader_class == TextLoader:
-                    loader = TextLoader(file_path, encoding='gbk')
+                from langchain_community.document_loaders import TextLoader as TextLoaderClass
+                
+                if loader_class == TextLoaderClass:
+                    loader = TextLoaderClass(file_path, encoding='gbk')
+                    self.log_info("📑 utf-8编码失败，尝试使用gbk编码加载文本文件")
                     documents = loader.load()
+                    self.log_info(f"✅ 使用gbk编码成功加载文档，共 {len(documents)} 个文档对象")
                 else:
                     raise
             except Exception as e:
                 # 捕获所有文档加载错误
+                error_msg = f"文档加载失败: {str(e)}"
+                self.log_error(f"❌ {error_msg}")
                 return {
                     'success': False,
-                    'error': f"文档加载失败: {str(e)}",
+                    'error': error_msg,
                     'file_path': file_path
                 }
             
-            # 3. 使用LangChain文本分割器分割文档
+            # 4. 使用LangChain文本分割器分割文档
+            self.log_info("✂️  开始分割文档...")
             split_documents = self.text_splitter.split_documents(documents)
+            self.log_info(f"✅ 文档分割完成，生成 {len(split_documents)} 个文本块")
             
-            # 4. 向量化并存储到向量数据库
+            # 5. 向量化并存储到向量数据库
+            self.log_info("🔢 开始向量化文档...")
             document_id = str(uuid.uuid4())
             vector_result = self.vector_service.vectorize_documents(
                 split_documents,
@@ -115,7 +139,12 @@ class RagCoordinator(BaseService):
                 file_path
             )
             
-            # 5. 准备返回信息
+            if vector_result['vectorized']:
+                self.log_info(f"✅ 向量化成功，生成 {vector_result['vector_count']} 个向量")
+            else:
+                self.log_warning(f"⚠️  向量化部分失败: {vector_result.get('error', '未知错误')}")
+            
+            # 6. 准备返回信息
             document_info = {
                 'document_id': document_id,
                 'file_path': file_path,
@@ -132,6 +161,8 @@ class RagCoordinator(BaseService):
                 'chunk_overlap': config_manager.get('rag.chunk_overlap', 200)
             }
             
+            self.log_info(f"📊 文档处理完成: 文件='{file.filename}', 文本块={len(split_documents)}, 向量={vector_result['vector_count']}")
+            
             return {
                 'success': True,
                 'document_info': document_info,
@@ -140,10 +171,11 @@ class RagCoordinator(BaseService):
                 'file_save_result': save_result
             }
         except Exception as e:
-            self.log_error(f"处理文档失败: {str(e)}")
+            error_msg = f"处理文档失败: {str(e)}"
+            self.log_error(f"❌ {error_msg}")
             return {
                 'success': False,
-                'error': str(e)
+                'error': error_msg
             }
     
     def rag_pipeline(self, query, llm=None):
@@ -157,7 +189,10 @@ class RagCoordinator(BaseService):
             dict: RAG流程执行结果
         """
         try:
+            self.log_info(f"🚀 开始RAG对话流程: 查询='{query[:50]}{'...' if len(query) > 50 else ''}'")
+            
             # 1. 搜索相关文档
+            self.log_info("🔍 正在搜索相关文档...")
             context_docs = self.vector_service.search_documents(
                 query=query,
                 k=config_manager.get('rag.top_k', 3),
@@ -165,7 +200,10 @@ class RagCoordinator(BaseService):
                 search_type=config_manager.get('rag.search_type', 'similarity')
             )
             
+            self.log_info(f"✅ 找到 {len(context_docs)} 个相关文档片段")
+            
             # 2. 生成RAG响应
+            self.log_info("📝 正在生成RAG响应...")
             rag_result = self.generation_service.generate_rag_response(
                 query=query,
                 context_docs=context_docs,

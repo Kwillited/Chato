@@ -35,8 +35,11 @@ class VectorService(BaseService):
             dict: 向量化结果信息
         """
         try:
+            self.log_info(f"🔄 开始向量化: 文档ID='{document_id}', 源文件='{os.path.basename(source_file)}', 文档片段数={len(documents)}")
+            
             # 验证文档是否适合向量化
             if not documents:
+                self.log_warning("⚠️  没有可向量化的文档片段")
                 return {
                     'vectorized': False,
                     'error': "没有可向量化的文档片段"
@@ -52,10 +55,16 @@ class VectorService(BaseService):
             
             if warnings:
                 for warning in warnings:
-                    self.log_warning(warning)
+                    self.log_warning(f"⚠️ {warning}")
             
             # 执行向量化操作
+            self.log_info(f"🚀 开始向量化 {len(documents)} 个文档片段...")
             vectorized = self.vector_store_service.add_documents(documents)
+            
+            if vectorized:
+                self.log_info(f"✅ 成功向量化 {len(documents)} 个文档片段")
+            else:
+                self.log_error("❌ 向量化失败")
             
             # 准备返回信息
             vector_info = {
@@ -76,9 +85,11 @@ class VectorService(BaseService):
             }
             vector_info['vector_metadata'] = vector_metadata
             
+            self.log_info(f"📊 向量化完成: 向量数={vector_info['vector_count']}, 模型={vector_info['embedding_model']}")
+            
             return vector_info
         except Exception as e:
-            self.log_error(f"向量化处理失败: {str(e)}")
+            self.log_error(f"❌ 向量化处理失败: {str(e)}")
             return {
                 'vectorized': False,
                 'error': str(e)

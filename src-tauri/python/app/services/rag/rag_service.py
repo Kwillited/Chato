@@ -59,13 +59,43 @@ class RAGService(BaseService):
     
     def upload_document(self, file, folder_id=''):
         """上传文档到RAG系统并进行向量化处理"""
-        # 执行完整的文档处理流程
-        result = self.rag_coordinator.process_document(file, folder_id)
-        
-        if not result['success']:
+        try:
+            self.log_info(f"📤 开始上传文档: 文件名='{file.filename}', 大小={file.size} 字节, folder_id='{folder_id}'")
+            
+            # 执行完整的文档处理流程
+            result = self.rag_coordinator.process_document(file, folder_id)
+            
+            if not result['success']:
+                error_msg = result.get("error", "未知错误")
+                self.log_error(f"❌ 文件 {file.filename} 处理失败: {error_msg}")
+                return {
+                    'filename': file.filename,
+                    'message': f'文件 {file.filename} 处理失败: {error_msg}',
+                    'file_path': file.filename,
+                    'document_info': {},
+                    'full_path': '',
+                    'folder_name': folder_id,
+                    'chunk_info': {},
+                    'vector_info': {}
+                }
+            
+            self.log_info(f"✅ 文件 {result['file_save_result']['filename']} 上传成功，生成 {result['chunk_info']['total_chunks']} 个文本块")
+            
+            return {
+                'filename': result['file_save_result']['filename'],
+                'message': f'文件 {result["file_save_result"]["filename"]} 上传成功',
+                'file_path': result['file_save_result']['filename'],
+                'document_info': result['document_info'],
+                'full_path': result['file_save_result']['full_path'],
+                'folder_name': folder_id,
+                'chunk_info': result['chunk_info'],
+                'vector_info': result['vector_info']
+            }
+        except Exception as e:
+            self.log_error(f"❌ 上传文档时发生异常: {str(e)}")
             return {
                 'filename': file.filename,
-                'message': f'文件 {file.filename} 处理失败: {result.get("error", "未知错误")}',
+                'message': f'文件 {file.filename} 上传失败: {str(e)}',
                 'file_path': file.filename,
                 'document_info': {},
                 'full_path': '',
@@ -73,17 +103,6 @@ class RAGService(BaseService):
                 'chunk_info': {},
                 'vector_info': {}
             }
-        
-        return {
-            'filename': result['file_save_result']['filename'],
-            'message': f'文件 {result["file_save_result"]["filename"]} 上传成功',
-            'file_path': result['file_save_result']['filename'],
-            'document_info': result['document_info'],
-            'full_path': result['file_save_result']['full_path'],
-            'folder_name': folder_id,
-            'chunk_info': result['chunk_info'],
-            'vector_info': result['vector_info']
-        }
     
     def get_documents(self):
         """获取文档列表"""

@@ -296,10 +296,14 @@ class ChatService(BaseService):
         if rag_config and isinstance(rag_config, dict):
             enabled = rag_config.get('enabled', False)
         
+        self.log_info(f"📌 RAG功能状态: enabled={enabled}")
+        
         if not enabled:
+            self.log_info("❌ RAG功能未启用，返回原始问题")
             return question
         
         try:
+            self.log_info("✅ RAG功能已启用，开始执行RAG增强")
             # 直接使用生成服务的build_prompt方法，避免通过LangChainRAGService间接调用
             from app.core.config import config_manager
             from app.services.rag.generation_service import GenerationService
@@ -314,14 +318,20 @@ class ChatService(BaseService):
             score_threshold = rag_config.get('score_threshold', 0.7)
             
             # 执行相似性搜索
+            self.log_info(f"🔍 正在搜索相关文档，参数: k={k}, score_threshold={score_threshold}")
             context_docs = rag_coordinator.vector_service.search_documents(
                 query=question,
                 k=k,
                 score_threshold=score_threshold
             )
             
+            self.log_info(f"✅ 找到 {len(context_docs)} 个相关文档片段")
+            
             # 使用生成服务的build_prompt方法构建提示
-            return generation_service.build_prompt(question, context_docs)
+            enhanced_prompt = generation_service.build_prompt(question, context_docs)
+            self.log_info(f"📝 RAG增强提示构建完成，长度: {len(enhanced_prompt)} 字符")
+            
+            return enhanced_prompt
         except Exception as e:
             # 使用BaseService的日志方法
             BaseService.log_error(f"RAG调用失败: {str(e)}")
@@ -957,8 +967,17 @@ class ChatService(BaseService):
         if file_contents:
             full_message_text += "\n\n" + "\n\n".join(file_contents)
         
+        # 调试RAG调用
+        self.log_info(f"🔧 调试RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
+        
         # 调用RAG系统构造增强提示，仅根据enabled状态决定是否启用
-        enhanced_question = self.get_rag_enhanced_prompt(full_message_text, {'enabled': rag_enabled}) if rag_enabled else full_message_text
+        if rag_enabled:
+            self.log_info("📞 准备调用get_rag_enhanced_prompt方法")
+            enhanced_question = self.get_rag_enhanced_prompt(full_message_text, {'enabled': rag_enabled})
+            self.log_info(f"📋 RAG增强完成，原始长度: {len(full_message_text)}, 增强后长度: {len(enhanced_question)}")
+        else:
+            self.log_info("⏭️  RAG未启用，使用原始问题")
+            enhanced_question = full_message_text
         
         # 保存用户消息到数据库，即使模型调用失败也要保存
         self.update_chat_and_save(chat, full_message_text, user_message, None, now)
