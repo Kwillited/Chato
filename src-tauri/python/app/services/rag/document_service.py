@@ -98,17 +98,32 @@ class DocumentService(BaseService):
         
         # 检查文件是否存在
         if not os.path.exists(file_path) or not os.path.isfile(file_path):
-            raise ValueError('文件不存在')
+            # 优化：返回友好的错误信息，而不是抛出异常
+            self.log_warning(f"尝试删除不存在的文件: {file_path}")
+            return {
+                'deleted_file': filename,
+                'folder': folder_name,
+                'message': f'文档 {filename} 不存在',
+                'success': True  # 返回True，因为文件已经不存在
+            }
         
         # 删除文件
-        os.remove(file_path)
-        
-        # 返回结果
-        return {
-            'deleted_file': filename,
-            'folder': folder_name,
-            'message': f'文档 {filename} 已成功删除'
-        }
+        try:
+            os.remove(file_path)
+            return {
+                'deleted_file': filename,
+                'folder': folder_name,
+                'message': f'文档 {filename} 已成功删除',
+                'success': True
+            }
+        except Exception as e:
+            self.log_error(f"删除文件 {file_path} 时出错: {e}")
+            return {
+                'deleted_file': filename,
+                'folder': folder_name,
+                'message': f'删除文档 {filename} 失败: {str(e)}',
+                'success': False
+            }
     
     def get_folders(self):
         """获取文件夹列表"""
@@ -199,10 +214,16 @@ class DocumentService(BaseService):
         """删除所有文档，包括所有文件夹和文件"""
         # 先检查DATA_DIR是否存在
         if not os.path.exists(DATA_DIR):
-            return {'deleted_count': 0, 'message': '没有文档需要删除'}
+            return {
+                'deleted_count': 0,
+                'skipped_count': 0,
+                'message': '没有文档需要删除',
+                'success': True
+            }
         
-        # 统计删除的文件数量
+        # 统计删除的文件数量和跳过的文件数量
         deleted_count = 0
+        skipped_count = 0
         
         # 递归删除所有文件和文件夹
         for root, dirs, files in os.walk(DATA_DIR, topdown=False):
@@ -215,6 +236,7 @@ class DocumentService(BaseService):
                         deleted_count += 1
                     except Exception as e:
                         self.log_error(f"删除文件 {file_path} 时出错: {e}")
+                        skipped_count += 1
             
             # 然后删除所有子目录
             for dir in dirs:
@@ -223,13 +245,21 @@ class DocumentService(BaseService):
                     shutil.rmtree(dir_path)
                 except Exception as e:
                     self.log_error(f"删除目录 {dir_path} 时出错: {e}")
+                    skipped_count += 1
         
         # 重新初始化DATA_DIR目录（如果被删除）
         os.makedirs(DATA_DIR, exist_ok=True)
         
+        # 构建返回消息
+        message = f'已删除 {deleted_count} 个文件和所有文件夹'
+        if skipped_count > 0:
+            message += f'，跳过了 {skipped_count} 个无法删除的项目'
+        
         return {
             'deleted_count': deleted_count,
-            'message': f'已删除 {deleted_count} 个文件和所有文件夹'
+            'skipped_count': skipped_count,
+            'message': message,
+            'success': True
         }
     
     def delete_folder(self, folder_name):
@@ -245,12 +275,25 @@ class DocumentService(BaseService):
         
         # 检查文件夹是否存在
         if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
-            raise ValueError('文件夹不存在')
+            self.log_warning(f"尝试删除不存在的文件夹: {folder_path}")
+            return {
+                'deleted_folder': folder_name,
+                'message': f'文件夹 {folder_name} 不存在',
+                'success': True  # 返回True，因为文件夹已经不存在
+            }
         
         # 删除文件夹及其所有内容
-        shutil.rmtree(folder_path)
-        
-        return {
-            'deleted_folder': folder_name,
-            'message': f'文件夹 {folder_name} 已成功删除'
-        }
+        try:
+            shutil.rmtree(folder_path)
+            return {
+                'deleted_folder': folder_name,
+                'message': f'文件夹 {folder_name} 已成功删除',
+                'success': True
+            }
+        except Exception as e:
+            self.log_error(f"删除文件夹 {folder_path} 时出错: {e}")
+            return {
+                'deleted_folder': folder_name,
+                'message': f'删除文件夹 {folder_name} 失败: {str(e)}',
+                'success': False
+            }

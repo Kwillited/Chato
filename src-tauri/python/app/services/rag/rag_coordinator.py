@@ -255,9 +255,14 @@ class RagCoordinator(BaseService):
             delete_result = self.document_service.delete_all_documents()
             
             # 2. 清空向量库
-            self.vector_service.clear_vector_store()
+            vector_result = self.vector_service.clear_vector_store()
             
-            delete_result['message'] = f"{delete_result['message']}，并清空了向量数据库"
+            # 3. 更新返回消息
+            if vector_result:
+                delete_result['message'] = f"{delete_result['message']}，并清空了向量数据库"
+            else:
+                delete_result['message'] = f"{delete_result['message']}，但清空向量数据库失败"
+            
             return delete_result
         except Exception as e:
             self.log_error(f"删除所有文档失败: {str(e)}")
@@ -280,7 +285,8 @@ class RagCoordinator(BaseService):
             delete_result = self.document_service.delete_folder(folder_name)
             
             # 2. 重新加载向量库
-            self.reload_documents()
+            if delete_result.get('success', True):
+                self.reload_documents()
             
             return delete_result
         except Exception as e:
