@@ -49,11 +49,13 @@ class DocumentService(BaseService):
         """构建文件保存路径"""
         if folder_name:
             # 如果指定了文件夹，保存到该文件夹
+            # 只对文件夹名使用secure_filename，保留文件名中的中文
             folder_path = os.path.join(DATA_DIR, secure_filename(folder_name))
             os.makedirs(folder_path, exist_ok=True)
+            # 直接使用原始文件名，确保包含中文
             return os.path.join(folder_path, filename)
         else:
-            # 否则保存到根目录
+            # 否则保存到根目录，直接使用原始文件名
             return os.path.join(DATA_DIR, filename)
     
     def save_document(self, file, folder_id=''):
@@ -62,14 +64,14 @@ class DocumentService(BaseService):
         if file.filename == '':
             raise ValueError('文件名不能为空')
         
-        # 安全保存文件
-        filename = secure_filename(file.filename)
+        # 保留原始文件名，确保中文文件名不被截断
+        original_filename = file.filename
         
         # 根据folder_id获取实际的folder_name
         folder_name = self._get_folder_name_by_id(folder_id)
         
-        # 确定保存路径
-        file_path = self._get_file_save_path(filename, folder_name)
+        # 确定保存路径，使用原始文件名
+        file_path = self._get_file_save_path(original_filename, folder_name)
         
         # 保存文件 - 处理FastAPI UploadFile对象
         with open(file_path, 'wb') as buffer:
@@ -77,9 +79,9 @@ class DocumentService(BaseService):
             buffer.write(content)
         
         return {
-            'filename': filename,
+            'filename': original_filename,
             'full_path': file_path,
-            'file_path': filename,
+            'file_path': original_filename,
             'folder_id': folder_id
         }
     
@@ -110,17 +112,14 @@ class DocumentService(BaseService):
         if not filename:
             raise ValueError('文件名不能为空')
         
-        # 安全验证文件名
-        filename = secure_filename(filename)
-        
-        # 构建文件路径
+        # 构建文件路径，直接使用原始文件名
         if folder_name:
             # 如果指定了文件夹，构建完整路径
-            folder_name = secure_filename(folder_name)
-            folder_path = os.path.join(DATA_DIR, folder_name)
+            # 只对文件夹名使用secure_filename，保留文件名中的中文
+            folder_path = os.path.join(DATA_DIR, secure_filename(folder_name))
             file_path = os.path.join(folder_path, filename)
         else:
-            # 在根目录查找文件
+            # 在根目录查找文件，直接使用原始文件名
             file_path = os.path.join(DATA_DIR, filename)
         
         # 检查文件是否存在
