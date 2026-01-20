@@ -455,23 +455,71 @@ def load_settings_from_db():
         db_session = next(get_db())
         setting_repo = SettingRepository(db_session)
         
-        # 获取所有设置
-        settings = setting_repo.get_all_settings()
+        # 从新的独立设置表加载数据
+        # 加载向量设置
+        vector_setting = setting_repo.get_vector_setting()
+        if vector_setting:
+            db['settings']['vector'] = {
+                'retrieval_mode': vector_setting.retrieval_mode,
+                'top_k': vector_setting.top_k,
+                'score_threshold': vector_setting.score_threshold,
+                'vector_db_path': vector_setting.vector_db_path,
+                'embedder_model': vector_setting.embedder_model,
+                'vector_db_type': vector_setting.vector_db_type,
+                'chunk_size': vector_setting.chunk_size,
+                'chunk_overlap': vector_setting.chunk_overlap
+            }
         
-        # 加载设置到内存
-        for setting in settings:
-            key = setting.key
-            value = setting.value
-            try:
-                # 尝试将JSON字符串转换为字典
-                setting_value = json.loads(value)
-                db['settings'][key] = setting_value
-            except json.JSONDecodeError:
-                # 如果不是JSON格式，直接保存为字符串
-                db['settings'][key] = value
+        # 加载MCP设置
+        mcp_setting = setting_repo.get_mcp_setting()
+        if mcp_setting:
+            db['settings']['mcp'] = {
+                'enabled': mcp_setting.enabled,
+                'server_address': mcp_setting.server_address,
+                'server_port': mcp_setting.server_port,
+                'timeout': mcp_setting.timeout
+            }
+        
+        # 加载通知设置
+        notification_setting = setting_repo.get_notification_setting()
+        if notification_setting:
+            db['settings']['notification'] = {
+                'enabled': notification_setting.enabled,
+                'newMessage': notification_setting.new_message,
+                'sound': notification_setting.sound,
+                'system': notification_setting.system,
+                'displayTime': notification_setting.display_time
+            }
+        
+        # 加载应用设置
+        app_setting = setting_repo.get_app_setting()
+        if app_setting:
+            db['settings']['app'] = {
+                'debug': app_setting.debug,
+                'host': app_setting.host,
+                'port': app_setting.port
+            }
+        
+        # 加载系统设置
+        system_setting = setting_repo.get_system_setting()
+        if system_setting:
+            db['settings']['system'] = {
+                'dark_mode': system_setting.dark_mode,
+                'font_size': system_setting.font_size,
+                'font_family': system_setting.font_family,
+                'language': system_setting.language,
+                'auto_scroll': system_setting.auto_scroll,
+                'show_timestamps': system_setting.show_timestamps,
+                'confirm_delete': system_setting.confirm_delete,
+                'streaming_enabled': system_setting.streaming_enabled,
+                'chat_style_document': system_setting.chat_style_document,
+                'view_mode': system_setting.view_mode,
+                'default_model': system_setting.default_model,
+                'rag_view_mode': system_setting.rag_view_mode
+            }
         
         from app.core.logging_config import logger
-        logger.info(f"从SQLite数据库加载了 {len(settings)} 个设置")
+        logger.info("从SQLite数据库加载了设置数据")
     except Exception as e:
         from app.core.logging_config import logger
         logger.error(f"从SQLite数据库加载设置数据失败: {str(e)}")
@@ -492,31 +540,54 @@ def save_settings_to_db(conn=None):
         db_session = next(get_db())
         setting_repo = SettingRepository(db_session)
         
-        # 获取SQLite中所有设置键
-        all_settings = setting_repo.get_all_settings()
-        sqlite_setting_keys = {setting.key for setting in all_settings}
+        # 将设置保存到新的独立设置表中
+        # 保存向量设置
+        if 'vector' in db['settings']:
+            vector_data = db['settings']['vector']
+            setting_repo.create_or_update_vector_setting(vector_data)
         
-        # 获取内存中所有设置键
-        memory_setting_keys = set(db['settings'].keys())
+        # 保存MCP设置
+        if 'mcp' in db['settings']:
+            mcp_data = db['settings']['mcp']
+            setting_repo.create_or_update_mcp_setting(mcp_data)
         
-        # 找出需要删除的设置键
-        setting_keys_to_delete = sqlite_setting_keys - memory_setting_keys
+        # 保存通知设置
+        if 'notification' in db['settings']:
+            notification_data = db['settings']['notification']
+            # 转换为数据库字段名（驼峰命名转换为下划线命名）
+            notification_db_data = {
+                'enabled': notification_data.get('enabled', True),
+                'new_message': notification_data.get('newMessage', True),
+                'sound': notification_data.get('sound', False),
+                'system': notification_data.get('system', True),
+                'display_time': notification_data.get('displayTime', '5秒')
+            }
+            setting_repo.create_or_update_notification_setting(notification_db_data)
         
-        # 删除不再存在于内存中的设置
-        if setting_keys_to_delete:
-            from app.core.logging_config import logger
-            logger.info(f"删除不存在于内存的设置: {len(setting_keys_to_delete)} 个")
-            for key in setting_keys_to_delete:
-                setting_repo.delete_setting(key)
+        # 保存应用设置
+        if 'app' in db['settings']:
+            app_data = db['settings']['app']
+            setting_repo.create_or_update_app_setting(app_data)
         
-        # 保存所有设置
-        for key, value in db['settings'].items():
-            try:
-                # 使用Repository层创建或更新设置
-                setting_repo.create_or_update_setting(key, value)
-            except Exception as e:
-                from app.core.logging_config import logger
-                logger.error(f"保存设置 '{key}' 失败: {str(e)}")
+        # 保存系统设置
+        if 'system' in db['settings']:
+            system_data = db['settings']['system']
+            # 转换为数据库字段名（驼峰命名转换为下划线命名）
+            system_db_data = {
+                'dark_mode': system_data.get('dark_mode', False),
+                'font_size': system_data.get('font_size', 16),
+                'font_family': system_data.get('font_family', 'Inter, system-ui, sans-serif'),
+                'language': system_data.get('language', 'zh-CN'),
+                'auto_scroll': system_data.get('auto_scroll', True),
+                'show_timestamps': system_data.get('show_timestamps', True),
+                'confirm_delete': system_data.get('confirm_delete', True),
+                'streaming_enabled': system_data.get('streaming_enabled', True),
+                'chat_style_document': system_data.get('chat_style_document', False),
+                'view_mode': system_data.get('view_mode', 'grid'),
+                'default_model': system_data.get('default_model', ''),
+                'rag_view_mode': system_data.get('rag_view_mode', True)
+            }
+            setting_repo.create_or_update_system_setting(system_db_data)
         
         from app.core.logging_config import logger
         logger.info("设置数据已保存到SQLite数据库")

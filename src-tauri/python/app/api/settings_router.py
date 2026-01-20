@@ -6,7 +6,7 @@ from app.services.settings.setting_service import SettingService
 from app.utils.decorators import handle_exception
 from app.dependencies import get_setting_service
 from app.models.pydantic_models import (
-    NotificationSettings, MCPSettings, BasicSettings, SettingResponse
+    NotificationSettings, MCPSettings, BasicSettings, SystemSettings, SettingResponse
 )
 
 # 创建设置API路由（前缀统一为 /api/settings）
@@ -63,6 +63,24 @@ def save_basic_settings(data: BasicSettings = Body(...), setting_service: Settin
     settings = setting_service.save_basic_settings(data.dict())
     return SettingResponse(
         message='基本设置已保存',
+        settings=settings
+    )
+
+# 获取系统设置
+@router.get('/system', response_model=SystemSettings)
+@handle_exception
+def get_system_settings(setting_service: SettingService = Depends(get_setting_service)):
+    """获取系统设置"""
+    return setting_service.get_system_setting()
+
+# 保存系统设置
+@router.post('/system', response_model=SettingResponse)
+@handle_exception
+def save_system_settings(data: SystemSettings = Body(...), setting_service: SettingService = Depends(get_setting_service)):
+    """保存系统设置"""
+    settings = setting_service.save_system_setting(data.dict())
+    return SettingResponse(
+        message='系统设置已保存',
         settings=settings
     )
 

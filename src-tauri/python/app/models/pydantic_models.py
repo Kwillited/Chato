@@ -209,6 +209,17 @@ class BasicSettings(BaseModel):
     maxMessages: int = 100
 
 
+class SystemSettings(BaseModel):
+    """系统设置模型"""
+    dark_mode: bool = False
+    font_size: int = 14
+    chat_style_document: bool = False
+    view_mode: str = "grid"
+    show_hidden_files: bool = False
+    auto_refresh_files: bool = True
+    max_recent_files: int = 10
+
+
 class SettingResponse(BaseModel):
     """设置响应模型"""
     message: str

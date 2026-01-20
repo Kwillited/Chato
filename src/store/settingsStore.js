@@ -290,6 +290,22 @@ export const useSettingsStore = defineStore('settings', {
             timeout: mcpSettings.timeout
           };
         }
+        
+        // 加载系统设置
+        const systemSettings = await apiService.get('/api/settings/system');
+        if (systemSettings) {
+          // 更新系统设置，转换字段名以匹配前端模型
+          const updatedSystemSettings = {
+            darkMode: systemSettings.dark_mode,
+            fontSize: systemSettings.font_size,
+            chatStyleDocument: systemSettings.chat_style_document,
+            viewMode: systemSettings.view_mode,
+            showHiddenFiles: systemSettings.show_hidden_files,
+            autoRefreshFiles: systemSettings.auto_refresh_files,
+            maxRecentFiles: systemSettings.max_recent_files
+          };
+          this.systemSettings = { ...this.systemSettings, ...updatedSystemSettings };
+        }
       } catch (error) {
         console.error('从后端加载设置失败:', error);
       }
@@ -415,6 +431,18 @@ export const useSettingsStore = defineStore('settings', {
           timeout: this.mcpConfig.timeout
         };
         await apiService.post('/api/mcp', mcpSettingsToSave);
+        
+        // 保存系统设置，转换字段名以匹配后端模型
+        const systemSettingsToSave = {
+          dark_mode: this.systemSettings.darkMode,
+          font_size: this.systemSettings.fontSize,
+          chat_style_document: this.systemSettings.chatStyleDocument,
+          view_mode: this.systemSettings.viewMode,
+          show_hidden_files: this.systemSettings.showHiddenFiles || false,
+          auto_refresh_files: this.systemSettings.autoRefreshFiles || true,
+          max_recent_files: this.systemSettings.maxRecentFiles || 10
+        };
+        await apiService.post('/api/settings/system', systemSettingsToSave);
       } catch (error) {
         console.error('保存设置到后端失败:', error);
       }

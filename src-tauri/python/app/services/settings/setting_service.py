@@ -17,116 +17,77 @@ class SettingService(BaseService):
     
     def get_notification_settings(self):
         """获取通知设置"""
-        return DataService.get_settings().get('notification', {
-            'enabled': True,
-            'newMessage': True,
-            'sound': False,
-            'system': True,
-            'displayTime': '5秒'
-        })
-    
-    def save_notification_settings(self, data):
-        """保存通知设置"""
-        # 确保notification设置键存在
-        if 'notification' not in DataService.get_settings():
-            DataService.get_settings()['notification'] = {
+        notification_setting = self.setting_repo.get_notification_setting()
+        if notification_setting:
+            return notification_setting.__dict__
+        else:
+            # 返回默认值
+            return {
                 'enabled': True,
                 'newMessage': True,
                 'sound': False,
                 'system': True,
                 'displayTime': '5秒'
             }
-        # 合并通知设置
-        DataService.get_settings()['notification'].update(data)
-        
-        # 先设置脏标记
-        DataService.set_dirty_flag('settings')
-        
-        # 再使用Repository保存设置到数据库
-        self.setting_repo.create_or_update_setting('notification', DataService.get_settings()['notification'])
-        
-        return DataService.get_settings()['notification']
+    
+    def save_notification_settings(self, data):
+        """保存通知设置"""
+        # 使用Repository保存设置到数据库
+        notification_setting = self.setting_repo.create_or_update_notification_setting(data)
+        return notification_setting.__dict__
     
     def get_mcp_settings(self):
         """获取MCP设置"""
-        return DataService.get_settings().get('mcp', {
-            'enabled': False,
-            'server_address': '',
-            'server_port': 8080,
-            'timeout': 30
-        })
-    
-    def save_mcp_settings(self, data):
-        """保存MCP设置"""
-        # 确保mcp设置键存在
-        if 'mcp' not in DataService.get_settings():
-            DataService.get_settings()['mcp'] = {
+        mcp_setting = self.setting_repo.get_mcp_setting()
+        if mcp_setting:
+            return mcp_setting.__dict__
+        else:
+            # 返回默认值
+            return {
                 'enabled': False,
                 'server_address': '',
                 'server_port': 8080,
                 'timeout': 30
             }
-        # 合并MCP设置
-        DataService.get_settings()['mcp'].update(data)
-        
-        # 先设置脏标记
-        DataService.set_dirty_flag('settings')
-        
-        # 再使用Repository保存设置到数据库
-        self.setting_repo.create_or_update_setting('mcp', DataService.get_settings()['mcp'])
-        
-        return DataService.get_settings()['mcp']
     
-    def get_basic_settings(self):
-        """获取基本设置"""
-        return DataService.get_settings().get('system', {})
+    def save_mcp_settings(self, data):
+        """保存MCP设置"""
+        # 使用Repository保存设置到数据库
+        mcp_setting = self.setting_repo.create_or_update_mcp_setting(data)
+        return mcp_setting.__dict__
     
-    def save_basic_settings(self, data):
-        """保存基本设置"""
-        # 确保system设置键存在
-        if 'system' not in DataService.get_settings():
-            DataService.get_settings()['system'] = {
-                'theme': 'light',
-                'language': 'zh-CN',
-                'autoSave': True,
-                'showPreview': True,
-                'maxMessages': 100
+    def get_system_setting(self):
+        """获取系统设置"""
+        system_setting = self.setting_repo.get_system_setting()
+        if system_setting:
+            return system_setting.__dict__
+        else:
+            # 返回默认值
+            return {
+                'dark_mode': False,
+                'font_size': 14,
+                'chat_style_document': False,
+                'view_mode': 'grid',
+                'show_hidden_files': False,
+                'auto_refresh_files': True,
+                'max_recent_files': 10
             }
-        # 合并基本设置
-        DataService.get_settings()['system'].update(data)
-        
-        # 先设置脏标记
-        DataService.set_dirty_flag('settings')
-        
-        # 再使用Repository保存设置到数据库
-        self.setting_repo.create_or_update_setting('system', DataService.get_settings()['system'])
-        
-        return DataService.get_settings()['system']
+    
+    def save_system_setting(self, data):
+        """保存系统设置"""
+        # 使用Repository保存设置到数据库
+        system_setting = self.setting_repo.create_or_update_system_setting(data)
+        return system_setting.__dict__
     
     def get_all_settings(self):
         """获取所有设置"""
-        return DataService.get_settings()
-    
-    def load_settings_from_db(self):
-        """从数据库加载设置到内存"""
-        settings = self.setting_repo.get_all_settings()
+        # 从各个专用表中获取所有设置
+        notification = self.get_notification_settings()
+        mcp = self.get_mcp_settings()
+        system = self.get_system_setting()
         
-        for setting in settings:
-            if hasattr(setting, 'key'):
-                # 处理ORM对象
-                key = setting.key
-                value_json = setting.value
-            else:
-                # 处理元组
-                key = setting[0]
-                value_json = setting[1]
-            
-            try:
-                # 尝试将JSON字符串转换为字典
-                setting_value = json.loads(value_json)
-                DataService.get_settings()[key] = setting_value
-            except json.JSONDecodeError:
-                # 如果不是JSON格式，直接保存为字符串
-                DataService.get_settings()[key] = value_json
-        
-        return DataService.get_settings()
+        return {
+            'notification': notification,
+            'mcp': mcp,
+            'system': system
+        }

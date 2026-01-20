@@ -1,45 +1,96 @@
 """设置数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.models import Setting
-import json
+from app.models.models import VectorSetting, MCPSetting, NotificationSetting, AppSetting, SystemSetting
 
 class SettingRepository(BaseRepository):
     """设置数据访问类，处理设置相关的数据访问"""
     
-    def get_all_settings(self):
-        """获取所有设置"""
-        return self.db.query(Setting).all()
+    # Vector Setting Methods
+    def get_vector_setting(self):
+        """获取向量设置"""
+        return self.db.query(VectorSetting).first()
     
-    def get_setting_by_key(self, key):
-        """根据键获取设置"""
-        return self.db.query(Setting).filter(Setting.key == key).first()
-    
-    def create_or_update_setting(self, key, value):
-        """创建或更新设置"""
-        # 将设置值转换为JSON字符串
-        value_json = json.dumps(value)
-        
-        # 查找是否已存在该设置
-        existing_setting = self.get_setting_by_key(key)
+    def create_or_update_vector_setting(self, vector_data):
+        """创建或更新向量设置"""
+        existing_setting = self.get_vector_setting()
         if existing_setting:
             # 更新现有设置
-            existing_setting.value = value_json
+            for key, value in vector_data.items():
+                setattr(existing_setting, key, value)
             return self.update(existing_setting)
         else:
             # 创建新设置
-            new_setting = Setting(key=key, value=value_json)
+            new_setting = VectorSetting(**vector_data)
             return self.add(new_setting)
     
-    def delete_setting(self, key):
-        """根据键删除设置"""
-        setting = self.get_setting_by_key(key)
-        if setting:
-            self.delete(setting)
-            return True
-        return False
+    # MCP Setting Methods
+    def get_mcp_setting(self):
+        """获取MCP设置"""
+        return self.db.query(MCPSetting).first()
     
-    def delete_all_settings(self):
-        """删除所有设置"""
-        result = self.db.query(Setting).delete()
-        self.db.commit()
-        return result
+    def create_or_update_mcp_setting(self, mcp_data):
+        """创建或更新MCP设置"""
+        existing_setting = self.get_mcp_setting()
+        if existing_setting:
+            # 更新现有设置
+            for key, value in mcp_data.items():
+                setattr(existing_setting, key, value)
+            return self.update(existing_setting)
+        else:
+            # 创建新设置
+            new_setting = MCPSetting(**mcp_data)
+            return self.add(new_setting)
+    
+    # Notification Setting Methods
+    def get_notification_setting(self):
+        """获取通知设置"""
+        return self.db.query(NotificationSetting).first()
+    
+    def create_or_update_notification_setting(self, notification_data):
+        """创建或更新通知设置"""
+        existing_setting = self.get_notification_setting()
+        if existing_setting:
+            # 更新现有设置
+            for key, value in notification_data.items():
+                setattr(existing_setting, key, value)
+            return self.update(existing_setting)
+        else:
+            # 创建新设置
+            new_setting = NotificationSetting(**notification_data)
+            return self.add(new_setting)
+    
+    # App Setting Methods
+    def get_app_setting(self):
+        """获取应用设置"""
+        return self.db.query(AppSetting).first()
+    
+    def create_or_update_app_setting(self, app_data):
+        """创建或更新应用设置"""
+        existing_setting = self.get_app_setting()
+        if existing_setting:
+            # 更新现有设置
+            for key, value in app_data.items():
+                setattr(existing_setting, key, value)
+            return self.update(existing_setting)
+        else:
+            # 创建新设置
+            new_setting = AppSetting(**app_data)
+            return self.add(new_setting)
+    
+    # System Setting Methods
+    def get_system_setting(self):
+        """获取系统设置"""
+        return self.db.query(SystemSetting).first()
+    
+    def create_or_update_system_setting(self, system_data):
+        """创建或更新系统设置"""
+        existing_setting = self.get_system_setting()
+        if existing_setting:
+            # 更新现有设置
+            for key, value in system_data.items():
+                setattr(existing_setting, key, value)
+            return self.update(existing_setting)
+        else:
+            # 创建新设置
+            new_setting = SystemSetting(**system_data)
+            return self.add(new_setting)

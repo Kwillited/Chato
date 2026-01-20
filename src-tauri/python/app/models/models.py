@@ -1,5 +1,5 @@
 """SQLAlchemy模型定义"""
-from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -77,12 +77,69 @@ class Message(Base):
     chat = relationship("Chat", back_populates="messages")
 
 
-class Setting(Base):
-    """设置表"""
-    __tablename__ = "settings"
+
+
+class VectorSetting(Base):
+    """向量设置表"""
+    __tablename__ = "vector_settings"
     
-    key = Column(String, primary_key=True)
-    value = Column(Text, nullable=False)
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    retrieval_mode = Column(String, default="vector")
+    top_k = Column(Integer, default=3)
+    score_threshold = Column(Float, default=0.7)
+    vector_db_path = Column(String, default="")
+    embedder_model = Column(String, default="qwen3-embedding-0.6b")
+    vector_db_type = Column(String, default="chroma")
+    chunk_size = Column(Integer, default=1000)
+    chunk_overlap = Column(Integer, default=200)
+
+class MCPSetting(Base):
+    """MCP设置表"""
+    __tablename__ = "mcp_settings"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    enabled = Column(Boolean, default=False)
+    server_address = Column(String, default="")
+    server_port = Column(Integer, default=8080)
+    timeout = Column(Integer, default=30)
+
+class NotificationSetting(Base):
+    """通知设置表"""
+    __tablename__ = "notification_settings"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    enabled = Column(Boolean, default=True)
+    new_message = Column(Boolean, default=True)
+    sound = Column(Boolean, default=False)
+    system = Column(Boolean, default=True)
+    display_time = Column(String, default="5秒")
+
+class AppSetting(Base):
+    """应用设置表"""
+    __tablename__ = "app_settings"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    debug = Column(Boolean, default=True)
+    host = Column(String, default="0.0.0.0")
+    port = Column(Integer, default=5000)
+
+class SystemSetting(Base):
+    """系统设置表"""
+    __tablename__ = "system_settings"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dark_mode = Column(Boolean, default=False)
+    font_size = Column(Integer, default=16)
+    font_family = Column(String, default="Inter, system-ui, sans-serif")
+    language = Column(String, default="zh-CN")
+    auto_scroll = Column(Boolean, default=True)
+    show_timestamps = Column(Boolean, default=True)
+    confirm_delete = Column(Boolean, default=True)
+    streaming_enabled = Column(Boolean, default=True)
+    chat_style_document = Column(Boolean, default=False)
+    view_mode = Column(String, default="grid")
+    default_model = Column(String, default="")
+    rag_view_mode = Column(Boolean, default=True)  # RAG视图模式：True=文件列表，False=知识图谱
 
 
 class Folder(Base):
