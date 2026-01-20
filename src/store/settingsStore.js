@@ -61,22 +61,7 @@ export const useSettingsStore = defineStore('settings', {
     // 右侧面板宽度
     rightPanelWidth: '200px',
 
-    // RAG相关设置
-    ragConfig: {
-      enabled: false,
-      chunk_size: 1000,
-      chunk_overlap: 100,
-      k: 4,
-      retrievalMode: 'vector',
-      topK: 3,
-      scoreThreshold: 0.7,
-      embedderModel: 'qwen3-embedding-0.6b',
-      vectorDbPath: '', // 留空，让后端使用标准用户数据目录
-      vectorDbType: 'chroma',
-      knowledgeBasePath: '', // 留空，让后端使用标准用户数据目录
-      selectedFolders: [], // 新增：指定的文件夹ID列表，用于限制RAG检索范围
-      selectedKnowledgeBases: [], // 新增：指定的知识库ID列表，用于限制RAG检索范围
-    },
+
 
     // MCP相关设置
     mcpConfig: {
@@ -117,8 +102,7 @@ export const useSettingsStore = defineStore('settings', {
   }),
 
   getters: {
-    // 获取当前RAG配置
-    currentRagConfig: (state) => state.ragConfig,
+
 
     // 获取当前系统设置
     currentSystemSettings: (state) => state.systemSettings,
@@ -195,17 +179,7 @@ export const useSettingsStore = defineStore('settings', {
 
 
 
-    // 切换RAG功能
-    toggleRag(enabled) {
-      this.ragConfig.enabled = enabled;
-      this.saveSettings();
-    },
 
-    // 更新RAG配置
-    updateRagConfig(config) {
-      this.ragConfig = { ...this.ragConfig, ...config };
-      this.saveSettings();
-    },
 
     // 切换MCP功能
     toggleMcp(enabled) {
@@ -356,12 +330,7 @@ export const useSettingsStore = defineStore('settings', {
           document.body.style.fontFamily = this.systemSettings.fontFamily;
         }
 
-        // 确保activePanel和ragConfig.enabled状态一致
-        if (this.ragConfig.enabled && this.activePanel !== 'rag') {
-          this.activePanel = 'rag';
-        } else if (!this.ragConfig.enabled && this.activePanel === 'rag') {
-          this.activePanel = 'history';
-        }
+
 
         // 记录最后使用时间
         this.updateLastUsedTime();
@@ -397,12 +366,7 @@ export const useSettingsStore = defineStore('settings', {
           document.body.style.fontFamily = this.systemSettings.fontFamily;
         }
 
-        // 确保activePanel和ragConfig.enabled状态一致
-        if (this.ragConfig.enabled && this.activePanel !== 'rag') {
-          this.activePanel = 'rag';
-        } else if (!this.ragConfig.enabled && this.activePanel === 'rag') {
-          this.activePanel = 'history';
-        }
+
 
         // 记录最后使用时间
         this.updateLastUsedTime();
@@ -421,9 +385,7 @@ export const useSettingsStore = defineStore('settings', {
     mergeSavedSettings(savedSettings) {
       // 注意：模型相关设置现在由modelSettingStore单独管理和加载
 
-      if (savedSettings.ragConfig && typeof savedSettings.ragConfig === 'object') {
-        this.ragConfig = mergeSettings(this.ragConfig, savedSettings.ragConfig);
-      }
+
 
       if (savedSettings.mcpConfig && typeof savedSettings.mcpConfig === 'object') {
         this.mcpConfig = mergeSettings(this.mcpConfig, savedSettings.mcpConfig);

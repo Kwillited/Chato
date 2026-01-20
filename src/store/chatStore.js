@@ -4,6 +4,7 @@ import { generateId } from './utils';
 import { useSettingsStore } from './settingsStore.js';
 import { useModelSettingStore } from './modelSettingStore.js';
 import { useRagStore } from './ragStore.js';
+import { useVectorStore } from './vectorStore.js';
 import { showNotification } from '../services/notificationUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
@@ -247,20 +248,27 @@ export const useChatStore = defineStore('chat', {
         // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
         const shouldUseStreaming = systemStreamingEnabled && modelStreamingEnabled;
         
-        // 获取ragStore实例，用于检查当前文件夹状态
+        // 获取vectorStore和ragStore实例
+        const vectorStore = useVectorStore();
         const ragStore = useRagStore();
         
-        // 根据当前文件夹状态调整RAG检索范围
-        let ragConfigToUse = { ...settingsStore.ragConfig };
+        // 从vectorStore获取RAG配置
+        const vectorConfig = vectorStore.config;
+        
+        // 构建后端需要的ragConfig格式
+        let ragConfigToUse = {
+          enabled: vectorConfig.enabled,
+          topK: vectorConfig.retrieval.topK,
+          scoreThreshold: vectorConfig.retrieval.threshold,
+          searchType: vectorConfig.retrieval.mode,
+          selectedFolders: [],
+          selectedKnowledgeBases: []
+        };
         
         // 如果有选中的文件夹，设置检索范围为该文件夹
         if (ragStore.currentSelectedFolder) {
           const targetFolder = ragStore.currentSelectedFolder;
           ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
-        } else {
-          // 否则使用全局检索（清空selectedFolders和selectedKnowledgeBases）
-          ragConfigToUse.selectedFolders = [];
-          ragConfigToUse.selectedKnowledgeBases = [];
         }
         
         // 添加调试日志，查看实际发送给后端的ragConfig

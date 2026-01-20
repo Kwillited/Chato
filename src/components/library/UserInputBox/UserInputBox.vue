@@ -350,6 +350,15 @@
                 <i class="fa-solid fa-globe"></i>
               </button>
             </Tooltip>
+            <!-- MCP启动按钮 -->
+            <Tooltip content="MCP工具">
+              <button
+                class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out text-gray-500 dark:text-gray-300 hover:text-primary"
+                @click="handleMcpService"
+              >
+                <i class="fa-solid fa-gear"></i>
+              </button>
+            </Tooltip>
             <div class="relative">
               <Tooltip :content="availableModels.length > 1 ? '选择AI模型' : '只有一个可用模型'">
                 <button

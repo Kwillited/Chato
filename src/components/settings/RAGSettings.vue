@@ -37,9 +37,9 @@
               <div class="text-xs text-neutral mt-0.5">用于将文本转换为向量的模型</div>
 
               <select
-                v-model="settingsStore.ragConfig.embedderModel"
+                v-model="vectorStore.config.embedding.model"
                 class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                @change="updateRagConfig"
+                @change="updateVectorConfig"
               >
                 <option value="qwen3-embedding-0.6b">qwen3-embedding-0.6b (推荐)</option>
                 <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2 (轻量)</option>
@@ -55,9 +55,9 @@
               <div class="text-xs text-neutral mt-0.5">使用的向量数据库类型</div>
 
               <select
-                v-model="settingsStore.ragConfig.vectorDbType"
+                v-model="vectorStore.config.storage.type"
                 class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                @change="updateRagConfig"
+                @change="updateVectorConfig"
               >
                 <option value="chroma">Chroma (默认)</option>
               </select>
@@ -75,9 +75,9 @@
               <div class="text-xs text-neutral mt-0.5">设置知识库的文档检索方式</div>
 
               <select
-                v-model="settingsStore.ragConfig.retrievalMode"
+                v-model="vectorStore.config.retrieval.mode"
                 class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                @change="updateRagConfig"
+                @change="updateVectorConfig"
               >
                 <option value="vector">向量检索</option>
                 <option value="keyword">关键词检索</option>
@@ -93,12 +93,12 @@
 
               <input
                 type="number"
-                v-model="settingsStore.ragConfig.topK"
+                v-model="vectorStore.config.retrieval.topK"
                 class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="例如：3"
                 min="1"
                 max="20"
-                @change="updateRagConfig"
+                @change="updateVectorConfig"
               />
             </div>
           </div>
@@ -110,13 +110,13 @@
 
               <input
                 type="number"
-                v-model="settingsStore.ragConfig.scoreThreshold"
+                v-model="vectorStore.config.retrieval.threshold"
                 class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="例如：0.7"
                 step="0.05"
                 min="0"
                 max="1"
-                @change="updateRagConfig"
+                @change="updateVectorConfig"
               />
             </div>
           </div>
@@ -133,10 +133,10 @@
 
               <input
                 type="text"
-                v-model="settingsStore.ragConfig.vectorDbPath"
+                v-model="vectorStore.config.storage.path"
                 class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="留空使用默认路径"
-                @change="updateRagConfig"
+                @change="updateVectorConfig"
               />
               <div class="text-xs text-neutral mt-1">系统默认路径: 用户数据目录下的 "Retrieval-Augmented Generation\vectorDb"</div>
             </div>
@@ -149,10 +149,10 @@
 
               <input
                 type="text"
-                v-model="settingsStore.ragConfig.knowledgeBasePath"
+                v-model="vectorStore.config.storage.knowledgeBasePath"
                 class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="留空使用默认路径"
-                @change="updateRagConfig"
+                @change="updateVectorConfig"
               />
               <div class="text-xs text-neutral mt-1">系统默认路径: 用户数据目录下的 "Retrieval-Augmented Generation\knowledgeBase"</div>
             </div>
@@ -167,15 +167,14 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useSettingsStore } from '../../store/settingsStore.js';
+import { useVectorStore } from '../../store/vectorStore.js';
 
-const settingsStore = useSettingsStore();
+const vectorStore = useVectorStore();
 // 活动选项卡，默认为基本设置
 const activeTab = ref('basic');
 
-// 更新RAG配置
-function updateRagConfig() {
-  // 由于使用了v-model，直接保存整个配置对象
-  settingsStore.saveSettings();
+// 更新向量配置
+function updateVectorConfig() {
+  // 向量配置变更，vectorStore内部会处理状态更新
 }
 </script>

@@ -15,6 +15,7 @@ const STORAGE_KEYS = {
  * @property {number} temperature - 温度参数
  * @property {number} max_tokens - 最大生成token数
  * @property {number} top_p - 采样参数
+ * @property {number} top_k - 采样参数
  * @property {number} frequency_penalty - 频率惩罚
  */
 
@@ -27,6 +28,7 @@ export const useModelSettingStore = defineStore('modelSetting', {
       temperature: 0.7,
       max_tokens: 2000,
       top_p: 1.0,
+      top_k: 50,
       frequency_penalty: 0.0,
     },
     
@@ -353,6 +355,7 @@ export const useModelSettingStore = defineStore('modelSetting', {
         temperature: 0.7,
         max_tokens: 2000,
         top_p: 1.0,
+        top_k: 50,
         frequency_penalty: 0.0,
       };
       this.availableModels = [];

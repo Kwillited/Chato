@@ -63,8 +63,11 @@ export const useRagStore = defineStore('rag', {
 
       try {
         // 调用后端API搜索文件内容
-        const response = await apiService.get('/api/rag/search', {
-          params: { query }
+        const response = await apiService.post('/api/vectors/search-documents', {
+          query, 
+          k: this.ragConfig.topK,
+          score_threshold: this.ragConfig.scoreThreshold,
+          search_type: this.ragConfig.searchType
         });
         
         // 确保正确处理响应格式
@@ -100,7 +103,7 @@ export const useRagStore = defineStore('rag', {
 
       try {
         // 调用后端API生成增强响应
-        const response = await apiService.post('/api/rag/generate', {
+        const response = await apiService.post('/api/vectors/enhanced-prompt', {
           query,
           chatHistory,
           k,
@@ -125,7 +128,9 @@ export const useRagStore = defineStore('rag', {
 
       try {
         // 调用后端API重新加载向量库
-        const response = await apiService.post('/api/rag/reload');
+        const response = await apiService.post('/api/vectors/manage', {
+          action: 'reload'
+        });
         
         // 确保正确处理响应格式
         if (response.success) {

@@ -506,29 +506,6 @@ export const apiService = {
         url: '/api/files/folders',
       });
     },
-    // 验证向量数据库路径是否有效
-    validateVectorDbPath: async (path) => {
-      return await requestWithRetry({
-        method: 'POST',
-        url: '/api/rag/validate-path',
-        data: { path, type: 'vector_db' },
-      });
-    },
-    // 验证知识库路径是否有效
-    validateKnowledgeBasePath: async (path) => {
-      return await requestWithRetry({
-        method: 'POST',
-        url: '/api/rag/validate-path',
-        data: { path, type: 'knowledge_base' },
-      });
-    },
-    // 获取系统实际使用的路径信息
-    getActualPaths: async () => {
-      return await requestWithRetry({
-        method: 'GET',
-        url: '/api/rag/paths',
-      });
-    },
   },
 
   // 模型相关API
@@ -537,14 +514,6 @@ export const apiService = {
       return await requestWithRetry({
         method: 'GET',
         url: '/api/models',
-      });
-    },
-    
-    updateModelParams: async (model, params) => {
-      return await requestWithRetry({
-        method: 'POST',
-        url: `/api/models/${model}/params`,
-        data: params,
       });
     },
   },
