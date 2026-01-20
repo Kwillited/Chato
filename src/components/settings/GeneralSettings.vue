@@ -279,7 +279,7 @@ onMounted(async () => {
 // 监听流式输出设置变化，自动保存
 watch(
   () => settingsStore.systemSettings.streamingEnabled,
-  (newValue) => {
+  (_newValue) => {
     settingsStore.saveSettings();
   }
 );
@@ -287,7 +287,7 @@ watch(
 // 监听darkMode变化，立即应用
 watch(
   () => settingsStore.systemSettings.darkMode,
-  (newValue) => {
+  (_newValue) => {
     settingsStore.applyDarkMode();
     settingsStore.saveSettings();
   }
@@ -296,7 +296,7 @@ watch(
 // 监听其他系统设置变化，自动保存
 watch(
   () => settingsStore.systemSettings,
-  (newValue) => {
+  (_newValue) => {
     settingsStore.saveSettings();
   },
   { deep: true }
@@ -322,7 +322,7 @@ const setViewMode = (mode) => {
 };
 
 // 切换深色模式
-const toggleDarkMode = () => {
+const _toggleDarkMode = () => {
   settingsStore.toggleDarkMode();
 };
 

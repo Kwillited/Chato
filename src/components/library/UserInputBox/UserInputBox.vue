@@ -454,6 +454,10 @@ const settingsStore = useSettingsStore();
 const modelStore = useModelSettingStore();
 const vectorStore = useVectorStore();
 
+// 拖拽状态管理
+const dragCounter = ref(0);
+const isDragOver = ref(false);
+
 // 使用ref引用DOM元素
 const fileInput = ref(null);
 const modelDropdown = ref(null);

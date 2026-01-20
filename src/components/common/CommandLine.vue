@@ -57,6 +57,7 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
+import { showNotification } from '../../services/notificationUtils.js';
 
 // 定义组件属性
 const props = defineProps({
@@ -185,12 +186,8 @@ const handleCommand = async (command) => {
       return '正在关闭命令行...';
           
     case 'list-models':
-      try {
-        // 这里可以从modelSettingStore获取模型列表
-        return '可用模型: OpenAI GPT-4, Claude 3, Gemini, 本地模型';
-      } catch (error) {
-        return '无法获取模型列表: ' + error.message;
-      }
+      // 这里可以从modelSettingStore获取模型列表
+      return '可用模型: OpenAI GPT-4, Claude 3, Gemini, 本地模型';
           
     case 'echo':
       return args.join(' ');

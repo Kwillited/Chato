@@ -116,7 +116,7 @@ class VectorService(BaseService):
         """向量数据库管理
         
         Args:
-            action (str): 操作类型 (clear, stats)
+            action (str): 操作类型 (clear, stats, reload)
             params (dict): 操作参数
             
         Returns:
@@ -142,6 +142,17 @@ class VectorService(BaseService):
                     'message': '获取统计信息成功',
                     'stats': stats
                 }
+            elif action == 'reload':
+                # 重新加载向量数据库
+                self.log_info("🔄 开始重新加载向量数据库...")
+                # 调用vector_store_service的重新加载方法
+                success, message = self.vector_store_service.reload_vector_store()
+                if success:
+                    self.log_info("✅ 向量数据库重新加载成功")
+                    return {'success': True, 'message': message}
+                else:
+                    self.log_error(f"❌ 向量数据库重新加载失败: {message}")
+                    return {'success': False, 'message': f'向量数据库重新加载失败: {message}'}
             else:
                 self.log_warning(f"⚠️  不支持的向量数据库管理操作: {action}")
                 return {'success': False, 'message': f'不支持的操作: {action}'}

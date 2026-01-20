@@ -20,11 +20,11 @@
 </template>
 
 <script setup>
-import Button from '../common/Button.vue';
+import { Button } from '../library/index.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 
 // 定义props
-const props = defineProps({
+defineProps({
   title: {
     type: String,
     required: true

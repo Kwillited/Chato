@@ -22,7 +22,7 @@
 
 <script setup>
 // 定义组件的props
-const props = defineProps({
+const _props = defineProps({
   selectedNode: {
     type: Object,
     default: null

@@ -69,8 +69,6 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useChatStore } from '../../store/chatStore.js';
-import { useSettingsStore } from '../../store/settingsStore.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
 import ActionButton from '../common/ActionButton.vue';
@@ -91,7 +89,7 @@ const tools = ref([
 ]);
 
 // 使用搜索组合式函数
-const { searchQuery, filteredTools, handleSearch } = useSearch({
+const { searchQuery, filteredTools } = useSearch({
   data: tools,
   searchFields: (tool) => [tool.name, tool.description]
 });

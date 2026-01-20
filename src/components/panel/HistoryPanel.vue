@@ -34,7 +34,7 @@
     <!-- 搜索框 -->
     <SearchBar v-model="searchQuery" placeholder="搜索对话..." />
 
-    <div ref="scrollContainer" class="overflow-y-auto h-[calc(100%-100px)] custom-scrollbar transition-colors duration-300 ease-in-out">
+    <div ref="scrollContainer" class="overflow-y-auto h-[calc(100%-100px)] scrollbar-thin transition-colors duration-300 ease-in-out" @scroll="handleScroll">
       <div id="chatHistory" class="p-2 space-y-3 transition-all duration-300 ease-in-out">
         <!-- 加载状态：使用骨架屏提升体验 -->
         <div v-if="chatStore.isLoading && chatHistory.length === 0" class="transition-opacity duration-300">
@@ -141,9 +141,7 @@ import PanelHeader from '../common/PanelHeader.vue';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { showNotification } from '../../services/notificationUtils.js';
-import SearchBar from '../common/SearchBar.vue';
-import ActionButton from '../common/ActionButton.vue';
-import ConfirmationModal from '../common/ConfirmationModal.vue';
+import { SearchBar, ActionButton, ConfirmationModal } from '../library/index.js';
 
 // 滚动容器引用
 const scrollContainer = ref(null);
@@ -453,5 +451,33 @@ const handleRetry = () => {
 /* 添加悬停时显示按钮的效果 */
 .hover\:shadow-md:hover .opacity-0 {
   opacity: 1;
+}
+
+/* 滚动条样式 - 与ChatMessagesContainer.vue保持一致 */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* 深色模式滚动条样式 */
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  transition: background-color 0.3s ease-in-out;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 </style>

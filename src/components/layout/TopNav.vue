@@ -97,15 +97,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { useChatStore } from '../../store/chatStore.js';
 import { Window } from '@tauri-apps/api/window';
+import { showNotification } from '../../services/notificationUtils.js';
 import CommandLine from '../../components/common/CommandLine.vue';
 import { Tooltip } from '../library/index.js';
-import Button from '../../components/common/Button.vue';
+import { Button } from '../library/index.js';
 
 // 使用全局store管理视图状态
-const chatStore = useChatStore();
-
 const settingsStore = useSettingsStore();
 const appWindow = new Window('main');
 

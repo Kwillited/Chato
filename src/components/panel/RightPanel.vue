@@ -60,7 +60,7 @@
             <!-- 消息列表 -->
             <div v-if="chatStore.currentChat && chatStore.currentChat.messages && chatStore.currentChat.messages.length > 0">
               <div
-                v-for="(message, index) in chatStore.currentChat.messages"
+                v-for="message in chatStore.currentChat.messages"
                 :key="message.value?.id || message.id"
                 class="message-item mb-3 p-2 rounded border border-gray-200 dark:border-dark-border hover:bg-gray-100 dark:hover:bg-dark-bg-tertiary transition-colors"
                 :class="{ 'selected': selectedMessages.has(message.value?.id || message.id) }"
@@ -125,7 +125,7 @@ import { ref, watch } from 'vue';
 import { formatTime } from '../../store/utils.js';
 
 // 定义props
-const props = defineProps({
+const _props = defineProps({
   isInitialLoading: {
     type: Boolean,
     default: true
@@ -134,7 +134,7 @@ const props = defineProps({
 
 // 初始化stores
 const settingsStore = useSettingsStore();
-const modelStore = useModelSettingStore();
+const _modelStore = useModelSettingStore();
 const chatStore = useChatStore();
 
 // 上下文调整状态

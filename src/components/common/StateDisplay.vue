@@ -31,10 +31,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
 import Loading from './Loading.vue';
 
-const props = defineProps({
+defineProps({
   // 状态类型：loading（加载）、empty（空）、error（错误）
   type: {
     type: String,

@@ -310,7 +310,7 @@ const initContextScene = () => {
     let resizeObserver = null;
     if ('ResizeObserver' in window && container && container instanceof Element) {
       resizeObserver = new ResizeObserver(entries => {
-        for (let entry of entries) {
+        for (let _entry of entries) {
           handleResize();
         }
       });

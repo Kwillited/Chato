@@ -26,7 +26,7 @@ import McpPanel from './McpPanel.vue';
 
 
 // 定义props
-const props = defineProps({
+const _props = defineProps({
   activePanel: {
     type: String,
     default: 'history'

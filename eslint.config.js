@@ -9,6 +9,7 @@ export default [
     files: ['**/*.js', '**/*.vue'],
     ignores: [
       'src/js/**/*',
+      'src/static/**/*',
       '**/node_modules/**',
     ],
     plugins: {
@@ -35,6 +36,16 @@ export default [
         requestAnimationFrame: 'readonly',
         cancelAnimationFrame: 'readonly',
         navigator: 'readonly',
+        FormData: 'readonly',
+        File: 'readonly',
+        TextDecoder: 'readonly',
+        ResizeObserver: 'readonly',
+        Element: 'readonly',
+        AbortController: 'readonly',
+        fetch: 'readonly',
+        atob: 'readonly',
+        self: 'readonly',
+        MutationObserver: 'readonly',
       },
     },
     rules: {

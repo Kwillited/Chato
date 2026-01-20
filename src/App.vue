@@ -82,7 +82,7 @@ onMounted(async () => {
     );
     console.log('后端服务健康检查通过！');
     isBackendHealthy = true;
-  } catch (error) {
+  } catch {
     console.error('后端服务健康检查失败，已达到最大重试次数');
     isBackendHealthy = false;
   }

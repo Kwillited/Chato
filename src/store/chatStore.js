@@ -654,7 +654,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 从后端API获取对话历史
-    async loadChatHistory(manualRetry = false) {
+    async loadChatHistory(_manualRetry = false) {
       this.isLoading = true;
       this.clearError();
 

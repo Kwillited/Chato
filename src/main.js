@@ -1,8 +1,6 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import pinia from './store/pinia.js';
-import { useSettingsStore } from './store/settingsStore.js';
-import { useModelSettingStore } from './store/modelSettingStore.js';
 
 // 等待DOM完全加载后再初始化Vue应用
 document.addEventListener('DOMContentLoaded', () => {

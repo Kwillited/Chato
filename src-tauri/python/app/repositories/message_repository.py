@@ -58,8 +58,7 @@ class MessageRepository(BaseRepository):
         """删除消息"""
         message = self.get_message_by_id(message_id)
         if message:
-            self.db.delete(message)
-            self.db.commit()
+            self.delete(message)
             return True
         return False
     

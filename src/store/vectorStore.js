@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import { eventBus } from '../services/eventBus.js';
 import { apiService } from '../services/apiService.js';
 
 export const useVectorStore = defineStore('vector', {

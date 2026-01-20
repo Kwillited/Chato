@@ -4,61 +4,38 @@
       <h4 class="font-medium mb-4">通知偏好</h4>
 
       <div class="space-y-4">
-        <div class="setting-item p-3 rounded-lg">
-          <div class="flex justify-between items-center">
-            <div>
-              <div class="font-medium text-sm">新消息通知</div>
-              <div class="text-xs text-neutral mt-0.5">当收到AI回复时通知</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" :checked="settingsStore.notificationsConfig.newMessage" @change="updateNotificationSetting('newMessage', $event)" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
+        <SettingItem
+          type="toggle"
+          title="新消息通知"
+          description="当收到AI回复时通知"
+          v-model="settingsStore.notificationsConfig.newMessage"
+          @change="settingsStore.saveSettings"
+        />
 
-        <div class="setting-item p-3 rounded-lg">
-          <div class="flex justify-between items-center">
-            <div>
-              <div class="font-medium text-sm">声音提示</div>
-              <div class="text-xs text-neutral mt-0.5">新消息通知时播放提示音</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" :checked="settingsStore.notificationsConfig.sound" @change="updateNotificationSetting('sound', $event)" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
+        <SettingItem
+          type="toggle"
+          title="声音提示"
+          description="新消息通知时播放提示音"
+          v-model="settingsStore.notificationsConfig.sound"
+          @change="settingsStore.saveSettings"
+        />
 
-        <div class="setting-item p-3 rounded-lg">
-          <div class="flex justify-between items-center">
-            <div>
-              <div class="font-medium text-sm">系统通知</div>
-              <div class="text-xs text-neutral mt-0.5">显示应用更新等系统通知</div>
-            </div>
-            <label class="toggle-switch">
-              <input type="checkbox" :checked="settingsStore.notificationsConfig.system" @change="updateNotificationSetting('system', $event)" />
-              <span class="toggle-slider"></span>
-            </label>
-          </div>
-        </div>
+        <SettingItem
+          type="toggle"
+          title="系统通知"
+          description="显示应用更新等系统通知"
+          v-model="settingsStore.notificationsConfig.system"
+          @change="settingsStore.saveSettings"
+        />
 
-        <div class="setting-item p-3 rounded-lg">
-          <div>
-            <div class="font-medium text-sm">通知显示时间</div>
-            <div class="text-xs text-neutral mt-0.5">控制通知在屏幕上停留的时间</div>
-
-            <select
-              v-model="settingsStore.notificationsConfig.displayTime"
-              class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
-              @change="updateNotificationsConfig"
-            >
-              <option>2秒</option>
-              <option>5秒</option>
-              <option>10秒</option>
-            </select>
-          </div>
-        </div>
+        <SettingItem
+          type="select"
+          title="通知显示时间"
+          description="控制通知在屏幕上停留的时间"
+          v-model="settingsStore.notificationsConfig.displayTime"
+          :options="displayTimeOptions"
+          @change="settingsStore.saveSettings"
+        />
       </div>
     </div>
   </div>
@@ -66,18 +43,14 @@
 
 <script setup>
 import { useSettingsStore } from '../../store/settingsStore.js';
+import SettingItem from '../common/SettingItem.vue';
 
 const settingsStore = useSettingsStore();
 
-// 更新单个通知设置
-function updateNotificationSetting(key, event) {
-  settingsStore.notificationsConfig[key] = event.target.checked;
-  settingsStore.saveSettings();
-}
-
-// 更新整个通知配置
-function updateNotificationsConfig() {
-  // 由于使用了v-model，直接保存整个配置对象
-  settingsStore.saveSettings();
-}
+// 通知显示时间选项
+const displayTimeOptions = [
+  { value: '2秒', label: '2秒' },
+  { value: '5秒', label: '5秒' },
+  { value: '10秒', label: '10秒' }
+];
 </script>

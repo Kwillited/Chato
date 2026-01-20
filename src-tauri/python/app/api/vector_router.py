@@ -1,5 +1,5 @@
 """向量相关API路由"""
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from app.services.vector.vector_service import VectorService
 from app.dependencies import get_vector_service
 
@@ -46,7 +46,7 @@ async def manage_vector_store(action: str, params: dict = None, vector_service: 
     """向量数据库管理
     
     Args:
-        action (str): 操作类型 (clear, stats)
+        action (str): 操作类型 (clear, stats, reload)
         params (dict): 操作参数
         
     Returns:
@@ -125,3 +125,29 @@ async def get_enhanced_prompt(question: str, rag_config: dict = None, vector_ser
     """
     enhanced_prompt = vector_service.get_enhanced_prompt(question, rag_config)
     return {"success": True, "enhanced_prompt": enhanced_prompt}
+
+
+@router.get("/stores", tags=["vectors"])
+async def get_vector_stores(vector_service: VectorService = Depends(get_vector_service)):
+    """获取向量库列表
+    
+    Returns:
+        dict: 向量库列表
+    """
+    # 返回一个默认向量库，因为当前版本只支持单向量库
+    return {"success": True, "stores": [{"id": "default", "name": "默认向量库", "path": "resources/python/userData/rag/chroma_db"}]}
+
+
+@router.post("/switch", tags=["vectors"])
+async def switch_vector_store(request: dict = Body(...), vector_service: VectorService = Depends(get_vector_service)):
+    """切换向量库
+    
+    Args:
+        request: 请求体，包含store_id字段
+        
+    Returns:
+        dict: 切换结果
+    """
+    store_id = request.get("store_id", "default")
+    # 当前版本只支持单向量库，直接返回成功
+    return {"success": True, "message": f"已切换到向量库: {store_id}"}

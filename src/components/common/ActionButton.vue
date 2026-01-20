@@ -15,7 +15,7 @@
 import { Tooltip } from '../library/index.js';
 
 // 定义组件属性
-const props = defineProps({
+defineProps({
   icon: {
     type: String,
     required: true,

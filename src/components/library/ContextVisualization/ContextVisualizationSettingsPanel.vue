@@ -131,7 +131,7 @@
 
 <script setup>
 // 定义props，接收父组件传递的数据
-const props = defineProps({
+const _props = defineProps({
   // 控制设置面板显示/隐藏的状态
   showSettingsPanel: {
     type: Boolean,

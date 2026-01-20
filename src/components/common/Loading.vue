@@ -33,6 +33,10 @@
 <script setup>
 import { computed } from 'vue';
 
+defineOptions({
+  name: 'BaseLoading'
+});
+
 const props = defineProps({
   // 动画类型：spin（旋转）、typing（打字）
   type: {

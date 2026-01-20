@@ -97,7 +97,7 @@ const emit = defineEmits(['click']);
 
 // 定义组件名称和属性继承选项
 defineOptions({
-  name: 'Button',
+  name: 'BaseButton',
   inheritAttrs: false // 阻止Vue自动将$attrs传递给组件根元素
 });
 

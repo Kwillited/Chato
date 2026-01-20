@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { useSettingsStore } from '../store/settingsStore.js';
 
 // 创建axios实例
 const api = axios.create({
@@ -14,23 +13,10 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // 可以在这里添加token等认证信息
-    const settingsStore = useSettingsStore();
-
-    // 显示全局加载状态（如果需要）
-    if (settingsStore) {
-      settingsStore.setLoading(true);
-    }
-
     console.log('API请求:', config.method?.toUpperCase(), config.url);
     return config;
   },
   (error) => {
-    // 请求错误时隐藏加载状态
-    const settingsStore = useSettingsStore();
-    if (settingsStore) {
-      settingsStore.setLoading(false);
-    }
-
     console.error('API请求错误:', error);
     return Promise.reject(error);
   }
@@ -39,22 +25,10 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
-    // 隐藏全局加载状态
-    const settingsStore = useSettingsStore();
-    if (settingsStore) {
-      settingsStore.setLoading(false);
-    }
-
     console.log('API响应:', response.status, response.config.url);
     return response.data;
   },
   (error) => {
-    // 隐藏全局加载状态
-    const settingsStore = useSettingsStore();
-    if (settingsStore) {
-      settingsStore.setLoading(false);
-    }
-
     // 统一错误处理
     handleApiError(error);
     return Promise.reject(error);
@@ -64,35 +38,70 @@ api.interceptors.response.use(
 // 统一错误处理函数
 function handleApiError(error) {
   console.error('API错误:', error.message);
+  
+  // 创建结构化错误信息
+  const errorInfo = {
+    message: '请求失败',
+    details: '',
+    type: 'unknown',
+    status: error.response?.status || 0
+  };
 
   if (error.response) {
     // 服务器返回错误状态码
     const { status, data } = error.response;
-
+    errorInfo.status = status;
+    
     switch (status) {
       case 401:
-        console.error('未授权访问，请登录');
-        // 可以在这里跳转到登录页面
+        errorInfo.message = '未授权访问';
+        errorInfo.details = '请检查您的身份验证信息';
+        errorInfo.type = 'unauthorized';
         break;
       case 403:
-        console.error('禁止访问');
+        errorInfo.message = '禁止访问';
+        errorInfo.details = '您没有权限执行此操作';
+        errorInfo.type = 'forbidden';
         break;
       case 404:
-        console.error('请求的资源不存在');
+        errorInfo.message = '资源不存在';
+        errorInfo.details = '请求的资源未找到';
+        errorInfo.type = 'not_found';
         break;
       case 500:
-        console.error('服务器内部错误');
+        errorInfo.message = '服务器错误';
+        errorInfo.details = '服务器内部出现问题，请稍后重试';
+        errorInfo.type = 'server_error';
+        break;
+      case 502:
+      case 503:
+      case 504:
+        errorInfo.message = '服务不可用';
+        errorInfo.details = '服务器暂时无法响应，请稍后重试';
+        errorInfo.type = 'service_unavailable';
         break;
       default:
-        console.error(`请求失败: ${data?.message || '未知错误'}`);
+        errorInfo.message = '请求失败';
+        errorInfo.details = data?.message || '未知错误';
+        errorInfo.type = 'http_error';
     }
   } else if (error.request) {
     // 请求已发送但没有收到响应
-    console.error('网络错误，请检查您的网络连接');
+    errorInfo.message = '网络错误';
+    errorInfo.details = '请检查您的网络连接';
+    errorInfo.type = 'network_error';
   } else {
     // 请求配置错误
-    console.error('请求配置错误:', error.message);
+    errorInfo.message = '请求配置错误';
+    errorInfo.details = error.message;
+    errorInfo.type = 'config_error';
   }
+  
+  // 增强错误对象
+  error.errorInfo = errorInfo;
+  console.error('API错误详情:', errorInfo);
+  
+  return errorInfo;
 }
 
 // 创建API请求重试函数 - 优化版：支持多种重试策略和配置
@@ -106,15 +115,20 @@ async function requestWithRetry(config, options = {}) {
     jitter: 0.1, // ±10% 随机抖动
     retryableStatusCodes: [500, 502, 503, 504],
     retryableMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+    onRetry: null, // 重试回调
     ...options
   };
   
   let attempt = 0;
   let lastError;
+  const startTime = Date.now();
 
   while (attempt <= defaultOptions.maxRetries) {
     try {
       attempt++;
+      
+      console.log(`API请求尝试 ${attempt}/${defaultOptions.maxRetries + 1}: ${config.method?.toUpperCase()} ${config.url}`);
+      
       if (attempt > 1) {
         // 计算重试延迟：指数退避 + 随机抖动
         const delay = Math.min(
@@ -126,11 +140,22 @@ async function requestWithRetry(config, options = {}) {
         const finalDelay = Math.max(defaultOptions.initialDelay, delay + jitter);
         
         console.warn(`请求失败，正在进行第 ${attempt}/${defaultOptions.maxRetries + 1} 次重试，${Math.round(finalDelay/1000)}秒后重试...`);
+        
+        // 调用重试回调
+        if (typeof defaultOptions.onRetry === 'function') {
+          defaultOptions.onRetry(attempt, finalDelay, config);
+        }
+        
         await new Promise(resolve => setTimeout(resolve, finalDelay));
       }
 
-      return await api.request(config);
+      const response = await api.request(config);
+      console.log(`API请求成功: ${config.method?.toUpperCase()} ${config.url} (耗时: ${Date.now() - startTime}ms)`);
+      return response;
     } catch (error) {
+      // 增强错误信息
+      handleApiError(error);
+      
       // 检查是否是可重试的错误
       const isRetryable = 
         // 网络错误或超时
@@ -141,10 +166,12 @@ async function requestWithRetry(config, options = {}) {
         defaultOptions.retryableMethods.includes(config.method);
       
       if (!isRetryable || attempt > defaultOptions.maxRetries) {
+        console.error(`API请求失败，已达到最大重试次数 (${defaultOptions.maxRetries}): ${config.method?.toUpperCase()} ${config.url} (耗时: ${Date.now() - startTime}ms)`);
         lastError = error;
         break;
       }
 
+      console.warn(`API请求失败，将在下次重试: ${config.method?.toUpperCase()} ${config.url} (错误: ${error.message})`);
       lastError = error;
     }
   }
@@ -152,13 +179,7 @@ async function requestWithRetry(config, options = {}) {
   throw lastError;
 }
 
-// 判断是否为可重试的错误 - 保留此函数以兼容现有代码
-function isRetryableError(error) {
-  // 网络错误、超时、500系列错误可以重试
-  return (
-    !error.response || error.code === 'ECONNABORTED' || (error.response.status >= 500 && error.response.status < 600)
-  );
-}
+
 
 // 处理SSE流式响应的方法（使用传统fetch）
 export function handleStreamingResponse(url, data, onMessage, onError, onComplete) {
@@ -288,7 +309,7 @@ export const apiService = {
           console.log('使用 /api/health 端点进行健康检查，服务正常');
           return await healthResponse.json();
         }
-      } catch (healthError) {
+      } catch {
         // 如果健康检查端点不存在，尝试使用模型列表端点作为替代
         console.log('使用备用端点 /api/models 进行健康检查...');
         

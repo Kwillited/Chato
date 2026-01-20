@@ -116,6 +116,30 @@ class VectorStoreService(BaseService):
             self.log_error(f"[{self.knowledge_base_name}] {error_msg}")
             return False, error_msg
     
+    def reload_vector_store(self) -> Tuple[bool, str]:
+        """重新加载向量库
+        
+        Returns:
+            Tuple[bool, str]: (是否成功, 错误信息或"success")
+        """
+        try:
+            self.log_info(f"[{self.knowledge_base_name}] 开始重新加载向量库")
+            
+            # 清空查询缓存
+            self._query_cache.clear()
+            self.log_info(f"[{self.knowledge_base_name}] 已清空查询缓存")
+            
+            # 重新初始化向量数据库服务
+            from app.services.vector.vector_db_service import VectorDBService
+            self._vector_db_service = VectorDBService(None, None, self.knowledge_base_name)
+            self.log_info(f"[{self.knowledge_base_name}] 已重新初始化向量数据库服务")
+            
+            return True, "向量库重新加载成功"
+        except Exception as e:
+            error_msg = f"重新加载向量库异常: {str(e)}"
+            self.log_error(f"[{self.knowledge_base_name}] {error_msg}")
+            return False, error_msg
+    
     def get_vector_statistics(self) -> Dict[str, Any]:
         """获取向量库统计信息
         

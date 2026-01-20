@@ -1,7 +1,7 @@
 <template>
   <div id="ragPanel" class="h-full flex flex-col">
     <!-- 头部组件 -->
-    <FilePanelHeader :currentFolder="currentFolder" />
+    <RagFilePanelHeader :currentFolder="currentFolder" />
 
     <!-- 主内容区域 -->
     <div class="overflow-y-auto h-[calc(100%-57px)] scrollbar-thin">
@@ -12,7 +12,7 @@
         
         <!-- 文件夹列表 - 根目录视图 -->
         <div v-if="!currentFolder">
-          <FolderList v-if="folders.length > 0" :folders="folders" />
+          <RagFolderList v-if="folders.length > 0" :folders="folders" />
           
           <!-- 空状态提示 -->
           <StateDisplay v-else-if="!loadingFolders" type="empty" title="暂无知识库" message="点击右上角按钮创建您的第一个知识库" icon="fa-inbox" />
@@ -22,7 +22,7 @@
         </div>
         
         <!-- 文件列表 - 二级菜单视图 -->
-        <FileList v-else
+        <RagFileList v-else
           :currentFolder="currentFolder"
           :currentFiles="currentFiles"
           :loadingFiles="loadingFiles"
@@ -36,7 +36,7 @@
     </div>
     
     <!-- 创建知识库模态弹窗 -->
-    <CreateKnowledgeBaseModal 
+    <RagCreateKnowledgeBaseModal 
       :visible="showCreateModal"
       @close="handleCloseModal"
       @created="handleKnowledgeBaseCreated"
@@ -76,14 +76,13 @@ import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../services/notificationUtils.js';
 
 // 导入子组件
-import FilePanelHeader from '../rag/FilePanelHeader.vue';
-import RagToolbar from '../rag/RagToolbar.vue';
-import FolderList from '../rag/FolderList.vue';
-import FileList from '../rag/FileList.vue';
+import RagFilePanelHeader from '../file/RagFilePanelHeader.vue';
+import RagToolbar from '../file/RagToolbar.vue';
+import RagFolderList from '../file/RagFolderList.vue';
+import RagFileList from '../file/RagFileList.vue';
 import StateDisplay from '../common/StateDisplay.vue';
-import Loading from '../common/Loading.vue';
-import CreateKnowledgeBaseModal from '../rag/CreateKnowledgeBaseModal.vue';
-import ConfirmationModal from '../common/ConfirmationModal.vue';
+import { Loading, ConfirmationModal } from '../library/index.js';
+import RagCreateKnowledgeBaseModal from '../file/RagCreateKnowledgeBaseModal.vue';
 
 const ragStore = useVectorStore();
 const fileStore = useFileStore();
@@ -346,8 +345,8 @@ const handleFolderDoubleClick = async (event) => {
     }
   };
   
-  // 读取文件内容为ArrayBuffer的辅助函数
-  const readFileAsArrayBuffer = (file) => {
+  // 读取文件为ArrayBuffer
+const _readFileAsArrayBuffer = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -431,7 +430,7 @@ const handleUploadToFolder = async (event) => {
 };
 
 // 处理文件的通用函数
-const processFiles = async (files) => {
+const _processFiles = async (files) => {
   if (files && files.length > 0) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -503,7 +502,7 @@ const handleFolderSelected = (event) => {
 };
 
 // 通过文件夹ID获取文件夹名称（辅助函数）
-const getFolderNameById = (folderId) => {
+const _getFolderNameById = (folderId) => {
   if (!folderId) return null;
   
   // 首先从映射中查找
@@ -517,7 +516,7 @@ const getFolderNameById = (folderId) => {
 };
 
 // 处理刷新文档
-const handleReloadDocuments = () => {
+const _handleReloadDocuments = () => {
   loadFiles();
   loadFolders();
 };
@@ -528,14 +527,14 @@ const handleSearchKnowledgeBase = async (event) => {
   try {
     if (currentFolder.value) {
       // 在当前文件夹中搜索
-      const filteredFiles = currentFiles.value.filter(file => 
+      const _filteredFiles = currentFiles.value.filter(file => 
         file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (file.description && file.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
       // 这里可以添加逻辑来显示搜索结果
     } else {
       // 在所有文件夹中搜索
-      const filteredFolders = folders.value.filter(folder => 
+      const _filteredFolders = folders.value.filter(folder => 
         folder.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
       // 这里可以添加逻辑来显示搜索结果

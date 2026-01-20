@@ -27,10 +27,10 @@
         class="bg-primary/20 text-gray-800 rounded-lg px-5 py-4 shadow-sm overflow-hidden w-full"
       >
         <!-- 文字内容 -->
-        <div v-if="messageContent" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" :key="updateKey"></div>
+        <div v-if="messageContent" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" v-memo="[formattedContent, updateKey]"></div>
         
         <!-- 错误状态显示 -->
-        <div v-if="messageValue.error" class="chat-error mt-2">
+        <div v-if="messageValue.error" class="chat-error mt-2" v-memo="[messageValue.error]">
           <i class="fa-solid fa-circle-exclamation text-red-500 mr-1"></i>
           <span>{{ messageValue.error }}</span>
         </div>
@@ -42,6 +42,7 @@
           size="small" 
           color="var(--text-color-secondary, #9ca3af)" 
           containerClass="mt-2"
+          v-memo="[messageValue.isTyping]"
         />
       </div>
       
@@ -113,6 +114,7 @@
           size="small" 
           color="var(--text-color-secondary, #9ca3af)" 
           containerClass="mt-2"
+          v-memo="[messageValue.isTyping]"
         />
       </div>
       

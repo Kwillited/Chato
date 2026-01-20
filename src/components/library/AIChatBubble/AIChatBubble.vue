@@ -82,6 +82,7 @@
           size="small" 
           color="var(--text-color-secondary, #9ca3af)" 
           containerClass="mt-2"
+          v-memo="[messageValue.isTyping]"
         />
       </div>
       

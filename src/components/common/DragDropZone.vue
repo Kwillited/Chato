@@ -28,7 +28,7 @@
 import { ref } from 'vue';
 
 // 定义组件属性
-const props = defineProps({
+defineProps({
   // 容器类名
   containerClass: {
     type: String,

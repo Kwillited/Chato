@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 
 const props = defineProps({
   content: {
@@ -40,6 +40,7 @@ const props = defineProps({
 
 // 阻止Vue自动将$attrs传递给组件根元素
 defineOptions({
+  name: 'BaseTooltip',
   inheritAttrs: false
 });
 
