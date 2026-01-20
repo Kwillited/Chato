@@ -88,6 +88,7 @@ export const useSettingsStore = defineStore('settings', {
 
     // 通知相关设置
     notificationsConfig: {
+      enabled: true,
       newMessage: true,
       sound: false,
       system: true,
@@ -289,6 +290,7 @@ export const useSettingsStore = defineStore('settings', {
       };
 
       this.notificationsConfig = {
+        enabled: true,
         newMessage: true,
         sound: false,
         system: true,
@@ -316,13 +318,18 @@ export const useSettingsStore = defineStore('settings', {
     async loadSettingsFromApi() {
       try {
         // 使用现有的apiService来调用后端API
-        const notificationSettings = await apiService.get('/api/settings/notification');
+        const notificationSettings = await apiService.get('/api/mcp/notification');
         this.notificationsConfig = notificationSettings;
         
-        // 加载基本设置
-        const systemSettings = await apiService.get('/api/settings/basic');
-        if (systemSettings) {
-          this.systemSettings = { ...this.systemSettings, ...systemSettings };
+        // 加载MCP设置
+        const mcpSettings = await apiService.get('/api/mcp');
+        if (mcpSettings) {
+          this.mcpConfig = {
+            enabled: mcpSettings.enabled,
+            serverAddress: mcpSettings.server_address,
+            serverPort: mcpSettings.server_port,
+            timeout: mcpSettings.timeout
+          };
         }
       } catch (error) {
         console.error('从后端加载设置失败:', error);
@@ -451,10 +458,16 @@ export const useSettingsStore = defineStore('settings', {
     async saveSettingsToApi() {
       try {
         // 使用现有的apiService来调用后端API
-        await apiService.post('/api/settings/notification', this.notificationsConfig);
+        await apiService.post('/api/mcp/notification', this.notificationsConfig);
         
-        // 保存基本设置
-        await apiService.post('/api/settings/basic', this.systemSettings);
+        // 保存MCP设置，转换字段名
+        const mcpSettingsToSave = {
+          enabled: this.mcpConfig.enabled,
+          server_address: this.mcpConfig.serverAddress,
+          server_port: this.mcpConfig.serverPort,
+          timeout: this.mcpConfig.timeout
+        };
+        await apiService.post('/api/mcp', mcpSettingsToSave);
       } catch (error) {
         console.error('保存设置到后端失败:', error);
       }

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Body, Depends
 from app.services.mcp.mcp_service import MCPService
 from app.utils.decorators import handle_exception
 from app.dependencies import get_mcp_service
-from app.models.pydantic_models import MCPSettings, NotificationSettings
+from app.models.pydantic_models import MCPSettings
 
 # 创建MCP API路由（前缀统一为 /api/mcp）
 router = APIRouter(prefix='/api/mcp')
@@ -26,18 +26,3 @@ def save_mcp_settings(mcp_settings: MCPSettings = Body(...), mcp_service: MCPSer
         'settings': settings
     }
 
-# 获取通知设置
-@router.get('/notification')
-@handle_exception
-def get_notification_settings(mcp_service: MCPService = Depends(get_mcp_service)):
-    return mcp_service.get_notification_settings()
-
-# 保存通知设置
-@router.post('/notification')
-@handle_exception
-def save_notification_settings(notification_settings: NotificationSettings = Body(...), mcp_service: MCPService = Depends(get_mcp_service)):
-    settings = mcp_service.save_notification_settings(notification_settings.model_dump())
-    return {
-        'message': '通知设置已保存',
-        'settings': settings
-    }
