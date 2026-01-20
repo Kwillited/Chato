@@ -1,6 +1,34 @@
 import { useSettingsStore } from '../store/settingsStore.js';
 
 /**
+ * 创建并显示通知元素
+ * @param {string} message - 消息内容
+ * @param {string} type - 消息类型（success或error）
+ * @param {number} displayTime - 显示时间（毫秒）
+ */
+function createNotificationElement(message, type, displayTime) {
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-y-0 opacity-100`;
+    
+    // 根据类型设置样式
+    if (type === 'success') {
+        notification.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
+    } else {
+        notification.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
+    }
+
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    // 时间后自动消失
+    setTimeout(() => {
+        notification.classList.add('translate-y-full', 'opacity-0');
+        setTimeout(() => notification.remove(), 300);
+    }, displayTime);
+}
+
+/**
  * 显示通知消息
  * @param {string} message - 消息内容
  * @param {string} type - 消息类型（success或error）
@@ -42,24 +70,7 @@ export function showNotification(message, type, displayTimeMs = 3000, isNewMessa
         }
         
         // 创建通知元素
-        const notification = document.createElement('div');
-        notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-y-0 opacity-100`;
-        
-        // 根据类型设置样式
-        if (type === 'success') {
-            notification.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
-        } else {
-            notification.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
-        }
-
-        notification.textContent = message;
-        document.body.appendChild(notification);
-        
-        // 根据设置的时间后自动消失
-        setTimeout(() => {
-            notification.classList.add('translate-y-full', 'opacity-0');
-            setTimeout(() => notification.remove(), 300);
-        }, actualDisplayTime);
+        createNotificationElement(message, type, actualDisplayTime);
         
         // 如果启用了声音，播放提示音
         if (notificationsConfig.sound) {
@@ -74,25 +85,7 @@ export function showNotification(message, type, displayTimeMs = 3000, isNewMessa
         
         // 如果获取设置失败，使用默认行为显示通知
         try {
-            // 创建通知元素
-            const notification = document.createElement('div');
-            notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-y-0 opacity-100`;
-            
-            // 根据类型设置样式
-            if (type === 'success') {
-                notification.classList.add('bg-green-100', 'text-green-800', 'border', 'border-green-200');
-            } else {
-                notification.classList.add('bg-red-100', 'text-red-800', 'border', 'border-red-200');
-            }
-
-            notification.textContent = message;
-            document.body.appendChild(notification);
-            
-            // 默认时间后自动消失
-            setTimeout(() => {
-                notification.classList.add('translate-y-full', 'opacity-0');
-                setTimeout(() => notification.remove(), 300);
-            }, displayTimeMs);
+            createNotificationElement(message, type, displayTimeMs);
         } catch (innerError) {
             console.error('使用默认设置显示通知也失败:', innerError);
         }

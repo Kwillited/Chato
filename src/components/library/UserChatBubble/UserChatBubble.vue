@@ -201,13 +201,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { ref } from 'vue'
 import { Tooltip } from '../index.js'
 import Loading from '../../common/Loading.vue'
-// 导入集中化的markdown插件
-import { marked } from '../../../plugins/markdown.js'
-// 导入公共工具函数
-import { copyToClipboard } from '../../../store/utils.js'
+// 导入聊天气泡公共逻辑
+import { useChatBubble } from '../../../composables/useChatBubble.js'
+// 导入文件处理工具函数
+import { getFileIcon, getFileExtension, formatFileSize } from '../../../store/utils.js'
 
 const props = defineProps({
   message: {
@@ -224,71 +224,15 @@ const props = defineProps({
 // 定义发射事件
 const emit = defineEmits(['editMessage'])
 
-// 访问ref包装的消息对象
-const messageValue = computed(() => {
-  // 如果是ref包装的对象，通过value访问，否则直接返回
-  return props.message?.value || props.message || {}
-})
-
-// 获取消息内容
-const messageContent = computed(() => {
-  return messageValue.value.content || messageValue.value.text || ''
-})
-
-// 格式化消息内容（支持Markdown）
-const formattedContent = computed(() => {
-  if (!messageContent.value) return ''
-
-  // 使用集中化配置的marked库转换Markdown为HTML
-  try {
-    return marked.parse(messageContent.value);
-  } catch (error) {
-    console.error('Markdown解析错误:', error);
-    return messageContent.value.replace(/\n/g, '<br>');
-  }
-})
-
-// 用于触发更新的key值
-const updateKey = computed(() => {
-  return `${messageContent.value.length}-${messageValue.value.lastUpdate || Date.now()}`
-})
-
-// 复制消息内容到剪贴板
-const copyMessageContent = async () => {
-  try {
-    await copyToClipboard(messageContent.value)
-    // 可以在这里添加一个临时的提示，告知用户复制成功
-  } catch (error) {
-    console.error('复制失败:', error)
-  }
-}
-
-// 复制代码到剪贴板
-const copyCodeToClipboard = async (codeBlockId) => {
-  try {
-    const codeElement = document.getElementById(codeBlockId);
-    if (codeElement) {
-      const codeText = codeElement.textContent;
-      await copyToClipboard(codeText);
-      
-      // 更改复制按钮图标为成功状态
-      const button = document.querySelector(`button[data-code-block-id="${codeBlockId}"]`);
-      if (button) {
-        const originalIcon = button.innerHTML;
-        button.innerHTML = '<i class="fa-solid fa-check"></i>';
-        button.classList.add('text-green-400');
-        
-        // 2秒后恢复原状
-        setTimeout(() => {
-          button.innerHTML = originalIcon;
-          button.classList.remove('text-green-400');
-        }, 2000);
-      }
-    }
-  } catch (error) {
-    console.error('复制代码失败:', error);
-  }
-};
+// 使用公共聊天气泡逻辑
+const { 
+  messageValue, 
+  messageContent, 
+  formattedContent, 
+  updateKey, 
+  copyMessageContent,
+  copyCodeToClipboard
+} = useChatBubble(props)
 
 // 编辑消息（用户消息）
 const startEditMessage = () => {
@@ -300,7 +244,7 @@ const startEditMessage = () => {
 }
 
 // 事件委托处理代码块复制按钮点击
-const handleCodeCopyClick = (event) => {
+const _handleCodeCopyClick = (event) => {
   const button = event.target.closest('.copy-code-btn');
   if (button) {
     const codeBlockId = button.getAttribute('data-code-block-id');
@@ -310,44 +254,7 @@ const handleCodeCopyClick = (event) => {
   }
 };
 
-// 获取文件图标
-const getFileIcon = (fileName) => {
-  const extension = fileName.split('.').pop().toLowerCase();
-  
-  const iconMap = {
-    txt: 'fa-file-lines',
-    pdf: 'fa-file-pdf',
-    doc: 'fa-file-word',
-    docx: 'fa-file-word',
-    md: 'fa-file-lines',
-    jpg: 'fa-file-image',
-    jpeg: 'fa-file-image',
-    png: 'fa-file-image',
-    gif: 'fa-file-image',
-    csv: 'fa-file-excel',
-    xlsx: 'fa-file-excel',
-    pptx: 'fa-file-powerpoint'
-  };
-  
-  return iconMap[extension] || 'fa-file';
-};
 
-// 获取文件扩展名
-const getFileExtension = (fileName) => {
-  const extension = fileName.split('.').pop().toLowerCase();
-  return `.${extension}`;
-};
-
-// 格式化文件大小
-const formatFileSize = (size) => {
-  if (size === 0 || !size || isNaN(size)) return '0 Bytes';
-  
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(size) / Math.log(k));
-  
-  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
 
 // 文件预览相关状态
 const showPreviewModal = ref(false);
@@ -409,7 +316,7 @@ const previewFile = async (file) => {
             reader.onload = (e) => {
               resolve(e.target.result);
             };
-            reader.onerror = (e) => {
+            reader.onerror = (_e) => {
               reject(new Error('读取文件失败'));
             };
             reader.readAsText(file);
@@ -440,7 +347,7 @@ const previewFile = async (file) => {
             reader.onload = (e) => {
               resolve(e.target.result);
             };
-            reader.onerror = (e) => {
+            reader.onerror = (_e) => {
               reject(new Error('读取图片失败'));
             };
             reader.readAsDataURL(file);
@@ -470,7 +377,7 @@ const previewFile = async (file) => {
             reader.onload = (e) => {
               resolve(e.target.result);
             };
-            reader.onerror = (e) => {
+            reader.onerror = (_e) => {
               reject(new Error('读取PDF失败'));
             };
             reader.readAsDataURL(file);

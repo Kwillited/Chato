@@ -41,12 +41,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed } from 'vue'
 import AIChatBubble from '../library/AIChatBubble/AIChatBubble.vue'
 import UserChatBubble from '../library/UserChatBubble/UserChatBubble.vue'
-import Loading from '../common/Loading.vue'
-// 导入集中化的markdown插件
-import { marked } from '../../plugins/markdown.js'
 
 const props = defineProps({
   message: {
@@ -71,60 +68,11 @@ const isUserMessage = computed(() => {
   return messageValue.value.role === 'user' || messageValue.value.isUser
 })
 
-// 获取消息内容
-const messageContent = computed(() => {
-  return messageValue.value.content || messageValue.value.text || ''
-})
-
-// 格式化消息内容（支持Markdown）
-const formattedContent = computed(() => {
-  if (!messageContent.value) return ''
-
-  // 处理AI回复中的思考标签（</think>）
-  let contentToParse = messageContent.value;
-  const thinkingTagRegex = /^\s*\<think>[\s\S]*?\<\/think>\s*/;
-  contentToParse = contentToParse.replace(thinkingTagRegex, '');
-  
-  // 使用集中化配置的marked库转换Markdown为HTML
-  try {
-    return marked.parse(contentToParse);
-  } catch (error) {
-    console.error('Markdown解析错误:', error);
-    return contentToParse.replace(/\n/g, '<br>');
-  }
-})
-
-// 用于触发更新的key值
-const updateKey = computed(() => {
-  return `${messageContent.value.length}-${messageValue.value.lastUpdate || Date.now()}`
-})
-
 // 编辑消息（用户消息）
 const handleEditMessage = (editData) => {
   // 发射编辑事件给父组件处理
   emit('editMessage', editData)
 }
-
-// 事件委托处理代码块复制按钮点击
-const handleCodeCopyClick = (event) => {
-  const button = event.target.closest('.copy-code-btn');
-  if (button) {
-    const codeBlockId = button.getAttribute('data-code-block-id');
-    if (codeBlockId) {
-      // 这里不需要实现，因为复制逻辑已经移到子组件中
-    }
-  }
-};
-
-// 监听组件挂载后的点击事件
-onMounted(() => {
-  document.addEventListener('click', handleCodeCopyClick);
-});
-
-// 组件卸载时清理事件监听器
-onUnmounted(() => {
-  document.removeEventListener('click', handleCodeCopyClick);
-});
 
 // 定义发射事件
 const emit = defineEmits(['editMessage'])

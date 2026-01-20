@@ -20,10 +20,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import Loading from '../../common/Loading.vue'
-// 导入集中化的markdown插件
-import { marked } from '../../../plugins/markdown.js'
+// 导入聊天气泡公共逻辑
+import { useChatBubble } from '../../../composables/useChatBubble.js'
 
 const props = defineProps({
   message: {
@@ -33,34 +32,11 @@ const props = defineProps({
   }
 })
 
-// 访问ref包装的消息对象
-const messageValue = computed(() => {
-  // 如果是ref包装的对象，通过value访问，否则直接返回
-  return props.message?.value || props.message || {}
-})
-
-// 获取消息内容
-const messageContent = computed(() => {
-  return messageValue.value.content || messageValue.value.text || ''
-})
-
-// 格式化消息内容（支持Markdown）
-const formattedContent = computed(() => {
-  if (!messageContent.value) return ''
-
-  // 处理AI回复中的思考标签（</think>）
-  let contentToParse = messageContent.value;
-  const thinkingTagRegex = /^\s*\<think>[\s\S]*?\<\/think>\s*/;
-  contentToParse = contentToParse.replace(thinkingTagRegex, '');
-  
-  // 使用集中化配置的marked库转换Markdown为HTML
-  try {
-    return marked.parse(contentToParse);
-  } catch (error) {
-    console.error('Markdown解析错误:', error);
-    return contentToParse.replace(/\n/g, '<br>');
-  }
-})
+// 使用公共聊天气泡逻辑
+const { 
+  messageValue, 
+  formattedContent 
+} = useChatBubble(props)
 </script>
 
 <style scoped>
