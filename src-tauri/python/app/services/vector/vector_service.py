@@ -1,4 +1,5 @@
 """向量服务模块 - 封装文档向量化、向量存储和检索功能"""
+import threading
 from app.services.base_service import BaseService
 from app.repositories.vector_repository import VectorRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
@@ -8,8 +9,22 @@ from app.services.chat.generation_service import GenerationService
 class VectorService(BaseService):
     """向量服务类，封装所有向量相关的操作"""
     
+    _instance = None
+    _lock = threading.Lock()
+    
+    def __new__(cls):
+        """单例模式实现"""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(VectorService, cls).__new__(cls)
+                cls._instance.__init__()
+        return cls._instance
+    
     def __init__(self):
         """初始化向量服务"""
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+        
         super().__init__()
         self.chunk_repo = DocumentChunkRepository()
         
@@ -17,6 +32,7 @@ class VectorService(BaseService):
         self.vector_store_service = VectorStoreService()
         
         self.log_info("向量服务初始化成功，使用VectorStoreService")
+        self._initialized = True
     
     def embed_document(self, doc_content: str, metadata: dict):
         """将文档内容转换为向量表示并存储

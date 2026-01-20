@@ -11,6 +11,21 @@ from app.utils.error_handler import handle_vector_errors
 class VectorDBService(BaseService):
     """向量数据库服务类，管理向量存储的初始化和操作"""
     
+    # 单例实例字典，按知识库名称和嵌入模型区分
+    _instances = {}
+    _lock = threading.Lock()
+    
+    def __new__(cls, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
+        """单例模式实现，按知识库名称和嵌入模型区分实例"""
+        knowledge_base_name = knowledge_base_name or "default"
+        instance_key = f"{knowledge_base_name}_{embedder_model}"
+        
+        with cls._lock:
+            if instance_key not in cls._instances:
+                cls._instances[instance_key] = super(VectorDBService, cls).__new__(cls)
+                cls._instances[instance_key].__init__(vector_db_path, embedder_model, knowledge_base_name)
+        return cls._instances[instance_key]
+    
     def __init__(self, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
         """初始化向量数据库服务
         
@@ -19,6 +34,9 @@ class VectorDBService(BaseService):
             embedder_model: 使用的嵌入模型名称
             knowledge_base_name: 知识库名称，用于标识不同的知识库实例
         """
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+        
         # 使用配置管理器获取用户数据目录
         self.config_manager = config_manager
         self.user_data_dir = self.config_manager.get_user_data_dir()
@@ -31,7 +49,7 @@ class VectorDBService(BaseService):
             self.vector_db_path = vector_db_path
         else:
             # 从配置中获取知识库路径，如果不存在则使用默认路径
-            knowledge_bases = self.config_manager.get("rag.knowledge_bases", {})
+            knowledge_bases = self.config_manager.get("vector.knowledge_bases", {})
             if self.knowledge_base_name in knowledge_bases:
                 self.vector_db_path = knowledge_bases[self.knowledge_base_name]
             else:
@@ -56,6 +74,7 @@ class VectorDBService(BaseService):
         self._init_lock = threading.Lock()
         
         self.log_info(f"初始化向量数据库服务: 知识库='{self.knowledge_base_name}', 路径='{self.vector_db_path}'")
+        self._initialized = True
     
     @property
     def embeddings(self):

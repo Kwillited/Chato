@@ -1,5 +1,6 @@
 """向量存储服务 - 处理嵌入模型和向量数据库的核心功能"""
 import time
+import threading
 from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import config_manager
 from app.services.base_service import BaseService
@@ -12,6 +13,20 @@ class VectorStoreService(BaseService):
     _CACHE_SIZE = 100  # 缓存大小限制
     _CACHE_TTL = 3600  # 缓存过期时间（秒）
     
+    # 单例实例字典，按知识库名称区分
+    _instances = {}
+    _lock = threading.Lock()
+    
+    def __new__(cls, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
+        """单例模式实现，按知识库名称区分实例"""
+        knowledge_base_name = knowledge_base_name or "default"
+        
+        with cls._lock:
+            if knowledge_base_name not in cls._instances:
+                cls._instances[knowledge_base_name] = super(VectorStoreService, cls).__new__(cls)
+                cls._instances[knowledge_base_name].__init__(vector_db_path, embedder_model, knowledge_base_name)
+        return cls._instances[knowledge_base_name]
+    
     def __init__(self, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
         """初始化向量存储服务
         
@@ -20,6 +35,9 @@ class VectorStoreService(BaseService):
             embedder_model: 使用的嵌入模型名称
             knowledge_base_name: 知识库名称，用于标识不同的知识库实例
         """
+        if hasattr(self, '_initialized') and self._initialized:
+            return
+        
         # 设置知识库名称
         self.knowledge_base_name = knowledge_base_name or "default"
         
@@ -30,6 +48,7 @@ class VectorStoreService(BaseService):
         self._query_cache = {}  # 缓存字典：key为查询特征，value为(结果, 时间戳)
         
         self.log_info(f"初始化向量存储服务: 知识库='{self.knowledge_base_name}'")
+        self._initialized = True
     
     @property
     def vector_db_service(self):

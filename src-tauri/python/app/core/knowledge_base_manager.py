@@ -81,7 +81,7 @@ class KnowledgeBaseManager:
         Returns:
             Dict[str, str]: 知识库名称到路径的映射
         """
-        knowledge_bases = self.config_manager.get("rag.knowledge_bases", {})
+        knowledge_bases = self.config_manager.get("vector.knowledge_bases", {})
         logger.debug(f"当前知识库列表: {knowledge_bases}")
         return knowledge_bases
     
@@ -119,7 +119,7 @@ class KnowledgeBaseManager:
             return False
         
         knowledge_bases[name] = new_path
-        self.config_manager.set("rag.knowledge_bases", knowledge_bases)
+        self.config_manager.set("vector.knowledge_bases", knowledge_bases)
         logger.info(f"成功更新知识库路径: {name}, 新路径: {new_path}")
         return True
     

@@ -472,8 +472,8 @@ class DocumentService(BaseService):
             }
             
             # 创建文本分割器
-            chunk_size = config_manager.get('rag.chunk_size', 1000)
-            chunk_overlap = config_manager.get('rag.chunk_overlap', 200)
+            chunk_size = config_manager.get('vector.chunk_size', 1000)
+            chunk_overlap = config_manager.get('vector.chunk_overlap', 200)
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=chunk_size,
                 chunk_overlap=chunk_overlap

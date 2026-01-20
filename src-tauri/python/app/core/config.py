@@ -8,14 +8,15 @@ dirs = PlatformDirs(appname="Chato", appauthor="Chato")
 
 # 默认配置
 DEFAULT_CONFIG = {
-    'rag': {
-        'enabled': False,
+    'vector': {
         'retrieval_mode': 'vector',
         'top_k': 3,
         'score_threshold': 0.7,
         'vector_db_path': '',  # 将在初始化时设置为用户数据目录中的路径
         'embedder_model': 'qwen3-embedding-0.6b',
-        'vector_db_type': 'chroma'
+        'vector_db_type': 'chroma',
+        'chunk_size': 1000,
+        'chunk_overlap': 200
     },
     'mcp': {
         'enabled': False,
@@ -65,9 +66,9 @@ class ConfigManager:
         user_data_dir = self.get_user_data_dir()
         
         # 设置默认的向量数据库路径
-        rag_dir = os.path.join(user_data_dir, 'Retrieval-Augmented Generation')
-        os.makedirs(rag_dir, exist_ok=True)
-        self._config['rag']['vector_db_path'] = os.path.join(rag_dir, 'vectorDb')
+        vector_dir = os.path.join(user_data_dir, 'Retrieval-Augmented Generation')
+        os.makedirs(vector_dir, exist_ok=True)
+        self._config['vector']['vector_db_path'] = os.path.join(vector_dir, 'vectorDb')
         
         # 创建config子目录
         config_dir = os.path.join(user_data_dir, 'config')
@@ -123,13 +124,13 @@ class ConfigManager:
         """
         try:
             # 获取知识库配置
-            knowledge_bases = self.get("rag.knowledge_bases", {})
+            knowledge_bases = self.get("vector.knowledge_bases", {})
             
             # 添加或更新知识库
             knowledge_bases[name] = path
             
             # 保存配置
-            self.set("rag.knowledge_bases", knowledge_bases)
+            self.set("vector.knowledge_bases", knowledge_bases)
             
             return True
         except Exception as e:
@@ -146,7 +147,7 @@ class ConfigManager:
         """
         try:
             # 获取知识库配置
-            knowledge_bases = self.get("rag.knowledge_bases", {})
+            knowledge_bases = self.get("vector.knowledge_bases", {})
             
             # 检查知识库是否存在
             if name in knowledge_bases:
@@ -154,7 +155,7 @@ class ConfigManager:
                 del knowledge_bases[name]
                 
                 # 保存配置
-                self.set("rag.knowledge_bases", knowledge_bases)
+                self.set("vector.knowledge_bases", knowledge_bases)
                 
                 return True
             

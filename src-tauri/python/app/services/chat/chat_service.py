@@ -316,9 +316,9 @@ class ChatService(BaseService):
             vector_service = VectorService()
             
             # 从配置中获取参数
-            config_rag = config_manager.get('rag', {})
-            k = config_rag.get('top_k', 3)
-            score_threshold = config_rag.get('score_threshold', 0.7)
+            config_vector = config_manager.get('vector', {})
+            k = config_vector.get('top_k', 3)
+            score_threshold = config_vector.get('score_threshold', 0.7)
             
             # 构建过滤器
             filter = None
