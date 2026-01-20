@@ -346,6 +346,7 @@ class ChatService(BaseService):
             # 使用生成服务的build_prompt方法构建提示
             enhanced_prompt = generation_service.build_prompt(question, context_docs)
             self.log_info(f"📝 RAG增强提示构建完成，长度: {len(enhanced_prompt)} 字符")
+            self.log_info(f"📋 RAG增强提示内容: {enhanced_prompt}")
             
             return enhanced_prompt
         except Exception as e:
@@ -852,13 +853,8 @@ class ChatService(BaseService):
             BaseService.log_error(f'调用模型失败: {str(e)}')
             return {'error': f'调用模型失败: {str(e)}'}, 500
         
-        # 处理think标签，分离思考内容和实际内容
-        thinking_content, actual_content = self._process_think_tags(ai_reply)
-        
-        # 创建AI回复，确保包含完整的模型和版本信息
-        ai_message = self.create_ai_message(now, actual_content, model_display_name)
-        # 添加思考内容到AI消息
-        ai_message['thinking'] = thinking_content
+        # 使用已有的方法处理完整回复
+        ai_message = self._process_full_reply(ai_reply, now, model_display_name)
         
         # 更新对话并保存
         self.update_chat_and_save(chat, message_text, user_message, ai_message, now)

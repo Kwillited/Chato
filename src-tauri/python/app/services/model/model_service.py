@@ -362,3 +362,40 @@ class ModelService(BaseService):
             # 使用BaseService的日志方法
             self.log_error(f"删除模型版本失败: {str(e)}")
             return False, f'删除模型版本失败: {str(e)}', None
+        
+    def get_model_icon(self, filename: str):
+        """
+        获取模型供应商图标
+        
+        Args:
+            filename: 图标文件名，如 'OpenAI.png'
+            
+        Returns:
+            tuple: (success, icon_data, message)
+        """
+        import os
+        
+        try:
+            # 提取模型名称（去掉文件扩展名）
+            model_name = filename.replace('.png', '')
+            
+            # 查询数据库中的图标
+            result = self.model_repo.get_model_icon(model_name)
+            
+            if result and result[0]:
+                # 从数据库返回图片
+                return True, result[0], '从数据库获取图标成功'
+            else:
+                # 从文件系统返回图片（向后兼容）
+                ICONS_DIR = r'C:\Users\admin\AppData\Local\Chato\Chato\icon'
+                icon_path = os.path.join(ICONS_DIR, filename)
+                if os.path.exists(icon_path):
+                    with open(icon_path, 'rb') as f:
+                        icon_data = f.read()
+                    return True, icon_data, '从文件系统获取图标成功'
+                else:
+                    return False, None, '图标文件不存在'
+        except Exception as e:
+            # 使用BaseService的日志方法
+            self.log_error(f"获取模型图标失败: {str(e)}")
+            return False, None, f'获取模型图标失败: {str(e)}'

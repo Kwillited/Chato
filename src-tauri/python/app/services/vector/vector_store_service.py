@@ -12,10 +12,6 @@ class VectorStoreService(BaseService):
     _CACHE_SIZE = 100  # 缓存大小限制
     _CACHE_TTL = 3600  # 缓存过期时间（秒）
     
-    # 实例注册表，支持多知识库管理
-    _instances = {}  # key为知识库名称，value为实例
-    _lock = None  # 用于线程安全的实例管理
-    
     def __init__(self, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
         """初始化向量存储服务
         
@@ -28,9 +24,7 @@ class VectorStoreService(BaseService):
         self.knowledge_base_name = knowledge_base_name or "default"
         
         # 初始化向量数据库服务（位于数据层）
-        self.vector_db_service = VectorDBService.get_instance(
-            vector_db_path, embedder_model, self.knowledge_base_name
-        )
+        self.vector_db_service = VectorDBService(vector_db_path, embedder_model, self.knowledge_base_name)
         
         # 初始化查询缓存
         self._query_cache = {}  # 缓存字典：key为查询特征，value为(结果, 时间戳)
@@ -51,94 +45,6 @@ class VectorStoreService(BaseService):
     def vector_store(self):
         """获取向量存储实例（通过向量数据库服务）"""
         return self.vector_db_service.vector_store
-    
-    @classmethod
-    def get_instance(cls, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
-        """获取或创建向量存储服务实例
-        
-        Args:
-            vector_db_path: 向量数据库的存储路径
-            embedder_model: 使用的嵌入模型名称
-            knowledge_base_name: 知识库名称，用于标识不同的知识库实例
-            
-        Returns:
-            VectorStoreService: 向量存储服务实例
-        """
-        # 延迟初始化锁，避免导入时的循环依赖
-        if cls._lock is None:
-            import threading
-            cls._lock = threading.Lock()
-        
-        # 使用知识库名称作为实例键
-        instance_key = knowledge_base_name or "default"
-        
-        with cls._lock:
-            if instance_key not in cls._instances:
-                cls._instances[instance_key] = cls(vector_db_path, embedder_model, knowledge_base_name)
-            return cls._instances[instance_key]
-    
-    @classmethod
-    def get_instance_by_name(cls, name: str) -> Optional['VectorStoreService']:
-        """根据知识库名称获取实例
-        
-        Args:
-            name: 知识库名称
-            
-        Returns:
-            VectorStoreService: 向量存储服务实例，不存在则返回None
-        """
-        return cls._instances.get(name)
-    
-    @classmethod
-    def list_instances(cls) -> Dict[str, 'VectorStoreService']:
-        """列出所有向量存储服务实例
-        
-        Returns:
-            Dict[str, VectorStoreService]: 所有实例的字典
-        """
-        return cls._instances.copy()
-    
-    @classmethod
-    def create_knowledge_base(cls, name: str, vector_db_path: Optional[str] = None, embedder_model: str = 'qwen3-embedding-0.6b') -> 'VectorStoreService':
-        """创建新的知识库
-        
-        Args:
-            name: 知识库名称
-            vector_db_path: 向量数据库路径，None则使用默认路径
-            embedder_model: 嵌入模型名称
-            
-        Returns:
-            VectorStoreService: 新创建的向量存储服务实例
-        """
-        # 创建向量数据库服务实例
-        vector_db_instance = VectorDBService.create_knowledge_base(name, vector_db_path, embedder_model)
-        
-        # 创建向量存储服务实例
-        with cls._lock:
-            instance = cls(vector_db_path, embedder_model, name)
-            cls._instances[name] = instance
-            return instance
-    
-    @classmethod
-    def delete_knowledge_base(cls, name: str) -> bool:
-        """删除知识库
-        
-        Args:
-            name: 知识库名称
-            
-        Returns:
-            bool: 是否成功删除
-        """
-        if name == "default":
-            raise ValueError("默认知识库不能删除")
-        
-        with cls._lock:
-            # 从实例注册表中移除
-            if name in cls._instances:
-                del cls._instances[name]
-            
-            # 调用VectorDBService删除知识库
-            return VectorDBService.delete_knowledge_base(name)
     
     def add_documents(self, documents: List[Any]) -> Tuple[bool, str]:
         """将文档片段添加到向量库中

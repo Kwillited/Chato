@@ -1,5 +1,6 @@
 """向量数据库服务 - 管理向量存储的初始化和操作，位于数据层"""
 import os
+import threading
 from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import config_manager
 from app.core.knowledge_base_manager import KnowledgeBaseManager
@@ -9,10 +10,6 @@ from app.utils.error_handler import handle_vector_errors
 
 class VectorDBService(BaseService):
     """向量数据库服务类，管理向量存储的初始化和操作"""
-    
-    # 实例注册表，支持多知识库管理
-    _instances: Dict[str, 'VectorDBService'] = {}
-    _lock = None  # 用于线程安全的实例管理
     
     def __init__(self, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
         """初始化向量数据库服务
@@ -55,122 +52,37 @@ class VectorDBService(BaseService):
         # 初始化向量数据库Repository
         self.vector_repository = VectorRepository()
         
+        # 添加初始化锁，防止多线程环境下重复初始化
+        self._init_lock = threading.Lock()
+        
         self.log_info(f"初始化向量数据库服务: 知识库='{self.knowledge_base_name}', 路径='{self.vector_db_path}'")
     
     @property
     def embeddings(self):
         """获取嵌入模型实例（懒加载）"""
         if self._embeddings is None:
-            self.log_info("Embeddings not initialized, starting initialization...")
-            self._ensure_directories()
-            self._init_embeddings()
+            with self._init_lock:
+                # 双重检查锁定，防止多线程环境下重复初始化
+                if self._embeddings is None:
+                    self.log_info("Embeddings not initialized, starting initialization...")
+                    self._ensure_directories()
+                    self._init_embeddings()
         return self._embeddings
     
     @property
     def vector_store(self):
         """获取向量存储实例（懒加载）"""
         if self._vector_store is None:
-            self.log_info("Vector store not initialized, starting initialization...")
-            if self._embeddings is None:  # 确保嵌入模型已初始化
-                self.log_info("Embeddings not available, initializing first...")
-                self._ensure_directories()
-                self._init_embeddings()
-            self._init_vector_store()
+            with self._init_lock:
+                # 双重检查锁定，防止多线程环境下重复初始化
+                if self._vector_store is None:
+                    self.log_info("Vector store not initialized, starting initialization...")
+                    if self._embeddings is None:  # 确保嵌入模型已初始化
+                        self.log_info("Embeddings not available, initializing first...")
+                        self._ensure_directories()
+                        self._init_embeddings()
+                    self._init_vector_store()
         return self._vector_store
-    
-    @classmethod
-    def get_instance(cls, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
-        """获取或创建向量数据库服务实例
-        
-        Args:
-            vector_db_path: 向量数据库的存储路径
-            embedder_model: 使用的嵌入模型名称
-            knowledge_base_name: 知识库名称，用于标识不同的知识库实例
-            
-        Returns:
-            VectorDBService: 向量数据库服务实例
-        """
-        # 延迟初始化锁，避免导入时的循环依赖
-        if cls._lock is None:
-            import threading
-            cls._lock = threading.Lock()
-        
-        # 使用知识库名称作为实例键
-        instance_key = knowledge_base_name or "default"
-        
-        with cls._lock:
-            if instance_key not in cls._instances:
-                cls._instances[instance_key] = cls(vector_db_path, embedder_model, knowledge_base_name)
-            return cls._instances[instance_key]
-    
-    @classmethod
-    def get_instance_by_name(cls, name: str) -> Optional['VectorDBService']:
-        """根据知识库名称获取实例
-        
-        Args:
-            name: 知识库名称
-            
-        Returns:
-            VectorDBService: 向量数据库服务实例，不存在则返回None
-        """
-        return cls._instances.get(name)
-    
-    @classmethod
-    def list_instances(cls) -> Dict[str, 'VectorDBService']:
-        """列出所有向量数据库服务实例
-        
-        Returns:
-            Dict[str, VectorDBService]: 所有实例的字典
-        """
-        return cls._instances.copy()
-    
-    @classmethod
-    def create_knowledge_base(cls, name: str, vector_db_path: Optional[str] = None, embedder_model: str = 'qwen3-embedding-0.6b') -> 'VectorDBService':
-        """创建新的知识库
-        
-        Args:
-            name: 知识库名称
-            vector_db_path: 向量数据库路径，None则使用默认路径
-            embedder_model: 嵌入模型名称
-            
-        Returns:
-            VectorDBService: 新创建的向量数据库服务实例
-        """
-        # 使用KnowledgeBaseManager创建知识库
-        kb_manager = KnowledgeBaseManager()
-        kb_manager.create_knowledge_base(name, vector_db_path)
-        
-        # 获取知识库路径
-        if not vector_db_path:
-            vector_db_path = kb_manager.get_knowledge_base_path(name)
-        
-        # 创建并返回实例
-        with cls._lock:
-            instance = cls(vector_db_path, embedder_model, name)
-            cls._instances[name] = instance
-            return instance
-    
-    @classmethod
-    def delete_knowledge_base(cls, name: str) -> bool:
-        """删除知识库
-        
-        Args:
-            name: 知识库名称
-            
-        Returns:
-            bool: 是否成功删除
-        """
-        if name == "default":
-            raise ValueError("默认知识库不能删除")
-        
-        # 从实例注册表中移除
-        with cls._lock:
-            if name in cls._instances:
-                del cls._instances[name]
-        
-        # 使用KnowledgeBaseManager删除知识库
-        kb_manager = KnowledgeBaseManager()
-        return kb_manager.delete_knowledge_base(name)
     
     def _ensure_directories(self) -> bool:
         """确保所有必要的目录存在

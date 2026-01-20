@@ -15,6 +15,7 @@ from app.services.file.document_service import DocumentService
 from app.services.settings.setting_service import SettingService
 from app.services.vector.vector_store_service import VectorStoreService
 from app.services.vector.vector_db_service import VectorDBService
+from app.services.vector.vector_service import VectorService
 
 
 # 数据库会话依赖
@@ -93,3 +94,8 @@ def get_document_service():
 def get_data_service():
     """获取数据服务实例"""
     return DataService()
+
+
+def get_vector_service():
+    """获取向量服务实例"""
+    return VectorService()

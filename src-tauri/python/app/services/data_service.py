@@ -14,22 +14,7 @@ class DataService(BaseService):
         self.document_repo = DocumentRepository()
         self.chunk_repo = DocumentChunkRepository()
     
-    @staticmethod
-    def begin_transaction():
-        """开始事务 - 不再需要直接使用SQLite连接，使用SQLAlchemy的会话管理"""
-        from app.core.database import get_db
-        db_session = next(get_db())
-        return db_session
-    
-    @staticmethod
-    def commit_transaction(db_session):
-        """提交事务"""
-        db_session.commit()
-    
-    @staticmethod
-    def rollback_transaction(db_session):
-        """回滚事务"""
-        db_session.rollback()
+
     
     # 对话相关方法
     @staticmethod

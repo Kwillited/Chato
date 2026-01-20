@@ -25,14 +25,14 @@ class GenerationService(BaseService):
         
         # 使用自定义提示模板或默认模板
         if prompt_template:
-            context = "\n".join([f"参考文档{i+1}：{doc.page_content[:200]}..." for i, doc in enumerate(context_docs)])
+            context = "\n".join([f"参考文档{i+1}：{doc['content'][:200] if isinstance(doc, dict) else doc.page_content[:200]}..." for i, doc in enumerate(context_docs)])
             return prompt_template.format(context=context, query=query)
         
         # 默认提示模板
         default_template = """你是一个AI助手，使用以下上下文来回答用户问题。如果你不知道答案，就说你不知道。保持回答简洁明了。\n\n{context}\n\n用户问题：{query}"""
         
-        # 构建上下文
-        context = "\n".join([doc.page_content for doc in context_docs])
+        # 构建上下文，支持dict和object类型
+        context = "\n".join([doc['content'] if isinstance(doc, dict) else doc.page_content for doc in context_docs])
         
         return default_template.format(context=context, query=query)
     

@@ -11,8 +11,7 @@ from app.dependencies import get_model_service
 # 创建模型API路由（前缀统一为 /api/models）
 router = APIRouter(prefix='/api/models')
 
-# 获取图标目录的绝对路径
-ICONS_DIR = r'C:\Users\admin\AppData\Local\Chato\Chato\icon'
+
 
 # 获取所有模型供应商以及模型版本
 @router.get('')
@@ -24,37 +23,17 @@ def get_models(model_service: ModelService = Depends(get_model_service)):
 # 获取模型供应商图标
 @router.get('/icons/{filename}')
 @handle_exception
-def get_model_icon(filename: str = Path(...)):
+def get_model_icon(filename: str = Path(...), model_service: ModelService = Depends(get_model_service)):
     """
     提供模型供应商图标文件下载功能
     参数: filename - 图标文件名，如 'OpenAI.png'
     """
-    try:
-        # 从数据库获取图片
-        from app.repositories.model_repository import ModelRepository
-        from app.core.database import get_db
-        from sqlalchemy.orm import Session
-        
-        db: Session = next(get_db())
-        model_repo = ModelRepository(db)
-        
-        # 提取模型名称（去掉文件扩展名）
-        model_name = filename.replace('.png', '')
-        
-        # 查询数据库中的图标
-        result = model_repo.get_model_icon(model_name)
-        
-        if result and result[0]:
-            # 从数据库返回图片
-            return Response(content=result[0], media_type='image/png')
-        else:
-            # 从文件系统返回图片（向后兼容）
-            if os.path.exists(os.path.join(ICONS_DIR, filename)):
-                return FileResponse(os.path.join(ICONS_DIR, filename))
-            else:
-                raise HTTPException(status_code=404, detail='图标文件不存在')
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail='图标文件不存在')
+    success, icon_data, message = model_service.get_model_icon(filename)
+    
+    if success and icon_data:
+        return Response(content=icon_data, media_type='image/png')
+    else:
+        raise HTTPException(status_code=404, detail=message)
 
 # 配置特定模型（按名称）
 @router.post('/{model_name}')
@@ -120,8 +99,4 @@ def delete_version(model_name: str = Path(...), version_name: str = Path(...), m
         'model': model
     }
 
-# 辅助函数：从模型的versions数组中获取特定版本的配置信息
-def get_version_config(model, version_name):
-    from app.dependencies import get_model_service
-    model_service = next(get_model_service())
-    return model_service.get_version_config(model, version_name)
+

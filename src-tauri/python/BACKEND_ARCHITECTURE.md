@@ -76,33 +76,43 @@ API层 → 服务层 → DataService层 → Repository层 → 数据层
 
 | 模块 | 功能 | 文件路径 |
 | --- | --- | --- |
-| chats | 处理聊天相关请求 | app/api/chats.py |
-| models | 处理模型相关请求 | app/api/models.py |
-| rag | 处理RAG相关请求 | app/api/rag.py |
-| mcp | 处理MCP相关请求 | app/api/mcp.py |
-| settings | 处理设置相关请求 | app/api/settings.py |
+| chats | 处理聊天相关请求 | app/api/chats_router.py |
+| files | 处理文件管理请求 | app/api/files_router.py |
+| models | 处理模型相关请求 | app/api/models_router.py |
+| mcp | 处理MCP相关请求 | app/api/mcp_router.py |
+| settings | 处理设置相关请求 | app/api/settings_router.py |
+| vector | 处理向量相关请求 | app/api/vector_router.py |
+| health | 处理健康检查请求 | app/api/health_router.py |
 
 ### 4.2 服务层
 
 | 模块 | 功能 | 文件路径 |
 | --- | --- | --- |
-| ChatService | 聊天业务逻辑 | app/services/chat_service.py |
-| ModelService | 模型管理逻辑 | app/services/model_service.py |
-| RAGService | RAG业务逻辑 | app/services/rag_service.py |
-| VectorStoreService | 向量存储管理 | app/services/vector_store_service.py |
-| LangChainRAGService | LangChain RAG逻辑 | app/services/langchain_rag_service.py |
-| MCPService | MCP业务逻辑 | app/services/mcp_service.py |
-| SettingService | 设置管理逻辑 | app/services/setting_service.py |
+| ChatService | 聊天业务逻辑 | app/services/chat/chat_service.py |
+| GenerationService | 生成服务 | app/services/chat/generation_service.py |
+| ModelService | 模型管理逻辑 | app/services/model/model_service.py |
+| MCPService | MCP业务逻辑 | app/services/mcp/mcp_service.py |
+| DocumentService | 文档管理服务 | app/services/file/document_service.py |
+| FileService | 文件服务 | app/services/file/file_service.py |
+| SettingService | 设置管理逻辑 | app/services/settings/setting_service.py |
+| VectorService | 向量服务 | app/services/vector/vector_service.py |
+| VectorStoreService | 向量存储管理 | app/services/vector/vector_store_service.py |
+| VectorDBService | 向量数据库服务 | app/services/vector/vector_db_service.py |
 | DataService | 数据管理服务 | app/services/data_service.py |
 
 ### 4.3 Repository层
 
 | 模块 | 功能 | 文件路径 |
 | --- | --- | --- |
+| BaseRepository | 基础仓库类 | app/repositories/base_repository.py |
 | ChatRepository | 对话数据访问 | app/repositories/chat_repository.py |
 | MessageRepository | 消息数据访问 | app/repositories/message_repository.py |
 | ModelRepository | 模型数据访问 | app/repositories/model_repository.py |
 | SettingRepository | 设置数据访问 | app/repositories/setting_repository.py |
+| DocumentRepository | 文档数据访问 | app/repositories/document_repository.py |
+| DocumentChunkRepository | 文档分块数据访问 | app/repositories/document_chunk_repository.py |
+| FolderRepository | 文件夹数据访问 | app/repositories/folder_repository.py |
+| VectorRepository | 向量数据访问 | app/repositories/vector_repository.py |
 
 ### 4.4 核心模块
 
@@ -286,5 +296,5 @@ ChaTo后端采用了分层架构设计，便于维护和扩展。各层职责明
 
 ---
 
-**更新时间**: 2026-01-18
-**版本**: 2.0
+**更新时间**: 2026-01-20
+**版本**: 2.1

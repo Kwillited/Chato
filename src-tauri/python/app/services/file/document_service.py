@@ -577,3 +577,9 @@ class DocumentService(BaseService):
                 'chunk_info': {},
                 'vector_info': {}
             }
+    
+    def search_file_content(self, query):
+        """搜索文件内容"""
+        # 使用VectorService的search_documents方法实现搜索
+        return self.vector_service.search_documents(query)
+

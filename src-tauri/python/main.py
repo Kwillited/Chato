@@ -15,12 +15,32 @@ update_log_config(config_manager)
 
 
 
+import threading
+
+# 初始化标志，防止重复初始化
+_initialized = False
+_initialization_lock = threading.Lock()
+
 def init_rag():
     """初始化RAG系统"""
+    global _initialized
+    
     # 从配置中读取RAG参数
-    if config_manager.get('rag.enabled', False):
+    if not config_manager.get('rag.enabled', False):
+        return False
+    
+    # 防止重复初始化
+    if _initialized:
+        logger.info("RAG系统已初始化，跳过重复初始化")
+        return True
+    
+    with _initialization_lock:
+        if _initialized:
+            logger.info("RAG系统已初始化，跳过重复初始化")
+            return True
+        
         try:
-            from app.services.vector_store_service import VectorStoreService
+            from app.services.vector.vector_store_service import VectorStoreService
             
             # 使用标准的用户数据目录
             user_data_dir = config_manager.get_user_data_dir()
@@ -29,7 +49,7 @@ def init_rag():
             # 确保目录存在
             os.makedirs(data_dir, exist_ok=True)
             
-            # 使用配置文件中的向量数据库路径
+            # 从配置中获取向量数据库路径
             vector_db_path = config_manager.get('rag.vector_db_path', 
                                            os.path.join(user_data_dir, 'Retrieval-Augmented Generation', 'vectorDb'))
             # 获取嵌入模型配置
@@ -38,18 +58,21 @@ def init_rag():
             # 创建向量存储服务实例
             vector_service = VectorStoreService(vector_db_path, embedder_model)
             
+            # 触发向量存储初始化（同步执行）
+            _ = vector_service.vector_store
+            
             logger.info(f"RAG系统初始化成功: 模型={embedder_model}, 向量库={vector_db_path}")
+            _initialized = True
             return True
         except Exception as e:
             logger.error(f"RAG系统初始化失败: {e}")
             return False
-    return False
 
 def setup():
     """应用初始化"""
     # 加载初始数据
     load_data()
-    # 初始化RAG
+    # 初始化RAG（同步调用）
     init_rag()
 
 # 创建应用实例
