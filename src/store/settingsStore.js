@@ -318,7 +318,7 @@ export const useSettingsStore = defineStore('settings', {
     async loadSettingsFromApi() {
       try {
         // 使用现有的apiService来调用后端API
-        const notificationSettings = await apiService.get('/api/mcp/notification');
+        const notificationSettings = await apiService.get('/api/settings/notification');
         this.notificationsConfig = notificationSettings;
         
         // 加载MCP设置
@@ -458,7 +458,7 @@ export const useSettingsStore = defineStore('settings', {
     async saveSettingsToApi() {
       try {
         // 使用现有的apiService来调用后端API
-        await apiService.post('/api/mcp/notification', this.notificationsConfig);
+        await apiService.post('/api/settings/notification', this.notificationsConfig);
         
         // 保存MCP设置，转换字段名
         const mcpSettingsToSave = {
