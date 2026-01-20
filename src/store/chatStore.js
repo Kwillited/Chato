@@ -3,7 +3,6 @@ import { apiService } from '../services/apiService';
 import { generateId } from './utils';
 import { useSettingsStore } from './settingsStore.js';
 import { useModelSettingStore } from './modelSettingStore.js';
-import { useRagStore } from './ragStore.js';
 import { useVectorStore } from './vectorStore.js';
 import { showNotification } from '../services/notificationUtils.js';
 import { ref } from 'vue'; // 引入 ref
@@ -248,9 +247,8 @@ export const useChatStore = defineStore('chat', {
         // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
         const shouldUseStreaming = systemStreamingEnabled && modelStreamingEnabled;
         
-        // 获取vectorStore和ragStore实例
+        // 获取vectorStore实例
         const vectorStore = useVectorStore();
-        const ragStore = useRagStore();
         
         // 从vectorStore获取RAG配置
         const vectorConfig = vectorStore.config;
@@ -266,14 +264,14 @@ export const useChatStore = defineStore('chat', {
         };
         
         // 如果有选中的文件夹，设置检索范围为该文件夹
-        if (ragStore.currentSelectedFolder) {
-          const targetFolder = ragStore.currentSelectedFolder;
+        if (vectorStore.currentSelectedFolder) {
+          const targetFolder = vectorStore.currentSelectedFolder;
           ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
         }
         
         // 添加调试日志，查看实际发送给后端的ragConfig
         console.log('🔍 RAG配置调试:', {
-          currentSelectedFolder: ragStore.currentSelectedFolder,
+          currentSelectedFolder: vectorStore.currentSelectedFolder,
           selectedFolders: ragConfigToUse.selectedFolders,
           ragEnabled: ragConfigToUse.enabled
         });

@@ -36,7 +36,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { useRagStore } from '../../store/ragStore.js';
+import { useVectorStore } from '../../store/vectorStore.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import Button from '../common/Button.vue';
 import SearchBar from '../common/SearchBar.vue';
@@ -50,7 +50,7 @@ const props = defineProps({
 
 // 初始化store
 const settingsStore = useSettingsStore();
-const ragStore = useRagStore();
+const ragStore = useVectorStore();
 
 // 搜索查询
 const searchQuery = ref('');

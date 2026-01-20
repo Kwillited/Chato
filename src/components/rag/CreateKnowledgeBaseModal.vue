@@ -31,7 +31,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { fileStore } from '../../store/fileStore.js';
+import { useFileStore } from '../../store/fileStore.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
@@ -47,7 +47,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'created']);
 
 // Store
-// 使用fileStore替代ragStore
+const fileStore = useFileStore();
 
 // Refs
 const knowledgeBaseName = ref('');

@@ -166,6 +166,8 @@ class VectorRepository(BaseRepository):
                 # 过滤结果
                 result = []
                 for doc, score in results_with_scores:
+                    # 注意：Chroma返回的是距离分数，距离越小表示相似度越高
+                    # 所以应该保留距离小于等于阈值的结果
                     if score <= score_threshold:
                         result.append(doc)
             else:
@@ -235,13 +237,14 @@ class VectorRepository(BaseRepository):
         except Exception as e:
             raise e
     
-    def search_vectors(self, query: str, k: int = 5, filter: dict = None):
+    def search_vectors(self, query: str, k: int = 5, filter: dict = None, score_threshold: float = None):
         """根据查询向量检索相关文档
         
         Args:
             query (str): 查询文本
             k (int): 返回结果数量
             filter (dict): 过滤条件
+            score_threshold (float): 相似度分数阈值，低于该阈值的结果将被过滤
             
         Returns:
             dict: 向量检索结果
@@ -250,18 +253,40 @@ class VectorRepository(BaseRepository):
             if not self._vector_store:
                 raise ValueError("向量存储未初始化")
             
-            # 执行相似性搜索
-            results = self._vector_store.similarity_search(
-                query=query,
-                k=k,
-                filter=filter
-            )
-            
-            return {
-                'success': True,
-                'results': results,
-                'result_count': len(results)
-            }
+            if score_threshold is not None:
+                # 执行带分数的相似性搜索并手动过滤
+                results_with_scores = self._vector_store.similarity_search_with_score(
+                    query=query,
+                    k=k,
+                    filter=filter
+                )
+                
+                # 过滤结果
+                # 注意：Chroma返回的是距离分数，距离越小表示相似度越高
+                # 所以应该保留距离小于等于阈值的结果
+                filtered_results = []
+                for doc, score in results_with_scores:
+                    if score <= score_threshold:
+                        filtered_results.append(doc)
+                
+                return {
+                    'success': True,
+                    'results': filtered_results,
+                    'result_count': len(filtered_results)
+                }
+            else:
+                # 执行普通相似性搜索
+                results = self._vector_store.similarity_search(
+                    query=query,
+                    k=k,
+                    filter=filter
+                )
+                
+                return {
+                    'success': True,
+                    'results': results,
+                    'result_count': len(results)
+                }
         except Exception as e:
             raise e
     
@@ -310,6 +335,42 @@ class VectorRepository(BaseRepository):
                 # 获取所有匹配的向量ID
                 result = self._vector_store._collection.get(
                     where={'document_id': document_id}
+                )
+                
+                if result and result.get('ids'):
+                    ids_to_delete = result['ids']
+                    # 删除匹配的向量
+                    self._vector_store._collection.delete(ids=ids_to_delete)
+                    return {
+                        'success': True,
+                        'deleted_count': len(ids_to_delete)
+                    }
+                
+            return {
+                'success': True,
+                'deleted_count': 0
+            }
+        except Exception as e:
+            raise e
+    
+    def delete_vectors_by_folder_id(self, folder_id: str):
+        """根据文件夹ID删除相关向量
+        
+        Args:
+            folder_id (str): 文件夹ID
+            
+        Returns:
+            dict: 删除结果
+        """
+        try:
+            if not self._vector_store:
+                raise ValueError("向量存储未初始化")
+            
+            # 使用过滤器删除指定文件夹的向量
+            if hasattr(self._vector_store, '_collection'):
+                # 获取所有匹配的向量ID
+                result = self._vector_store._collection.get(
+                    where={'folder_id': folder_id}
                 )
                 
                 if result and result.get('ids'):

@@ -68,24 +68,25 @@ class VectorService(BaseService):
                 'chunk_count': 0
             }
     
-    def search_vectors(self, query: str, k: int = 5, filter: dict = None):
+    def search_vectors(self, query: str, k: int = 5, filter: dict = None, score_threshold: float = None):
         """根据查询向量检索相关文档
         
         Args:
             query (str): 查询文本
             k (int): 返回结果数量
             filter (dict): 过滤条件
+            score_threshold (float): 相似度分数阈值，低于该阈值的结果将被过滤
             
         Returns:
             dict: 向量检索结果
         """
         try:
-            self.log_info(f"🔍 开始向量检索: 查询='{query}', 结果数量={k}")
+            self.log_info(f"🔍 开始向量检索: 查询='{query}', 结果数量={k}, 分数阈值={score_threshold}")
             
             # 从vector_store_service获取向量仓库实例
             vector_repo = self.vector_store_service.vector_db_service.vector_repository
             # 执行向量检索
-            results = vector_repo.search_vectors(query, k=k, filter=filter)
+            results = vector_repo.search_vectors(query, k=k, filter=filter, score_threshold=score_threshold)
             
             self.log_info(f"✅ 向量检索成功: 找到 {len(results.get('results', []))} 个相关结果")
             
@@ -180,6 +181,38 @@ class VectorService(BaseService):
             return {
                 'success': False,
                 'message': f'文档向量删除失败: {str(e)}',
+                'deleted_count': 0
+            }
+    
+    def delete_vectors_by_folder_id(self, folder_id: str):
+        """根据文件夹ID删除相关向量
+        
+        Args:
+            folder_id (str): 文件夹ID
+            
+        Returns:
+            dict: 删除结果
+        """
+        try:
+            self.log_info(f"🗑️  开始删除文件夹相关向量: folder_id='{folder_id}'")
+            
+            # 从vector_store_service获取向量仓库实例
+            vector_repo = self.vector_store_service.vector_db_service.vector_repository
+            # 删除相关向量
+            result = vector_repo.delete_vectors_by_folder_id(folder_id)
+            
+            self.log_info(f"✅ 删除文件夹相关向量成功: 删除 {result.get('deleted_count', 0)} 个向量")
+            
+            return {
+                'success': True,
+                'message': '文件夹向量删除成功',
+                'deleted_count': result.get('deleted_count', 0)
+            }
+        except Exception as e:
+            self.log_error(f"❌ 删除文件夹相关向量失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'文件夹向量删除失败: {str(e)}',
                 'deleted_count': 0
             }
     

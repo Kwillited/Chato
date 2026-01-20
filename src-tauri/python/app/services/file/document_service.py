@@ -261,7 +261,7 @@ class DocumentService(BaseService):
         return files
     
     def delete_all_documents(self):
-        """删除所有文档，包括所有文件夹和文件"""
+        """删除所有文档，包括所有文件夹、文件和向量数据库"""
         # 先检查DATA_DIR是否存在
         if not os.path.exists(DATA_DIR):
             return {
@@ -304,11 +304,14 @@ class DocumentService(BaseService):
                     self.log_error(f"删除目录 {dir_path} 时出错: {e}")
                     skipped_count += 1
         
-        # 6. 重新初始化DATA_DIR目录（如果被删除）
+        # 4. 清空向量数据库
+        self.vector_service.manage_vector_store('clear')
+        
+        # 5. 重新初始化DATA_DIR目录（如果被删除）
         os.makedirs(DATA_DIR, exist_ok=True)
         
         # 构建返回消息
-        message = f'已删除 {deleted_count} 个文件和所有文件夹'
+        message = f'已删除 {deleted_count} 个文件、所有文件夹和向量数据库'
         if skipped_count > 0:
             message += f'，跳过了 {skipped_count} 个无法删除的项目'
         
@@ -366,7 +369,10 @@ class DocumentService(BaseService):
         # 2. 删除数据库中的文件夹（级联删除文件夹下的所有文档和分块）
         self.data_service.delete_folder(folder.id)
         
-        # 3. 删除文件系统中的文件夹
+        # 3. 删除相关向量
+        self.vector_service.delete_vectors_by_folder_id(folder.id)
+        
+        # 4. 删除文件系统中的文件夹
         try:
             shutil.rmtree(folder_path)
             return {

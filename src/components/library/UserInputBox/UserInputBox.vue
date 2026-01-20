@@ -3,7 +3,8 @@
   <!-- 聊天输入区域 - 在切换到图谱视图时添加顶部padding -->
   <div id="UserInputBox" class="border-t-0 pb-4 px-6 transition-colors duration-300 ease-in-out" :class="{ 'pt-4': activeView !== 'grid' }">
     <div class="relative w-full max-w-4xl mx-auto">
-      <div class="bg-white dark:bg-dark-700 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus-within:shadow-md transition-all duration-300 ease-in-out relative" ref="dragDropArea" @dragover.prevent="handleDragOver" @dragenter.prevent="handleDragEnter" @dragleave="handleDragLeave" @drop.prevent="handleDrop">
+      <DragDropZone @drop="handleDrop">
+        <div class="bg-white dark:bg-dark-700 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus-within:shadow-md transition-all duration-300 ease-in-out relative">
         <!-- 智能体选择和MCP工具 - 合并到卡片内部 -->
         <div class="px-3 py-1.5 border-b border-gray-200 flex items-center gap-2">
           <div class="flex items-center gap-2">
@@ -281,11 +282,11 @@
         <!-- 拖拽提示区域 - 移动到外层，覆盖整个卡片容器 -->
         <div
           v-if="isDragOver"
-          class="absolute inset-0 flex flex-col items-center justify-center bg-primary/5 border-2 border-dashed border-primary/30 rounded-3xl opacity-100 pointer-events-none transition-all duration-300 z-20"
+          class="absolute inset-0 flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-primary dark:border-blue-400 rounded-3xl opacity-100 pointer-events-none transition-all duration-300 z-20 animate-pulse"
         >
-          <i class="fa-solid fa-cloud-arrow-up text-primary text-4xl mb-2"></i>
-          <span class="text-primary font-medium">释放文件以上传</span>
-          <span class="text-sm text-gray-500 mt-1">或点击上传附件按钮</span>
+          <i class="fa-solid fa-cloud-arrow-up text-primary dark:text-blue-400 text-4xl mb-2"></i>
+          <span class="text-primary dark:text-blue-400 font-medium">释放文件以上传</span>
+          <span class="text-sm text-gray-600 dark:text-gray-300 mt-1">或点击上传附件按钮</span>
         </div>
         <div class="flex items-center justify-between px-3 py-2 gap-2">
           <div class="flex items-center gap-3">
@@ -410,6 +411,7 @@
           </Tooltip>
         </div>
       </div>
+      </DragDropZone>
       <div v-if="showShortcutHint" class="text-center text-xs text-gray-400 dark:text-gray-500 mt-[18px] transition-opacity duration-300">
         按Shift+Enter换行，Enter发送
       </div>
@@ -422,6 +424,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { StorageManager, formatFileSize } from '../../../store/utils.js';
 import { Tooltip } from '../index.js';
 import { showNotification } from '../../../services/notificationUtils.js';
+import DragDropZone from '../../common/DragDropZone.vue';
 
 // 接收从父组件传递的视图状态
 const _props = defineProps({
@@ -437,6 +440,7 @@ const _props = defineProps({
 import { useChatStore } from '../../../store/chatStore.js';
 import { useSettingsStore } from '../../../store/settingsStore.js';
 import { useModelSettingStore } from '../../../store/modelSettingStore.js';
+import { useVectorStore } from '../../../store/vectorStore.js';
 
 // 定义存储键
 const STORAGE_KEYS = {
@@ -448,17 +452,14 @@ const STORAGE_KEYS = {
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const modelStore = useModelSettingStore();
+const vectorStore = useVectorStore();
 
 // 使用ref引用DOM元素
-const dragDropArea = ref(null);
 const fileInput = ref(null);
 const modelDropdown = ref(null);
 const agentDropdown = ref(null);
 
 // 本地UI状态
-const isDragOver = ref(false);
-// 用于解决拖拽闪烁问题的计数器
-const dragCounter = ref(0);
 const showModelDropdown = ref(false);
 const showAgentDropdown = ref(false);
 const showParamsPanel = ref(false);
@@ -886,14 +887,14 @@ const toggleKnowledgeBase = () => {
     const hasMessages = chatStore.currentChatMessages && chatStore.currentChatMessages.length > 0;
     settingsStore.setActiveContent(hasMessages ? 'chat' : 'sendMessage');
     
-    // 关闭知识库功能并保存设置
-    settingsStore.updateRagConfig({ enabled: false });
+    // 关闭RAG功能
+    vectorStore.setRagConfig({ enabled: false });
   } else {
     // 如果当前不是知识库模式，切换到知识库模式
     settingsStore.setActivePanel('rag');
     
-    // 开启知识库功能并保存设置
-    settingsStore.updateRagConfig({ enabled: true });
+    // 启用RAG功能
+    vectorStore.setRagConfig({ enabled: true });
   }
 };
 
@@ -947,29 +948,7 @@ const handleDrop = (e) => {
   }
 };
 
-// 改进的拖拽事件处理，解决闪烁问题
-const handleDragOver = (e) => {
-  e.preventDefault();
-  // 确保当鼠标在容器上移动时，isDragOver始终为true
-  if (dragCounter.value === 0) {
-    isDragOver.value = true;
-  }
-};
 
-const handleDragEnter = (e) => {
-  e.preventDefault();
-  dragCounter.value++;
-  if (dragCounter.value === 1) {
-    isDragOver.value = true;
-  }
-};
-
-const handleDragLeave = (e) => {
-  dragCounter.value--;
-  if (dragCounter.value === 0) {
-    isDragOver.value = false;
-  }
-};
 
 // 触发文件上传对话框
 const triggerFileUpload = () => {

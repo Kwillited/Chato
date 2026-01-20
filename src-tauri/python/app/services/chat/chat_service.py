@@ -331,7 +331,8 @@ class ChatService(BaseService):
             vector_results = vector_service.search_vectors(
                 query=question,
                 k=k,
-                filter=filter
+                filter=filter,
+                score_threshold=score_threshold
             )
             
             # 转换向量结果为文档列表

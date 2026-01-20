@@ -241,21 +241,6 @@ export const useSettingsStore = defineStore('settings', {
 
     // 重置设置为默认值
     resetSettings() {
-
-      this.ragConfig = {
-        enabled: false,
-        chunk_size: 1000,
-        chunk_overlap: 100,
-        k: 4,
-        retrievalMode: 'vector',
-        topK: 3,
-        scoreThreshold: 0.7,
-        embedderModel: 'qwen3-embedding-0.6b',
-        vectorDbPath: '', // 留空，让后端使用标准用户数据目录
-        vectorDbType: 'chroma',
-        knowledgeBasePath: '', // 留空，让后端使用标准用户数据目录
-      };
-
       this.mcpConfig = {
         enabled: false,
         serverAddress: '',
@@ -441,7 +426,6 @@ export const useSettingsStore = defineStore('settings', {
         // 注意：模型设置现在由modelSettingStore单独管理和保存
         
         const settingsToSave = {
-          ragConfig: this.ragConfig,
           mcpConfig: this.mcpConfig,
           notificationsConfig: this.notificationsConfig,
           systemSettings: this.systemSettings,

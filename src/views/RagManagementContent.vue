@@ -204,8 +204,8 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
-import { useRagStore } from '../store/ragStore.js';
-import { fileStore } from '../store/fileStore.js';
+import { useVectorStore } from '../store/vectorStore.js';
+import { useFileStore } from '../store/fileStore.js';
 import { useChatStore } from '../store/chatStore.js';
 import { eventBus } from '../services/eventBus.js';
 import { generateId, formatFileSize } from '../store/utils.js';
@@ -219,8 +219,9 @@ import { showNotification } from '../services/notificationUtils.js';
 
 // 初始化stores
 const settingsStore = useSettingsStore();
-const ragStore = useRagStore();
+const ragStore = useVectorStore();
 const chatStore = useChatStore();
+const fileStore = useFileStore();
 
 // 处理新对话点击事件
 const handleNewChat = () => {

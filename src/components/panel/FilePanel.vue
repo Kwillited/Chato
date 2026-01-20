@@ -69,8 +69,8 @@
 
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
-import { useRagStore } from '../../store/ragStore.js';
-import { fileStore } from '../../store/fileStore.js';
+import { useVectorStore } from '../../store/vectorStore.js';
+import { useFileStore } from '../../store/fileStore.js';
 import api from '../../services/apiService.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../services/notificationUtils.js';
@@ -85,7 +85,8 @@ import Loading from '../common/Loading.vue';
 import CreateKnowledgeBaseModal from '../rag/CreateKnowledgeBaseModal.vue';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
-const ragStore = useRagStore();
+const ragStore = useVectorStore();
+const fileStore = useFileStore();
 
 // 状态管理
 // 文件夹列表

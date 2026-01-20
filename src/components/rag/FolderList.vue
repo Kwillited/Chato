@@ -9,7 +9,8 @@
       @dblclick="handleFolderDoubleClick(folder)"
       @click="handleFolderClick(folder)"
       :class="{
-        'border-gray-500 bg-gray-200 dark:border-gray-200 dark:bg-dark-bg-secondary': draggingFolder === folder,
+        // 拖拽状态样式优化
+        'border-primary bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800/50 transform scale-[1.02]': draggingFolder === folder,
         'bg-gray-200 dark:bg-dark-bg-secondary border-gray-500 dark:border-gray-200': selectedFolder === folder && draggingFolder !== folder
       }"
     >
@@ -17,8 +18,9 @@
         <div class="folder-info flex items-center">
           <i class="fa-solid fa-folder text-gray-500 dark:text-gray-400 mr-2"></i>
           <span class="font-medium text-sm text-gray-700 dark:text-gray-300">{{ folder.name }}</span>
-          <div v-if="draggingFolder === folder" class="ml-2 text-xs text-blue-500">
-            释放以上传到此文件夹
+          <!-- 优化上传提示信息 -->
+          <div v-if="draggingFolder === folder" class="ml-2 text-xs font-semibold text-primary bg-primary/10 dark:bg-primary/20 px-2 py-0.5 rounded-full animate-pulse">
+            <i class="fa-solid fa-upload mr-1 text-xs"></i>释放以上传
           </div>
         </div>
         <ActionButton
@@ -35,11 +37,12 @@
 <script setup>
 import { ref } from 'vue';
 import ActionButton from '../common/ActionButton.vue';
-import { useRagStore } from '../../store/ragStore.js';
-import { fileStore } from '../../store/fileStore.js';
+import { useVectorStore } from '../../store/vectorStore.js';
+import { useFileStore } from '../../store/fileStore.js';
 
-// 初始化ragStore
-const ragStore = useRagStore();
+// 初始化stores
+const ragStore = useVectorStore();
+const fileStore = useFileStore();
 
 const _props = defineProps({
   folders: {
