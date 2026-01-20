@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Body, Depends
 
 # 导入MCP服务类
-from app.services.mcp_service import MCPService
+from app.services.mcp.mcp_service import MCPService
 from app.utils.decorators import handle_exception
 from app.dependencies import get_mcp_service
 from app.models.pydantic_models import MCPSettings, NotificationSettings

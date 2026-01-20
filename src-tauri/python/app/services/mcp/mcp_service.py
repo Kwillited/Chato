@@ -1,5 +1,5 @@
 """MCP工具相关业务逻辑服务"""
-from app.services.setting_service import SettingService
+from app.services.settings.setting_service import SettingService
 from app.services.base_service import BaseService
 
 

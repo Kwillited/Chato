@@ -3,6 +3,7 @@ from app.services.base_service import BaseService
 from app.repositories.vector_repository import VectorRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.services.vector.vector_store_service import VectorStoreService
+from app.services.chat.generation_service import GenerationService
 
 class VectorService(BaseService):
     """向量服务类，封装所有向量相关的操作"""
@@ -249,3 +250,50 @@ class VectorService(BaseService):
         except Exception as e:
             self.log_error(f"❌ 清空向量存储失败: {str(e)}")
             return False
+    
+    def get_enhanced_prompt(self, question, rag_config=None):
+        """获取增强提示，将查询和检索到的上下文结合
+        
+        Args:
+            question: 用户查询
+            rag_config: RAG配置
+            
+        Returns:
+            增强后的提示
+        """
+        if not rag_config or not rag_config.get('enabled', False):
+            return question
+        
+        try:
+            # 导入配置管理器
+            from app.core.config import config_manager
+            
+            # 更新配置
+            config = config_manager.get('rag', {})
+            if rag_config:
+                config.update(rag_config)
+            
+            # 获取向量存储
+            if not self.vector_store_service.vector_store:
+                self.log_error("向量存储未初始化")
+                return question
+            
+            # 执行相似性搜索
+            k = config.get('top_k', 3)
+            score_threshold = config.get('score_threshold', 0.7)
+            
+            results = self.search_documents(
+                query=question,
+                k=k,
+                score_threshold=score_threshold
+            )
+            
+            if results:
+                # 使用生成服务的build_prompt方法构建提示
+                generation_service = GenerationService()
+                return generation_service.build_prompt(question, results)
+            
+            return question
+        except Exception as e:
+            self.log_error(f"生成增强提示失败: {str(e)}")
+            return question

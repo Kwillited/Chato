@@ -309,7 +309,7 @@ class ChatService(BaseService):
             self.log_info("✅ RAG功能已启用，开始执行RAG增强")
             # 直接使用生成服务的build_prompt方法，避免通过LangChainRAGService间接调用
             from app.core.config import config_manager
-            from app.services.rag.generation_service import GenerationService
+            from app.services.chat.generation_service import GenerationService
             from app.services.vector.vector_service import VectorService
             
             generation_service = GenerationService()
@@ -381,7 +381,7 @@ class ChatService(BaseService):
                 }
             
             # 2. 构建RAG提示
-            from app.services.rag.generation_service import GenerationService
+            from app.services.chat.generation_service import GenerationService
             generation_service = GenerationService()
             context = self._build_rag_context(vector_results['results'])
             prompt = self._build_rag_prompt(query, context, chat_history)

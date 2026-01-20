@@ -9,10 +9,10 @@ from app.repositories.setting_repository import SettingRepository
 from app.services.chat.chat_service import ChatService
 from app.services.data_service import DataService
 from app.services.model.model_service import ModelService
-from app.services.mcp_service import MCPService
-from app.services.rag.document_service import DocumentService
-from app.services.rag.rag_service import RAGService
-from app.services.setting_service import SettingService
+from app.services.mcp.mcp_service import MCPService
+from app.services.file.document_service import DocumentService
+
+from app.services.settings.setting_service import SettingService
 from app.services.vector.vector_store_service import VectorStoreService
 from app.services.vector.vector_db_service import VectorDBService
 
@@ -82,9 +82,7 @@ def get_vector_store_service():
     return VectorStoreService()
 
 
-def get_rag_service():
-    """获取RAG服务实例"""
-    return RAGService()
+
 
 
 def get_document_service():

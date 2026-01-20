@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Form, File, UploadFile, Query, Path, HTTPException, Depends
 
 # 导入文件管理相关服务
-from app.services.rag.document_service import DocumentService
+from app.services.file.document_service import DocumentService
 from app.utils.decorators import handle_exception
 from app.dependencies import get_document_service
 

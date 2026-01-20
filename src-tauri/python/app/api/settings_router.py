@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Body, Depends
 
 # 导入相关服务类
-from app.services.setting_service import SettingService
+from app.services.settings.setting_service import SettingService
 from app.utils.decorators import handle_exception
 from app.dependencies import get_setting_service
 from app.models.pydantic_models import (

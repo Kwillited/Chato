@@ -1,13 +1,13 @@
 """API路由模块"""
 
 # 导入路由模块
-from app.api.chats import router as chats_router
-from app.api.files import router as files_router
-from app.api.health import router as health_router
-from app.api.models import router as models_router
-from app.api.mcp import router as mcp_router
-from app.api.rag import router as rag_router
-from app.api.settings import router as settings_router
+from app.api.chats_router import router as chats_router
+from app.api.files_router import router as files_router
+from app.api.health_router import router as health_router
+from app.api.models_router import router as models_router
+from app.api.mcp_router import router as mcp_router
+from app.api.rag_router import router as rag_router
+from app.api.settings_router import router as settings_router
 
 __all__ = ['register_routes']
 

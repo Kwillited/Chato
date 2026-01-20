@@ -451,35 +451,129 @@ class DocumentService(BaseService):
     def upload_document(self, file, folder_id=''):
         """上传文件到文件系统并进行向量化处理"""
         try:
+            original_filename = file.filename
+            self.log_info(f"📤 开始上传文档: 文件名='{original_filename}', folder_id='{folder_id}'")
+            
             # 1. 保存文件到文件系统和数据库
             save_result = self.save_document(file, folder_id)
+            file_path = save_result['full_path']
+            self.log_info(f"✅ 文档已保存到: {file_path}")
             
-            # 2. 读取文件内容
-            with open(save_result['full_path'], 'r', encoding='utf-8') as f:
-                doc_content = f.read()
+            # 2. 初始化LangChain组件
+            from langchain_community.document_loaders import TextLoader, PyPDFLoader, Docx2txtLoader
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
             
-            # 3. 调用向量服务进行向量化处理
-            vector_result = self.vector_service.embed_document(
-                doc_content=doc_content,
-                metadata={
-                    'file_path': save_result['full_path'],
-                    'folder_id': folder_id,
-                    'document_id': save_result['id']
-                }
+            # 创建加载器映射
+            loader_mapping = {
+                '.txt': TextLoader,
+                '.pdf': PyPDFLoader,
+                '.doc': Docx2txtLoader,
+                '.docx': Docx2txtLoader
+            }
+            
+            # 创建文本分割器
+            chunk_size = config_manager.get('rag.chunk_size', 1000)
+            chunk_overlap = config_manager.get('rag.chunk_overlap', 200)
+            text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap
             )
             
-            # 4. 返回整合结果
+            # 3. 使用LangChain加载器加载文档
+            file_ext = os.path.splitext(file_path)[1].lower()
+            self.log_info(f"📄 加载文档，文件类型: {file_ext}")
+            
+            loader_class = loader_mapping.get(file_ext)
+            
+            if not loader_class:
+                error_msg = f"不支持的文件类型: {file_ext}"
+                self.log_error(f"❌ {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg,
+                    'file_path': original_filename
+                }
+            
+            # 处理TextLoader的编码问题
+            documents = []
+            try:
+                if loader_class.__name__ == 'TextLoader':
+                    # 尝试使用utf-8编码，如果失败则使用其他编码
+                    loader = loader_class(file_path, encoding='utf-8')
+                    self.log_info("📑 使用utf-8编码加载文本文件")
+                    documents = loader.load()
+                else:
+                    loader = loader_class(file_path)
+                    documents = loader.load()
+                self.log_info(f"✅ 成功加载文档，共 {len(documents)} 个文档对象")
+            except UnicodeDecodeError:
+                # 如果utf-8失败，尝试使用gbk编码（常见中文编码）
+                if loader_class.__name__ == 'TextLoader':
+                    loader = loader_class(file_path, encoding='gbk')
+                    self.log_info("📑 utf-8编码失败，尝试使用gbk编码加载文本文件")
+                    documents = loader.load()
+                    self.log_info(f"✅ 使用gbk编码成功加载文档，共 {len(documents)} 个文档对象")
+                else:
+                    raise
+            
+            # 4. 使用LangChain文本分割器分割文档
+            self.log_info("✂️  开始分割文档...")
+            split_documents = text_splitter.split_documents(documents)
+            self.log_info(f"✅ 文档分割完成，生成 {len(split_documents)} 个文本块")
+            
+            # 5. 向量化并存储到向量数据库
+            self.log_info("🔢 开始向量化文档...")
+            # 使用save_result中的document_id，保持一致性
+            document_id = save_result.get('id', str(uuid.uuid4()))
+            vector_result = self.vector_service.vectorize_documents(
+                split_documents,
+                document_id,
+                file_path,
+                folder_id=folder_id
+            )
+            
+            if vector_result['vectorized']:
+                self.log_info(f"✅ 向量化成功，生成 {vector_result['vector_count']} 个向量")
+            else:
+                self.log_warning(f"⚠️  向量化部分失败: {vector_result.get('error', '未知错误')}")
+            
+            # 6. 准备返回信息
+            document_info = {
+                'document_id': document_id,
+                'file_path': file_path,
+                'filename': save_result['filename'],
+                'split_documents_count': len(split_documents),
+                'chunk_size': chunk_size,
+                'chunk_overlap': chunk_overlap
+            }
+            
+            chunk_info = {
+                'total_chunks': len(split_documents),
+                'chunk_size': chunk_size,
+                'chunk_overlap': chunk_overlap
+            }
+            
+            self.log_info(f"📊 文档处理完成: 文件='{original_filename}', 文本块={len(split_documents)}, 向量={vector_result['vector_count']}")
+            
             return {
-                'success': True,
-                'message': f'文件 {save_result["filename"]} 上传成功，生成 {vector_result.get("chunk_count", 0)} 个文本块',
-                'file_path': save_result['file_path'],
-                'vector_result': vector_result
+                'filename': save_result['filename'],
+                'message': f'文件 {save_result['filename']} 上传成功',
+                'file_path': save_result['filename'],
+                'document_info': document_info,
+                'full_path': file_path,
+                'folder_name': folder_id,
+                'chunk_info': chunk_info,
+                'vector_info': vector_result
             }
         except Exception as e:
-            self.log_error(f"❌ 文件上传失败: {str(e)}")
+            self.log_error(f"❌ 文件 {file.filename} 处理失败: {str(e)}")
             return {
-                'success': False,
-                'message': f'文件上传失败: {str(e)}',
-                'file_path': '',
-                'vector_result': None
+                'filename': file.filename,
+                'message': f'文件 {file.filename} 处理失败: {str(e)}',
+                'file_path': file.filename,
+                'document_info': {},
+                'full_path': '',
+                'folder_name': folder_id,
+                'chunk_info': {},
+                'vector_info': {}
             }
