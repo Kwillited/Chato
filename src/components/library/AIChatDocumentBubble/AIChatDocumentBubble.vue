@@ -188,12 +188,13 @@ const { handleCopyCodeClick } = useCopyButtonManager()
   justify-content: center;
   width: 1.5rem;
   height: 1.5rem;
-  /* 添加可访问性支持 */
-  aria-label: "复制代码";
-  focus:outline-none;
-  focus:ring-2;
-  focus:ring-blue-500;
-  focus:ring-offset-2;
+  /* 添加可访问性支持 - aria-label应在HTML中设置，此处移除 */
+}
+
+/* 复制代码按钮焦点样式 */
+:deep(.copy-code-btn:focus) {
+  outline: none;
+  box-shadow: 0 0 0 2px blue-500;
 }
 
 /* 复制按钮悬停效果 */
