@@ -1,6 +1,6 @@
 <template>
   <!-- 聊天快捷跳转模块 -->
-  <div class="fixed right-10 top-1/2 transform -translate-y-1/2 flex flex-col items-center z-10">
+  <div class="fixed top-1/2 transform -translate-y-1/2 flex flex-col items-center z-10" :style="indicatorPosition">
     <div class="flex flex-col items-center">
       <!-- 遍历所有用户消息 -->
       <div 
@@ -60,6 +60,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
+import { useSettingsStore } from '../../../store/settingsStore.js';
 
 const props = defineProps({
   chatMessages: {
@@ -71,6 +72,9 @@ const props = defineProps({
     required: true
   }
 });
+
+// 初始化settingsStore
+const settingsStore = useSettingsStore();
 
 const emit = defineEmits(['scrollToUserMessage']);
 
@@ -155,6 +159,24 @@ watch(() => props.chatMessages, () => {
     updateCurrentHighlightedMessage();
   }, 100);
 }, { deep: true });
+
+// 计算指示器位置：根据右侧面板的宽度和可见性动态调整
+const indicatorPosition = computed(() => {
+  const baseRight = 10; // 基础right值
+  let rightPanelWidth = 0;
+  
+  // 如果右侧面板可见，计算其宽度
+  if (settingsStore.rightPanelVisible) {
+    // 从settingsStore获取右侧面板宽度，默认256px
+    const widthStr = settingsStore.rightPanelWidth || '256px';
+    rightPanelWidth = parseInt(widthStr, 10) || 0;
+  }
+  
+  // 计算最终的right值：基础right值 + 右侧面板宽度
+  return {
+    right: `${baseRight + rightPanelWidth}px`
+  };
+});
 
 // 暴露方法给父组件
 const exposed = {
