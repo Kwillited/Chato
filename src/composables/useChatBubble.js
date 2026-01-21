@@ -1,6 +1,7 @@
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { marked } from '../plugins/markdown.js'
 import { copyToClipboard } from '../store/utils.js'
+import { showNotification } from '../services/notificationUtils.js'
 
 /**
  * 聊天气泡组件的公共逻辑
@@ -82,8 +83,12 @@ export function useChatBubble(props) {
       // 移除思考标签后再复制
       const contentToCopy = messageContent.value.replace(THINKING_TAG_REGEX, '');
       await copyToClipboard(contentToCopy)
+      // 显示复制成功通知
+      showNotification('消息内容已复制到剪贴板', 'success')
     } catch (error) {
       console.error('复制失败:', error)
+      // 显示复制失败通知
+      showNotification('复制失败，请重试', 'error')
     }
   }
 
@@ -109,6 +114,9 @@ export function useChatBubble(props) {
         // 更新复制按钮状态
         copyButtonStates.value.set(codeBlockId, true)
         
+        // 显示复制成功通知
+        showNotification('代码已复制到剪贴板', 'success')
+        
         // 2秒后恢复原状
         setTimeout(() => {
           copyButtonStates.value.delete(codeBlockId)
@@ -116,6 +124,8 @@ export function useChatBubble(props) {
       }
     } catch (error) {
       console.error('复制代码失败:', error);
+      // 显示复制失败通知
+      showNotification('复制代码失败，请重试', 'error')
     }
   };
 

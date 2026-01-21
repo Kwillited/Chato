@@ -1,5 +1,5 @@
 <template>
-  <div v-if="message">
+  <div v-if="message" :id="id">
     <!-- 默认样式 -->
     <div v-if="!chatStyleDocument" class="flex" :class="{ 'justify-end': isUserMessage }">
       <!-- AI消息气泡 -->
@@ -54,6 +54,10 @@ const props = defineProps({
   chatStyleDocument: {
     type: Boolean,
     default: false
+  },
+  id: {
+    type: String,
+    default: ''
   }
 })
 

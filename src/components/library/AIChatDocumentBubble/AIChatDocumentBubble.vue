@@ -31,10 +31,10 @@
       <span>{{ messageValue.error }}</span>
     </div>
     
-    <!-- 打字动画 -->
+    <!-- 旋转动画 -->
     <Loading 
       v-if="messageValue.isTyping" 
-      type="typing" 
+      type="spin" 
       size="small" 
       color="var(--text-color-secondary, #9ca3af)" 
       containerClass="mt-2"
