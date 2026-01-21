@@ -616,11 +616,27 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { useSettingsStore } from '../store/settingsStore.js';
 
 // 标签页状态
 const activeTab = ref('basic');
 const mcpCount = ref(2);
+const settingsStore = useSettingsStore();
+let originalLeftNavVisible = null;
+
+// 组件挂载时隐藏左侧边栏
+onMounted(() => {
+  originalLeftNavVisible = settingsStore.leftNavVisible;
+  settingsStore.leftNavVisible = false;
+});
+
+// 组件卸载时恢复左侧边栏状态
+onUnmounted(() => {
+  if (originalLeftNavVisible !== null) {
+    settingsStore.leftNavVisible = originalLeftNavVisible;
+  }
+});
 
 // 已配置的供应商数据
 const configuredProviders = reactive([
