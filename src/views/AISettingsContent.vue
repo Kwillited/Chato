@@ -678,23 +678,23 @@ body {
 
 .toggle-checkbox:checked {
   transform: translateX(calc(100% - 1px));
-  border-color: #6b7280;
+  border-color: #000;
 }
 
 .toggle-checkbox:checked + .toggle-label {
-  background-color: #6b7280;
+  background-color: #000;
 }
 
 .dark .toggle-checkbox {
-  background-color: #374151;
+  background-color: white;
 }
 
 .dark .toggle-checkbox:checked + .toggle-label {
-  background-color: #6b7280;
+  background-color: #3b82f6;
 }
 
 .dark .toggle-checkbox + .toggle-label {
-  background-color: #1f2937;
+  background-color: #374151;
 }
 
 .toggle-checkbox + .toggle-label {
@@ -753,11 +753,11 @@ body {
 }
 
 input:checked + .toggle-slider {
-  background-color: #6b7280;
+  background-color: #000;
 }
 
 input:focus + .toggle-slider {
-  box-shadow: 0 0 1px #6b7280;
+  box-shadow: 0 0 1px #000;
 }
 
 input:checked + .toggle-slider:before {
@@ -766,18 +766,18 @@ input:checked + .toggle-slider:before {
 
 /* Dark mode for toggle switch */
 .dark .toggle-slider {
-  background-color: #1f2937;
-}
-
-.dark .toggle-slider:before {
   background-color: #374151;
 }
 
+.dark .toggle-slider:before {
+  background-color: white;
+}
+
 .dark input:checked + .toggle-slider {
-  background-color: #6b7280;
+  background-color: #3b82f6;
 }
 
 .dark input:checked + .toggle-slider:before {
-  background-color: #ffffff;
+  background-color: white;
 }
 </style>
