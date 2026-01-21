@@ -243,10 +243,10 @@
                       <td class="py-2.5 px-4 text-xs text-gray-500 dark:text-gray-400 mono">{{ model.context }}</td>
                       <!-- Switch -->
                       <td class="py-2.5 pl-4 text-right">
-                        <div class="relative inline-block w-7 align-middle select-none">
-                          <input type="checkbox" v-model="model.active" class="toggle-checkbox absolute block w-3.5 h-3.5 rounded-full bg-white border-2 border-gray-300 dark:border-dark-600 appearance-none cursor-pointer transition-all duration-300 top-0 left-0"/>
-                          <label class="toggle-label block overflow-hidden h-3.5 rounded-full bg-gray-200 dark:bg-dark-700 cursor-pointer"></label>
-                        </div>
+                        <label class="relative inline-block w-7 h-3.5 align-middle select-none cursor-pointer">
+                        <input type="checkbox" v-model="model.active" class="toggle-checkbox absolute block w-3.5 h-3.5 rounded-full bg-white border-2 border-gray-300 dark:border-dark-600 appearance-none cursor-pointer transition-all duration-300 top-0 left-0"/>
+                        <span class="toggle-label block overflow-hidden h-3.5 rounded-full bg-gray-200 dark:bg-dark-700 cursor-pointer"></span>
+                      </label>
                       </td>
                     </tr>
                   </tbody>
@@ -324,10 +324,10 @@
             <!-- Action -->
             <div class="flex flex-row md:flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-gray-100 dark:border-dark-700 pt-4 md:pt-0 md:pl-6">
               <button class="text-xs font-semibold text-gray-900 dark:text-white hover:underline">配置</button>
-              <div class="relative inline-block w-8 align-middle select-none">
+              <label class="relative inline-block w-8 h-4 align-middle select-none cursor-pointer">
                 <input type="checkbox" checked class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-gray-300 dark:border-dark-600 appearance-none cursor-pointer top-0 left-0"/>
-                <label class="toggle-label block overflow-hidden h-4 rounded-full bg-gray-200 dark:bg-dark-700 cursor-pointer"></label>
-              </div>
+                <span class="toggle-label block overflow-hidden h-4 rounded-full bg-gray-200 dark:bg-dark-700 cursor-pointer"></span>
+              </label>
             </div>
           </div>
 
@@ -351,10 +351,10 @@
             </div>
             <div class="flex flex-row md:flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-gray-100 dark:border-dark-700 pt-4 md:pt-0 md:pl-6">
               <button class="text-xs font-semibold text-gray-900 dark:text-white hover:underline">配置</button>
-              <div class="relative inline-block w-8 align-middle select-none">
+              <label class="relative inline-block w-8 h-4 align-middle select-none cursor-pointer">
                 <input type="checkbox" class="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-gray-300 dark:border-dark-600 appearance-none cursor-pointer top-0 left-0"/>
-                <label class="toggle-label block overflow-hidden h-4 rounded-full bg-gray-200 dark:bg-dark-700 cursor-pointer"></label>
-              </div>
+                <span class="toggle-label block overflow-hidden h-4 rounded-full bg-gray-200 dark:bg-dark-700 cursor-pointer"></span>
+              </label>
             </div>
           </div>
 
@@ -669,8 +669,14 @@ body {
 }
 
 /* 紧凑型 Switch */
+.toggle-checkbox {
+  transition: all 0.3s ease;
+  right: auto;
+  left: 0;
+}
+
 .toggle-checkbox:checked {
-  right: 0;
+  transform: translateX(calc(100% - 1px));
   border-color: #000;
 }
 
