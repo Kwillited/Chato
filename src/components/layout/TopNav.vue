@@ -51,6 +51,14 @@
           shape="full"
         />
         
+        <Button 
+          icon="fa-brain"
+          tooltip="AI配置"
+          @click="handleAISettingsClick"
+          size="sm"
+          shape="full"
+        />
+        
         <!-- 用户按钮带下拉菜单 -->
         <div class="relative hover-scale">
             <Button 
@@ -135,6 +143,11 @@ const toggleViewPanel = () => {
 const handleSystemSettingsClick = () => {
   settingsStore.setActivePanel('settings');
   settingsStore.setActiveContent('settings');
+};
+
+// 处理AI配置按钮点击事件
+const handleAISettingsClick = () => {
+  settingsStore.setActiveContent('aiSettings');
 };
 
 // 切换主题

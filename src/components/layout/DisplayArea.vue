@@ -33,6 +33,7 @@
       <RagManagementContent v-if="activeContent === 'ragManagement'" />
       <ContextVisualizationContent v-if="activeContent === 'contextVisualization'" />
       <SendMessageContent v-if="activeContent === 'sendMessage'" />
+      <AISettingsContent v-if="activeContent === 'aiSettings'" />
 
     </div>
 
@@ -59,6 +60,7 @@ import SettingsContent from '../../views/SettingsContent.vue'; // 移动到views
 import RagManagementContent from '../../views/RagManagementContent.vue'; // 移动到views目录
 import { ContextVisualizationContent } from '../library';
 import SendMessageContent from '../../views/SendMessageContent.vue'; // 新增发送消息视图组件
+import AISettingsContent from '../../views/AISettingsContent.vue'; // 新增AI配置视图组件
 
 import RightPanel from '../panel/RightPanel.vue';
 import { useSettingsStore } from '../../store/settingsStore.js';

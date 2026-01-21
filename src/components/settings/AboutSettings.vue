@@ -48,7 +48,7 @@
       </a>
     </div>
 
-    <div class="mt-10 text-center text-xs text-neutral">© 2023 AI对话助手. 保留所有权利.</div>
+    <div class="mt-10 text-center text-xs text-neutral">© 2025 Chato. 保留所有权利.</div>
   </div>
 </template>
 
