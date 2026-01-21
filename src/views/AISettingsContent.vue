@@ -565,7 +565,7 @@
             <!-- 左右布局容器 -->
             <div class="flex flex-col md:flex-row gap-6 w-full">
               <!-- 左侧：应用图标/版本 + 关于描述 -->
-              <div class="w-full md:w-1/2 space-y-6">
+              <div class="w-full md:w-1/2 space-y-6 flex flex-col justify-center">
                 <!-- 应用图标和版本信息 -->
               <div class="space-y-4 flex flex-col items-center">
                 <div class="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center shadow-sm hover:scale-105 transition-transform">
