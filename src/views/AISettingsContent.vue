@@ -673,15 +673,37 @@ body {
   transition: all 0.3s ease;
   right: auto;
   left: 0;
+  background-color: white;
+  border-color: #d1d5db;
 }
 
 .toggle-checkbox:checked {
   transform: translateX(calc(100% - 1px));
-  border-color: #000;
+  border-color: #3b82f6;
+  background-color: white;
 }
 
 .toggle-checkbox:checked + .toggle-label {
-  background-color: #000;
+  background-color: #3b82f6;
+}
+
+/* 夜间模式下的紧凑型开关样式 */
+.dark .toggle-checkbox {
+  background-color: #1f2937;
+  border-color: #4b5563;
+}
+
+.dark .toggle-checkbox:checked {
+  border-color: #3b82f6;
+  background-color: white;
+}
+
+.dark .toggle-label {
+  background-color: #374151;
+}
+
+.dark .toggle-checkbox:checked + .toggle-label {
+  background-color: #3b82f6;
 }
 
 /* 极细边框 */
