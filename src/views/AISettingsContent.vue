@@ -3,6 +3,9 @@
     <!-- Header & Compact Navigation -->
     <header class="w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sticky top-0 bg-[#F8FAFC] dark:bg-dark-primary backdrop-blur-md z-30 border-b border-gray-100 dark:border-dark-700 transition-all duration-300">
       <div class="flex items-center gap-3 w-full sm:w-auto">
+        <button @click="settingsStore.setActiveContent('chat')" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
         <h1 class="font-bold text-base sm:text-lg tracking-tight text-gray-900 dark:text-white">ChaTo Setting & Configuration</h1>
       </div>
 
@@ -103,7 +106,7 @@
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">启用后，对话将以流式方式输出，而不是等待全部生成完成</div>
                   </div>
                   <label class="toggle-switch">
-                    <input type="checkbox" checked="">
+                    <input type="checkbox" v-model="settingsStore.systemSettings.streamingEnabled" @change="settingsStore.saveSettings()">
                     <span class="toggle-slider bg-gray-300 dark:bg-dark-600"></span>
                   </label>
                 </div>
@@ -111,7 +114,7 @@
                 <!-- 默认模型 -->
                 <div>
                   <div class="font-medium text-sm text-gray-900 dark:text-white mb-2">默认模型</div>
-                  <select class="w-full text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white">
+                  <select class="w-full text-sm px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="settingsStore.systemSettings.defaultModel" @change="settingsStore.setDefaultModel(settingsStore.systemSettings.defaultModel)">
                     <option disabled="" value="">选择默认模型</option>
                     <option value="Ollama-qwen3:0.6b">Ollama-1</option>
                   </select>
@@ -131,7 +134,7 @@
                     <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">启用后，界面将切换到深色主题，减轻夜间使用时的视觉疲劳</div>
                   </div>
                   <label class="toggle-switch">
-                    <input type="checkbox" checked="">
+                    <input type="checkbox" v-model="settingsStore.systemSettings.darkMode" @change="settingsStore.saveSettings(); settingsStore.applyDarkMode()">
                     <span class="toggle-slider bg-gray-300 dark:bg-dark-600"></span>
                   </label>
                 </div>
@@ -140,10 +143,10 @@
                 <div>
                   <div class="font-medium text-sm text-gray-900 dark:text-white mb-2">对话样式</div>
                   <div class="flex gap-3">
-                    <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600 border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300">
+                    <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600" :class="{ 'border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300': settingsStore.systemSettings.chatStyleDocument, 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 active': !settingsStore.systemSettings.chatStyleDocument }" @click="settingsStore.updateSystemSettings({ chatStyleDocument: false })">
                       <i class="fa-regular fa-comment mr-2"></i> 气泡模式
                     </button>
-                    <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 active">
+                    <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600" :class="{ 'border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300': !settingsStore.systemSettings.chatStyleDocument, 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 active': settingsStore.systemSettings.chatStyleDocument }" @click="settingsStore.updateSystemSettings({ chatStyleDocument: true })">
                       <i class="fa-regular fa-file-lines mr-2"></i> 文档样式
                     </button>
                   </div>
@@ -158,10 +161,10 @@
               <div>
                 <div class="font-medium text-sm text-gray-900 dark:text-white mb-2">文件视图模式</div>
                 <div class="flex gap-3">
-                  <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600 border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300">
+                  <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600" :class="{ 'border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300': settingsStore.systemSettings.viewMode !== 'grid', 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 active': settingsStore.systemSettings.viewMode === 'grid' }" @click="settingsStore.updateSystemSettings({ viewMode: 'grid' })">
                     <i class="fa-regular fa-th mr-2"></i> 网格视图
                   </button>
-                  <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 active">
+                  <button class="chat-style-btn flex-1 py-2 px-3 text-sm border rounded-lg transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-600" :class="{ 'border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-700 text-gray-700 dark:text-gray-300': settingsStore.systemSettings.viewMode !== 'list', 'border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 active': settingsStore.systemSettings.viewMode === 'list' }" @click="settingsStore.updateSystemSettings({ viewMode: 'list' })">
                     <i class="fa-regular fa-list mr-2"></i> 列表视图
                   </button>
                 </div>
@@ -201,7 +204,7 @@
             </div>
 
             <!-- Expandable Body -->
-            <div v-if="provider.open">
+            <div v-if="provider.open" :class="{ open: provider.open }">
               <!-- 1. 凭证部分 (所有模型共享) -->
               <div class="px-5 py-5 grid grid-cols-2 gap-6 hairline-b dark:border-dark-700">
                 <div class="col-span-2 md:col-span-1">
@@ -270,7 +273,7 @@
             </div>
 
             <div class="grid grid-cols-1 gap-3">
-              <button v-for="p in availableProviders" :key="p.name" class="flex items-center gap-3 w-full p-3 rounded-lg border border-dashed border-gray-300 dark:border-dark-600 text-left hover:bg-white dark:hover:bg-dark-800 hover:border-solid hover:border-black dark:hover:border-white hover:shadow-md transition-all group bg-gray-50/50 dark:bg-dark-700/50">
+              <button v-for="p in availableProviders" :key="p.name" @click="addProvider(p)" class="flex items-center gap-3 w-full p-3 rounded-lg border border-dashed border-gray-300 dark:border-dark-600 text-left hover:bg-white dark:hover:bg-dark-800 hover:border-solid hover:border-black dark:hover:border-white hover:shadow-md transition-all group bg-gray-50/50 dark:bg-dark-700/50 cursor-pointer">
                 <div class="w-8 h-8 rounded bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 flex items-center justify-center text-xs font-bold group-hover:scale-110 transition-transform text-gray-900 dark:text-white">
                   <span>{{ p.name.charAt(0) }}</span>
                 </div>
@@ -380,7 +383,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white">
+              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="vectorStore.config.embedding.model" @change="vectorStore.updateEmbeddingConfig(vectorStore.config.embedding)">
                 <option value="qwen3-embedding-0.6b">qwen3-embedding-0.6b (推荐)</option>
                 <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2 (轻量)</option>
                 <option value="all-mpnet-base-v2">all-mpnet-base-v2 (更精确)</option>
@@ -398,7 +401,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white">
+              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="vectorStore.config.storage.type" @change="vectorStore.updateStorageConfig(vectorStore.config.storage)">
                 <option value="chroma">Chroma (默认)</option>
               </select>
             </div>
@@ -413,7 +416,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white">
+              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="vectorStore.config.retrieval.mode" @change="vectorStore.updateRetrievalConfig(vectorStore.config.retrieval)">
                 <option value="vector">向量检索</option>
                 <option value="keyword">关键词检索</option>
                 <option value="hybrid">混合检索</option>
@@ -430,7 +433,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：3" min="1" max="20">
+              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：3" min="1" max="20" v-model.number="vectorStore.config.retrieval.topK" @change="vectorStore.updateRetrievalConfig(vectorStore.config.retrieval)">
             </div>
           </div>
           
@@ -443,7 +446,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：0.7" step="0.05" min="0" max="1">
+              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：0.7" step="0.05" min="0" max="1" v-model.number="vectorStore.config.retrieval.threshold" @change="vectorStore.updateRetrievalConfig(vectorStore.config.retrieval)">
             </div>
           </div>
           
@@ -456,7 +459,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径">
+              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径" v-model="vectorStore.config.storage.path" @change="vectorStore.updateStorageConfig(vectorStore.config.storage)">
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">系统默认路径: 用户数据目录下的 "Retrieval-Augmented Generation\vectorDb"</div>
             </div>
           </div>
@@ -470,7 +473,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径">
+              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径" v-model="vectorStore.config.storage.knowledgeBasePath" @change="vectorStore.updateStorageConfig(vectorStore.config.storage)">
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">系统默认路径: 用户数据目录下的 "Retrieval-Augmented Generation\knowledgeBase"</div>
             </div>
           </div>
@@ -494,7 +497,7 @@
             <div class="flex justify-between items-center">
               <!-- 开关 -->
               <label class="toggle-switch">
-                <input type="checkbox">
+                <input type="checkbox" v-model="settingsStore.notificationsConfig.newMessage" @change="settingsStore.updateNotificationsConfig(settingsStore.notificationsConfig)">
                 <span class="toggle-slider bg-gray-300 dark:bg-dark-600"></span>
               </label>
             </div>
@@ -511,7 +514,7 @@
             <div class="flex justify-between items-center">
               <!-- 开关 -->
               <label class="toggle-switch">
-                <input type="checkbox">
+                <input type="checkbox" v-model="settingsStore.notificationsConfig.sound" @change="settingsStore.updateNotificationsConfig(settingsStore.notificationsConfig)">
                 <span class="toggle-slider bg-gray-300 dark:bg-dark-600"></span>
               </label>
             </div>
@@ -528,7 +531,7 @@
             <div class="flex justify-between items-center">
               <!-- 开关 -->
               <label class="toggle-switch">
-                <input type="checkbox" checked="">
+                <input type="checkbox" v-model="settingsStore.notificationsConfig.system" @change="settingsStore.updateNotificationsConfig(settingsStore.notificationsConfig)">
                 <span class="toggle-slider bg-gray-300 dark:bg-dark-600"></span>
               </label>
             </div>
@@ -543,12 +546,12 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white">
-                <option value="2秒">2秒</option>
-                <option value="5秒">5秒</option>
-                <option value="10秒">10秒</option>
-              </select>
-            </div>
+                <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="settingsStore.notificationsConfig.displayTime" @change="settingsStore.updateNotificationsConfig(settingsStore.notificationsConfig)">
+                  <option value="2秒">2秒</option>
+                  <option value="5秒">5秒</option>
+                  <option value="10秒">10秒</option>
+                </select>
+              </div>
           </div>
         </div>
       </div>
@@ -618,11 +621,13 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useVectorStore } from '../store/vectorStore.js';
 
 // 标签页状态
 const activeTab = ref('basic');
 const mcpCount = ref(2);
 const settingsStore = useSettingsStore();
+const vectorStore = useVectorStore();
 let originalLeftNavVisible = null;
 
 // 组件挂载时隐藏左侧边栏
@@ -664,6 +669,27 @@ const configuredProviders = reactive([
   }
 ]);
 
+// 添加供应商函数
+const addProvider = (provider) => {
+  // 检查供应商是否已存在
+  const exists = configuredProviders.some(p => p.id === provider.name.toLowerCase().replace(/\s+/g, '-'));
+  if (exists) {
+    return; // 已存在则不添加
+  }
+  
+  // 创建新的供应商对象
+  const newProvider = {
+    id: provider.name.toLowerCase().replace(/\s+/g, '-'),
+    name: provider.name,
+    url: '', // 默认空URL，等待用户配置
+    open: true, // 默认展开
+    models: [] // 默认空模型列表，等待用户配置
+  };
+  
+  // 添加到已配置供应商列表
+  configuredProviders.push(newProvider);
+};
+
 // 可用的供应商数据
 const availableProviders = reactive([
   { name: 'Anthropic', desc: 'Claude 3 Family' },
@@ -682,6 +708,22 @@ body {
 
 .mono {
   font-family: 'JetBrains Mono', monospace;
+}
+
+/* 标签页切换过渡效果 */
+main > div {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* 紧凑型 Switch */
@@ -717,6 +759,35 @@ body {
   background-color: #e5e7eb;
 }
 
+/* 卡片悬停效果增强 */
+.card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* 输入框和选择框交互效果 */
+input, select {
+  transition: all 0.2s ease;
+}
+
+input:focus, select:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* 按钮点击反馈 */
+button {
+  transition: all 0.2s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
 /* 极细边框 */
 .hairline-b {
   border-bottom: 1px solid #f1f1f1;
@@ -728,6 +799,45 @@ body {
 
 .hairline-border {
   border: 1px solid #e5e7eb;
+}
+
+/* 可展开卡片动画 */
+.group > div:nth-child(2) {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+}
+
+.group > div:nth-child(2).open {
+  max-height: 500px;
+  transition: max-height 0.5s ease-in;
+}
+
+/* 平滑滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 /* Toggle Switch Styles */
