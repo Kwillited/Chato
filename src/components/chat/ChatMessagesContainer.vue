@@ -1,7 +1,7 @@
 <template>
-  <div ref="scrollContainer" class="flex-1 p-6 overflow-y-auto bg-inherit relative" @scroll="checkScrollPosition">
+  <div ref="scrollContainer" class="flex-1 p-6 overflow-y-auto bg-inherit relative scrollbar-thin" @scroll="checkScrollPosition">
     <!-- 聊天消息列表容器 - 添加与UserInputBox相同的宽度限制 -->
-    <div ref="chatMessagesContainer" class="w-full max-w-4xl mx-auto space-y-6 scrollbar-thin transition-colors duration-300 ease-in-out">
+    <div ref="chatMessagesContainer" class="w-full max-w-4xl mx-auto space-y-6 transition-colors duration-300 ease-in-out">
       <ChatMessage v-for="(message, index) in chatMessages" :key="message.timestamp" :message="message" :chatStyleDocument="settingsStore.systemSettings.chatStyleDocument" :id="`message-${index}`" />
     </div>
     
@@ -110,34 +110,6 @@ watch(chatMessages, () => {
 </script>
 
 <style scoped>
-/* 滚动条样式 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* 深色模式滚动条样式 */
-.dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  transition: background-color 0.3s ease-in-out;
-}
-
-.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   /* 在平板和手机上，调整快捷跳转模块的位置 */
