@@ -25,7 +25,7 @@
           <div
             v-for="model in filteredConfiguredModels"
             :key="model.name"
-            class="model-item p-3 rounded-lg bg-white border border-gray-200 hover:border-primary transition-all"
+            class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all"
           >
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
@@ -34,9 +34,9 @@
                   <i v-else :class="model.icon_class + ' text-xl'"></i>
                 </div>
                 <div>
-                  <div class="font-medium text-sm">
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">
                     {{ model.name }}
-                    <span v-if="model.is_default" class="ml-1 text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded">默认</span>
+                    <span v-if="model.is_default" class="ml-1 text-xs px-1.5 py-0.5 bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary rounded">默认</span>
                   </div>
                 </div>
               </div>
@@ -48,28 +48,28 @@
                     @change="toggleModelEnabled(model)"
                     class="sr-only peer"
                   />
-                  <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
+                  <div class="w-9 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
                 </label>
                 <button
-                  class="text-sm text-green-600 border border-green-600 rounded px-2 hover:text-green-700 hover:border-green-700 transition-colors"
+                  class="text-sm text-green-600 dark:text-green-400 border border-green-600 dark:border-green-500 rounded px-2 hover:text-green-700 dark:hover:text-green-300 hover:border-green-700 dark:hover:border-green-400 transition-colors"
                   @click="editModel(model)"
                 >
                   新增
                 </button>
                 <button
-                  class="text-sm text-red-600 border border-red-600 rounded px-2 hover:text-red-700 hover:border-red-700 transition-colors ml-2"
+                  class="text-sm text-red-600 dark:text-red-400 border border-red-600 dark:border-red-500 rounded px-2 hover:text-red-700 dark:hover:text-red-300 hover:border-red-700 dark:hover:border-red-400 transition-colors ml-2"
                   @click="deleteModelConfig(model)"
                 >
                   删除
                 </button>
               </div>
             </div>
-            <div class="text-xs text-gray-500 mb-1">已配置版本</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">已配置版本</div>
             <div class="flex flex-wrap gap-2">
               <span v-for="version in model.versions || []" :key="version.version_name || version"
-                        class="text-xs text-blue-500 cursor-pointer hover:text-blue-700 transition-colors bg-blue-50 px-2 py-0.5 rounded flex items-center"
+                        class="text-xs text-blue-500 dark:text-blue-400 cursor-pointer hover:text-blue-700 dark:hover:text-blue-300 transition-colors bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded flex items-center"
                         @click="editModelVersion({...model, selected_version: version})">{{ version.custom_name || version.version_name }}<button 
-                      class="ml-1 text-red-500 hover:text-red-700 transition-colors"
+                      class="ml-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
                       @click.stop="deleteModelVersion(model, version)">
                       <i class="fa-solid fa-circle-xmark"></i>
                     </button></span>
@@ -104,7 +104,7 @@
           <div
             v-for="model in filteredUnconfiguredModels"
             :key="model.name"
-            class="model-item p-3 rounded-lg bg-white border border-gray-200 hover:border-primary transition-all"
+            class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
@@ -113,12 +113,12 @@
                   <i v-else :class="model.icon_class + ' text-xl'"></i>
                 </div>
                 <div>
-                  <div class="font-medium text-sm">{{ model.name }}</div>
-                  <div class="text-xs text-neutral mt-0.5">{{ model.description }}</div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">{{ model.name }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ model.description }}</div>
                 </div>
               </div>
               <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all"
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
                 @click="configModel(model)"
               >
                 配置

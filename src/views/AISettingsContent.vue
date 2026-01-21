@@ -224,7 +224,36 @@
               <div class="px-5 py-4">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">模型清单</span>
-                  <button class="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline">+ 映射新模型</button>
+                  <button @click="toggleModelForm(provider)" class="text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:underline">+ 映射新模型</button>
+                </div>
+                
+                <!-- 模型映射表单 - 水平布局 -->
+                <div v-if="provider.showModelForm" class="mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-dark-600">
+                  <div class="flex flex-wrap items-end gap-3">
+                    <!-- 模型类型 -->
+                    <div class="min-w-[120px]">
+                      <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">模型类型</label>
+                      <select v-model="provider.newModel.type" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white">
+                        <option value="llm">聊天补全</option>
+                        <option value="embed">嵌入</option>
+                      </select>
+                    </div>
+                    <!-- 模型ID -->
+                    <div class="flex-1 min-w-[120px]">
+                      <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">模型ID</label>
+                      <input type="text" v-model="provider.newModel.id" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white" placeholder="例如：gpt-4o">
+                    </div>
+                    <!-- 自定义模型名字 -->
+                    <div class="flex-1 min-w-[120px]">
+                      <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">自定义模型名字</label>
+                      <input type="text" v-model="provider.newModel.customName" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white" placeholder="例如：我的GPT-4o">
+                    </div>
+                    <!-- 表单按钮 -->
+                    <div class="flex gap-2">
+                      <button @click="saveModelMapping(provider)" class="text-xs bg-primary hover:bg-primary/90 text-white rounded px-3 py-1.5 transition-colors whitespace-nowrap">保存</button>
+                      <button @click="cancelModelMapping(provider)" class="text-xs bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 text-gray-900 dark:text-white rounded px-3 py-1.5 transition-colors whitespace-nowrap">取消</button>
+                    </div>
+                  </div>
                 </div>
                 
                 <table class="w-full text-left border-collapse">
@@ -239,17 +268,27 @@
                       </td>
                       <!-- Model ID -->
                       <td class="py-2.5">
-                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ model.id }}</div>
+                        <div class="text-xs font-medium text-gray-900 dark:text-white">{{ model.customName || model.id }}</div>
                         <div class="text-[10px] text-gray-400 dark:text-gray-500">{{ model.type === 'llm' ? '聊天补全' : '嵌入' }}</div>
                       </td>
                       <!-- Specs -->
                       <td class="py-2.5 px-4 text-xs text-gray-500 dark:text-gray-400 mono">{{ model.context }}</td>
-                      <!-- Switch -->
-                      <td class="py-2.5 pl-4 text-right">
+                      <!-- Actions Columns (紧凑排列) -->
+                      <td class="py-2.5 w-12 text-right pr-1">
                         <label class="relative inline-block w-7 h-3.5 align-middle select-none cursor-pointer">
                         <input type="checkbox" v-model="model.active" class="toggle-checkbox absolute block w-3.5 h-3.5 rounded-full bg-white border-2 border-gray-300 dark:border-dark-600 appearance-none cursor-pointer transition-all duration-300 top-0 left-0"/>
                         <span class="toggle-label block overflow-hidden h-3.5 rounded-full bg-gray-200 dark:bg-dark-700 cursor-pointer"></span>
                       </label>
+                      </td>
+                      <td class="py-2.5 w-8 text-right pr-0">
+                        <button @click="editModelMapping(provider, model)" class="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                          <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                      </td>
+                      <td class="py-2.5 w-8 text-right pl-0 pr-2">
+                        <button @click="deleteModelMapping(provider, model)" class="text-[10px] text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
                       </td>
                     </tr>
                   </tbody>
@@ -258,7 +297,7 @@
               
               <!-- Footer -->
               <div class="bg-gray-50 dark:bg-dark-700 px-5 py-2 border-t border-gray-100 dark:border-dark-800 flex justify-end">
-                <button class="text-[10px] text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">移除供应商</button>
+                <button @click="removeProvider(provider)" class="text-[10px] text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium">移除供应商</button>
               </div>
             </div>
           </div>
@@ -273,18 +312,22 @@
             </div>
 
             <div class="grid grid-cols-1 gap-3">
-              <button v-for="p in availableProviders" :key="p.name" @click="addProvider(p)" class="flex items-center gap-3 w-full p-3 rounded-lg border border-dashed border-gray-300 dark:border-dark-600 text-left hover:bg-white dark:hover:bg-dark-800 hover:border-solid hover:border-black dark:hover:border-white hover:shadow-md transition-all group bg-gray-50/50 dark:bg-dark-700/50 cursor-pointer">
-                <div class="w-8 h-8 rounded bg-white dark:bg-dark-800 border border-gray-200 dark:border-dark-600 flex items-center justify-center text-xs font-bold group-hover:scale-110 transition-transform text-gray-900 dark:text-white">
-                  <span>{{ p.name.charAt(0) }}</span>
+              <button v-for="p in availableProviders" :key="p.name" @click="addProvider(p)" class="flex items-center gap-3 w-full p-3 rounded-lg border border-dashed border-gray-300 bg-white text-left hover:bg-gray-100 hover:border-solid hover:border-black hover:shadow-md transition-all cursor-pointer">
+                <div class="w-8 h-8 rounded bg-white border border-gray-200 flex items-center justify-center text-xs font-bold">
+                  {{ p.name.charAt(0) }}
                 </div>
-                <div class="flex-1">
-                  <div class="text-xs font-bold text-gray-900 dark:text-white">{{ p.name }}</div>
-                  <div class="text-[10px] text-gray-500 dark:text-gray-400 truncate">{{ p.desc }}</div>
+                <div style="min-width: 0; flex: 1;">
+                  <div style="font-size: 0.75rem; font-weight: 600; color: #1f2937; display: block !important;">
+                    {{ p.name }}
+                  </div>
+                  <div style="font-size: 0.625rem; color: #6b7280; display: block !important; margin-top: 0.125rem;">
+                    {{ p.desc }}
+                  </div>
                 </div>
-                <span class="text-gray-300 dark:text-gray-500 group-hover:text-black dark:group-hover:text-white text-lg font-light leading-none">+</span>
+                <span style="font-size: 1.125rem; font-weight: 300; color: #6b7280;">+</span>
               </button>
               
-              <button class="w-full py-3 text-xs font-medium text-gray-400 dark:text-gray-500 border border-transparent hover:text-black dark:hover:text-white transition-colors text-center">
+              <button class="w-full py-3 text-xs font-medium text-gray-400 border border-transparent hover:text-black transition-colors text-center">
                 找不到供应商？配置自定义供应商
               </button>
             </div>
@@ -683,11 +726,150 @@ const addProvider = (provider) => {
     name: provider.name,
     url: '', // 默认空URL，等待用户配置
     open: true, // 默认展开
-    models: [] // 默认空模型列表，等待用户配置
+    models: [], // 默认空模型列表，等待用户配置
+    showModelForm: false, // 模型表单显示状态
+    newModel: null // 新模型数据
   };
   
-  // 添加到已配置供应商列表
-  configuredProviders.push(newProvider);
+  // 添加到已配置供应商列表的开头，方便继续添加
+  configuredProviders.unshift(newProvider);
+  
+  // 从可用供应商列表中移除该供应商
+  const index = availableProviders.findIndex(p => p.name === provider.name);
+  if (index > -1) {
+    availableProviders.splice(index, 1);
+  }
+};
+
+// 移除供应商函数
+const removeProvider = (provider) => {
+  // 从已配置供应商列表中移除该供应商
+  const index = configuredProviders.findIndex(p => p.id === provider.id);
+  if (index > -1) {
+    configuredProviders.splice(index, 1);
+  }
+  
+  // 将该供应商添加回可用供应商列表
+  // 检查是否已存在于可用列表中
+  const existsInAvailable = availableProviders.some(p => p.name === provider.name);
+  if (!existsInAvailable) {
+    // 根据供应商名称获取原始描述
+    let desc = '';
+    switch (provider.name) {
+      case 'Anthropic':
+        desc = 'Claude 3 Family';
+        break;
+      case 'Google Gemini':
+        desc = 'Vertex AI / AI Studio';
+        break;
+      case 'Mistral AI':
+        desc = 'Open Weights API';
+        break;
+      case 'Groq':
+        desc = 'LPU Inference Engine';
+        break;
+      case 'DeepSeek':
+        desc = 'Code & Reasoning';
+        break;
+      default:
+        desc = '';
+    }
+    
+    // 添加到可用供应商列表
+    availableProviders.push({
+      name: provider.name,
+      desc: desc
+    });
+  }
+};
+
+// 切换模型表单显示状态
+const toggleModelForm = (provider) => {
+  // 初始化表单状态和数据
+  if (!provider.showModelForm) {
+    provider.showModelForm = true;
+    // 初始化新模型数据
+    provider.newModel = {
+      id: '',
+      type: 'llm',
+      customName: '',
+      context: '8k',
+      active: true
+    };
+  } else {
+    provider.showModelForm = false;
+  }
+};
+
+// 保存模型映射
+const saveModelMapping = (provider) => {
+  // 验证模型ID是否为空
+  if (!provider.newModel.id.trim()) {
+    return;
+  }
+  
+  // 创建模型对象
+  const modelData = {
+    id: provider.newModel.id,
+    type: provider.newModel.type,
+    customName: provider.newModel.customName || '',
+    context: provider.newModel.context,
+    active: provider.newModel.active
+  };
+  
+  // 检查是否正在编辑现有模型
+  if (provider.editingModelIndex !== undefined && provider.editingModelIndex > -1) {
+    // 更新现有模型
+    provider.models[provider.editingModelIndex] = modelData;
+    // 重置编辑索引
+    provider.editingModelIndex = undefined;
+  } else {
+    // 添加新模型到列表
+    provider.models.push(modelData);
+  }
+  
+  // 关闭表单
+  provider.showModelForm = false;
+  
+  // 清空新模型数据
+  provider.newModel = null;
+};
+
+// 取消模型映射
+const cancelModelMapping = (provider) => {
+  // 关闭表单
+  provider.showModelForm = false;
+  
+  // 清空新模型数据
+  provider.newModel = null;
+};
+
+// 编辑模型映射
+const editModelMapping = (provider, model) => {
+  // 填充表单数据
+  provider.newModel = {
+    id: model.id,
+    type: model.type,
+    customName: model.customName || '',
+    context: model.context,
+    active: model.active
+  };
+  
+  // 显示表单
+  provider.showModelForm = true;
+  
+  // 记录正在编辑的模型索引
+  provider.editingModelIndex = provider.models.findIndex(m => m.id === model.id);
+};
+
+// 删除模型映射
+const deleteModelMapping = (provider, model) => {
+  // 找到模型索引
+  const index = provider.models.findIndex(m => m.id === model.id);
+  if (index > -1) {
+    // 从模型列表中删除
+    provider.models.splice(index, 1);
+  }
 };
 
 // 可用的供应商数据
