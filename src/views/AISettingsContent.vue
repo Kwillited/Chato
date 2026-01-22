@@ -187,7 +187,7 @@
           <!-- Provider Card Template -->
           <div v-for="provider in configuredProviders" :key="provider.id" class="group border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800 transition-all hover:border-gray-400 dark:hover:border-gray-500 overflow-hidden">
             <!-- Card Header: Provider Identity -->
-            <div @click="provider.open = !provider.open" class="px-5 py-4 flex items-center justify-between cursor-pointer select-none bg-gray-50/30 dark:bg-dark-700/30 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors">
+            <div @click="toggleProviderOpen(provider.name)" class="px-5 py-4 flex items-center justify-between cursor-pointer select-none bg-gray-50/30 dark:bg-dark-700/30 hover:bg-gray-50 dark:hover:bg-dark-700 transition-colors">
               <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded border border-gray-200 dark:border-dark-600 bg-white dark:bg-dark-800 flex items-center justify-center text-sm font-bold dark:text-white">{{ provider.name.charAt(0) }}</div>
                 <div>
@@ -684,6 +684,9 @@ const vectorStore = useVectorStore();
 const modelStore = useModelSettingStore();
 let originalLeftNavVisible = null;
 
+// 已配置模型列表的展开状态管理
+const providerOpenStates = ref({});
+
 // 模型表单状态管理
 const editingProvider = ref(null);
 const editingModel = ref(null);
@@ -741,16 +744,22 @@ const configuredProviders = computed(() => {
   return modelStore.configuredModels.map(model => {
     // 获取第一个版本的API配置作为供应商级别的默认配置
     const firstVersion = model.versions?.[0] || {};
+    
+    // 初始化展开状态（默认关闭）
+    if (!(model.name in providerOpenStates.value)) {
+      providerOpenStates.value[model.name] = false;
+    }
+    
     return {
       id: model.name.toLowerCase().replace(/\s+/g, '-'),
       name: model.name,
       url: model.api_base_url || '',
       apiBaseUrl: model.api_base_url || firstVersion.api_base_url || '',
       apiKey: firstVersion.api_key || '',
-      open: true,
+      open: providerOpenStates.value[model.name],
       models: model.versions?.map(version => ({
         id: version.version_name,
-        type: 'llm', // 默认类型，实际应从modelStore获取
+        type: version.type || 'llm',
         context: '8k', // 默认上下文，实际应从modelStore获取
         active: version.enabled || true,
         customName: version.custom_name,
@@ -772,6 +781,11 @@ const configuredProviders = computed(() => {
     };
   });
 });
+
+// 切换供应商卡片展开状态
+const toggleProviderOpen = (providerName) => {
+  providerOpenStates.value[providerName] = !providerOpenStates.value[providerName];
+};
 
 // 添加供应商函数 - 打开模型配置表单
 const addProvider = async (provider) => {
