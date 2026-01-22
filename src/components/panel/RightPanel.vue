@@ -116,7 +116,6 @@
 
 <script setup>
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { useSettingsStore } from '../../store/settingsStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import ActionButton from '../common/ActionButton.vue';
 import { showNotification } from '../../services/notificationUtils.js';
@@ -134,7 +133,6 @@ const _props = defineProps({
 
 // 初始化stores
 const settingsStore = useSettingsStore();
-const _modelStore = useSettingsStore();
 const chatStore = useChatStore();
 
 // 上下文调整状态

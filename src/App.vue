@@ -32,12 +32,12 @@ import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import DisplayArea from './components/layout/DisplayArea.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
-import { useSettingsStore } from './store/settingsStore.js';
+
+import { apiService } from './services/apiService.js';
 
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-const modelSettingStore = useSettingsStore();
 
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
@@ -60,8 +60,6 @@ watch(
     }
   }
 );
-
-import { apiService } from './services/apiService.js';
 
 // 初始化应用
 onMounted(async () => {
@@ -96,7 +94,7 @@ onMounted(async () => {
     
     // 加载模型数据
     try {
-      await modelSettingStore.loadModels();
+      await settingsStore.loadModels();
     } catch (error) {
       console.error('初始化加载模型数据失败:', error);
     }

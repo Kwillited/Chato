@@ -673,9 +673,8 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
-import { useSettingsStore } from '../store/settingsStore.js';
 
-// 标签页状态
+// 初始化stores
 const activeTab = ref('basic');
 const mcpCount = ref(2);
 const settingsStore = useSettingsStore();

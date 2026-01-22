@@ -22,87 +22,145 @@ api.interceptors.request.use(
   }
 );
 
+// API响应适配器 - 统一处理API响应格式
+class ApiResponseAdapter {
+  /**
+   * 标准化API响应格式
+   * @param {Object} response - 原始API响应
+   * @returns {Object} 标准化后的响应
+   */
+  static standardizeResponse(response) {
+    // 检查是否已经是标准化格式
+    if (response && response.success !== undefined && response.data !== undefined) {
+      return response;
+    }
+
+    // 处理不同的响应格式
+    if (Array.isArray(response)) {
+      // 兼容数组格式响应 [data, status]
+      return {
+        success: true,
+        data: response[0] || null,
+        status: response[1] || 200,
+        message: '操作成功',
+        version: '1.0.0'
+      };
+    } else if (response && typeof response === 'object') {
+      // 兼容对象格式响应
+      return {
+        success: response.success !== false,
+        data: response.data || response,
+        status: response.status || 200,
+        message: response.message || (response.success === false ? '操作失败' : '操作成功'),
+        version: response.version || '1.0.0'
+      };
+    } else {
+      // 兼容原始数据格式
+      return {
+        success: true,
+        data: response,
+        status: 200,
+        message: '操作成功',
+        version: '1.0.0'
+      };
+    }
+  }
+
+  /**
+   * 标准化API错误
+   * @param {Error} error - 原始API错误
+   * @returns {Error} 标准化后的错误
+   */
+  static standardizeError(error) {
+    // 创建结构化错误信息
+    const errorInfo = {
+      message: '请求失败',
+      details: '',
+      type: 'unknown',
+      status: error.response?.status || 0
+    };
+
+    if (error.response) {
+      // 服务器返回错误状态码
+      const { status, data } = error.response;
+      errorInfo.status = status;
+      
+      switch (status) {
+        case 401:
+          errorInfo.message = '未授权访问';
+          errorInfo.details = '请检查您的身份验证信息';
+          errorInfo.type = 'unauthorized';
+          break;
+        case 403:
+          errorInfo.message = '禁止访问';
+          errorInfo.details = '您没有权限执行此操作';
+          errorInfo.type = 'forbidden';
+          break;
+        case 404:
+          errorInfo.message = '资源不存在';
+          errorInfo.details = '请求的资源未找到';
+          errorInfo.type = 'not_found';
+          break;
+        case 500:
+          errorInfo.message = '服务器错误';
+          errorInfo.details = '服务器内部出现问题，请稍后重试';
+          errorInfo.type = 'server_error';
+          break;
+        case 502:
+        case 503:
+        case 504:
+          errorInfo.message = '服务不可用';
+          errorInfo.details = '服务器暂时无法响应，请稍后重试';
+          errorInfo.type = 'service_unavailable';
+          break;
+        default:
+          errorInfo.message = '请求失败';
+          errorInfo.details = data?.message || '未知错误';
+          errorInfo.type = 'http_error';
+      }
+    } else if (error.request) {
+      // 请求已发送但没有收到响应
+      errorInfo.message = '网络错误';
+      errorInfo.details = '请检查您的网络连接';
+      errorInfo.type = 'network_error';
+    } else {
+      // 请求配置错误
+      errorInfo.message = '请求配置错误';
+      errorInfo.details = error.message;
+      errorInfo.type = 'config_error';
+    }
+    
+    // 增强错误对象
+    error.errorInfo = errorInfo;
+    console.error('API错误详情:', errorInfo);
+    
+    return error;
+  }
+}
+
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
     console.log('API响应:', response.status, response.config.url);
-    return response.data;
+    // 标准化API响应
+    const standardizedResponse = ApiResponseAdapter.standardizeResponse(response.data);
+    return standardizedResponse;
   },
   (error) => {
-    // 统一错误处理
-    handleApiError(error);
-    return Promise.reject(error);
+    // 统一错误处理，标准化错误
+    const standardizedError = ApiResponseAdapter.standardizeError(error);
+    return Promise.reject(standardizedError);
   }
 );
 
 // 统一错误处理函数
 function handleApiError(error) {
   console.error('API错误:', error.message);
-  
-  // 创建结构化错误信息
-  const errorInfo = {
-    message: '请求失败',
-    details: '',
-    type: 'unknown',
-    status: error.response?.status || 0
-  };
-
-  if (error.response) {
-    // 服务器返回错误状态码
-    const { status, data } = error.response;
-    errorInfo.status = status;
-    
-    switch (status) {
-      case 401:
-        errorInfo.message = '未授权访问';
-        errorInfo.details = '请检查您的身份验证信息';
-        errorInfo.type = 'unauthorized';
-        break;
-      case 403:
-        errorInfo.message = '禁止访问';
-        errorInfo.details = '您没有权限执行此操作';
-        errorInfo.type = 'forbidden';
-        break;
-      case 404:
-        errorInfo.message = '资源不存在';
-        errorInfo.details = '请求的资源未找到';
-        errorInfo.type = 'not_found';
-        break;
-      case 500:
-        errorInfo.message = '服务器错误';
-        errorInfo.details = '服务器内部出现问题，请稍后重试';
-        errorInfo.type = 'server_error';
-        break;
-      case 502:
-      case 503:
-      case 504:
-        errorInfo.message = '服务不可用';
-        errorInfo.details = '服务器暂时无法响应，请稍后重试';
-        errorInfo.type = 'service_unavailable';
-        break;
-      default:
-        errorInfo.message = '请求失败';
-        errorInfo.details = data?.message || '未知错误';
-        errorInfo.type = 'http_error';
-    }
-  } else if (error.request) {
-    // 请求已发送但没有收到响应
-    errorInfo.message = '网络错误';
-    errorInfo.details = '请检查您的网络连接';
-    errorInfo.type = 'network_error';
-  } else {
-    // 请求配置错误
-    errorInfo.message = '请求配置错误';
-    errorInfo.details = error.message;
-    errorInfo.type = 'config_error';
-  }
-  
-  // 增强错误对象
-  error.errorInfo = errorInfo;
-  console.error('API错误详情:', errorInfo);
-  
-  return errorInfo;
+  return ApiResponseAdapter.standardizeError(error).errorInfo;
 }
+
+// 导出API响应适配器
+export { ApiResponseAdapter };
 
 // 创建API请求重试函数 - 优化版：支持多种重试策略和配置
 async function requestWithRetry(config, options = {}) {

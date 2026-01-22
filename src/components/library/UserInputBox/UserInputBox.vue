@@ -439,7 +439,6 @@ const _props = defineProps({
 });
 import { useChatStore } from '../../../store/chatStore.js';
 import { useSettingsStore } from '../../../store/settingsStore.js';
-import { useSettingsStore } from '../../../store/settingsStore.js';
 
 
 // 定义存储键

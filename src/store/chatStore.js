@@ -4,14 +4,149 @@ import { generateId } from './utils';
 import { showNotification } from '../services/notificationUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
-// 定义聊天消息的类型描述
+// 模型适配器 - 统一处理模型配置格式
+class ModelAdapter {
+  /**
+   * 标准化模型配置格式
+   * @param {Object} modelConfig - 原始模型配置
+   * @returns {Object} 标准化后的模型配置
+   */
+  static standardizeModelConfig(modelConfig) {
+    if (!modelConfig) return null;
+
+    // 标准化模型版本配置
+    const standardizedVersions = (modelConfig.versions || []).map(version => ({
+      id: version.id || `${modelConfig.name}-${version.version_name}`,
+      version_name: version.version_name || version.name || 'default',
+      custom_name: version.custom_name || version.display_name || version.version_name || 'Default',
+      api_key: version.api_key || version.apiKey || '',
+      api_base_url: version.api_base_url || version.apiBaseUrl || '',
+      streaming: version.streaming || version.streamingConfig || version.streaming_config || false,
+      enabled: version.enabled !== false,
+      created_at: version.created_at || version.createdAt || Date.now(),
+      updated_at: version.updated_at || version.updatedAt || Date.now()
+    }));
+
+    // 标准化模型配置
+    return {
+      id: modelConfig.id || modelConfig.name,
+      name: modelConfig.name || '',
+      custom_name: modelConfig.custom_name || modelConfig.display_name || modelConfig.name || '',
+      provider: modelConfig.provider || modelConfig.name.split('-')[0] || 'unknown',
+      configured: modelConfig.configured !== false,
+      enabled: modelConfig.enabled !== false,
+      versions: standardizedVersions,
+      capabilities: modelConfig.capabilities || ['chat', 'completion'],
+      created_at: modelConfig.created_at || modelConfig.createdAt || Date.now(),
+      updated_at: modelConfig.updated_at || modelConfig.updatedAt || Date.now()
+    };
+  }
+
+  /**
+   * 标准化模型ID格式
+   * @param {string} modelId - 原始模型ID
+   * @returns {string} 标准化后的模型ID
+   */
+  static standardizeModelId(modelId) {
+    if (!modelId) return null;
+
+    // 确保模型ID使用name-version_name格式
+    if (!modelId.includes('-')) {
+      // 旧格式：只包含version_name，需要转换为name-version_name格式
+      return `default-${modelId}`;
+    }
+    return modelId;
+  }
+
+  /**
+   * 格式化模型显示名称
+   * @param {string} modelId - 模型ID
+   * @param {Array} models - 模型列表
+   * @returns {string} 格式化后的模型显示名称
+   */
+  static formatModelDisplayName(modelId, models) {
+    if (!modelId) return '默认模型';
+
+    // 处理不同的模型ID格式
+    const standardizedModelId = ModelAdapter.standardizeModelId(modelId);
+    const [modelName, versionName] = standardizedModelId.split('-', 2);
+
+    const model = models.find(m => m.name === modelName);
+    if (model && model.versions) {
+      const version = model.versions.find(v => v.version_name === versionName);
+      if (version) {
+        return `${model.custom_name || model.name}-${version.custom_name || version.version_name}`;
+      }
+    }
+
+    return modelId;
+  }
+}
+
+// 消息适配器 - 统一处理消息格式
+class MessageAdapter {
+  /**
+   * 标准化消息格式，统一使用ref包装
+   * @param {Object|ref} message - 原始消息
+   * @returns {ref} 标准化后的ref包装消息
+   */
+  static standardizeMessage(message) {
+    if (!message) return ref(null);
+
+    // 如果已经是ref对象，直接返回
+    if (typeof message.value !== 'undefined') {
+      return message;
+    }
+
+    // 标准化消息数据
+    const standardizedData = {
+      id: message.id || generateId('msg'),
+      role: message.role || 'ai',
+      content: message.content || '',
+      timestamp: message.timestamp || Date.now(),
+      status: message.status || 'received',
+      isTyping: message.isTyping || false,
+      model: message.model || '',
+      error: message.error || null,
+      files: Array.isArray(message.files) ? message.files : [],
+      lastUpdate: message.lastUpdate || Date.now(),
+      metadata: message.metadata || {}
+    };
+
+    // 使用ref包装
+    return ref(standardizedData);
+  }
+
+  /**
+   * 标准化消息列表，统一使用ref包装
+   * @param {Array} messages - 原始消息列表
+   * @returns {Array} 标准化后的ref包装消息列表
+   */
+  static standardizeMessageList(messages) {
+    if (!Array.isArray(messages)) return [];
+
+    return messages.map(message => MessageAdapter.standardizeMessage(message));
+  }
+}
+
+// 定义聊天消息的类型描述 - 统一使用ref包装
 /**
- * @typedef {Object} ChatMessage
+ * @typedef {Object} ChatMessageData
  * @property {string} id - 消息ID
  * @property {'user' | 'ai'} role - 消息角色
  * @property {string} content - 消息内容
  * @property {number} timestamp - 消息时间戳
+ * @property {string} status - 消息状态 (sent, received, streaming, error)
+ * @property {boolean} isTyping - 是否正在输入
+ * @property {string} model - 使用的模型
  * @property {string} [error] - 错误信息（可选）
+ * @property {Array} files - 附件列表
+ * @property {number} lastUpdate - 最后更新时间
+ * @property {Object} metadata - 元数据
+ */
+
+/**
+ * @typedef {ref<ChatMessageData>} ChatMessage - 统一使用ref包装的消息对象
  */
 
 // 定义对话的类型描述
@@ -19,10 +154,12 @@ import { ref } from 'vue'; // 引入 ref
  * @typedef {Object} Chat
  * @property {string} id - 对话ID
  * @property {string} title - 对话标题
- * @property {ChatMessage[]} messages - 消息列表
+ * @property {ChatMessage[]} messages - 统一使用ref包装的消息列表
  * @property {number} createdAt - 创建时间
  * @property {number} updatedAt - 更新时间
  * @property {string} model - 使用的模型
+ * @property {boolean} [pinned] - 是否置顶
+ * @property {Object} [metadata] - 元数据
  */
 
 export const useChatStore = defineStore('chat', {
@@ -38,6 +175,9 @@ export const useChatStore = defineStore('chat', {
     retryCount: 0, // 重试计数
     maxRetries: 10, // 最大重试次数
     retryInterval: 3000, // 初始重试间隔（毫秒）
+    // 适配器实例
+    modelAdapter: ModelAdapter,
+    messageAdapter: MessageAdapter
   }),
 
   getters: {
@@ -68,9 +208,18 @@ export const useChatStore = defineStore('chat', {
       return state.chats.filter(
         (chat) =>
           chat.title.toLowerCase().includes(query) ||
-          chat.messages.some((message) => message.content.toLowerCase().includes(query))
+          chat.messages.some((message) => {
+            // 统一处理ref包装的消息对象
+            const messageValue = message?.value;
+            return messageValue && messageValue.content.toLowerCase().includes(query);
+          })
       );
     },
+    
+    // 获取标准化的模型列表
+    standardizedModels: (state) => {
+      return state.models?.map(model => ModelAdapter.standardizeModelConfig(model)) || [];
+    }
   },
 
   actions: {
@@ -101,7 +250,9 @@ export const useChatStore = defineStore('chat', {
         console.log('调用API创建新对话...');
         const response = await apiService.chat.createChat('新对话');
         console.log('API调用成功，响应:', response);
-        let newChat = response.chat;
+        
+        // 处理标准化后的API响应
+        let newChat = response?.data?.chat || response?.chat || {};
         
         // 如果传递了模型参数，保存到新对话中
         if (model) {
@@ -110,6 +261,9 @@ export const useChatStore = defineStore('chat', {
             model: model
           };
         }
+        
+        // 确保消息列表使用ref包装
+        newChat.messages = MessageAdapter.standardizeMessageList(newChat.messages || []);
         
         // 将新对话添加到本地状态
         this.chats.unshift(newChat); // 添加到开头，保持最新优先
@@ -661,9 +815,16 @@ export const useChatStore = defineStore('chat', {
         const response = await apiService.chat.getHistory();
         console.log('API调用成功，响应:', response);
         
-        if (response && response.chats) {
-          // 确保chats是数组
-          this.chats = Array.isArray(response.chats) ? response.chats : [];
+        // 处理标准化后的API响应
+        const chatsData = response?.data?.chats || response?.chats || [];
+        
+        if (Array.isArray(chatsData)) {
+          // 标准化对话历史，确保消息使用ref包装
+          this.chats = chatsData.map(chat => ({
+            ...chat,
+            // 标准化消息列表，统一使用ref包装
+            messages: MessageAdapter.standardizeMessageList(chat.messages || [])
+          }));
           
           // 确保数据一致性
           this.ensureDataIntegrity();
@@ -686,8 +847,6 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-
-
     // 确保数据一致性
     async ensureDataIntegrity() {
       // 动态导入settingsStore，减少直接依赖
@@ -699,35 +858,10 @@ export const useChatStore = defineStore('chat', {
 
       // 确保所有对话和消息有必要的字段
       this.chats = this.chats.map((chat) => {
-        // 确保消息有必要的字段
+        // 确保消息有必要的字段，并统一使用ref包装
         const processedMessages = chat.messages.map((message) => {
-          // 处理ref包装的消息
-          const messageData = message?.value || message;
-          
-          // 对于历史消息，使用对话的createdAt或updatedAt作为基准时间，避免所有消息显示为"刚刚"
-          // 对于新消息，使用messageData.timestamp或messageData.time
-          let messageTimestamp = messageData.timestamp || messageData.time;
-          if (!messageTimestamp) {
-            // 如果没有时间戳，使用对话的createdAt或updatedAt，并根据消息索引调整时间
-            const baseTime = chat.createdAt || chat.updatedAt || Date.now();
-            // 为每条消息添加一个递增的时间偏移，避免所有消息显示同一时间
-            const messageIndex = chat.messages.indexOf(message);
-            messageTimestamp = baseTime + (messageIndex * 1000); // 每条消息间隔1秒
-          }
-          
-          return {
-            ...messageData,
-            // 确保timestamp字段存在
-            timestamp: messageTimestamp,
-            // 确保role字段存在
-            role: messageData.role || 'ai',
-            // 确保content字段存在
-            content: messageData.content || '',
-            // 确保model字段存在，使用正确的默认值，避免硬编码GPT4
-            model: messageData.model || chat.model || settingsStore.systemSettings.defaultModel || 'Chato',
-            // 确保files字段存在（默认为空数组）
-            files: Array.isArray(messageData.files) ? messageData.files : []
-          };
+          // 使用MessageAdapter标准化消息格式，统一使用ref包装
+          return MessageAdapter.standardizeMessage(message);
         });
 
         return {
@@ -739,8 +873,18 @@ export const useChatStore = defineStore('chat', {
           model: chat.model || settingsStore.systemSettings.defaultModel || 'Chato',
           pinned: chat.pinned || false,
           metadata: chat.metadata || {},
+          hasUnreadMessage: chat.hasUnreadMessage || false
         };
       });
+    },
+
+    // 导出模型适配器和消息适配器
+    getModelAdapter() {
+      return ModelAdapter;
+    },
+
+    getMessageAdapter() {
+      return MessageAdapter;
     },
 
     // 导出对话历史
