@@ -46,7 +46,8 @@ class ModelService(BaseService):
                 'custom_name': version.custom_name,
                 'api_key': version.api_key,
                 'api_base_url': version.api_base_url,
-                'streaming_config': bool(version.streaming_config)
+                'streaming_config': bool(version.streaming_config),
+                'type': version.type or 'llm'
             })
         
         return {
@@ -200,6 +201,8 @@ class ModelService(BaseService):
                     version['api_key'] = data['api_key']
                 if 'api_base_url' in data:
                     version['api_base_url'] = data['api_base_url']
+                if 'type' in data:
+                    version['type'] = data['type']
                 version['streaming_config'] = data.get('streaming_config', False)  # 流式配置
                 
                 # 更新或创建模型版本
@@ -209,7 +212,8 @@ class ModelService(BaseService):
                     custom_name=version.get('custom_name', ''),
                     api_key=version.get('api_key', ''),
                     api_base_url=version.get('api_base_url', ''),
-                    streaming_config=version.get('streaming_config', False)
+                    streaming_config=version.get('streaming_config', False),
+                    type=version.get('type', 'llm')
                 )
             
             return True, f'模型 {model_name} 已配置', self._filter_icon_blob(model)

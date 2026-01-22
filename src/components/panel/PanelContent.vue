@@ -4,9 +4,6 @@
     <!-- 历史对话面板 -->
     <HistoryPanel v-if="activePanel === 'history'" />
 
-    <!-- 设置选项面板 -->
-    <SettingsPanel v-if="activePanel === 'settings'" />
-
     <!-- 文件管理面板 -->
     <FilePanel v-if="activePanel === 'rag'" />
 
@@ -20,7 +17,6 @@
 <script setup>
 // 导入各个面板组件
 import HistoryPanel from './HistoryPanel.vue';
-import SettingsPanel from './SettingsPanel.vue';
 import FilePanel from './FilePanel.vue';
 import McpPanel from './McpPanel.vue';
 

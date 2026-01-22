@@ -417,7 +417,8 @@ def load_models_from_db():
                     'custom_name': version.custom_name,
                     'api_key': version.api_key,
                     'api_base_url': version.api_base_url,
-                    'streaming_config': version.streaming_config
+                    'streaming_config': version.streaming_config,
+                    'type': version.type or 'llm'
                 })
             
             # 添加模型到内存数据库
@@ -805,7 +806,8 @@ def save_models_to_db(conn=None):
                     custom_name=version_data.get('custom_name', ''),
                     api_key=version_data.get('api_key', ''),
                     api_base_url=version_data.get('api_base_url', ''),
-                    streaming_config=version_data.get('streaming_config', False)
+                    streaming_config=version_data.get('streaming_config', False),
+                    type=version_data.get('type', 'llm')
                 )
             
             for version in valid_new_versions:

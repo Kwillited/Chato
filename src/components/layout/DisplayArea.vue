@@ -29,11 +29,11 @@
     <div id="mainContent" class="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC] dark:bg-dark-primary" :class="{ 'transition-all duration-300': !isInitialLoading }">
       <!-- 根据activeContent动态切换内容组件 -->
       <ChatContent v-if="activeContent === 'chat'" />
-      <SettingsContent v-if="activeContent === 'settings'" />
+      <AISettingsContent v-if="activeContent === 'settings'" />
+      <AISettingsContent v-if="activeContent === 'aiSettings'" />
       <RagManagementContent v-if="activeContent === 'ragManagement'" />
       <ContextVisualizationContent v-if="activeContent === 'contextVisualization'" />
       <SendMessageContent v-if="activeContent === 'sendMessage'" />
-      <AISettingsContent v-if="activeContent === 'aiSettings'" />
 
     </div>
 
@@ -56,7 +56,6 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import PanelContent from '../panel/PanelContent.vue'; // 使用PanelContent复合组件
 import ChatContent from '../../views/ChatContent.vue'; // 移动到views目录
-import SettingsContent from '../../views/SettingsContent.vue'; // 移动到views目录
 import RagManagementContent from '../../views/RagManagementContent.vue'; // 移动到views目录
 import { ContextVisualizationContent } from '../library';
 import SendMessageContent from '../../views/SendMessageContent.vue'; // 新增发送消息视图组件

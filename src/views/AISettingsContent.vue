@@ -52,11 +52,11 @@
       <div v-if="activeTab === 'basic'" class="max-w-5xl mx-auto dark:bg-dark-primary">
 
         
-        <div class="flex flex-col md:flex-row gap-6">
+        <div class="flex flex-col md:flex-row gap-6 items-stretch">
           <!-- 左侧：个人信息设置区 -->
           <div class="w-full md:w-1/3 space-y-6">
             <!-- 用户信息卡片 -->
-            <div class="card p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800">
+            <div class="card p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800 h-full">
               <!-- 头像 -->
               <div class="flex flex-col items-center mb-4">
                 <img src="https://picsum.photos/id/64/100/100" alt="用户头像" class="w-20 h-20 rounded-full mb-4 border-2 border-white shadow-sm">
@@ -209,13 +209,15 @@
               <div class="px-5 py-5 grid grid-cols-2 gap-6 hairline-b dark:border-dark-700">
                 <div class="col-span-2 md:col-span-1">
                   <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">基础 URL</label>
-                  <input type="text" v-model="provider.apiBaseUrl" class="w-full text-xs mono bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white">
+                  <div class="flex gap-2">
+                    <input type="text" v-model="provider.apiBaseUrl" class="w-full h-8 text-xs mono bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white">
+                  </div>
                 </div>
                 <div class="col-span-2 md:col-span-1">
                   <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">API 密钥</label>
                   <div class="flex gap-2">
-                    <input type="password" v-model="provider.apiKey" class="w-full text-xs mono bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white">
-                    <button class="px-3 py-1.5 border border-gray-200 dark:border-dark-600 rounded bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 text-[10px] font-medium text-gray-900 dark:text-white transition-colors">更新</button>
+                    <input type="password" v-model="provider.apiKey" class="w-full h-8 text-xs mono bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white">
+                    <button class="px-3 h-8 border border-gray-200 dark:border-dark-600 rounded bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 text-[10px] font-medium text-gray-900 dark:text-white transition-colors flex items-center justify-center">更新</button>
                   </div>
                 </div>
               </div>

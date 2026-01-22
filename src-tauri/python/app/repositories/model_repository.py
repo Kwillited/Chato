@@ -55,7 +55,7 @@ class ModelRepository(BaseRepository):
             ModelVersion.version_name == version_name
         ).first()
     
-    def create_model_version(self, model_id, version_name, custom_name, api_key, api_base_url, streaming_config):
+    def create_model_version(self, model_id, version_name, custom_name, api_key, api_base_url, streaming_config, type="llm"):
         """创建新模型版本"""
         model_version = ModelVersion(
             model_id=model_id,
@@ -63,11 +63,12 @@ class ModelRepository(BaseRepository):
             custom_name=custom_name,
             api_key=api_key,
             api_base_url=api_base_url,
-            streaming_config=streaming_config
+            streaming_config=streaming_config,
+            type=type
         )
         return self.add(model_version)
     
-    def update_model_version(self, model_id, version_name, custom_name, api_key, api_base_url, streaming_config):
+    def update_model_version(self, model_id, version_name, custom_name, api_key, api_base_url, streaming_config, type="llm"):
         """更新模型版本，不存在则创建"""
         # 查找是否已存在该版本
         existing_version = self.get_model_version(model_id, version_name)
@@ -77,10 +78,11 @@ class ModelRepository(BaseRepository):
             existing_version.api_key = api_key
             existing_version.api_base_url = api_base_url
             existing_version.streaming_config = streaming_config
+            existing_version.type = type
             return self.update(existing_version)
         else:
             # 创建新版本
-            return self.create_model_version(model_id, version_name, custom_name, api_key, api_base_url, streaming_config)
+            return self.create_model_version(model_id, version_name, custom_name, api_key, api_base_url, streaming_config, type)
     
     def delete_model_version(self, model_id, version_name):
         """删除模型版本"""

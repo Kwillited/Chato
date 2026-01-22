@@ -83,8 +83,8 @@ def migrate_database():
     else:
         print(f"   ⚠️  表 {system_table_name} 不存在，已通过Base.metadata.create_all创建")
     
-    # 3. 检查其他表的结构（可选，可根据需要扩展）
-    print("🔍 检查其他设置表...")
+    # 3. 检查其他表的结构
+    print("🔍 检查其他表结构...")
     
     # 检查VectorSetting表
     vector_table_name = "vector_settings"
@@ -132,6 +132,37 @@ def migrate_database():
             print(f"   ⚠️  AppSetting表缺少列: {missing_columns}")
         else:
             print("   ✅ AppSetting表结构完整")
+    
+    # 检查model_versions表是否缺少type字段
+    print("🔍 检查model_versions表结构...")
+    model_versions_table_name = "model_versions"
+    if model_versions_table_name in inspector.get_table_names():
+        columns = {col['name'] for col in inspector.get_columns(model_versions_table_name)}
+        required_columns = {
+            'id', 'model_id', 'version_name', 'custom_name', 'api_key',
+            'api_base_url', 'streaming_config', 'type'
+        }
+        
+        # 检查缺少的列
+        missing_columns = required_columns - columns
+        
+        if missing_columns:
+            print(f"   ⚠️  发现缺少的列: {missing_columns}")
+            
+            # 使用ALTER TABLE添加缺少的列
+            with engine.connect() as conn:
+                for col in missing_columns:
+                    if col == 'type':
+                        print(f"   ➕ 添加列 {col} 到 {model_versions_table_name} 表...")
+                        stmt = text(f"ALTER TABLE {model_versions_table_name} ADD COLUMN {col} TEXT DEFAULT 'llm'")
+                        conn.execute(stmt)
+                        conn.commit()
+            
+            print(f"   ✅ 已添加所有缺少的列: {missing_columns}")
+        else:
+            print("   ✅ model_versions表结构完整")
+    else:
+        print(f"   ⚠️  表 {model_versions_table_name} 不存在，已通过Base.metadata.create_all创建")
     
     print("🎉 数据库迁移完成！")
 

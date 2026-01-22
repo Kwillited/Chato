@@ -34,6 +34,7 @@ class ModelVersion(Base):
     api_key = Column(String)
     api_base_url = Column(String)
     streaming_config = Column(Boolean, default=False)
+    type = Column(String, default="llm")
     
     # 关系：多个版本属于一个模型
     model = relationship("Model", back_populates="versions")
