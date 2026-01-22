@@ -3,35 +3,6 @@ import { apiService } from '../services/apiService.js';
 
 export const useVectorStore = defineStore('vector', {
   state: () => ({
-    // 向量配置（合并原ragConfig）
-    config: {
-      // 启用状态
-      enabled: false,
-      // 检索配置
-      retrieval: {
-        mode: 'vector', // vector/keyword/hybrid
-        topK: 3,        // 检索数量
-        threshold: 0.7, // 相关性阈值
-        similarityType: 'cosine' // 相似度计算方式
-      },
-      // 嵌入模型配置
-      embedding: {
-        model: 'qwen3-embedding-0.6b',
-        chunkSize: 1000,
-        chunkOverlap: 100
-      },
-      // 向量存储配置
-      storage: {
-        type: 'chroma',
-        path: '',
-        knowledgeBasePath: ''
-      },
-      // 检索范围
-      scope: {
-        selectedFolders: [],
-        selectedKnowledgeBases: []
-      }
-    },
     // 操作状态
     loading: false,
     error: null,
@@ -41,8 +12,6 @@ export const useVectorStore = defineStore('vector', {
     currentVectorStore: null,
     // 当前选中的文件夹（用于RAG检索范围）
     currentSelectedFolder: null,
-    // 兼容ragStore的files属性，用于存储当前文件夹中的文件列表
-    files: [],
     // 扩展预留
     extensions: {}
   }),
@@ -56,15 +25,6 @@ export const useVectorStore = defineStore('vector', {
     // 获取错误信息
     getError: (state) => {
       return state.error;
-    },
-
-    // 获取检索配置（兼容旧代码）
-    retrievalConfig: (state) => {
-      return {
-        mode: state.config.retrieval.mode,
-        topK: state.config.retrieval.topK,
-        scoreThreshold: state.config.retrieval.threshold
-      };
     }
   },
 
@@ -89,60 +49,9 @@ export const useVectorStore = defineStore('vector', {
       this.uploadProgress = 0;
     },
     
-    // 更新向量配置
-    updateConfig(config) {
-      this.config = { ...this.config, ...config };
-    },
-    
-    // 更新检索配置
-    updateRetrievalConfig(retrievalConfig) {
-      this.config.retrieval = { ...this.config.retrieval, ...retrievalConfig };
-    },
-    
-    // 更新嵌入配置
-    updateEmbeddingConfig(embeddingConfig) {
-      this.config.embedding = { ...this.config.embedding, ...embeddingConfig };
-    },
-    
-    // 更新存储配置
-    updateStorageConfig(storageConfig) {
-      this.config.storage = { ...this.config.storage, ...storageConfig };
-    },
-    
-    // 更新检索范围
-    updateScope(scopeConfig) {
-      this.config.scope = { ...this.config.scope, ...scopeConfig };
-    },
-    
     // 设置当前选中的文件夹（用于RAG检索范围）
     setCurrentSelectedFolder(folder) {
       this.currentSelectedFolder = folder;
-    },
-    
-    // ========== 兼容ragStore的API ==========
-    
-    // 设置RAG配置（兼容ragStore）
-    setRagConfig(config) {
-      this.config = {
-        ...this.config,
-        enabled: config.enabled !== undefined ? config.enabled : this.config.enabled,
-        retrieval: {
-          ...this.config.retrieval,
-          topK: config.topK !== undefined ? config.topK : this.config.retrieval.topK,
-          threshold: config.scoreThreshold !== undefined ? config.scoreThreshold : this.config.retrieval.threshold,
-          mode: config.searchType !== undefined ? config.searchType : this.config.retrieval.mode
-        }
-      };
-    },
-    
-    // 获取RAG配置（兼容ragStore）
-    getRagConfig() {
-      return {
-        enabled: this.config.enabled,
-        topK: this.config.retrieval.topK,
-        scoreThreshold: this.config.retrieval.threshold,
-        searchType: this.config.retrieval.mode
-      };
     },
 
     // 搜索文件内容
@@ -153,12 +62,17 @@ export const useVectorStore = defineStore('vector', {
       this.clearError();
 
       try {
+        // 动态导入settingsStore，获取向量配置
+        const { useSettingsStore } = await import('./settingsStore.js');
+        const settingsStore = useSettingsStore();
+        const vectorConfig = settingsStore.vectorConfig;
+        
         // 调用后端API搜索文件内容
         const response = await apiService.post('/api/vectors/search-documents', {
           query, 
-          k: this.config.retrieval.topK,
-          score_threshold: this.config.retrieval.threshold,
-          search_type: this.config.retrieval.mode
+          k: vectorConfig.retrieval.topK,
+          score_threshold: vectorConfig.retrieval.threshold,
+          search_type: vectorConfig.retrieval.mode
         });
         
         // 确保正确处理响应格式
@@ -178,16 +92,21 @@ export const useVectorStore = defineStore('vector', {
       this.clearError();
 
       try {
+        // 动态导入settingsStore，获取向量配置
+        const { useSettingsStore } = await import('./settingsStore.js');
+        const settingsStore = useSettingsStore();
+        const vectorConfig = settingsStore.vectorConfig;
+        
         // 调用后端API生成增强响应
         const response = await apiService.post('/api/vectors/enhanced-prompt', {
           query,
           chatHistory,
           k,
           ragConfig: {
-            enabled: this.config.enabled,
-            topK: this.config.retrieval.topK,
-            scoreThreshold: this.config.retrieval.threshold,
-            searchType: this.config.retrieval.mode
+            enabled: vectorConfig.enabled,
+            topK: vectorConfig.retrieval.topK,
+            scoreThreshold: vectorConfig.retrieval.threshold,
+            searchType: vectorConfig.retrieval.mode
           }
         });
         
@@ -277,7 +196,7 @@ export const useVectorStore = defineStore('vector', {
       }
     },
     
-    // 搜索知识库（兼容ragStore）
+    // 搜索知识库
     async searchKnowledgeBase(query) {
       if (!query.trim()) return;
       
@@ -296,100 +215,6 @@ export const useVectorStore = defineStore('vector', {
       } finally {
         this.loading = false;
       }
-    },
-    
-    // 加载文件列表（兼容ragStore）
-    async loadFiles() {
-      try {
-        this.loading = true;
-        this.clearError();
-        
-        // 调用fileStore的loadFiles方法
-        const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
-        await fileStore.loadFiles();
-        
-        // 将fileStore的文件列表同步到vectorStore的files属性
-        this.files = fileStore.files;
-        
-        return this.files;
-      } catch (error) {
-        console.error('加载文件列表失败:', error);
-        this.setError(`加载文件列表失败: ${error.message || '未知错误'}`);
-        this.files = [];
-        return this.files;
-      } finally {
-        this.loading = false;
-      }
-    },
-    
-    // 批量上传文件（兼容ragStore）
-    async batchUploadFiles(files) {
-      try {
-        this.loading = true;
-        this.clearError();
-        
-        // 调用fileStore的batchUploadFiles方法
-        const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
-        const result = await fileStore.batchUploadFiles(files);
-        
-        // 重新加载文件列表
-        await this.loadFiles();
-        
-        return result;
-      } catch (error) {
-        console.error('批量上传文件失败:', error);
-        this.setError(`批量上传文件失败: ${error.message || '未知错误'}`);
-        return { successCount: 0, failCount: files.length, uploadResults: [] };
-      } finally {
-        this.loading = false;
-      }
-    },
-    
-    // 删除文件（兼容ragStore）
-    async deleteFile(fileId, folderId) {
-      try {
-        this.loading = true;
-        this.clearError();
-        
-        // 查找要删除的文件
-        const fileToDelete = this.files.find(f => f.id === fileId);
-        if (!fileToDelete) {
-          throw new Error('文件不存在');
-        }
-        
-        // 调用fileStore的deleteDocument方法
-        const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
-        await fileStore.deleteDocument(fileToDelete.name, folderId);
-        
-        // 重新加载文件列表
-        await this.loadFiles();
-        
-        return { success: true };
-      } catch (error) {
-        console.error('删除文件失败:', error);
-        this.setError(`删除文件失败: ${error.message || '未知错误'}`);
-        return { success: false, error: error.message };
-      } finally {
-        this.loading = false;
-      }
-    },
-    
-    // 验证文件（兼容ragStore）
-    validateFile(file) {
-      // 简单的文件验证逻辑
-      const maxSize = 50 * 1024 * 1024; // 50MB
-      const supportedTypes = ['pdf', 'docx', 'txt', 'csv', 'xlsx', 'pptx', 'md'];
-      const fileExtension = file.name.split('.').pop().toLowerCase();
-      
-      if (file.size > maxSize) {
-        return { valid: false, message: `文件太大: ${file.name} - 最大支持50MB` };
-      }
-      
-      if (!supportedTypes.includes(fileExtension)) {
-        return { valid: false, message: `不支持的文件类型: ${file.name} - 支持类型: ${supportedTypes.join(', ')}` };
-      }
-      
-      return { valid: true };
     }
   },
 });

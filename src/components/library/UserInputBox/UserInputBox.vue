@@ -440,7 +440,7 @@ const _props = defineProps({
 import { useChatStore } from '../../../store/chatStore.js';
 import { useSettingsStore } from '../../../store/settingsStore.js';
 import { useModelSettingStore } from '../../../store/modelSettingStore.js';
-import { useVectorStore } from '../../../store/vectorStore.js';
+
 
 // 定义存储键
 const STORAGE_KEYS = {
@@ -452,7 +452,6 @@ const STORAGE_KEYS = {
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const modelStore = useModelSettingStore();
-const vectorStore = useVectorStore();
 
 // 拖拽状态管理
 const dragCounter = ref(0);
@@ -892,13 +891,13 @@ const toggleKnowledgeBase = () => {
     settingsStore.setActiveContent(hasMessages ? 'chat' : 'sendMessage');
     
     // 关闭RAG功能
-    vectorStore.setRagConfig({ enabled: false });
+    settingsStore.updateVectorConfig({ enabled: false });
   } else {
     // 如果当前不是知识库模式，切换到知识库模式
     settingsStore.setActivePanel('rag');
     
     // 启用RAG功能
-    vectorStore.setRagConfig({ enabled: true });
+    settingsStore.updateVectorConfig({ enabled: true });
   }
 };
 

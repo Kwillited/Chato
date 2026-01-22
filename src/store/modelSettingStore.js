@@ -54,8 +54,7 @@ export const useModelSettingStore = defineStore('modelSetting', {
     // 获取未配置的模型列表
     unconfiguredModels: (state) => state.models.filter(model => !model.configured),
     
-    // 获取默认模型
-    defaultModel: (state) => state.models.find(model => model.is_default),
+
   },
 
   actions: {

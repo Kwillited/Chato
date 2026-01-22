@@ -25,6 +25,25 @@ const STORAGE_KEYS = {
  * @property {string} knowledgeBasePath - 知识库存储路径
  */
 
+// 定义向量配置的类型描述
+/**
+ * @typedef {Object} VectorConfig
+ * @property {boolean} enabled - 是否启用向量功能
+ * @property {Object} retrieval - 检索配置
+ * @property {string} retrieval.mode - 检索模式（vector/keyword/hybrid）
+ * @property {number} retrieval.topK - 检索数量
+ * @property {number} retrieval.threshold - 相关性阈值
+ * @property {string} retrieval.similarityType - 相似度计算方式
+ * @property {Object} embedding - 嵌入模型配置
+ * @property {string} embedding.model - 嵌入模型名称
+ * @property {number} embedding.chunkSize - 分块大小
+ * @property {number} embedding.chunkOverlap - 重叠大小
+ * @property {Object} storage - 向量存储配置
+ * @property {string} storage.type - 存储类型
+ * @property {string} storage.path - 存储路径
+ * @property {string} storage.knowledgeBasePath - 知识库路径
+ */
+
 // 定义系统设置的类型描述
 /**
  * @typedef {Object} SystemSettings
@@ -61,8 +80,6 @@ export const useSettingsStore = defineStore('settings', {
     // 右侧面板宽度
     rightPanelWidth: '200px',
 
-
-
     // MCP相关设置
     mcpConfig: {
       enabled: false,
@@ -78,6 +95,27 @@ export const useSettingsStore = defineStore('settings', {
       sound: false,
       system: true,
       displayTime: '5秒',
+    },
+
+    // 向量配置（从vectorStore迁移）
+    vectorConfig: {
+      enabled: false,
+      retrieval: {
+        mode: 'vector',
+        topK: 3,
+        threshold: 0.7,
+        similarityType: 'cosine'
+      },
+      embedding: {
+        model: 'qwen3-embedding-0.6b',
+        chunkSize: 1000,
+        chunkOverlap: 100
+      },
+      storage: {
+        type: 'chroma',
+        path: '',
+        knowledgeBasePath: ''
+      }
     },
 
     // 系统设置
@@ -102,7 +140,8 @@ export const useSettingsStore = defineStore('settings', {
   }),
 
   getters: {
-
+    // 获取当前向量配置
+    currentVectorConfig: (state) => state.vectorConfig,
 
     // 获取当前系统设置
     currentSystemSettings: (state) => state.systemSettings,
@@ -225,6 +264,30 @@ export const useSettingsStore = defineStore('settings', {
       this.saveSettings();
     },
 
+    // 更新向量配置
+    updateVectorConfig(config) {
+      this.vectorConfig = { ...this.vectorConfig, ...config };
+      this.saveSettings();
+    },
+
+    // 更新向量检索配置
+    updateVectorRetrievalConfig(retrievalConfig) {
+      this.vectorConfig.retrieval = { ...this.vectorConfig.retrieval, ...retrievalConfig };
+      this.saveSettings();
+    },
+
+    // 更新向量嵌入配置
+    updateVectorEmbeddingConfig(embeddingConfig) {
+      this.vectorConfig.embedding = { ...this.vectorConfig.embedding, ...embeddingConfig };
+      this.saveSettings();
+    },
+
+    // 更新向量存储配置
+    updateVectorStorageConfig(storageConfig) {
+      this.vectorConfig.storage = { ...this.vectorConfig.storage, ...storageConfig };
+      this.saveSettings();
+    },
+
     // 应用需要立即生效的设置
     applyImmediateSettings(settings) {
       // 总是应用darkMode设置，确保立即生效
@@ -254,6 +317,26 @@ export const useSettingsStore = defineStore('settings', {
         sound: false,
         system: true,
         displayTime: '5秒',
+      };
+
+      this.vectorConfig = {
+        enabled: false,
+        retrieval: {
+          mode: 'vector',
+          topK: 3,
+          threshold: 0.7,
+          similarityType: 'cosine'
+        },
+        embedding: {
+          model: 'qwen3-embedding-0.6b',
+          chunkSize: 1000,
+          chunkOverlap: 100
+        },
+        storage: {
+          type: 'chroma',
+          path: '',
+          knowledgeBasePath: ''
+        }
       };
 
       this.systemSettings = {
@@ -386,7 +469,9 @@ export const useSettingsStore = defineStore('settings', {
     mergeSavedSettings(savedSettings) {
       // 注意：模型相关设置现在由modelSettingStore单独管理和加载
 
-
+      if (savedSettings.vectorConfig && typeof savedSettings.vectorConfig === 'object') {
+        this.vectorConfig = mergeSettings(this.vectorConfig, savedSettings.vectorConfig);
+      }
 
       if (savedSettings.mcpConfig && typeof savedSettings.mcpConfig === 'object') {
         this.mcpConfig = mergeSettings(this.mcpConfig, savedSettings.mcpConfig);
@@ -432,6 +517,9 @@ export const useSettingsStore = defineStore('settings', {
         };
         await apiService.post('/api/mcp', mcpSettingsToSave);
         
+        // 保存向量配置
+        await apiService.post('/api/settings/vector', this.vectorConfig);
+        
         // 保存系统设置，转换字段名以匹配后端模型
         const systemSettingsToSave = {
           dark_mode: this.systemSettings.darkMode,
@@ -452,12 +540,14 @@ export const useSettingsStore = defineStore('settings', {
     async _saveSettingsCore() {
       try {
         // 注意：模型设置现在由modelSettingStore单独管理和保存
-        
+        // 只保存需要跨会话持久化的设置，移除临时状态
         const settingsToSave = {
+          vectorConfig: this.vectorConfig,
           mcpConfig: this.mcpConfig,
           notificationsConfig: this.notificationsConfig,
           systemSettings: this.systemSettings,
-          activeSection: this.activeSection,
+          leftNavWidth: this.leftNavWidth, // 保存导航栏宽度设置
+          rightPanelWidth: this.rightPanelWidth, // 保存右侧面板宽度设置
           timestamp: Date.now(),
         };
 

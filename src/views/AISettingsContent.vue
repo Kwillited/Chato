@@ -12,33 +12,33 @@
       <!-- 优化后：紧凑型 Tab -->
       <div class="bg-gray-100 dark:bg-dark-700 p-0.5 rounded-lg flex text-[13px] font-medium overflow-x-auto whitespace-nowrap w-full sm:w-auto shadow-sm">
         <button @click="activeTab = 'basic'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap bg-white dark:bg-dark-800 text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
-                :class="activeTab === 'basic' ? 'border-gray-200 dark:border-dark-500 shadow' : 'border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
+                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                :class="activeTab === 'basic' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           基本设置
         </button>
         <button @click="activeTab = 'models'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap bg-white dark:bg-dark-800 text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
-                :class="activeTab === 'models' ? 'border-gray-200 dark:border-dark-500 shadow' : 'border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
+                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                :class="activeTab === 'models' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           模型配置
         </button>
         <button @click="activeTab = 'knowledge'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap bg-white dark:bg-dark-800 text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
-                :class="activeTab === 'knowledge' ? 'border-gray-200 dark:border-dark-500 shadow' : 'border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
+                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                :class="activeTab === 'knowledge' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           知识库配置
         </button>
         <button @click="activeTab = 'mcp'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap bg-white dark:bg-dark-800 text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
-                :class="activeTab === 'mcp' ? 'border-gray-200 dark:border-dark-500 shadow' : 'border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
+                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                :class="activeTab === 'mcp' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           MCP工具
         </button>
         <button @click="activeTab = 'notifications'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap bg-white dark:bg-dark-800 text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
-                :class="activeTab === 'notifications' ? 'border-gray-200 dark:border-dark-500 shadow' : 'border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
+                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                :class="activeTab === 'notifications' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           通知设置
         </button>
         <button @click="activeTab = 'about'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap bg-white dark:bg-dark-800 text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
-                :class="activeTab === 'about' ? 'border-gray-200 dark:border-dark-500 shadow' : 'border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
+                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                :class="activeTab === 'about' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           关于
         </button>
       </div>
@@ -435,7 +435,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="vectorStore.config.embedding.model" @change="vectorStore.updateEmbeddingConfig(vectorStore.config.embedding)">
+              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="settingsStore.vectorConfig.embedding.model" @change="settingsStore.updateVectorEmbeddingConfig(settingsStore.vectorConfig.embedding)">
                 <option value="qwen3-embedding-0.6b">qwen3-embedding-0.6b (推荐)</option>
                 <option value="all-MiniLM-L6-v2">all-MiniLM-L6-v2 (轻量)</option>
                 <option value="all-mpnet-base-v2">all-mpnet-base-v2 (更精确)</option>
@@ -453,7 +453,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="vectorStore.config.storage.type" @change="vectorStore.updateStorageConfig(vectorStore.config.storage)">
+              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="settingsStore.vectorConfig.storage.type" @change="settingsStore.updateVectorStorageConfig(settingsStore.vectorConfig.storage)">
                 <option value="chroma">Chroma (默认)</option>
               </select>
             </div>
@@ -468,7 +468,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="vectorStore.config.retrieval.mode" @change="vectorStore.updateRetrievalConfig(vectorStore.config.retrieval)">
+              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="settingsStore.vectorConfig.retrieval.mode" @change="settingsStore.updateVectorRetrievalConfig(settingsStore.vectorConfig.retrieval)">
                 <option value="vector">向量检索</option>
                 <option value="keyword">关键词检索</option>
                 <option value="hybrid">混合检索</option>
@@ -485,7 +485,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：3" min="1" max="20" v-model.number="vectorStore.config.retrieval.topK" @change="vectorStore.updateRetrievalConfig(vectorStore.config.retrieval)">
+              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：3" min="1" max="20" v-model.number="settingsStore.vectorConfig.retrieval.topK" @change="settingsStore.updateVectorRetrievalConfig(settingsStore.vectorConfig.retrieval)">
             </div>
           </div>
           
@@ -498,7 +498,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：0.7" step="0.05" min="0" max="1" v-model.number="vectorStore.config.retrieval.threshold" @change="vectorStore.updateRetrievalConfig(vectorStore.config.retrieval)">
+              <input type="number" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="例如：0.7" step="0.05" min="0" max="1" v-model.number="settingsStore.vectorConfig.retrieval.threshold" @change="settingsStore.updateVectorRetrievalConfig(settingsStore.vectorConfig.retrieval)">
             </div>
           </div>
           
@@ -511,7 +511,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径" v-model="vectorStore.config.storage.path" @change="vectorStore.updateStorageConfig(vectorStore.config.storage)">
+              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径" v-model="settingsStore.vectorConfig.storage.path" @change="settingsStore.updateVectorStorageConfig(settingsStore.vectorConfig.storage)">
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">系统默认路径: 用户数据目录下的 "Retrieval-Augmented Generation\vectorDb"</div>
             </div>
           </div>
@@ -525,7 +525,7 @@
             </div>
             <!-- 内容区域 -->
             <div class="relative">
-              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径" v-model="vectorStore.config.storage.knowledgeBasePath" @change="vectorStore.updateStorageConfig(vectorStore.config.storage)">
+              <input type="text" class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" placeholder="留空使用默认路径" v-model="settingsStore.vectorConfig.storage.knowledgeBasePath" @change="settingsStore.updateVectorStorageConfig(settingsStore.vectorConfig.storage)">
               <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">系统默认路径: 用户数据目录下的 "Retrieval-Augmented Generation\knowledgeBase"</div>
             </div>
           </div>
@@ -673,14 +673,12 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
-import { useVectorStore } from '../store/vectorStore.js';
 import { useModelSettingStore } from '../store/modelSettingStore.js';
 
 // 标签页状态
 const activeTab = ref('basic');
 const mcpCount = ref(2);
 const settingsStore = useSettingsStore();
-const vectorStore = useVectorStore();
 const modelStore = useModelSettingStore();
 let originalLeftNavVisible = null;
 

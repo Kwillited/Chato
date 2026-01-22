@@ -1,9 +1,6 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
 import { generateId } from './utils';
-import { useSettingsStore } from './settingsStore.js';
-import { useModelSettingStore } from './modelSettingStore.js';
-import { useVectorStore } from './vectorStore.js';
 import { showNotification } from '../services/notificationUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
@@ -204,9 +201,14 @@ export const useChatStore = defineStore('chat', {
       this.currentChat = { ...this.currentChat };
 
       try {
-        // 获取store实例
+        // 动态导入store实例，减少直接依赖
+        const { useSettingsStore } = await import('./settingsStore.js');
+        const { useModelSettingStore } = await import('./modelSettingStore.js');
+        const { useVectorStore } = await import('./vectorStore.js');
+        
         const settingsStore = useSettingsStore();
         const modelStore = useModelSettingStore();
+        const vectorStore = useVectorStore();
         
         // 确保model参数使用name-version.version_name格式
         let formattedModel = model;
@@ -247,11 +249,8 @@ export const useChatStore = defineStore('chat', {
         // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
         const shouldUseStreaming = systemStreamingEnabled && modelStreamingEnabled;
         
-        // 获取vectorStore实例
-        const vectorStore = useVectorStore();
-        
-        // 从vectorStore获取RAG配置
-        const vectorConfig = vectorStore.config;
+        // 从settingsStore获取RAG配置
+        const vectorConfig = settingsStore.vectorConfig;
         
         // 构建后端需要的ragConfig格式
         let ragConfigToUse = {
@@ -692,9 +691,11 @@ export const useChatStore = defineStore('chat', {
 
 
     // 确保数据一致性
-    ensureDataIntegrity() {
-      // 获取settingsStore实例
+    async ensureDataIntegrity() {
+      // 动态导入settingsStore，减少直接依赖
+      const { useSettingsStore } = await import('./settingsStore.js');
       const settingsStore = useSettingsStore();
+      
       // 过滤无效对话
       this.chats = this.chats.filter((chat) => chat && chat.id && chat.messages && Array.isArray(chat.messages));
 
@@ -705,7 +706,7 @@ export const useChatStore = defineStore('chat', {
           // 处理ref包装的消息
           const messageData = message?.value || message;
           
-          // 对于历史消息，使用对话的createdAt或updatedAt作为基准时间，避免所有消息都显示为"刚刚"
+          // 对于历史消息，使用对话的createdAt或updatedAt作为基准时间，避免所有消息显示为"刚刚"
           // 对于新消息，使用messageData.timestamp或messageData.time
           let messageTimestamp = messageData.timestamp || messageData.time;
           if (!messageTimestamp) {
@@ -864,8 +865,10 @@ export const useChatStore = defineStore('chat', {
     },
     
     // 播放未读消息通知声音
-playNotificationSound() {
+async playNotificationSound() {
   try {
+    // 动态导入settingsStore，减少直接依赖
+    const { useSettingsStore } = await import('./settingsStore.js');
     const settingsStore = useSettingsStore();
     const notificationsConfig = settingsStore.currentNotificationsConfig;
     
