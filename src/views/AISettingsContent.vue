@@ -228,12 +228,12 @@
                 </div>
                 
                 <!-- 模型映射表单 - 水平布局 -->
-                <div v-if="provider.showModelForm" class="mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-dark-600">
+                <div v-if="isModelFormVisible && editingProvider?.id === provider.id" class="mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-dark-600">
                   <div class="flex flex-wrap items-end gap-3">
                     <!-- 模型类型 -->
                     <div class="min-w-[120px]">
                       <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">模型类型</label>
-                      <select v-model="provider.newModel.type" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white">
+                      <select v-model="newModel.type" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white">
                         <option value="llm">聊天补全</option>
                         <option value="embed">嵌入</option>
                       </select>
@@ -241,17 +241,17 @@
                     <!-- 模型ID -->
                     <div class="flex-1 min-w-[120px]">
                       <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">模型ID</label>
-                      <input type="text" v-model="provider.newModel.id" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white" placeholder="例如：gpt-4o">
+                      <input type="text" v-model="newModel.id" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white" placeholder="例如：gpt-4o">
                     </div>
                     <!-- 自定义模型名字 -->
                     <div class="flex-1 min-w-[120px]">
                       <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">自定义模型名字</label>
-                      <input type="text" v-model="provider.newModel.customName" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white" placeholder="例如：我的GPT-4o">
+                      <input type="text" v-model="newModel.customName" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white" placeholder="例如：我的GPT-4o">
                     </div>
                     <!-- 表单按钮 -->
                     <div class="flex gap-2">
-                      <button @click="saveModelMapping(provider)" class="text-xs bg-primary hover:bg-primary/90 text-white rounded px-3 py-1.5 transition-colors whitespace-nowrap">保存</button>
-                      <button @click="cancelModelMapping(provider)" class="text-xs bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 text-gray-900 dark:text-white rounded px-3 py-1.5 transition-colors whitespace-nowrap">取消</button>
+                      <button @click="saveModelMapping()" class="text-xs bg-primary hover:bg-primary/90 text-white rounded px-3 py-1.5 transition-colors whitespace-nowrap">保存</button>
+                      <button @click="cancelModelMapping()" class="text-xs bg-gray-200 dark:bg-dark-600 hover:bg-gray-300 dark:hover:bg-dark-500 text-gray-900 dark:text-white rounded px-3 py-1.5 transition-colors whitespace-nowrap">取消</button>
                     </div>
                   </div>
                 </div>
@@ -271,8 +271,7 @@
                         <div class="text-xs font-medium text-gray-900 dark:text-white">{{ model.customName || model.id }}</div>
                         <div class="text-[10px] text-gray-400 dark:text-gray-500">{{ model.type === 'llm' ? '聊天补全' : '嵌入' }}</div>
                       </td>
-                      <!-- Specs -->
-                      <td class="py-2.5 px-4 text-xs text-gray-500 dark:text-gray-400 mono">{{ model.context }}</td>
+                      
                       <!-- Actions Columns (紧凑排列) -->
                       <td class="py-2.5 w-12 text-right pr-1">
                         <label class="relative inline-block w-7 h-3.5 align-middle select-none cursor-pointer">
@@ -662,21 +661,40 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { useVectorStore } from '../store/vectorStore.js';
+import { useModelSettingStore } from '../store/modelSettingStore.js';
 
 // 标签页状态
 const activeTab = ref('basic');
 const mcpCount = ref(2);
 const settingsStore = useSettingsStore();
 const vectorStore = useVectorStore();
+const modelStore = useModelSettingStore();
 let originalLeftNavVisible = null;
 
-// 组件挂载时隐藏左侧边栏
+// 模型表单状态管理
+const editingProvider = ref(null);
+const editingModel = ref(null);
+const isModelFormVisible = ref(false);
+const newModel = ref({
+  id: '',
+  type: 'llm',
+  customName: '',
+  context: '8k',
+  active: true
+});
+
+// 组件挂载时隐藏左侧边栏并加载模型
 onMounted(() => {
   originalLeftNavVisible = settingsStore.leftNavVisible;
   settingsStore.leftNavVisible = false;
+  
+  // 如果当前是模型标签页，加载模型数据
+  if (activeTab.value === 'models') {
+    loadModels();
+  }
 });
 
 // 组件卸载时恢复左侧边栏状态
@@ -686,200 +704,168 @@ onUnmounted(() => {
   }
 });
 
-// 已配置的供应商数据
-const configuredProviders = reactive([
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    url: 'https://api.openai.com/v1',
-    open: true,
-    models: [
-      { id: 'gpt-4o', type: 'llm', context: '128k', active: true },
-      { id: 'gpt-4-turbo', type: 'llm', context: '128k', active: true },
-      { id: 'text-embedding-3-large', type: 'embed', context: '8k', active: true },
-      { id: 'text-embedding-3-small', type: 'embed', context: '8k', active: false }
-    ]
-  },
-  {
-    id: 'ollama',
-    name: 'Ollama (Local)',
-    url: 'http://localhost:11434',
-    open: false,
-    models: [
-      { id: 'llama-3-8b-instruct', type: 'llm', context: '8k', active: true },
-      { id: 'nomic-embed-text', type: 'embed', context: '8k', active: true }
-    ]
-  }
-]);
-
-// 添加供应商函数
-const addProvider = (provider) => {
-  // 检查供应商是否已存在
-  const exists = configuredProviders.some(p => p.id === provider.name.toLowerCase().replace(/\s+/g, '-'));
-  if (exists) {
-    return; // 已存在则不添加
-  }
-  
-  // 创建新的供应商对象
-  const newProvider = {
-    id: provider.name.toLowerCase().replace(/\s+/g, '-'),
-    name: provider.name,
-    url: '', // 默认空URL，等待用户配置
-    open: true, // 默认展开
-    models: [], // 默认空模型列表，等待用户配置
-    showModelForm: false, // 模型表单显示状态
-    newModel: null // 新模型数据
-  };
-  
-  // 添加到已配置供应商列表的开头，方便继续添加
-  configuredProviders.unshift(newProvider);
-  
-  // 从可用供应商列表中移除该供应商
-  const index = availableProviders.findIndex(p => p.name === provider.name);
-  if (index > -1) {
-    availableProviders.splice(index, 1);
-  }
-};
-
-// 移除供应商函数
-const removeProvider = (provider) => {
-  // 从已配置供应商列表中移除该供应商
-  const index = configuredProviders.findIndex(p => p.id === provider.id);
-  if (index > -1) {
-    configuredProviders.splice(index, 1);
-  }
-  
-  // 将该供应商添加回可用供应商列表
-  // 检查是否已存在于可用列表中
-  const existsInAvailable = availableProviders.some(p => p.name === provider.name);
-  if (!existsInAvailable) {
-    // 根据供应商名称获取原始描述
-    let desc = '';
-    switch (provider.name) {
-      case 'Anthropic':
-        desc = 'Claude 3 Family';
-        break;
-      case 'Google Gemini':
-        desc = 'Vertex AI / AI Studio';
-        break;
-      case 'Mistral AI':
-        desc = 'Open Weights API';
-        break;
-      case 'Groq':
-        desc = 'LPU Inference Engine';
-        break;
-      case 'DeepSeek':
-        desc = 'Code & Reasoning';
-        break;
-      default:
-        desc = '';
+// 监听标签页变化，当切换到模型标签时加载模型数据
+watch(
+  () => activeTab.value,
+  (newTab) => {
+    if (newTab === 'models') {
+      loadModels();
     }
-    
-    // 添加到可用供应商列表
-    availableProviders.push({
-      name: provider.name,
-      desc: desc
-    });
+  }
+);
+
+// 加载模型数据
+const loadModels = async () => {
+  try {
+    await modelStore.loadModels();
+  } catch (error) {
+    console.error('加载模型数据失败:', error);
   }
 };
 
-// 切换模型表单显示状态
-const toggleModelForm = (provider) => {
-  // 初始化表单状态和数据
-  if (!provider.showModelForm) {
-    provider.showModelForm = true;
-    // 初始化新模型数据
-    provider.newModel = {
+// 从modelStore获取已配置的供应商数据
+const configuredProviders = computed(() => {
+  return modelStore.configuredModels.map(model => ({
+    id: model.name.toLowerCase().replace(/\s+/g, '-'),
+    name: model.name,
+    url: model.api_base_url || '',
+    open: true,
+    models: model.versions?.map(version => ({
+      id: version.version_name,
+      type: 'llm', // 默认类型，实际应从modelStore获取
+      context: '8k', // 默认上下文，实际应从modelStore获取
+      active: version.enabled || true,
+      customName: version.custom_name
+    })) || [],
+    showModelForm: false,
+    newModel: {
       id: '',
       type: 'llm',
       customName: '',
       context: '8k',
       active: true
-    };
-  } else {
-    provider.showModelForm = false;
-  }
+    }
+  }));
+});
+
+// 添加供应商函数 - 现在通过modelStore处理
+const addProvider = (provider) => {
+  // 直接调用modelStore的saveModelConfig方法来添加供应商
+  // 这里需要打开配置抽屉，让用户输入详细配置
+  // 由于当前组件没有配置抽屉，我们可以简单地调用saveModelConfig
+  // 实际实现应该打开配置表单让用户填写
+  modelStore.saveModelConfig(provider.name, {
+    customName: '',
+    apiKey: '',
+    apiBaseUrl: '',
+    versionName: '',
+    streamingConfig: false
+  });
+};
+
+// 移除供应商函数 - 现在通过modelStore处理
+const removeProvider = (provider) => {
+  // 调用modelStore的deleteModelConfig方法来移除供应商
+  modelStore.deleteModelConfig(provider.name);
+};
+
+// 切换模型表单显示状态
+const toggleModelForm = (provider) => {
+  editingProvider.value = provider;
+  editingModel.value = null;
+  // 初始化新模型数据
+  newModel.value = {
+    id: '',
+    type: 'llm',
+    customName: '',
+    context: '8k',
+    active: true
+  };
+  isModelFormVisible.value = true;
 };
 
 // 保存模型映射
-const saveModelMapping = (provider) => {
+const saveModelMapping = async () => {
+  if (!editingProvider.value) return;
+  
   // 验证模型ID是否为空
-  if (!provider.newModel.id.trim()) {
+  if (!newModel.value.id.trim()) {
     return;
   }
   
-  // 创建模型对象
-  const modelData = {
-    id: provider.newModel.id,
-    type: provider.newModel.type,
-    customName: provider.newModel.customName || '',
-    context: provider.newModel.context,
-    active: provider.newModel.active
-  };
-  
-  // 检查是否正在编辑现有模型
-  if (provider.editingModelIndex !== undefined && provider.editingModelIndex > -1) {
-    // 更新现有模型
-    provider.models[provider.editingModelIndex] = modelData;
-    // 重置编辑索引
-    provider.editingModelIndex = undefined;
-  } else {
-    // 添加新模型到列表
-    provider.models.push(modelData);
+  try {
+    if (editingModel.value) {
+      // 更新现有模型
+      await modelStore.updateModelVersion(
+        editingProvider.value.name,
+        editingModel.value.id,
+        {
+          customName: newModel.value.customName,
+          versionName: newModel.value.id,
+          apiKey: '', // 这里需要从表单获取，暂时留空
+          apiBaseUrl: editingProvider.value.url,
+          streamingConfig: false
+        }
+      );
+    } else {
+      // 添加新模型
+      await modelStore.addModelVersion(
+        editingProvider.value.name,
+        {
+          customName: newModel.value.customName,
+          versionName: newModel.value.id,
+          apiKey: '', // 这里需要从表单获取，暂时留空
+          apiBaseUrl: editingProvider.value.url,
+          streamingConfig: false
+        }
+      );
+    }
+    
+    // 关闭表单
+    isModelFormVisible.value = false;
+    editingProvider.value = null;
+    editingModel.value = null;
+  } catch (error) {
+    console.error('保存模型映射失败:', error);
   }
-  
-  // 关闭表单
-  provider.showModelForm = false;
-  
-  // 清空新模型数据
-  provider.newModel = null;
 };
 
 // 取消模型映射
-const cancelModelMapping = (provider) => {
+const cancelModelMapping = () => {
   // 关闭表单
-  provider.showModelForm = false;
-  
-  // 清空新模型数据
-  provider.newModel = null;
+  isModelFormVisible.value = false;
+  editingProvider.value = null;
+  editingModel.value = null;
 };
 
 // 编辑模型映射
 const editModelMapping = (provider, model) => {
+  editingProvider.value = provider;
+  editingModel.value = model;
   // 填充表单数据
-  provider.newModel = {
+  newModel.value = {
     id: model.id,
     type: model.type,
     customName: model.customName || '',
     context: model.context,
     active: model.active
   };
-  
-  // 显示表单
-  provider.showModelForm = true;
-  
-  // 记录正在编辑的模型索引
-  provider.editingModelIndex = provider.models.findIndex(m => m.id === model.id);
+  isModelFormVisible.value = true;
 };
 
 // 删除模型映射
-const deleteModelMapping = (provider, model) => {
-  // 找到模型索引
-  const index = provider.models.findIndex(m => m.id === model.id);
-  if (index > -1) {
-    // 从模型列表中删除
-    provider.models.splice(index, 1);
+const deleteModelMapping = async (provider, model) => {
+  try {
+    await modelStore.deleteModelVersion(provider.name, model.id);
+  } catch (error) {
+    console.error('删除模型映射失败:', error);
   }
 };
 
-// 可用的供应商数据
-const availableProviders = reactive([
-  { name: 'Anthropic', desc: 'Claude 3 Family' },
-  { name: 'Google Gemini', desc: 'Vertex AI / AI Studio' },
-  { name: 'Mistral AI', desc: 'Open Weights API' },
-  { name: 'Groq', desc: 'LPU Inference Engine' },
-  { name: 'DeepSeek', desc: 'Code & Reasoning' },
-]);
+// 从modelStore获取可用的供应商数据（未配置的模型）
+const availableProviders = computed(() => {
+  return modelStore.unconfiguredModels;
+});
 </script>
 
 <style scoped>
