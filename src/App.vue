@@ -32,7 +32,6 @@ import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import DisplayArea from './components/layout/DisplayArea.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
-
 import { apiService } from './services/apiService.js';
 
 // 初始化stores
