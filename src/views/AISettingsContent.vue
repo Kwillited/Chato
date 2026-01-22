@@ -673,13 +673,13 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
-import { useModelSettingStore } from '../store/modelSettingStore.js';
+import { useSettingsStore } from '../store/settingsStore.js';
 
 // 标签页状态
 const activeTab = ref('basic');
 const mcpCount = ref(2);
 const settingsStore = useSettingsStore();
-const modelStore = useModelSettingStore();
+const modelStore = useSettingsStore();
 let originalLeftNavVisible = null;
 
 // 已配置模型列表的展开状态管理

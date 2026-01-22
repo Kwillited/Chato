@@ -203,20 +203,18 @@ export const useChatStore = defineStore('chat', {
       try {
         // 动态导入store实例，减少直接依赖
         const { useSettingsStore } = await import('./settingsStore.js');
-        const { useModelSettingStore } = await import('./modelSettingStore.js');
         const { useVectorStore } = await import('./vectorStore.js');
         
         const settingsStore = useSettingsStore();
-        const modelStore = useModelSettingStore();
         const vectorStore = useVectorStore();
         
         // 确保model参数使用name-version.version_name格式
         let formattedModel = model;
         
         // 检查是否需要进行格式转换（如果model不包含'-'，说明可能是旧格式）
-        if (!formattedModel.includes('-') && modelStore.models.length > 0) {
+        if (!formattedModel.includes('-') && settingsStore.models.length > 0) {
           // 尝试找到对应的模型和版本
-          for (const m of modelStore.models) {
+          for (const m of settingsStore.models) {
             if (m.versions && Array.isArray(m.versions)) {
               for (const version of m.versions) {
                 if (version.version_name === formattedModel) {

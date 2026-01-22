@@ -32,12 +32,12 @@ import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import DisplayArea from './components/layout/DisplayArea.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
-import { useModelSettingStore } from './store/modelSettingStore.js';
+import { useSettingsStore } from './store/settingsStore.js';
 
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-const modelSettingStore = useModelSettingStore();
+const modelSettingStore = useSettingsStore();
 
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);

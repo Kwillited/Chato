@@ -91,7 +91,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { useModelSettingStore } from '../../store/modelSettingStore.js';
+import { useSettingsStore } from '../../store/settingsStore.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
@@ -102,7 +102,7 @@ defineOptions({
 });
 
 // 初始化store
-const modelStore = useModelSettingStore();
+const modelStore = useSettingsStore();
 
 // Props
 const props = defineProps({

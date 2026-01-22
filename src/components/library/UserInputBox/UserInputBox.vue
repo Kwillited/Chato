@@ -439,7 +439,7 @@ const _props = defineProps({
 });
 import { useChatStore } from '../../../store/chatStore.js';
 import { useSettingsStore } from '../../../store/settingsStore.js';
-import { useModelSettingStore } from '../../../store/modelSettingStore.js';
+import { useSettingsStore } from '../../../store/settingsStore.js';
 
 
 // 定义存储键
@@ -451,7 +451,7 @@ const STORAGE_KEYS = {
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-const modelStore = useModelSettingStore();
+const modelStore = useSettingsStore();
 
 // 拖拽状态管理
 const dragCounter = ref(0);
