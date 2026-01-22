@@ -158,32 +158,6 @@ class ModelService(BaseService):
             if 'versions' not in model:
                 model['versions'] = []
             
-            # 获取要配置的版本名称（如果指定了特定版本）
-            target_version_name = data.get('version_name', '')
-            
-            # 查找匹配的版本
-            version = next((v for v in model['versions'] if v.get('version_name') == target_version_name), None)
-            
-            # 如果找不到匹配的版本，创建一个新的版本对象
-            if not version:
-                version = {}  # 初始化为空对象，只添加必要的字段
-                if target_version_name:  # 只有当version_name有值时才添加
-                    version['version_name'] = target_version_name
-                model['versions'].append(version)
-            
-            # 将配置信息写入到该版本中，只添加必要的字段
-            if target_version_name:  # 确保version_name存在
-                version['version_name'] = target_version_name
-            
-            # 只更新必要的配置字段
-            if 'custom_name' in data:
-                version['custom_name'] = data['custom_name']
-            if 'api_key' in data:
-                version['api_key'] = data['api_key']
-            if 'api_base_url' in data:
-                version['api_base_url'] = data['api_base_url']
-            version['streaming_config'] = data.get('streaming_config', False)  # 流式配置
-            
             # 更新模型的顶级配置字段
             # 对于首次配置的模型，默认设置为启用状态
             is_first_configuration = not model.get('configured')
@@ -206,22 +180,37 @@ class ModelService(BaseService):
             # 更新数据库中的模型信息
             self._update_model_in_db(model)
             
-            # 更新或创建模型版本
-            # 确保version_name存在，避免KeyError
-            version_name = version.get('version_name', '')
-            if not version_name:
-                # 如果version_name为空，使用model_name作为默认值
-                version_name = f"{model_name}_default"
-                version['version_name'] = version_name
-            
-            self.model_repo.update_model_version(
-                model_id=model_id,
-                version_name=version_name,
-                custom_name=version.get('custom_name', ''),
-                api_key=version.get('api_key', ''),
-                api_base_url=version.get('api_base_url', ''),
-                streaming_config=version.get('streaming_config', False)
-            )
+            # 只有当提供了version_name时，才创建或更新模型版本
+            target_version_name = data.get('version_name', '')
+            if target_version_name:  # 只有当version_name有值时，才处理版本配置
+                # 查找匹配的版本
+                version = next((v for v in model['versions'] if v.get('version_name') == target_version_name), None)
+                
+                # 如果找不到匹配的版本，创建一个新的版本对象
+                if not version:
+                    version = {
+                        'version_name': target_version_name
+                    }
+                    model['versions'].append(version)
+                
+                # 将配置信息写入到该版本中
+                if 'custom_name' in data:
+                    version['custom_name'] = data['custom_name']
+                if 'api_key' in data:
+                    version['api_key'] = data['api_key']
+                if 'api_base_url' in data:
+                    version['api_base_url'] = data['api_base_url']
+                version['streaming_config'] = data.get('streaming_config', False)  # 流式配置
+                
+                # 更新或创建模型版本
+                self.model_repo.update_model_version(
+                    model_id=model_id,
+                    version_name=target_version_name,
+                    custom_name=version.get('custom_name', ''),
+                    api_key=version.get('api_key', ''),
+                    api_base_url=version.get('api_base_url', ''),
+                    streaming_config=version.get('streaming_config', False)
+                )
             
             return True, f'模型 {model_name} 已配置', self._filter_icon_blob(model)
         except Exception as e:

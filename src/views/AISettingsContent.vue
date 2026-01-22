@@ -209,12 +209,12 @@
               <div class="px-5 py-5 grid grid-cols-2 gap-6 hairline-b dark:border-dark-700">
                 <div class="col-span-2 md:col-span-1">
                   <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">基础 URL</label>
-                  <input type="text" :value="provider.url" class="w-full text-xs mono bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white" readonly>
+                  <input type="text" v-model="provider.apiBaseUrl" class="w-full text-xs mono bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white">
                 </div>
                 <div class="col-span-2 md:col-span-1">
                   <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">API 密钥</label>
                   <div class="flex gap-2">
-                    <input type="password" value="sk-xxxxxxxx" class="w-full text-xs mono bg-gray-50 dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white">
+                    <input type="password" v-model="provider.apiKey" class="w-full text-xs mono bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-2 outline-none focus:border-black dark:focus:border-white transition-colors text-gray-900 dark:text-white">
                     <button class="px-3 py-1.5 border border-gray-200 dark:border-dark-600 rounded bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 text-[10px] font-medium text-gray-900 dark:text-white transition-colors">更新</button>
                   </div>
                 </div>
@@ -228,7 +228,7 @@
                 </div>
                 
                 <!-- 模型映射表单 - 水平布局 -->
-                <div v-if="isModelFormVisible && editingProvider?.id === provider.id" class="mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-dark-600">
+                <div v-if="isModelFormVisible && editingProvider?.name === provider.name" class="mb-4 p-3 bg-gray-50 dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-dark-600">
                   <div class="flex flex-wrap items-end gap-3">
                     <!-- 模型类型 -->
                     <div class="min-w-[120px]">
@@ -247,6 +247,14 @@
                     <div class="flex-1 min-w-[120px]">
                       <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">自定义模型名字</label>
                       <input type="text" v-model="newModel.customName" class="w-full text-xs bg-gray-100 dark:bg-dark-800 border border-gray-200 dark:border-dark-600 rounded px-2.5 py-1.5 outline-none focus:border-primary dark:focus:border-primary transition-colors text-gray-900 dark:text-white" placeholder="例如：我的GPT-4o">
+                    </div>
+                    <!-- 流式输出配置 -->
+                    <div class="min-w-[120px] flex items-center justify-between">
+                      <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1.5">流式输出</label>
+                      <label class="toggle-switch">
+                        <input type="checkbox" v-model="newModel.streamingConfig">
+                        <span class="toggle-slider bg-gray-300 dark:bg-dark-600"></span>
+                      </label>
                     </div>
                     <!-- 表单按钮 -->
                     <div class="flex gap-2">
@@ -683,7 +691,10 @@ const newModel = ref({
   type: 'llm',
   customName: '',
   context: '8k',
-  active: true
+  active: true,
+  streamingConfig: false,
+  apiKey: '',
+  apiBaseUrl: ''
 });
 
 // 组件挂载时隐藏左侧边栏并加载模型
@@ -725,42 +736,73 @@ const loadModels = async () => {
 
 // 从modelStore获取已配置的供应商数据
 const configuredProviders = computed(() => {
-  return modelStore.configuredModels.map(model => ({
-    id: model.name.toLowerCase().replace(/\s+/g, '-'),
-    name: model.name,
-    url: model.api_base_url || '',
-    open: true,
-    models: model.versions?.map(version => ({
-      id: version.version_name,
-      type: 'llm', // 默认类型，实际应从modelStore获取
-      context: '8k', // 默认上下文，实际应从modelStore获取
-      active: version.enabled || true,
-      customName: version.custom_name
-    })) || [],
-    showModelForm: false,
-    newModel: {
-      id: '',
-      type: 'llm',
-      customName: '',
-      context: '8k',
-      active: true
-    }
-  }));
+  return modelStore.configuredModels.map(model => {
+    // 获取第一个版本的API配置作为供应商级别的默认配置
+    const firstVersion = model.versions?.[0] || {};
+    return {
+      id: model.name.toLowerCase().replace(/\s+/g, '-'),
+      name: model.name,
+      url: model.api_base_url || '',
+      apiBaseUrl: model.api_base_url || firstVersion.api_base_url || '',
+      apiKey: firstVersion.api_key || '',
+      open: true,
+      models: model.versions?.map(version => ({
+        id: version.version_name,
+        type: 'llm', // 默认类型，实际应从modelStore获取
+        context: '8k', // 默认上下文，实际应从modelStore获取
+        active: version.enabled || true,
+        customName: version.custom_name,
+        apiKey: version.api_key || '',
+        apiBaseUrl: version.api_base_url || '',
+        streamingConfig: version.streaming_config || false
+      })) || [],
+      showModelForm: false,
+      newModel: {
+        id: '',
+        type: 'llm',
+        customName: '',
+        context: '8k',
+        active: true,
+        apiKey: '',
+        apiBaseUrl: '',
+        streamingConfig: false
+      }
+    };
+  });
 });
 
-// 添加供应商函数 - 现在通过modelStore处理
-const addProvider = (provider) => {
-  // 直接调用modelStore的saveModelConfig方法来添加供应商
-  // 这里需要打开配置抽屉，让用户输入详细配置
-  // 由于当前组件没有配置抽屉，我们可以简单地调用saveModelConfig
-  // 实际实现应该打开配置表单让用户填写
-  modelStore.saveModelConfig(provider.name, {
-    customName: '',
-    apiKey: '',
-    apiBaseUrl: '',
-    versionName: '',
-    streamingConfig: false
-  });
+// 添加供应商函数 - 打开模型配置表单
+const addProvider = async (provider) => {
+  // 找到对应供应商的配置对象
+  let providerConfig = configuredProviders.value.find(p => p.name === provider.name);
+  
+  // 如果供应商尚未配置，先添加到已配置列表
+  if (!providerConfig) {
+    // 将供应商添加到已配置列表（不生成默认版本）
+    await modelStore.saveModelConfig(provider.name, {
+      customName: '',
+      apiKey: '',
+      apiBaseUrl: '',
+      versionName: '', // 空versionName不会触发默认版本生成
+      streamingConfig: false
+    });
+    
+    // 重新加载模型列表，确保数据更新
+    await modelStore.loadModels();
+    
+    // 重新查找供应商配置
+    providerConfig = configuredProviders.value.find(p => p.name === provider.name);
+  }
+  
+  // 如果找到供应商配置，打开模型配置表单
+  if (providerConfig) {
+    // 确保供应商配置对象有open属性并设置为true
+    if (!providerConfig.open) {
+      providerConfig.open = true;
+    }
+    // 打开模型配置表单，让用户输入模型详细信息
+    toggleModelForm(providerConfig);
+  }
 };
 
 // 移除供应商函数 - 现在通过modelStore处理
@@ -779,7 +821,10 @@ const toggleModelForm = (provider) => {
     type: 'llm',
     customName: '',
     context: '8k',
-    active: true
+    active: true,
+    streamingConfig: false,
+    apiKey: '',
+    apiBaseUrl: ''
   };
   isModelFormVisible.value = true;
 };
@@ -794,30 +839,27 @@ const saveModelMapping = async () => {
   }
   
   try {
+    // 构建请求数据，使用供应商级别的API配置作为默认值
+    const requestData = {
+      customName: newModel.value.customName,
+      versionName: newModel.value.id,
+      apiKey: editingProvider.value.apiKey, // 使用供应商级别的API密钥
+      apiBaseUrl: editingProvider.value.apiBaseUrl, // 使用供应商级别的API基础URL
+      streamingConfig: newModel.value.streamingConfig
+    };
+    
     if (editingModel.value) {
       // 更新现有模型
       await modelStore.updateModelVersion(
         editingProvider.value.name,
         editingModel.value.id,
-        {
-          customName: newModel.value.customName,
-          versionName: newModel.value.id,
-          apiKey: '', // 这里需要从表单获取，暂时留空
-          apiBaseUrl: editingProvider.value.url,
-          streamingConfig: false
-        }
+        requestData
       );
     } else {
       // 添加新模型
       await modelStore.addModelVersion(
         editingProvider.value.name,
-        {
-          customName: newModel.value.customName,
-          versionName: newModel.value.id,
-          apiKey: '', // 这里需要从表单获取，暂时留空
-          apiBaseUrl: editingProvider.value.url,
-          streamingConfig: false
-        }
+        requestData
       );
     }
     
@@ -825,9 +867,6 @@ const saveModelMapping = async () => {
     isModelFormVisible.value = false;
     editingProvider.value = null;
     editingModel.value = null;
-    
-    // 与 ModelsSettings.vue 保持一致，保存成功后重新加载模型列表
-    await modelStore.loadModels();
   } catch (error) {
     console.error('保存模型映射失败:', error);
   }
@@ -851,7 +890,10 @@ const editModelMapping = (provider, model) => {
     type: model.type,
     customName: model.customName || '',
     context: model.context,
-    active: model.active
+    active: model.active,
+    streamingConfig: model.streamingConfig || false,
+    apiKey: model.apiKey || '',
+    apiBaseUrl: model.apiBaseUrl || ''
   };
   isModelFormVisible.value = true;
 };
@@ -859,10 +901,8 @@ const editModelMapping = (provider, model) => {
 // 删除模型映射
 const deleteModelMapping = async (provider, model) => {
   try {
-    // 与 ModelsSettings.vue 中的 deleteModelVersion 函数保持一致的逻辑
     await modelStore.deleteModelVersion(provider.name, model.id);
   } catch (error) {
-    // 与 ModelsSettings.vue 保持一致，modelStore 内部已处理错误通知
     console.error('删除模型映射失败:', error);
   }
 };
