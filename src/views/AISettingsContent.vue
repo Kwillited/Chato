@@ -825,6 +825,9 @@ const saveModelMapping = async () => {
     isModelFormVisible.value = false;
     editingProvider.value = null;
     editingModel.value = null;
+    
+    // 与 ModelsSettings.vue 保持一致，保存成功后重新加载模型列表
+    await modelStore.loadModels();
   } catch (error) {
     console.error('保存模型映射失败:', error);
   }
@@ -856,8 +859,10 @@ const editModelMapping = (provider, model) => {
 // 删除模型映射
 const deleteModelMapping = async (provider, model) => {
   try {
+    // 与 ModelsSettings.vue 中的 deleteModelVersion 函数保持一致的逻辑
     await modelStore.deleteModelVersion(provider.name, model.id);
   } catch (error) {
+    // 与 ModelsSettings.vue 保持一致，modelStore 内部已处理错误通知
     console.error('删除模型映射失败:', error);
   }
 };

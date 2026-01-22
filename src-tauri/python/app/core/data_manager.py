@@ -787,7 +787,9 @@ def save_models_to_db(conn=None):
             
             # 要保存的版本名称集合
             new_versions = model.get('versions', [])
-            new_version_names = {version['version_name'] for version in new_versions}
+            # 过滤掉没有 version_name 的版本，避免 KeyError
+            valid_new_versions = [version for version in new_versions if 'version_name' in version]
+            new_version_names = {version['version_name'] for version in valid_new_versions}
             
             # 删除不再存在的版本
             versions_to_delete = existing_version_names - new_version_names
@@ -806,7 +808,7 @@ def save_models_to_db(conn=None):
                     streaming_config=version_data.get('streaming_config', False)
                 )
             
-            for version in new_versions:
+            for version in valid_new_versions:
                 update_version(version)
         
         from app.core.logging_config import logger

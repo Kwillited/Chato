@@ -207,9 +207,16 @@ class ModelService(BaseService):
             self._update_model_in_db(model)
             
             # 更新或创建模型版本
+            # 确保version_name存在，避免KeyError
+            version_name = version.get('version_name', '')
+            if not version_name:
+                # 如果version_name为空，使用model_name作为默认值
+                version_name = f"{model_name}_default"
+                version['version_name'] = version_name
+            
             self.model_repo.update_model_version(
                 model_id=model_id,
-                version_name=version['version_name'],
+                version_name=version_name,
                 custom_name=version.get('custom_name', ''),
                 api_key=version.get('api_key', ''),
                 api_base_url=version.get('api_base_url', ''),
