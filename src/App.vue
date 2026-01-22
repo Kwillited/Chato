@@ -15,20 +15,12 @@
         :is-initial-loading="isInitialLoading"
       />
     </div>
-
-    <!-- 模型版本表单（支持添加和编辑） -->
-    <ModelVersionForm />
-
-    <!-- 模型配置抽屉 -->
-    <ModelSettingsDrawer />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import TopNav from './components/layout/TopNav.vue';
-import ModelVersionForm from './components/models/ModelVersionForm.vue';
-import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import DisplayArea from './components/layout/DisplayArea.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
