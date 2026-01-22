@@ -2,7 +2,8 @@ import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
 import { generateId } from './utils';
 import { showNotification } from '../services/notificationUtils.js';
-import { ref } from 'vue'; // 引入 ref
+import { ref, onUnmounted } from 'vue'; // 引入 ref 和 onUnmounted
+import eventBus, { Events } from '../services/eventBus.js'; // 引入事件总线
 
 // 模型适配器 - 统一处理模型配置格式
 class ModelAdapter {
@@ -175,10 +176,27 @@ export const useChatStore = defineStore('chat', {
     retryCount: 0, // 重试计数
     maxRetries: 10, // 最大重试次数
     retryInterval: 3000, // 初始重试间隔（毫秒）
+    
     // 适配器实例
     modelAdapter: ModelAdapter,
     messageAdapter: MessageAdapter
   }),
+  
+  setup() {
+    // 监听文件夹选择事件
+    const handleFolderSelected = (folder) => {
+      const store = useChatStore();
+      store.currentSelectedFolder = folder;
+    };
+    
+    // 订阅文件夹选择事件
+    eventBus.on('folderSelected', handleFolderSelected);
+    
+    // 组件卸载时取消订阅
+    onUnmounted(() => {
+      eventBus.off('folderSelected', handleFolderSelected);
+    });
+  },
 
   getters: {
     // 获取当前对话
@@ -269,6 +287,9 @@ export const useChatStore = defineStore('chat', {
         this.chats.unshift(newChat); // 添加到开头，保持最新优先
         this.currentChatId = newChat.id;
         this.messageInput = '';
+        
+        // 发布新对话创建事件
+        eventBus.emit(Events.CHAT_CREATED, newChat);
 
         return newChat;
       } catch (error) {
@@ -294,6 +315,9 @@ export const useChatStore = defineStore('chat', {
           ...c,
           hasUnreadMessage: c.id !== chatId && (c.hasUnreadMessage || false)
         }));
+        
+        // 发布对话选择事件
+        eventBus.emit(Events.CHAT_SELECTED, chat);
         
         // 可以在这里添加加载对话历史的逻辑
         console.log('选择对话:', chatId);
@@ -333,6 +357,12 @@ export const useChatStore = defineStore('chat', {
       currentChat.messages.push(userMessageRef);
       currentChat.updatedAt = Date.now();
       currentChat.model = model;
+      
+      // 发布消息发送事件
+      eventBus.emit(Events.MESSAGE_SENT, {
+        chatId: currentChat.id,
+        message: userMessageRef.value
+      });
 
       // 如果是第一条消息，设置对话标题
       if (currentChat.messages.length === 1 && currentChat.title === '新对话') {
@@ -357,10 +387,8 @@ export const useChatStore = defineStore('chat', {
       try {
         // 动态导入store实例，减少直接依赖
         const { useSettingsStore } = await import('./settingsStore.js');
-        const { useVectorStore } = await import('./vectorStore.js');
         
         const settingsStore = useSettingsStore();
-        const vectorStore = useVectorStore();
         
         // 确保model参数使用name-version.version_name格式
         let formattedModel = model;
@@ -385,18 +413,18 @@ export const useChatStore = defineStore('chat', {
         const systemStreamingEnabled = settingsStore.systemSettings.streamingEnabled || false;
         
         // 检查模型版本是否支持流式输出
-        let modelStreamingEnabled = false;
-        if (formattedModel && formattedModel.includes('-')) {
-          const [modelName, versionName] = formattedModel.split('-', 2);
-          const model = modelStore.models.find(m => m.name === modelName);
-          if (model && model.versions) {
-            const version = model.versions.find(v => v.version_name === versionName);
-            if (version) {
-              // 支持多种字段名，兼容不同版本的后端返回格式
-              modelStreamingEnabled = version.streaming || version.streamingConfig || version.streaming_config || false;
-            }
-          }
+    let modelStreamingEnabled = false;
+    if (formattedModel && formattedModel.includes('-')) {
+      const [modelName, versionName] = formattedModel.split('-', 2);
+      const model = settingsStore.models.find(m => m.name === modelName);
+      if (model && model.versions) {
+        const version = model.versions.find(v => v.version_name === versionName);
+        if (version) {
+          // 支持多种字段名，兼容不同版本的后端返回格式
+          modelStreamingEnabled = version.streaming || version.streamingConfig || version.streaming_config || false;
         }
+      }
+    }
         
         // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
         const shouldUseStreaming = systemStreamingEnabled && modelStreamingEnabled;
@@ -414,15 +442,19 @@ export const useChatStore = defineStore('chat', {
           selectedKnowledgeBases: []
         };
         
+        // 动态导入fileStore，减少直接依赖
+        const { useFileStore } = await import('./fileStore.js');
+        const fileStore = useFileStore();
+        
         // 如果有选中的文件夹，设置检索范围为该文件夹
-        if (vectorStore.currentSelectedFolder) {
-          const targetFolder = vectorStore.currentSelectedFolder;
+        if (fileStore.currentFolder) {
+          const targetFolder = fileStore.currentFolder;
           ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
         }
         
         // 添加调试日志，查看实际发送给后端的ragConfig
         console.log('🔍 RAG配置调试:', {
-          currentSelectedFolder: vectorStore.currentSelectedFolder,
+          currentSelectedFolder: fileStore.currentFolder,
           selectedFolders: ragConfigToUse.selectedFolders,
           ragEnabled: ragConfigToUse.enabled
         });
@@ -472,6 +504,12 @@ export const useChatStore = defineStore('chat', {
                   
                   aiMessage = messageContent;
                   currentChat.messages.push(messageContent);
+                  
+                  // 发布AI消息创建事件
+                  eventBus.emit(Events.MESSAGE_RECEIVED, {
+                    chatId: currentChat.id,
+                    message: messageContent.value
+                  });
                 }
                 
                 // 处理后端返回的流式数据格式
@@ -486,6 +524,14 @@ export const useChatStore = defineStore('chat', {
                   // 使用ref.value直接更新属性，确保任何变化都能触发响应式更新
                   aiMessage.value.content = aiMessage.value.content + contentToAdd;
                   aiMessage.value.lastUpdate = Date.now(); // 更新lastUpdate以触发ChatMessage组件重新渲染
+                  
+                  // 发布消息更新事件
+                  eventBus.emit(Events.MESSAGE_UPDATED, {
+                    chatId: currentChat.id,
+                    messageId: aiMessage.value.id,
+                    content: aiMessage.value.content,
+                    status: 'streaming'
+                  });
                   
                   // 由于使用了ref，不需要额外的splice操作来强制更新数组
                 }
@@ -503,6 +549,15 @@ export const useChatStore = defineStore('chat', {
                     // 确保model字段存在，使用data.ai_message.model或fallback到formattedModel
                     updatedMessage.model = data.ai_message?.model || formattedModel;
                     aiMessage.value = updatedMessage;
+                    
+                    // 发布消息更新事件（完成）
+                    eventBus.emit(Events.MESSAGE_UPDATED, {
+                      chatId: currentChat.id,
+                      messageId: aiMessage.value.id,
+                      content: aiMessage.value.content,
+                      status: 'received',
+                      model: updatedMessage.model
+                    });
                     
                     // 添加：强制更新currentChat，确保所有组件都能感知到变化
                     this.currentChat = { ...this.currentChat };
@@ -745,6 +800,7 @@ export const useChatStore = defineStore('chat', {
         // API调用成功后，从本地状态中删除对话
         const chatIndex = this.chats.findIndex((chat) => chat.id === chatId);
         if (chatIndex !== -1) {
+          const deletedChat = this.chats[chatIndex];
           this.chats.splice(chatIndex, 1);
 
           // 如果删除的是当前对话，选择第一个对话或设置 currentChatId 为 null
@@ -760,6 +816,9 @@ export const useChatStore = defineStore('chat', {
           if (this.chats.length === 0) {
             this.currentChatId = null;
           }
+          
+          // 发布对话删除事件
+          eventBus.emit(Events.CHAT_DELETED, { chatId: chatId, deletedChat: deletedChat });
         }
       } catch (error) {
         console.error('API删除对话失败:', error);
@@ -831,10 +890,16 @@ export const useChatStore = defineStore('chat', {
           
           // 如果有对话历史，不自动选择任何对话
           this.currentChatId = null;
+          
+          // 发布聊天历史加载完成事件
+          eventBus.emit(Events.CHAT_HISTORY_LOADED, this.chats);
         } else {
           // 没有对话历史，清空当前状态
           this.chats = [];
           this.currentChatId = null;
+          
+          // 发布聊天历史加载完成事件（空）
+          eventBus.emit(Events.CHAT_HISTORY_LOADED, []);
         }
       } catch (error) {
         console.error('获取对话历史失败:', error);

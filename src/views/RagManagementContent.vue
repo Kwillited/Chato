@@ -202,13 +202,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { useVectorStore } from '../store/vectorStore.js';
 import { useFileStore } from '../store/fileStore.js';
 import { useChatStore } from '../store/chatStore.js';
-import { eventBus } from '../services/eventBus.js';
-import { generateId, formatFileSize } from '../store/utils.js';
+import { formatFileSize } from '../store/utils.js';
 import ActionButton from '../components/common/ActionButton.vue';
 import { KnowledgeGraphVisualization } from '../components/library';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
@@ -508,8 +507,7 @@ const handleDeleteConfirm = async () => {
       throw new Error('文件不存在');
     }
     
-    // 获取当前文件夹ID（如果有）
-    const folderId = selectedFolder.value?.id || '';
+    // 获取当前文件夹名称（如果有）
     const folderName = selectedFolder.value?.name || '';
     
     // 使用fileStore删除文件
@@ -608,11 +606,26 @@ onMounted(() => {
     }
   });
   
-  // 监听文件夹选中事件
-  eventBus.on('folderSelected', handleFolderSelected);
+  // 监听fileStore中的当前选中文件夹变化
+  watch(
+    () => fileStore.currentFolder,
+    (newFolder) => {
+      if (newFolder) {
+        handleFolderSelected(newFolder);
+      }
+    }
+  );
   
-  // 监听FilePanel中的文件上传完成事件
-  eventBus.on('filesUploaded', handleFilesUploaded);
+  // 监听fileStore中的文件列表变化
+  watch(
+    () => [fileStore.files.length, fileStore.folders.length],
+    ([newFilesCount, newFoldersCount], [oldFilesCount, oldFoldersCount]) => {
+      // 只有当文件数量或文件夹数量变化时，才执行更新
+      if (newFilesCount !== oldFilesCount || newFoldersCount !== oldFoldersCount) {
+        handleFilesUploaded();
+      }
+    }
+  );
   
   // 监听视图切换事件
   window.addEventListener('switchToThumbnailView', handleViewSwitch);
@@ -623,9 +636,6 @@ onMounted(() => {
 
 // 组件卸载时取消监听
 onUnmounted(() => {
-  eventBus.off('folderSelected', handleFolderSelected);
-  eventBus.off('filesUploaded', handleFilesUploaded);
-  
   // 移除视图切换事件监听
   window.removeEventListener('switchToThumbnailView', handleViewSwitch);
   

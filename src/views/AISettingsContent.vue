@@ -671,12 +671,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
 
 // 初始化stores
 const activeTab = ref('basic');
-const mcpCount = ref(2);
 const settingsStore = useSettingsStore();
 const modelStore = useSettingsStore();
 let originalLeftNavVisible = null;

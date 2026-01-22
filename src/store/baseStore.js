@@ -1,5 +1,4 @@
 // src/store/baseStore.js
-import { apiService } from '../services/apiService.js';
 
 /**
  * 基础Store功能，提供通用的状态管理和API调用封装

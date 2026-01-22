@@ -72,7 +72,7 @@ import { onMounted, onUnmounted, ref } from 'vue';
 import { useVectorStore } from '../../store/vectorStore.js';
 import { useFileStore } from '../../store/fileStore.js';
 import api from '../../services/apiService.js';
-import { eventBus } from '../../services/eventBus.js';
+import eventBus from '../../services/eventBus.js';
 import { showNotification } from '../../services/notificationUtils.js';
 
 // 导入子组件
@@ -328,8 +328,9 @@ const handleFolderDoubleClick = async (event) => {
         await loadFiles();
         await loadFolders();
         
-        // 触发文件上传完成事件，通知RagManagementContent组件
-        eventBus.emit('filesUploaded');
+        // 更新fileStore中的文件列表
+        await fileStore.loadFiles();
+        await fileStore.loadFolders();
         
         // 根据上传结果显示通知
         if (successFiles.length > 0) {
@@ -497,8 +498,8 @@ const handleFolderSelected = (event) => {
   localStorage.setItem('ragSelectedFolder', JSON.stringify(selectedFolder));
   // 更新ragStore的currentSelectedFolder状态
   ragStore.setCurrentSelectedFolder(selectedFolder);
-  // 发送事件到eventBus通知其他组件
-  eventBus.emit('folderSelected', selectedFolder);
+  // 更新fileStore中的当前选中文件夹状态
+  fileStore.currentFolder = selectedFolder;
 };
 
 // 通过文件夹ID获取文件夹名称（辅助函数）

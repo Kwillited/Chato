@@ -92,7 +92,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { eventBus } from '../../services/eventBus.js';
+import eventBus from '../../services/eventBus.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
@@ -239,8 +239,7 @@ const handleSubmit = async () => {
     emit('close');
     emit('success');
 
-    // 通过事件总线通知模型已更新
-    eventBus.emit('modelUpdated');
+    
   } catch (error) {
     // 显示错误信息
     console.error('保存模型版本失败:', error);

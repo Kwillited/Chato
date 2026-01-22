@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { StorageManager, mergeSettings } from './utils';
 import { apiService } from '../services/apiService.js';
-import { eventBus } from '../services/eventBus.js';
+import eventBus, { Events } from '../services/eventBus.js';
 import { showNotification } from '../services/notificationUtils.js';
 import { useBaseStore } from './baseStore';
 
@@ -293,30 +293,45 @@ export const useSettingsStore = defineStore('settings', {
       this.applyImmediateSettings(settings);
 
       this.saveSettings();
+      
+      // 发布系统设置更新事件
+      eventBus.emit(Events.SETTINGS_UPDATED, { systemSettings: this.systemSettings });
     },
 
     // 更新向量配置
     updateVectorConfig(config) {
       this.vectorConfig = { ...this.vectorConfig, ...config };
       this.saveSettings();
+      
+      // 发布RAG配置更改事件
+      eventBus.emit(Events.RAG_CONFIG_CHANGED, this.vectorConfig);
     },
 
     // 更新向量检索配置
     updateVectorRetrievalConfig(retrievalConfig) {
       this.vectorConfig.retrieval = { ...this.vectorConfig.retrieval, ...retrievalConfig };
       this.saveSettings();
+      
+      // 发布RAG配置更改事件
+      eventBus.emit(Events.RAG_CONFIG_CHANGED, this.vectorConfig);
     },
 
     // 更新向量嵌入配置
     updateVectorEmbeddingConfig(embeddingConfig) {
       this.vectorConfig.embedding = { ...this.vectorConfig.embedding, ...embeddingConfig };
       this.saveSettings();
+      
+      // 发布RAG配置更改事件
+      eventBus.emit(Events.RAG_CONFIG_CHANGED, this.vectorConfig);
     },
 
     // 更新向量存储配置
     updateVectorStorageConfig(storageConfig) {
       this.vectorConfig.storage = { ...this.vectorConfig.storage, ...storageConfig };
       this.saveSettings();
+      
+      // 发布RAG配置更改事件
+      eventBus.emit(Events.RAG_CONFIG_CHANGED, this.vectorConfig);
     },
 
     // 应用需要立即生效的设置
@@ -645,7 +660,7 @@ export const useSettingsStore = defineStore('settings', {
         this.updateAvailableModels();
         
         // 通知事件总线，模型列表已更新
-        eventBus.emit('modelsLoaded', { models: this.models });
+        eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
       } catch (error) {
         this.setError('加载模型列表失败');
         console.error('加载模型列表失败:', error);
@@ -720,7 +735,7 @@ export const useSettingsStore = defineStore('settings', {
         await this.loadModels();
         
         // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
+        eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
         
         return true;
       } catch (error) {
@@ -745,7 +760,7 @@ export const useSettingsStore = defineStore('settings', {
         await this.loadModels();
         
         // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
+        eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
         
         // 显示成功通知
         showNotification(`已删除${modelName}的配置`, 'success');
@@ -776,7 +791,7 @@ export const useSettingsStore = defineStore('settings', {
         await this.loadModels();
         
         // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
+        eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
         
         return true;
       } catch (error) {
@@ -812,7 +827,7 @@ export const useSettingsStore = defineStore('settings', {
         await this.loadModels();
         
         // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
+        eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
         
         return true;
       } catch (error) {
@@ -846,7 +861,7 @@ export const useSettingsStore = defineStore('settings', {
         await this.loadModels();
         
         // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
+        eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
         
         return true;
       } catch (error) {
@@ -871,7 +886,7 @@ export const useSettingsStore = defineStore('settings', {
         await this.loadModels();
         
         // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
+        eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
         
         // 查找模型和版本信息用于通知
         const model = this.models.find(m => m.name === modelName);

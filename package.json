@@ -19,6 +19,7 @@
     "@tauri-apps/plugin-opener": "^2",
     "axios": "^1.12.2",
     "highlight.js": "^11.11.1",
+    "mitt": "^3.0.1",
     "monaco-editor": "^0.55.1",
     "pinia": "^3.0.3",
     "three": "^0.180.0",
