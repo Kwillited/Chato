@@ -16,7 +16,7 @@
     <!-- 搜索框 -->
     <SearchBar v-model="searchQuery" placeholder="搜索工具..." />
 
-    <div class="overflow-y-auto h-[calc(100%-165px)] scrollbar-thin">
+    <div class="overflow-y-auto h-[calc(100%-120px)] scrollbar-thin">
       <div class="p-2 space-y-4">
         <!-- 工具分类标题 -->
         <div class="tool-category">

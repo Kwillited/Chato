@@ -4,7 +4,7 @@
     <RagFilePanelHeader :currentFolder="currentFolder" />
 
     <!-- 主内容区域 -->
-    <div class="overflow-y-auto h-[calc(100%-57px)] scrollbar-thin">
+    <div class="overflow-y-auto flex-1 scrollbar-thin">
       <!-- 文件夹样式的根目录 -->
       <div class="folder-container p-2">
         <!-- 工具栏组件 -->

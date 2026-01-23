@@ -1,13 +1,5 @@
 <template>
-  <div class="panel-header p-3 flex justify-end items-center transition-all duration-300">
-    <!-- 二级菜单时显示返回上一级按钮 -->
-    <ActionButton
-      v-if="currentFolder"
-      icon="fa-chevron-left"
-      title="返回上一级"
-      @click="handleBackToParent"
-    />
-  </div>
+  <!-- 已移除面板头部 -->
 </template>
 
 <script setup>

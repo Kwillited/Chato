@@ -1,22 +1,5 @@
 <template>
-  <div class="panel-header p-3 flex justify-end items-center transition-all duration-300">
-    <template v-if="!hideDefaultActions">
-      <!-- 自定义按钮插槽 -->
-      <slot name="actions"></slot>
-      
-      <!-- 默认返回按钮（如果有返回按钮配置） -->
-      <Button
-        v-if="showBackButton"
-        :id="backButtonId"
-        icon="fa-arrow-left"
-        tooltip="返回聊天"
-        @click="handleBack"
-        size="sm"
-        shape="full"
-        class="ml-2"
-      />
-    </template>
-  </div>
+  <!-- 已移除面板头部 -->
 </template>
 
 <script setup>
