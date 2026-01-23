@@ -1,7 +1,6 @@
 <template>
-  <div class="panel-header p-3 flex justify-between items-center transition-all duration-300">
-    <h2 class="text-lg font-bold text-dark dark:text-white">{{ title }}</h2>
-    <div class="flex gap-2" v-if="!hideDefaultActions">
+  <div class="panel-header p-3 flex justify-end items-center transition-all duration-300">
+    <template v-if="!hideDefaultActions">
       <!-- 自定义按钮插槽 -->
       <slot name="actions"></slot>
       
@@ -14,8 +13,9 @@
         @click="handleBack"
         size="sm"
         shape="full"
+        class="ml-2"
       />
-    </div>
+    </template>
   </div>
 </template>
 

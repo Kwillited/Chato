@@ -1,302 +1,156 @@
 <template>
   <div 
     id="rightPanel" 
-    class="h-full flex-shrink-0 z-40 overflow-hidden mr-0 max-w-[370px]"
-    :class="{ 'transition-all duration-300': !isInitialLoading }"
-    :style="{ width: settingsStore.rightPanelVisible ? settingsStore.rightPanelWidth : '0px', display: settingsStore.rightPanelVisible ? 'block' : 'none', flexShrink: 0 }"
+    class="h-full flex flex-col bg-white dark:bg-dark-secondary"
   >
-    <!-- 右侧面板标题 -->
-    <div class="panel-header p-3 flex items-center justify-between gap-2">
-      <h2 class="text-lg font-bold text-dark dark:text-white flex-1">上下文工程</h2>
-      <ActionButton
-        :icon="chatStore.activeView === 'grid' ? 'fa-sitemap' : 'fa-comments'"
-        :title="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
-        @click="toggleView"
-      />
-      <ActionButton
-        icon="fa-times"
-        title="关闭面板"
-        @click="settingsStore.toggleRightPanel()"
-      />
-    </div>
-    
-    <!-- 右侧面板内容 -->
-    <div class="p-3 space-y-4">
-      <!-- 上下文概述 -->
-      <div class="panel-section">
-        <h3 class="text-sm font-semibold text-gray-500 mb-2">上下文概述</h3>
-        <div class="bg-gray-50 dark:bg-dark-bg-tertiary p-3 rounded-lg">
-          <p class="text-sm text-gray-600 dark:text-dark-text-secondary mb-1">当前会话: {{ chatStore.currentChat?.title || '无' }}</p>
-          <p class="text-sm text-gray-600 dark:text-dark-text-secondary mb-1">上下文数量: {{ getContextCount() }}</p>
-          <p class="text-sm text-gray-600 dark:text-dark-text-secondary mb-1">输入Token: {{ getInputTokens() }}</p>
-          <p class="text-sm text-gray-600 dark:text-dark-text-secondary mb-1">输出Token: {{ getOutputTokens() }}</p>
-          <p class="text-sm text-gray-600 dark:text-dark-text-secondary">总Token: {{ getTotalTokens() }}</p>
-          <p class="text-sm text-gray-600 dark:text-dark-text-secondary mt-1">最新更新: {{ getLastUpdateTime() }}</p>
+    <!-- 内容区 -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin">
+      <!-- 统计卡片 -->
+      <section>
+        <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">概览</h3>
+        <div class="bg-gray-50 dark:bg-dark-tertiary rounded-xl p-4 text-sm space-y-2 border dark:border-dark-700">
+          <div class="flex justify-between">
+            <span class="text-gray-500">消息数</span>
+            <span class="font-mono font-medium">{{ contextCount }}</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-500">总 Token (估算)</span>
+            <span class="font-mono font-medium text-primary">{{ totalTokens }}</span>
+          </div>
+          <div class="h-px bg-gray-200 dark:bg-dark-600 my-2"></div>
+          <div class="text-xs text-gray-400 text-right">上次更新: {{ lastUpdateTime }}</div>
         </div>
-      </div>
+      </section>
       
-      <!-- 上下文筛选 -->
-      <div class="panel-section">
-        <div class="flex justify-between items-center mb-2">
-          <h3 class="text-sm font-semibold text-gray-500">上下文筛选</h3>
-          <div class="flex space-x-2">
-            <ActionButton
-              icon="fa-check-square"
-              title="全选"
-              size="sm"
-              @click="selectAllMessages"
-            />
-            <ActionButton
-              icon="fa-square"
-              title="取消全选"
-              size="sm"
-              @click="clearAllSelections"
-            />
+      <!-- 消息筛选列表 -->
+      <section class="flex flex-col h-full min-h-[300px]">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">上下文筛选</h3>
+          <div class="flex gap-1">
+            <button class="text-xs text-primary hover:underline" @click="selectAllMessages">全选</button>
+            <span class="text-gray-300">|</span>
+            <button class="text-xs text-gray-500 hover:text-gray-700 hover:underline" @click="clearAllSelections">清空</button>
           </div>
         </div>
         
-        <div class="bg-gray-50 dark:bg-dark-bg-tertiary rounded-lg max-h-[200px] overflow-y-auto">
-          <div class="p-2">
-            <!-- 消息列表 -->
-            <div v-if="chatStore.currentChat && chatStore.currentChat.messages && chatStore.currentChat.messages.length > 0">
+        <div class="flex-1 bg-gray-50 dark:bg-dark-tertiary rounded-xl border dark:border-dark-700 overflow-hidden flex flex-col">
+          <div class="flex-1 overflow-y-auto p-2 scrollbar-thin">
+            <template v-if="messages.length > 0">
               <div
-                v-for="message in chatStore.currentChat.messages"
-                :key="message.value?.id || message.id"
-                class="message-item mb-3 p-2 rounded border border-gray-200 dark:border-dark-border hover:bg-gray-100 dark:hover:bg-dark-bg-tertiary transition-colors"
-                :class="{ 'selected': selectedMessages.has(message.value?.id || message.id) }"
+                v-for="msg in messages"
+                :key="msg.id"
+                class="group flex gap-3 p-2 rounded-lg hover:bg-white dark:hover:bg-dark-600 border border-transparent hover:border-gray-200 dark:hover:border-dark-500 transition-all cursor-pointer mb-1"
+                :class="{ 'bg-blue-50 dark:bg-blue-900/20 border-blue-200': selectedMessages.has(msg.id) }"
+                @click="toggleMessageSelection(msg.id)"
               >
-                <div class="flex items-start space-x-2">
-                  <!-- 选择复选框 -->
+                <div class="pt-1">
                   <input
                     type="checkbox"
-                    :id="`msg-${message.value?.id || message.id}`"
-                    :checked="selectedMessages.has(message.value?.id || message.id)"
-                    @change="toggleMessageSelection(message.value?.id || message.id)"
-                    class="mt-1"
+                    :checked="selectedMessages.has(msg.id)"
+                    class="rounded text-primary focus:ring-primary cursor-pointer"
                   />
-                  
-                  <!-- 消息内容 -->
-                  <div class="flex-1">
-                    <div class="flex justify-between items-center mb-1">
-                      <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">
-                        {{ (message.value?.role || message.role) === 'user' ? '用户' : 'AI' }}
-                      </span>
-                      <span class="text-xs text-gray-400 dark:text-gray-500">
-                        {{ formatTime(message.value?.timestamp || message.timestamp) }}
-                      </span>
-                    </div>
-                    <p class="text-xs text-gray-600 dark:text-dark-text-secondary whitespace-pre-wrap">
-                      {{ message.value?.content || message.content }}
-                    </p>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex justify-between items-center mb-1">
+                    <span 
+                      class="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                      :class="msg.role === 'user' ? 'bg-gray-200 text-gray-700' : 'bg-primary/10 text-primary'"
+                    >
+                      {{ msg.role === 'user' ? 'USER' : 'AI' }}
+                    </span>
+                    <span class="text-[10px] text-gray-400">{{ formatTime(msg.timestamp) }}</span>
                   </div>
+                  <p class="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">{{ msg.content }}</p>
                 </div>
               </div>
-            </div>
-            
-            <!-- 无消息提示 -->
-            <div v-else class="text-center py-4 text-xs text-gray-500 dark:text-gray-400">
-              暂无上下文信息
+            </template>
+            <div v-else class="h-full flex items-center justify-center text-gray-400 text-xs">
+              暂无消息
             </div>
           </div>
         </div>
         
-        <!-- 操作按钮 -->
-        <div class="flex justify-end mt-2 space-x-2">
-          <ActionButton
-            icon="fa-check"
-            title="应用调整"
-            @click="applyContextChanges"
-            :disabled="selectedMessages.size === 0"
-          />
+        <div class="mt-3 flex justify-end">
+             <ActionButton
+                icon="fa-check"
+                title="应用选择"
+                label="应用上下文"
+                class="bg-primary text-white hover:bg-primary-hover px-4"
+                @click="applyContextChanges"
+                :disabled="selectedMessages.size === 0"
+              />
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
+import { ref, computed, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import ActionButton from '../common/ActionButton.vue';
 import { showNotification } from '../../services/notificationUtils.js';
-import { ref, watch } from 'vue';
-// 导入公共工具函数
 import { formatTime } from '../../store/utils.js';
 
-// 定义props
-const _props = defineProps({
-  isInitialLoading: {
-    type: Boolean,
-    default: true
-  }
-});
-
-// 初始化stores
 const settingsStore = useSettingsStore();
 const chatStore = useChatStore();
 
-// 上下文调整状态
+// 状态
 const selectedMessages = ref(new Set());
 
-// 计算上下文数量
-const getContextCount = () => {
-  if (!chatStore.currentChat || !chatStore.currentChat.messages) return 0;
-  return chatStore.currentChat.messages.length;
+// 简化 Computed，移除 .value?. 写法，假设 Pinia State 结构规范
+const messages = computed(() => chatStore.currentChat?.messages || []);
+
+const contextCount = computed(() => messages.value.length);
+
+// 简易 Token 计算
+const estimateTokens = (text = '') => {
+  const chinese = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+  const other = text.length - chinese;
+  return Math.ceil(chinese * 0.6 + other * 0.25); // 稍微调整了系数
 };
 
-// 估算token数量（简化实现）
-const estimateTokens = (text) => {
-  if (!text) return 0;
-  // 简单估算：英文按1 token/4字符，中文按1 token/2字符
-  const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-  const otherChars = text.length - chineseChars;
-  return Math.ceil(chineseChars / 2 + otherChars / 4);
+const totalTokens = computed(() => {
+  return messages.value.reduce((acc, msg) => acc + estimateTokens(msg.content), 0);
+});
+
+const lastUpdateTime = computed(() => {
+  if (!messages.value.length) return '无';
+  const last = messages.value[messages.value.length - 1];
+  return formatTime(last.timestamp);
+});
+
+// 操作方法
+const toggleMessageSelection = (id) => {
+  const newSet = new Set(selectedMessages.value);
+  if (newSet.has(id)) newSet.delete(id);
+  else newSet.add(id);
+  selectedMessages.value = newSet;
 };
 
-// 计算输入token数量
-const getInputTokens = () => {
-  if (!chatStore.currentChat || !chatStore.currentChat.messages) return 0;
-  let totalTokens = 0;
-  chatStore.currentChat.messages.forEach(message => {
-    const msgData = message.value || message;
-    if (msgData.role === 'user') {
-      totalTokens += estimateTokens(msgData.content);
-    }
-  });
-  return totalTokens;
-};
-
-// 计算输出token数量
-const getOutputTokens = () => {
-  if (!chatStore.currentChat || !chatStore.currentChat.messages) return 0;
-  let totalTokens = 0;
-  chatStore.currentChat.messages.forEach(message => {
-    const msgData = message.value || message;
-    if (msgData.role === 'ai') {
-      totalTokens += estimateTokens(msgData.content);
-    }
-  });
-  return totalTokens;
-};
-
-// 计算总token数量
-const getTotalTokens = () => {
-  return getInputTokens() + getOutputTokens();
-};
-
-
-
-// 获取最新更新时间
-const getLastUpdateTime = () => {
-  if (!chatStore.currentChat || !chatStore.currentChat.messages || chatStore.currentChat.messages.length === 0) {
-    return '无';
-  }
-  
-  const messages = chatStore.currentChat.messages;
-  let lastUpdate = 0;
-  
-  messages.forEach(message => {
-    const msgData = message.value || message;
-    if (msgData.timestamp > lastUpdate) {
-      lastUpdate = msgData.timestamp;
-    }
-  });
-  
-  return formatTime(lastUpdate);
-};
-
-// 切换消息选择状态
-const toggleMessageSelection = (messageId) => {
-  if (selectedMessages.value.has(messageId)) {
-    selectedMessages.value.delete(messageId);
-  } else {
-    selectedMessages.value.add(messageId);
-  }
-};
-
-// 选择所有消息
 const selectAllMessages = () => {
-  if (!chatStore.currentChat || !chatStore.currentChat.messages) return;
-  
-  const messages = chatStore.currentChat.messages;
-  messages.forEach(message => {
-    const msgData = message.value || message;
-    selectedMessages.value.add(msgData.id);
-  });
+  selectedMessages.value = new Set(messages.value.map(m => m.id));
 };
 
-// 取消选择所有消息
 const clearAllSelections = () => {
-  selectedMessages.value.clear();
+  selectedMessages.value = new Set();
 };
 
-// 应用上下文调整
 const applyContextChanges = () => {
-  // 这里可以添加应用上下文调整的逻辑
-  // 例如：更新上下文配置、发送到后端等
-  showNotification('上下文调整已应用', 'success');
+  // 实际业务逻辑：通知 LLM 仅使用选中的上下文
+  console.log('Selected context IDs:', [...selectedMessages.value]);
+  showNotification(`已应用 ${selectedMessages.value.size} 条上下文消息`, 'success');
 };
 
-// 切换视图模式
 const toggleView = () => {
   chatStore.activeView = chatStore.activeView === 'grid' ? 'list' : 'grid';
 };
 
-// 监听当前聊天变化，重置选择状态
+// 监听会话切换，清空选择
 watch(() => chatStore.currentChatId, () => {
   selectedMessages.value.clear();
+  // 默认可能需要全选，视业务而定
+  // selectAllMessages(); 
 });
 </script>
-
-<style scoped>
-.panel-section {
-  margin-bottom: 1rem;
-}
-
-.message-item {
-  position: relative;
-}
-
-.message-item.selected {
-  background-color: #e3f2fd !important;
-  border-color: #90caf9 !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.message-item.dark:selected {
-  background-color: #1a237e !important;
-  border-color: #3949ab !important;
-}
-
-/* 滚动条样式 */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* 深色模式滚动条 */
-.dark ::-webkit-scrollbar-track {
-  background: #333;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #666;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #888;
-}
-</style>

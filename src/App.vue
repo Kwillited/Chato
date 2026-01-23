@@ -4,7 +4,7 @@
     :class="{ 'transition-all duration-300': !isInitialLoading }"
   >
     <!-- 1. 顶部导航栏 -->
-    <TopNav data-tauri-drag-region/>
+    <TopNav/>
 
     <!-- 主内容区域：显示区域 -->
     <div class="flex flex-1 overflow-hidden">
@@ -37,9 +37,6 @@ const isInitialLoading = ref(true);
 watch(
   () => settingsStore.activePanel,
   (newPanel) => {
-    // 当切换到任何面板时，自动展开左侧面板
-    settingsStore.leftNavVisible = true;
-    
     // 只有当前视图不是sendMessage时，才根据activePanel更新视图
     if (settingsStore.activeContent !== 'sendMessage') {
       if (newPanel === 'settings') {
@@ -114,26 +111,6 @@ onMounted(async () => {
 });
 </script>
 
-<style>
-.resizer.resizing {
-  background-color: #94a3b8;
-}
-
-/* 添加面板过渡动画 */
-#panelContainer {
-  transition: width 0.3s ease;
-  min-width: 0;
-}
-
-/* 隐藏状态样式 */
-.hidden {
-  display: none !important;
-}
-
-/* 不可用状态的调整器样式 */
-.resizer-disabled {
-  cursor: not-allowed !important;
-  opacity: 0.5;
-  pointer-events: none;
-}
+<style scoped>
+/* App 组件特定样式 */
 </style>

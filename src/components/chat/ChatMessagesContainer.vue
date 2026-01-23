@@ -1,11 +1,24 @@
 <template>
-  <div ref="scrollContainer" class="flex-1 p-6 overflow-y-auto bg-inherit relative scrollbar-thin" @scroll="checkScrollPosition">
-    <!-- 聊天消息列表容器 - 添加与UserInputBox相同的宽度限制 -->
-    <div ref="chatMessagesContainer" class="w-full max-w-4xl mx-auto space-y-6 transition-colors duration-300 ease-in-out">
-      <ChatMessage v-for="(message, index) in chatMessages" :key="message.timestamp" :message="message" :chatStyleDocument="settingsStore.systemSettings.chatStyleDocument" :id="`message-${index}`" />
+  <div 
+    ref="scrollContainer" 
+    class="flex-1 p-4 md:p-6 overflow-y-auto bg-inherit relative scrollbar-thin scroll-smooth" 
+    @scroll="checkScrollPosition"
+  >
+    <!-- 聊天消息列表容器 -->
+    <div 
+      ref="chatMessagesContainer" 
+      class="w-full max-w-4xl mx-auto space-y-6 pb-10"
+    >
+      <ChatMessage 
+        v-for="(message, index) in chatMessages" 
+        :key="message.id || index" 
+        :message="message" 
+        :chatStyleDocument="settingsStore.systemSettings.chatStyleDocument" 
+        :id="`message-${message.timestamp}`" 
+      />
     </div>
     
-    <!-- 使用组件库中的快捷跳转模块 -->
+    <!-- 快捷跳转模块 -->
     <ChatJumpIndicator 
       v-if="userMessages.length > 0"
       ref="jumpIndicatorRef"
@@ -17,104 +30,73 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import ChatMessage from './ChatMessage.vue';
 import { ChatJumpIndicator } from '../library/index.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 
-// 初始化stores
+const emit = defineEmits(['updateScrollVisibility', 'scrollToBottom']);
+
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 
-// 使用ref引用DOM元素
 const scrollContainer = ref(null);
-const chatMessagesContainer = ref(null);
 const jumpIndicatorRef = ref(null);
 
-// 从store计算属性获取数据
-const chatMessages = computed(() => chatStore.currentChatMessages);
+// 核心数据：直接获取纯对象数组
+const chatMessages = computed(() => chatStore.currentChatMessages || []);
 
-// 过滤出所有用户消息
+// 过滤用户消息 (用于跳转导航)
 const userMessages = computed(() => {
-  return chatMessages.value.filter(message => {
-    // 处理ref包装的消息对象
-    const msgValue = message?.value || message;
-    return msgValue.role === 'user';
-  });
+  return chatMessages.value.filter(msg => msg.role === 'user');
 });
 
-// 处理滚动到指定用户消息
+// 跳转到指定消息
 const handleScrollToUserMessage = (userMessage) => {
-  // 处理ref包装的用户消息
-  const userMsgValue = userMessage?.value || userMessage;
-  const messageIndex = chatMessages.value.findIndex(msg => {
-    // 处理ref包装的消息列表中的消息
-    const msgValue = msg?.value || msg;
-    return msgValue.timestamp === userMsgValue.timestamp;
-  });
-  if (messageIndex !== -1) {
-    const messageElement = document.getElementById(`message-${messageIndex}`);
-    if (messageElement) {
-      messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+  const targetId = `message-${userMessage.timestamp}`;
+  const el = document.getElementById(targetId);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 };
 
 // 滚动到底部
-const scrollToBottom = () => {
+const scrollToBottom = async (smooth = true) => {
+  await nextTick(); // 等待 DOM 更新
   if (scrollContainer.value) {
-    scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-    
-    // 触发事件通知父组件隐藏滚动按钮
+    scrollContainer.value.scrollTo({
+      top: scrollContainer.value.scrollHeight,
+      behavior: smooth ? 'smooth' : 'auto'
+    });
     emit('scrollToBottom');
   }
 };
 
-// 检测滚动位置
+// 检测滚动位置 (用于控制"回到底部"按钮的显示)
 const checkScrollPosition = () => {
-  if (scrollContainer.value) {
-    const scrollPosition = scrollContainer.value.scrollTop + scrollContainer.value.clientHeight;
-    const scrollHeight = scrollContainer.value.scrollHeight;
-    
-    // 通知父组件是否显示滚动到底部按钮
-    // 修改：将阈值从100降低到10，使轻微滚动也能触发状态变化
-    emit('updateScrollVisibility', scrollHeight - scrollPosition > 10);
-    
-    // 通知跳转指示器更新高亮
-    if (jumpIndicatorRef.value) {
-      jumpIndicatorRef.value.updateCurrentHighlightedMessage();
-    }
+  if (!scrollContainer.value) return;
+  
+  const { scrollTop, clientHeight, scrollHeight } = scrollContainer.value;
+  // 距离底部超过 100px 显示按钮
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+  
+  emit('updateScrollVisibility', !isNearBottom);
+  
+  // 更新跳转指示器高亮
+  jumpIndicatorRef.value?.updateCurrentHighlightedMessage();
+};
+
+// 监听新消息，自动滚动
+watch(() => chatMessages.value.length, async (newLen, oldLen) => {
+  if (newLen > oldLen) {
+    // 只有在用户已经在底部，或者这是新对话的第一条消息时才自动滚动
+    // 这里简单处理：总是尝试滚动，或者由父组件控制
+    // await scrollToBottom(); 
   }
-};
-
-// 暴露方法给父组件
-const exposed = {
-  scrollToBottom
-};
-
-defineExpose(exposed);
-
-// 定义事件
-const emit = defineEmits(['updateScrollVisibility', 'scrollToBottom']);
-
-// 组件挂载后初始化
-onMounted(() => {
-  console.log('ChatMessagesContainer组件已挂载');
 });
 
-// 监听消息变化
-watch(chatMessages, () => {
-  console.log('ChatMessages变化，消息数量:', chatMessages.value.length);
-}, { deep: true });
+defineExpose({
+  scrollToBottom
+});
 </script>
-
-<style scoped>
-/* 响应式设计 */
-@media (max-width: 768px) {
-  /* 在平板和手机上，调整快捷跳转模块的位置 */
-  .fixed.right-10 {
-    right: 12px;
-  }
-}
-</style>

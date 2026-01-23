@@ -52,8 +52,8 @@
             </Tooltip>
           </div>
           
-          <!-- 展开/折叠控制按钮 -->
-          <div class="flex-1 flex justify-end items-center">
+          <!-- 展开/折叠控制按钮 + 顶部导航栏迁移按钮 -->
+          <div class="flex-1 flex justify-end items-center gap-2">
             <button
               class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
               @click="toggleParamsPanel"
@@ -61,6 +61,63 @@
             >
               <i class="fa-solid fa-chevron-down text-xs"></i>
             </button>
+            
+            <!-- 迁移自顶部导航栏的功能按钮 -->
+            <div class="h-4 w-px bg-gray-200 dark:bg-dark-700"></div>
+            <Tooltip content="切换侧边栏">
+              <button
+                class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
+                @click="toggleViewPanel"
+              >
+                <i class="fa-solid fa-columns text-xs"></i>
+              </button>
+            </Tooltip>
+            <Tooltip :content="settingsStore.systemSettings.darkMode ? '切换到亮色模式' : '切换到暗色模式'">
+              <button
+                class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
+                @click="handleToggleTheme"
+              >
+                <i :class="['fa-solid', settingsStore.systemSettings.darkMode ? 'fa-sun' : 'fa-moon', 'text-xs']"></i>
+              </button>
+            </Tooltip>
+            <Tooltip content="系统设置">
+              <button
+                class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
+                @click="handleSystemSettingsClick"
+              >
+                <i class="fa-solid fa-gear text-xs"></i>
+              </button>
+            </Tooltip>
+            
+            <div ref="userMenuContainer" class="relative">
+              <Tooltip content="用户菜单">
+                <button
+                  class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
+                  @click="toggleUserMenu"
+                >
+                  <i class="fa-solid fa-user-circle text-sm"></i>
+                </button>
+              </Tooltip>
+              <div v-if="showUserMenu" class="absolute top-full mt-2 right-0 w-14 rounded-lg shadow-lg border z-50 dropdown-menu flex flex-col items-center py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700">
+                <Tooltip content="切换账户">
+                  <button
+                    class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
+                    @click="handleSwitchAccount"
+                  >
+                    <i class="fa-solid fa-exchange text-xs"></i>
+                  </button>
+                </Tooltip>
+                <div class="my-1 w-8 border-t border-gray-200 dark:border-dark-700"></div>
+                <Tooltip content="退出账号">
+                  <button
+                    class="h-6 w-6 flex items-center justify-center text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-300 ease-in-out"
+                    @click="handleLogout"
+                  >
+                    <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
           </div>
         </div>
         
@@ -441,6 +498,7 @@ import { useChatStore } from '../../../store/chatStore.js';
 import { useSettingsStore } from '../../../store/settingsStore.js';
 
 
+
 // 定义存储键
 const STORAGE_KEYS = {
   DEEP_THINKING: 'deepThinkingMode',
@@ -460,6 +518,10 @@ const isDragOver = ref(false);
 const fileInput = ref(null);
 const modelDropdown = ref(null);
 const agentDropdown = ref(null);
+
+// 顶部导航栏迁移功能的状态管理
+const userMenuContainer = ref(null);
+const showUserMenu = ref(false);
 
 // 本地UI状态
 const showModelDropdown = ref(false);
@@ -913,6 +975,32 @@ const handleClickOutside = (event) => {
       !event.target.closest('button') && showAgentDropdown.value) {
     showAgentDropdown.value = false;
   }
+  
+  // 关闭用户菜单
+  if (showUserMenu.value && userMenuContainer.value) {
+    if (!userMenuContainer.value.contains(event.target)) {
+      closeUserMenu();
+    }
+  }
+};
+
+// 顶部导航栏迁移功能的函数
+const toggleViewPanel = () => settingsStore.toggleRightPanel();
+const handleSystemSettingsClick = () => {
+  settingsStore.setActivePanel('settings');
+  settingsStore.setActiveContent('settings');
+};
+const handleToggleTheme = () => settingsStore.toggleDarkMode();
+
+const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value; };
+const closeUserMenu = () => { showUserMenu.value = false; };
+const handleSwitchAccount = () => {
+  closeUserMenu();
+  console.log('切换账户');
+};
+const handleLogout = () => {
+  closeUserMenu();
+  showNotification('退出账号功能待实现', 'info');
 };
 
 // 生命周期钩子

@@ -1,18 +1,12 @@
 <template>
-  <div class="panel-header p-3 flex justify-between items-center transition-all duration-300">
-    <div class="flex items-center">
-      <h2 class="text-lg font-bold text-dark">{{ currentFolder ? currentFolder.name : '知识库' }}</h2>
-    </div>
-    <!-- 按钮区域 - 保持相同位置 -->
-    <div class="flex items-center">
-      <!-- 二级菜单时显示返回上一级按钮 -->
-      <ActionButton
-        v-if="currentFolder"
-        icon="fa-chevron-left"
-        title="返回上一级"
-        @click="handleBackToParent"
-      />
-    </div>
+  <div class="panel-header p-3 flex justify-end items-center transition-all duration-300">
+    <!-- 二级菜单时显示返回上一级按钮 -->
+    <ActionButton
+      v-if="currentFolder"
+      icon="fa-chevron-left"
+      title="返回上一级"
+      @click="handleBackToParent"
+    />
   </div>
 </template>
 

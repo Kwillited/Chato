@@ -1,17 +1,9 @@
 <template>
   <!-- 聊天内容区域 -->
   <div id="sendMessageContent" class="flex-1 flex flex-col overflow-hidden w-full">
-    <!-- 使用公共ChatHeader组件 -->
-    <ChatHeader 
-      :show-border="false" 
-      :chat-history="chatHistory"
-      @toggle-side-menu="handleSideMenuToggle"
-      @new-chat="handleNewChat"
-      @select-history-chat="handleSelectHistoryChat"
-    />
 
     <!-- 消息输入区域 - 使用固定宽度容器包裹 -->
-    <div class="w-full max-w-4xl mx-auto px-4 flex-1 flex flex-col justify-center mt-[-40px]">
+    <div class="w-full max-w-4xl mx-auto px-4 flex-1 flex flex-col justify-center">
       <h3 class="text-2xl font-semibold text-dark dark:text-white mb-4 text-center transition-colors duration-300">今天有什么可以帮助你的？</h3>
       <UserInputBox @sendMessage="handleSendMessage" :showShortcutHint="false" />
     </div>

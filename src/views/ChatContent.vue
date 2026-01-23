@@ -1,14 +1,6 @@
 <template>
   <!-- 聊天内容区域 -->
   <div id="chatMainContent" class="flex-1 flex flex-col overflow-hidden">
-    <!-- 使用公共ChatHeader组件 -->
-    <ChatHeader 
-      :title="currentTitle" 
-      :chat-history="chatHistory"
-      @toggle-side-menu="handleSideMenuToggle"
-      @new-chat="handleNewChat"
-      @select-history-chat="handleSelectHistoryChat"
-    />
 
     <!-- 条件渲染聊天消息或知识图谱 -->
     <div class="flex-1 overflow-hidden">
