@@ -1,14 +1,14 @@
 <template>
   <div 
     id="rightPanel" 
-    class="h-full flex flex-col bg-white dark:bg-dark-secondary"
+    class="h-full flex flex-col bg-light dark:bg-dark-primary"
   >
     <!-- 内容区 -->
     <div class="flex-1 flex flex-col overflow-y-auto p-4 gap-6 scrollbar-thin">
       <!-- 统计卡片 -->
       <section class="flex-shrink-0">
         <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">概览</h3>
-        <div class="bg-gray-50 dark:bg-dark-tertiary rounded-xl p-4 text-sm space-y-2 border dark:border-dark-700">
+        <div class="bg-white dark:bg-dark-secondary rounded-xl p-4 text-sm space-y-2 border dark:border-dark-700">
           <div class="flex justify-between">
             <span class="text-gray-500">消息数</span>
             <span class="font-mono font-medium">{{ contextCount }}</span>
@@ -33,13 +33,13 @@
           </div>
         </div>
         
-        <div class="flex-1 bg-gray-50 dark:bg-dark-tertiary rounded-xl border dark:border-dark-700 overflow-hidden flex flex-col">
+        <div class="flex-1 bg-white dark:bg-dark-secondary rounded-xl border dark:border-dark-700 overflow-hidden flex flex-col">
           <div class="flex-1 overflow-y-auto p-2 scrollbar-thin">
             <template v-if="messages.length > 0">
               <div
                 v-for="msg in messages"
                 :key="msg.id"
-                class="group flex gap-3 p-2 rounded-lg hover:bg-white dark:hover:bg-dark-600 border border-transparent hover:border-gray-200 dark:hover:border-dark-500 transition-all cursor-pointer mb-1"
+                class="group flex gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-dark-600 border border-transparent hover:border-gray-200 dark:hover:border-dark-500 transition-all cursor-pointer mb-1"
                 :class="{ 'bg-blue-50 dark:bg-blue-900/20 border-blue-200': selectedMessages.has(msg.id) }"
                 @click="toggleMessageSelection(msg.id)"
               >
