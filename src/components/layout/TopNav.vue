@@ -28,14 +28,27 @@
     id="appTopNav" 
     class="z-40 absolute top-8 left-0 right-0 h-10 flex items-center bg-light dark:bg-dark-primary border-b border-gray-200 dark:border-dark-700 transition-all duration-300"
   >
-    <!-- 隐藏左侧面板按钮 - 始终显示在最左侧 -->
-    <button
-      class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700 ml-4 z-50"
-      @click="toggleSideMenu"
-      title="隐藏左侧面板"
-    >
-      <i class="fa-solid fa-bars text-sm"></i>
-    </button>
+    <!-- 始终显示的左侧功能按钮组 -->
+    <div class="flex items-center gap-2 ml-4 z-50">
+      <!-- 隐藏左侧面板按钮 -->
+      <button
+        class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
+        @click="toggleSideMenu"
+        title="隐藏左侧面板"
+      >
+        <i class="fa-solid fa-bars text-sm"></i>
+      </button>
+      
+      <!-- 新增会话按钮 -->
+      <button
+        id="newChat"
+        class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
+        @click="handleNewChat"
+        title="新对话"
+      >
+        <i class="fa-solid fa-comment-dots text-sm"></i>
+      </button>
+    </div>
     
     <!-- 左侧面板对应的导航栏部分 -->
     <div 
@@ -55,18 +68,7 @@
     <div 
       class="h-full flex-1 flex items-center justify-between px-4 transition-all duration-300 bg-light dark:bg-dark-primary"
     >
-      <!-- 左侧功能按钮组 -->
-      <div class="flex items-center gap-2">
-        <!-- 新增会话按钮 -->
-        <button
-          id="newChat"
-          class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
-          @click="handleNewChat"
-          title="新对话"
-        >
-          <i class="fa-solid fa-comment-dots text-sm"></i>
-        </button>
-      </div>
+      <!-- 左侧功能按钮组已迁移到导航栏最左侧 -->
       
       <!-- 中间标题区域 -->
       <div class="flex items-center justify-center">
