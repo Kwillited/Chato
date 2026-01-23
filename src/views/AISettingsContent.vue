@@ -1,43 +1,43 @@
 <template>
   <div class="text-gray-900 min-h-screen flex flex-col items-center">
     <!-- Header & Compact Navigation -->
-    <header class="w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sticky top-0 bg-[#F8FAFC] dark:bg-dark-primary backdrop-blur-md z-30 border-b border-gray-100 dark:border-dark-700 transition-all duration-300">
-      <div class="flex items-center gap-3 w-full sm:w-auto">
+    <header class="w-full px-4 sm:px-6 h-10 flex flex-col sm:flex-row items-center justify-between gap-2 sticky top-0 bg-[#F8FAFC] dark:bg-dark-primary backdrop-blur-md z-30 border-b border-gray-100 dark:border-dark-700 transition-all duration-300">
+      <div class="flex items-center gap-2 w-full sm:w-auto">
         <button @click="settingsStore.setActiveContent('chat')" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
-        <h1 class="font-bold text-base sm:text-lg tracking-tight text-gray-900 dark:text-white">ChaTo Setting & Configuration</h1>
+        <h1 class="font-bold text-sm sm:text-base tracking-tight text-gray-900 dark:text-white">ChaTo Setting & Configuration</h1>
       </div>
 
       <!-- 优化后：紧凑型 Tab -->
-      <div class="bg-gray-100 dark:bg-dark-700 p-0.5 rounded-lg flex text-[13px] font-medium overflow-x-auto whitespace-nowrap w-full sm:w-auto shadow-sm">
+      <div class="bg-gray-100 dark:bg-dark-700 p-0.5 rounded-lg flex text-[12px] font-medium overflow-x-auto whitespace-nowrap w-full sm:w-auto shadow-sm">
         <button @click="activeTab = 'basic'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                class="px-3 py-1 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
                 :class="activeTab === 'basic' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           基本设置
         </button>
         <button @click="activeTab = 'models'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                class="px-3 py-1 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
                 :class="activeTab === 'models' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           模型配置
         </button>
         <button @click="activeTab = 'knowledge'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                class="px-3 py-1 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
                 :class="activeTab === 'knowledge' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           知识库配置
         </button>
         <button @click="activeTab = 'mcp'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                class="px-3 py-1 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
                 :class="activeTab === 'mcp' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           MCP工具
         </button>
         <button @click="activeTab = 'notifications'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                class="px-3 py-1 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
                 :class="activeTab === 'notifications' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           通知设置
         </button>
         <button @click="activeTab = 'about'"
-                class="px-3 py-1.5 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
+                class="px-3 py-1 rounded-md transition-all duration-200 border border-gray-200 dark:border-dark-600 whitespace-nowrap text-black dark:text-white hover:border-gray-300 dark:hover:border-gray-500 hover:shadow"
                 :class="activeTab === 'about' ? 'bg-white dark:bg-dark-800 border-gray-200 dark:border-dark-500 shadow' : 'bg-gray-100 dark:bg-dark-700 border-transparent shadow-none hover:border-gray-200 dark:hover:border-dark-500 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white'">
           关于
         </button>
