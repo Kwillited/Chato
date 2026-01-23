@@ -112,17 +112,7 @@
         </div>
       </div>
       
-      <!-- 上下文工程操作按钮 -->
-      <div class="flex gap-2 ml-2">
-        <!-- 切换视图按钮 -->
-        <button
-          class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
-          @click="toggleView"
-          title="切换到视图"
-        >
-          <i class="fa-solid fa-sitemap text-sm"></i>
-        </button>
-      </div>
+
     </div>
   </div>
 </template>
@@ -185,15 +175,7 @@ const handleNewChat = async () => {
   }
 };
 
-// 切换视图
-const toggleView = () => {
-  // 根据当前视图切换到另一个视图
-  if (settingsStore.activeContent === 'chat') {
-    settingsStore.setActiveContent('contextVisualization');
-  } else {
-    settingsStore.setActiveContent('chat');
-  }
-};
+
 
 // 选择历史对话
 const selectChatFromHistory = handleMenuItemClick((chatId) => {

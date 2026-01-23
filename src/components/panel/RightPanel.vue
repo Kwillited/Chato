@@ -4,9 +4,9 @@
     class="h-full flex flex-col bg-white dark:bg-dark-secondary"
   >
     <!-- 内容区 -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin">
+    <div class="flex-1 flex flex-col overflow-y-auto p-4 gap-6 scrollbar-thin">
       <!-- 统计卡片 -->
-      <section>
+      <section class="flex-shrink-0">
         <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">概览</h3>
         <div class="bg-gray-50 dark:bg-dark-tertiary rounded-xl p-4 text-sm space-y-2 border dark:border-dark-700">
           <div class="flex justify-between">
@@ -23,7 +23,7 @@
       </section>
       
       <!-- 消息筛选列表 -->
-      <section class="flex flex-col h-full min-h-[300px]">
+      <section class="flex flex-col flex-1 min-h-[200px]">
         <div class="flex justify-between items-center mb-3">
           <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider">上下文筛选</h3>
           <div class="flex gap-1">
@@ -70,7 +70,15 @@
           </div>
         </div>
         
-        <div class="mt-3 flex justify-end">
+        <div class="mt-3 flex justify-end gap-2">
+             <!-- 切换视图按钮 -->
+             <button
+               class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
+               @click="toggleView"
+               title="切换到视图"
+             >
+               <i class="fa-solid fa-sitemap text-sm"></i>
+             </button>
              <ActionButton
                 icon="fa-check"
                 title="应用选择"
@@ -143,8 +151,14 @@ const applyContextChanges = () => {
   showNotification(`已应用 ${selectedMessages.value.size} 条上下文消息`, 'success');
 };
 
+// 切换视图
 const toggleView = () => {
-  chatStore.activeView = chatStore.activeView === 'grid' ? 'list' : 'grid';
+  // 根据当前视图切换到另一个视图
+  if (settingsStore.activeContent === 'chat') {
+    settingsStore.setActiveContent('contextVisualization');
+  } else {
+    settingsStore.setActiveContent('chat');
+  }
 };
 
 // 监听会话切换，清空选择
