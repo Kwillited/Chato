@@ -39,27 +39,7 @@
         visibility: settingsStore.leftNavVisible ? 'visible' : 'hidden'
       }"
     >
-      <!-- 历史会话操作按钮 -->
-      <div class="flex gap-2">
-        <!-- 导出所有对话按钮 -->
-        <button
-          id="exportAllBtn"
-          class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
-          @click="exportAllChats"
-          title="导出所有对话"
-        >
-          <i class="fa-solid fa-download text-sm"></i>
-        </button>
-        <!-- 删除所有对话按钮 -->
-        <button
-          id="deleteAllBtn"
-          class="h-7 w-7 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
-          @click="deleteAllChats"
-          title="删除所有对话"
-        >
-          <i class="fa-solid fa-trash-can text-sm"></i>
-        </button>
-      </div>
+      <!-- 历史会话操作按钮已迁移到设置页面 -->
     </div>
     
     <!-- 主内容区域对应的导航栏部分 -->

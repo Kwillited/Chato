@@ -86,6 +86,28 @@
                 
                 <!-- 保存按钮 -->
                 <button class="w-full py-2 px-3 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors">保存个人信息</button>
+                
+                <!-- 历史会话操作按钮 -->
+                <div class="flex gap-2 justify-center mt-4">
+                  <!-- 导出所有对话按钮 -->
+                  <button
+                    id="exportAllBtn"
+                    class="h-8 w-8 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-blue-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
+                    @click="chatStore.exportAllChats"
+                    title="导出所有对话"
+                  >
+                    <i class="fa-solid fa-download text-sm"></i>
+                  </button>
+                  <!-- 删除所有对话按钮 -->
+                  <button
+                    id="deleteAllBtn"
+                    class="h-8 w-8 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors duration-200 rounded-full hover:bg-gray-100 dark:hover:bg-dark-700"
+                    @click="handleDeleteAllChats"
+                    title="删除所有对话"
+                  >
+                    <i class="fa-solid fa-trash-can text-sm"></i>
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -673,10 +695,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useChatStore } from '../store/chatStore.js';
 
 // 初始化stores
 const activeTab = ref('basic');
 const settingsStore = useSettingsStore();
+const chatStore = useChatStore();
 const modelStore = useSettingsStore();
 let originalLeftNavVisible = null;
 
@@ -715,6 +739,13 @@ onUnmounted(() => {
     settingsStore.leftNavVisible = originalLeftNavVisible;
   }
 });
+
+// 处理删除所有对话
+const handleDeleteAllChats = () => {
+  if (confirm('确定要删除所有对话吗？此操作不可恢复！')) {
+    chatStore.clearAllChats();
+  }
+};
 
 // 监听标签页变化，当切换到模型标签时加载模型数据
 watch(
