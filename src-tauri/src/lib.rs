@@ -10,78 +10,7 @@ use encoding::{DecoderTrap, Encoding};
 // UUID生成
 use uuid::Uuid;
 
-#[tauri::command]
-fn execute_command(command: &str) -> Result<String, String> {
-    // 特殊处理cd命令
-    if command.to_lowercase().starts_with("cd ") {
-        let path = &command[3..].trim();
-        return match env::set_current_dir(path) {
-            Ok(_) => {
-                // 返回新的当前目录
-                match env::current_dir() {
-                    Ok(current) => Ok(format!("当前目录为: {}", current.display())),
-                    Err(e) => Err(format!("无法获取当前目录: {}", e)),
-                }
-            }
-            Err(e) => Err(format!("无法切换到目录 '{}': {}", path, e)),
-        };
-    }
-    // 特殊处理单独的cd命令（显示当前目录）
-    else if command.trim().to_lowercase() == "cd" {
-        return match env::current_dir() {
-            Ok(current) => Ok(format!("当前目录为: {}", current.display())),
-            Err(e) => Err(format!("无法获取当前目录: {}", e)),
-        };
-    }
 
-    // 对于其他命令，使用cmd.exe执行
-    let output = Command::new("cmd")
-        .args(["/c", command])
-        .output()
-        .map_err(|e| format!("执行命令失败: {}", e))?;
-
-    // 处理命令输出的编码问题（Windows命令行通常使用GBK编码）
-    let decode_output = |bytes: &[u8]| -> String {
-        if bytes.is_empty() {
-            return String::new();
-        }
-
-        // 尝试以UTF-8解码
-        if let Ok(utf8_str) = String::from_utf8(bytes.to_vec()) {
-            return utf8_str;
-        }
-
-        // 如果UTF-8解码失败，尝试以GBK解码
-        match GBK.decode(bytes, DecoderTrap::Replace) {
-            Ok(gbk_str) => gbk_str,
-            Err(_) => {
-                // 如果GBK解码也失败，使用损失最小的方式解码
-                String::from_utf8_lossy(bytes).to_string()
-            }
-        }
-    };
-
-    let stdout = decode_output(&output.stdout);
-    let stderr = decode_output(&output.stderr);
-
-    let mut result = String::new();
-    if !stdout.is_empty() {
-        result.push_str(&stdout);
-    }
-    if !stderr.is_empty() {
-        if !result.is_empty() {
-            result.push_str("\n");
-        }
-        result.push_str(&stderr);
-    }
-
-    // 如果命令执行失败，返回错误信息
-    if !output.status.success() {
-        return Err(format!("命令执行失败: {}", result));
-    }
-
-    Ok(result.trim().to_string())
-}
 
 #[tauri::command]
 fn start_python_server() -> Result<String, String> {
@@ -289,7 +218,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
 
             start_python_server,
-            execute_command,
             check_ollama_service,
             start_ollama_service,
             create_knowledge_base
