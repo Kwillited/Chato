@@ -100,24 +100,41 @@ import { computed, reactive, ref } from 'vue';
 import PanelHeader from '../common/PanelHeader.vue';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { useNotifications } from '../../composables/useNotifications.js';
+import { useChatManagement } from '../../composables/useChatManagement.js';
 import { SearchBar, ActionButton, ConfirmationModal } from '../library/index.js';
 // Tauri 2 API imports (按需启用)
 import { save } from '@tauri-apps/plugin-dialog';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import logger from '../../utils/logger.js';
 
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
+
+// 使用对话管理组合函数
+const { 
+  chats, 
+  chatHistory, 
+  filteredChats, 
+  createNewChat, 
+  selectChat, 
+  deleteChat, 
+  deleteMultipleChats, 
+  searchQuery,
+  searchChats 
+} = useChatManagement();
+
 // 状态
 const scrollContainer = ref(null);
 const isScrolling = ref(false);
-const searchQuery = ref('');
 const collapsedGroups = reactive({});
 const showDeleteAllModal = ref(false);
 const isDeletingAll = ref(false);
 
-const chatHistory = computed(() => chatStore.chatHistory);
+// chatHistory 已从 useChatManagement 组合函数中导入
 let scrollTimer = null;
 
 // 滚动处理优化
@@ -161,7 +178,7 @@ const handleExportAll = async () => {
       
       if (path) {
         await writeTextFile(path, chatData);
-        showNotification('导出成功', 'success');
+        showSystemNotification('导出成功', 'success');
         return;
       } else {
         return; // 用户取消
@@ -181,21 +198,21 @@ const handleExportAll = async () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    if(e.message !== 'Not Tauri') console.error(e);
+    if(e.message !== 'Not Tauri') logger.error(e);
   }
 };
 
 // 其他业务方法 (保持不变)
 const toggleGroup = (title) => collapsedGroups[title] = !collapsedGroups[title];
 const isActiveChat = (id) => chatStore.currentChatId === id;
-const handleChatSelect = (id) => {
-  chatStore.selectChat(id);
+const handleChatSelect = async (id) => {
+  await selectChat(id);
   settingsStore.setActiveContent('chat');
 };
 const handlePinChat = (id) => chatStore.togglePinChat(id);
 const handleDeleteChat = async (id) => {
     // ... 原有逻辑
-    await chatStore.deleteChat(id);
+    await deleteChat(id);
     if(chatStore.chats.length === 0) settingsStore.setActiveContent('sendMessage');
 };
 const handleDeleteAllConfirm = async () => {
@@ -204,7 +221,7 @@ const handleDeleteAllConfirm = async () => {
     await chatStore.clearAllChats();
     showDeleteAllModal.value = false;
     settingsStore.setActiveContent('sendMessage');
-    showNotification('已清空所有对话', 'success');
+    showSystemNotification('已清空所有对话', 'success');
   } finally {
     isDeletingAll.value = false;
   }

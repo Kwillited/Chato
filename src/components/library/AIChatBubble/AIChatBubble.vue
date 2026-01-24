@@ -105,7 +105,7 @@
 import { Tooltip } from '../index.js'
 import Loading from '../../common/Loading.vue'
 // 导入公共工具函数
-import { formatTime } from '../../../store/utils.js'
+import { formatTime } from '../../../utils/date.js'
 // 导入聊天气泡公共逻辑
 import { useChatBubble } from '../../../composables/useChatBubble.js'
 

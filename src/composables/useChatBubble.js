@@ -1,12 +1,15 @@
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { marked } from '../plugins/markdown.js'
-import { copyToClipboard } from '../store/utils.js'
-import { showNotification } from '../services/notificationUtils.js'
+import { copyToClipboard } from '../utils/helpers.js'
+import { useNotifications } from './useNotifications.js'
+import logger from '../utils/logger.js'
 
 /**
  * 聊天气泡组件的公共逻辑
  */
 export function useChatBubble(props) {
+  // 使用通知管理组合函数（在函数内部调用，避免模块加载时调用）
+  const { showSystemNotification } = useNotifications();
   // 访问ref包装的消息对象
   const messageValue = computed(() => {
     // 更严格的类型检查，确保返回有效的消息对象
@@ -55,7 +58,7 @@ export function useChatBubble(props) {
     try {
       parsedContent = marked.parse(contentToParse);
     } catch (error) {
-      console.error('Markdown解析错误:', error);
+      logger.error('Markdown解析错误:', error);
       parsedContent = contentToParse.replace(/\n/g, '<br>');
     }
     
@@ -84,11 +87,11 @@ export function useChatBubble(props) {
       const contentToCopy = messageContent.value.replace(THINKING_TAG_REGEX, '');
       await copyToClipboard(contentToCopy)
       // 显示复制成功通知
-      showNotification('消息内容已复制到剪贴板', 'success')
+      showSystemNotification('消息内容已复制到剪贴板', 'success')
     } catch (error) {
-      console.error('复制失败:', error)
+      logger.error('复制失败:', error)
       // 显示复制失败通知
-      showNotification('复制失败，请重试', 'error')
+      showSystemNotification('复制失败，请重试', 'error')
     }
   }
 
@@ -115,7 +118,7 @@ export function useChatBubble(props) {
         copyButtonStates.value.set(codeBlockId, true)
         
         // 显示复制成功通知
-        showNotification('代码已复制到剪贴板', 'success')
+        showSystemNotification('代码已复制到剪贴板', 'success')
         
         // 2秒后恢复原状
         setTimeout(() => {
@@ -123,9 +126,9 @@ export function useChatBubble(props) {
         }, 2000);
       }
     } catch (error) {
-      console.error('复制代码失败:', error);
+      logger.error('复制代码失败:', error);
       // 显示复制失败通知
-      showNotification('复制代码失败，请重试', 'error')
+      showSystemNotification('复制代码失败，请重试', 'error')
     }
   };
 

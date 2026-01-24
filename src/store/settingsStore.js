@@ -1,13 +1,34 @@
 import { defineStore } from 'pinia';
-import { StorageManager, mergeSettings } from './utils';
+import { mergeSettings } from '../utils/helpers.js';
+import { StorageManager } from '../utils/storage.js';
 import { apiService } from '../services/apiService.js';
 import eventBus, { Events } from '../services/eventBus.js';
 import { showNotification } from '../services/notificationUtils.js';
 import { useBaseStore } from './baseStore';
+import logger from '../utils/logger.js'; // 引入日志工具
 
 // 获取基础Store功能
 const baseStore = useBaseStore();
 
+// 更新baseStore的setLoading方法，确保this上下文正确
+const updatedBaseStore = {
+  ...baseStore,
+  actions: {
+    ...baseStore.actions,
+    setLoading: function(loading) {
+      this.isLoading = loading;
+    },
+    setError: function(error) {
+      this.error = error;
+      if (error) {
+        logger.error('Store错误:', error);
+      }
+    },
+    clearError: function() {
+      this.error = null;
+    }
+  }
+};
 
 // 存储键名常量
 const STORAGE_KEYS = {
@@ -68,7 +89,7 @@ const STORAGE_KEYS = {
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
     // 基础状态
-    ...baseStore.state(),
+    ...updatedBaseStore.state(),
     
     // 当前激活的设置面板
     activePanel: 'history',
@@ -159,7 +180,7 @@ export const useSettingsStore = defineStore('settings', {
 
   getters: {
     // 基础getters
-    ...baseStore.getters,
+    ...updatedBaseStore.getters,
     
     // 获取当前向量配置
     currentVectorConfig: (state) => state.vectorConfig,
@@ -186,7 +207,7 @@ export const useSettingsStore = defineStore('settings', {
 
   actions: {
     // 基础actions
-    ...baseStore.actions,
+    ...updatedBaseStore.actions,
     
     // 初始化设置监听 - 移除$subscribe，避免TypeError
     initSettingsWatch() {
@@ -439,7 +460,7 @@ export const useSettingsStore = defineStore('settings', {
           this.systemSettings = { ...this.systemSettings, ...updatedSystemSettings };
         }
       } catch (error) {
-        console.error('从后端加载设置失败:', error);
+        logger.error('从后端加载设置失败:', error);
       }
     },
 
@@ -468,7 +489,7 @@ export const useSettingsStore = defineStore('settings', {
         // 记录最后使用时间
         this.updateLastUsedTime();
       } catch (error) {
-        console.error('仅从存储加载设置失败:', error);
+        logger.error('仅从存储加载设置失败:', error);
         // 加载失败时使用默认设置
         this.resetSettings();
       } finally {
@@ -504,7 +525,7 @@ export const useSettingsStore = defineStore('settings', {
         // 记录最后使用时间
         this.updateLastUsedTime();
       } catch (error) {
-        console.error('加载设置失败:', error);
+        logger.error('加载设置失败:', error);
         // 加载失败时使用默认设置
         this.resetSettings();
       } finally {
@@ -554,7 +575,7 @@ export const useSettingsStore = defineStore('settings', {
           timestamp: Date.now(),
         });
       } catch (error) {
-        console.error('更新最后使用时间失败:', error);
+        logger.error('更新最后使用时间失败:', error);
       }
     },
 
@@ -588,7 +609,7 @@ export const useSettingsStore = defineStore('settings', {
         };
         await apiService.post('/api/settings/system', systemSettingsToSave);
       } catch (error) {
-        console.error('保存设置到后端失败:', error);
+        logger.error('保存设置到后端失败:', error);
       }
     },
 
@@ -620,7 +641,7 @@ export const useSettingsStore = defineStore('settings', {
         
         return saved;
       } catch (error) {
-        console.error('保存设置失败:', error);
+        logger.error('保存设置失败:', error);
         return false;
       }
     },
@@ -666,7 +687,7 @@ export const useSettingsStore = defineStore('settings', {
         eventBus.emit(Events.MODEL_UPDATED, { models: this.models });
       } catch (error) {
         this.setError('加载模型列表失败');
-        console.error('加载模型列表失败:', error);
+        logger.error('加载模型列表失败:', error);
       } finally {
         this.setLoading(false);
       }
@@ -743,7 +764,7 @@ export const useSettingsStore = defineStore('settings', {
         return true;
       } catch (error) {
         this.setError('保存模型配置失败');
-        console.error('保存模型配置失败:', error);
+        logger.error('保存模型配置失败:', error);
         throw error;
       } finally {
         this.setLoading(false);
@@ -771,7 +792,7 @@ export const useSettingsStore = defineStore('settings', {
         return true;
       } catch (error) {
         this.setError('删除模型配置失败');
-        console.error('删除模型配置失败:', error);
+        logger.error('删除模型配置失败:', error);
         showNotification('删除失败: ' + (error.message || '未知错误'), 'error');
         throw error;
       } finally {
@@ -799,7 +820,7 @@ export const useSettingsStore = defineStore('settings', {
         return true;
       } catch (error) {
         this.setError('更新模型启用状态失败');
-        console.error('更新模型启用状态失败:', error);
+        logger.error('更新模型启用状态失败:', error);
         throw error;
       } finally {
         this.setLoading(false);
@@ -821,7 +842,7 @@ export const useSettingsStore = defineStore('settings', {
           streaming_config: versionConfig.streamingConfig
         };
         
-        console.log('发送的API请求数据:', JSON.stringify(modelConfig));
+        logger.debug('发送的API请求数据:', JSON.stringify(modelConfig));
         
         // 调用后端API保存配置
         await apiService.post(`/api/models/${modelName}`, modelConfig);
@@ -835,7 +856,7 @@ export const useSettingsStore = defineStore('settings', {
         return true;
       } catch (error) {
         this.setError('添加模型版本失败');
-        console.error('添加模型版本失败:', error);
+        logger.error('添加模型版本失败:', error);
         throw error;
       } finally {
         this.setLoading(false);
@@ -869,7 +890,7 @@ export const useSettingsStore = defineStore('settings', {
         return true;
       } catch (error) {
         this.setError('更新模型版本失败');
-        console.error('更新模型版本失败:', error);
+        logger.error('更新模型版本失败:', error);
         throw error;
       } finally {
         this.setLoading(false);
@@ -901,7 +922,7 @@ export const useSettingsStore = defineStore('settings', {
         return true;
       } catch (error) {
         this.setError('删除模型版本失败');
-        console.error('删除模型版本失败:', error);
+        logger.error('删除模型版本失败:', error);
         showNotification('删除失败: ' + (error.message || '未知错误'), 'error');
         throw error;
       } finally {
@@ -931,7 +952,7 @@ export const useSettingsStore = defineStore('settings', {
           this.mergeSavedModelSettings(savedSettings);
         }
       } catch (error) {
-        console.error('加载模型设置失败:', error);
+        logger.error('加载模型设置失败:', error);
         // 加载失败时使用默认设置
         this.resetModelSettings();
       }
@@ -957,7 +978,7 @@ export const useSettingsStore = defineStore('settings', {
         const saved = StorageManager.setItem(STORAGE_KEYS.MODEL_SETTINGS, settingsToSave);
         return saved;
       } catch (error) {
-        console.error('保存模型设置失败:', error);
+        logger.error('保存模型设置失败:', error);
         return false;
       }
     },

@@ -1,4 +1,5 @@
 import { useSettingsStore } from '../store/settingsStore.js';
+import logger from '../utils/logger.js';
 
 /**
  * 创建并显示通知元素
@@ -76,18 +77,18 @@ export function showNotification(message, type, displayTimeMs = 3000, isNewMessa
         if (notificationsConfig.sound) {
             // 这里可以添加声音播放逻辑
             // const audio = new Audio('/path/to/notification-sound.mp3');
-            // audio.play().catch(err => console.error('播放通知声音失败:', err));
+            // audio.play().catch(err => logger.error('播放通知声音失败:', err));
         }
         
         return true;
     } catch (error) {
-        console.error('显示通知失败:', error);
+        logger.error('显示通知失败:', error);
         
         // 如果获取设置失败，使用默认行为显示通知
         try {
             createNotificationElement(message, type, displayTimeMs);
         } catch (innerError) {
-            console.error('使用默认设置显示通知也失败:', innerError);
+            logger.error('使用默认设置显示通知也失败:', innerError);
         }
         
         return false;

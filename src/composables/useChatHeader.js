@@ -1,5 +1,6 @@
 import { useChatStore } from '../store/chatStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useChatManagement } from './useChatManagement.js';
 
 /**
  * 聊天头部组件的组合式函数，封装共享逻辑
@@ -9,6 +10,9 @@ export function useChatHeader() {
   // 初始化stores
   const chatStore = useChatStore();
   const settingsStore = useSettingsStore();
+  
+  // 使用对话管理组合函数
+  const { createNewChat, selectChat, getCurrentChatTitle, chatHistory, currentChatId, currentChat } = useChatManagement();
 
   /**
    * 切换侧边菜单可见性
@@ -20,35 +24,28 @@ export function useChatHeader() {
   /**
    * 处理新对话点击事件
    */
-  const handleNewChat = () => {
-    // 取消当前会话的激活状态
-    chatStore.currentChatId = null;
-    
-    // 清除所有对话的未读标记
-    chatStore.resetUnreadStatus();
-    
-    // 切换到发送消息视图
-    settingsStore.setActiveContent('sendMessage');
+  const handleNewChat = async () => {
+    try {
+      await createNewChat();
+      // 切换到发送消息视图
+      settingsStore.setActiveContent('sendMessage');
+    } catch (error) {
+      console.error('创建新对话失败:', error);
+    }
   };
 
   /**
    * 从历史对话中选择对话
    * @param {string} chatId - 对话ID
    */
-  const handleSelectHistoryChat = (chatId) => {
-    // 选择对话
-    chatStore.selectChat(chatId);
-    
-    // 切换到聊天视图
-    settingsStore.setActiveContent('chat');
-  };
-
-  /**
-   * 获取当前对话标题
-   * @returns {string} 对话标题
-   */
-  const getCurrentChatTitle = () => {
-    return chatStore.currentChat?.title || '当前无对话';
+  const handleSelectHistoryChat = async (chatId) => {
+    try {
+      await selectChat(chatId);
+      // 切换到聊天视图
+      settingsStore.setActiveContent('chat');
+    } catch (error) {
+      console.error('选择对话失败:', error);
+    }
   };
 
   return {
@@ -63,8 +60,8 @@ export function useChatHeader() {
     getCurrentChatTitle,
     
     // 可访问的store属性
-    chatHistory: chatStore.chatHistory,
-    currentChatId: chatStore.currentChatId,
+    chatHistory,
+    currentChatId,
     currentChatMessages: chatStore.currentChatMessages
   };
 }

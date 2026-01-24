@@ -1,4 +1,8 @@
 import { defineStore } from 'pinia';
+import { useBaseStore } from './baseStore';
+
+// 获取基础Store功能
+const baseStore = useBaseStore();
 
 // 定义节点和连接的类型
 /**
@@ -19,6 +23,9 @@ import { defineStore } from 'pinia';
 
 export const useContextVisualizationStore = defineStore('contextVisualization', {
   state: () => ({
+    // 基础状态
+    ...baseStore.state(),
+    
     // 上下文可视化数据（硬编码，暂时未接入数据库）
     graphData: {
       nodes: [
@@ -69,14 +76,13 @@ export const useContextVisualizationStore = defineStore('contextVisualization', 
         { source: 14, target: 10, value: 1 },
         { source: 9, target: 8, value: 1 }
       ]
-    },
-    // 加载状态
-    loading: false,
-    // 错误信息
-    error: null
+    }
   }),
 
   getters: {
+    // 基础getters
+    ...baseStore.getters,
+    
     // 获取所有节点
     nodes: (state) => state.graphData.nodes,
     
@@ -101,20 +107,8 @@ export const useContextVisualizationStore = defineStore('contextVisualization', 
   },
 
   actions: {
-    // 设置错误信息
-    setError(error) {
-      this.error = error;
-    },
-
-    // 清空错误信息
-    clearError() {
-      this.error = null;
-    },
-
-    // 设置加载状态
-    setLoading(loading) {
-      this.loading = loading;
-    },
+    // 基础actions
+    ...baseStore.actions,
 
     // 更新节点数据
     updateNode(nodeId, updates) {
@@ -156,19 +150,11 @@ export const useContextVisualizationStore = defineStore('contextVisualization', 
 
     // 未来可以添加从API获取数据的方法
     // async loadGraphData() {
-    //   this.setLoading(true);
-    //   this.clearError();
-    //   
-    //   try {
+    //   return this.callApi(async () => {
     //     // 当接入数据库后，可以从API获取数据
     //     // const response = await apiService.getKnowledgeGraphData();
     //     // this.graphData = response.data;
-    //   } catch (error) {
-    //     console.error('加载知识图谱数据失败:', error);
-    //     this.setError(`加载失败: ${error.message || '未知错误'}`);
-    //   } finally {
-    //     this.setLoading(false);
-    //   }
+    //   }, { handleError: true });
     // }
   }
 });

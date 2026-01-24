@@ -98,11 +98,15 @@ import { ref, computed, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import ActionButton from '../common/ActionButton.vue';
-import { showNotification } from '../../services/notificationUtils.js';
-import { formatTime } from '../../store/utils.js';
+import { useNotifications } from '../../composables/useNotifications.js';
+import { formatTime } from '../../utils/date.js';
+import logger from '../../utils/logger.js';
 
 const settingsStore = useSettingsStore();
 const chatStore = useChatStore();
+
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
 
 // 状态
 const selectedMessages = ref(new Set());
@@ -147,8 +151,8 @@ const clearAllSelections = () => {
 
 const applyContextChanges = () => {
   // 实际业务逻辑：通知 LLM 仅使用选中的上下文
-  console.log('Selected context IDs:', [...selectedMessages.value]);
-  showNotification(`已应用 ${selectedMessages.value.size} 条上下文消息`, 'success');
+  logger.info('Selected context IDs:', [...selectedMessages.value]);
+  showSystemNotification(`已应用 ${selectedMessages.value.size} 条上下文消息`, 'success');
 };
 
 // 切换视图

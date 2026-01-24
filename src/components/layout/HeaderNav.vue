@@ -121,14 +121,22 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useChatStore } from '../../store/chatStore.js';
-import { showNotification } from '../../services/notificationUtils.js';
-import { formatDate } from '../../store/utils.js';
+import { formatDate } from '../../utils/date.js';
 import { useDropdownMenu } from '../../composables/useDropdownMenu.js';
+import { useNotifications } from '../../composables/useNotifications.js';
+import { useChatManagement } from '../../composables/useChatManagement.js';
 import eventBus, { Events } from '../../services/eventBus.js';
+import logger from '../../utils/logger.js';
 
 // 初始化stores
 const settingsStore = useSettingsStore();
 const chatStore = useChatStore();
+
+// 使用对话管理组合函数
+const { createNewChat, selectChat } = useChatManagement();
+
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
 
 // --- 顶部导航栏功能状态管理 ---
 const userMenuContainer = ref(null);
@@ -167,20 +175,25 @@ const toggleSideMenu = () => {
 // 新对话
 const handleNewChat = async () => {
   try {
-    await chatStore.createNewChat();
+    await createNewChat();
     settingsStore.setActiveContent('sendMessage');
   } catch (error) {
-    console.error('创建新对话失败:', error);
-    showNotification('创建新对话失败，请稍后重试', 'error');
+    logger.error('创建新对话失败:', error);
+    showSystemNotification('创建新对话失败，请稍后重试', 'error');
   }
 };
 
 
 
 // 选择历史对话
-const selectChatFromHistory = handleMenuItemClick((chatId) => {
-  chatStore.selectChat(chatId);
-  settingsStore.setActiveContent('chat');
+const selectChatFromHistory = handleMenuItemClick(async (chatId) => {
+  try {
+    await selectChat(chatId);
+    settingsStore.setActiveContent('chat');
+  } catch (error) {
+    logger.error('选择对话失败:', error);
+    showSystemNotification('选择对话失败，请稍后重试', 'error');
+  }
 });
 
 // --- 原有业务逻辑保持不变 ---
@@ -195,11 +208,11 @@ const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value; };
 const closeUserMenu = () => { showUserMenu.value = false; };
 const handleSwitchAccount = () => {
   closeUserMenu();
-  console.log('切换账户');
+  logger.info('切换账户');
 };
 const handleLogout = () => {
   closeUserMenu();
-  showNotification('退出账号功能待实现', 'info');
+  showSystemNotification('退出账号功能待实现', 'info');
 };
 
 const handleClickOutside = (event) => {

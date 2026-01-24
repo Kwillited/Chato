@@ -12,6 +12,7 @@
 
 <script setup>
 import { useChatHeader } from '../composables/useChatHeader';
+import { useChatMessages } from '../composables/useChatMessages';
 import ChatHeader from '../components/common/ChatHeader.vue';
 import { UserInputBox } from '../components/library';
 
@@ -25,6 +26,9 @@ const {
   chatHistory 
 } = useChatHeader();
 
+// 使用聊天消息组合函数
+const { sendMessage } = useChatMessages();
+
 // 处理发送消息事件
 const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false) => {
   if (message.trim() || chatStore.uploadedFiles.length > 0) {
@@ -34,7 +38,7 @@ const handleSendMessage = async (message, model, deepThinking = false, webSearch
     }
     
     // 先发送消息，确保isTyping消息立即添加
-    chatStore.sendMessage(message, model, deepThinking, webSearchEnabled);
+    await sendMessage(message, model, deepThinking, webSearchEnabled);
     
     // 然后切换到ChatContent视图（此时isTyping消息已经添加，用户可以看到AI正在输入）
     settingsStore.setActiveContent('chat');

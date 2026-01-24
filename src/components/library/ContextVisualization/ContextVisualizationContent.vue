@@ -43,7 +43,7 @@
 import { ref, onMounted, onUnmounted, reactive, provide } from 'vue';
 
 // 导入本地存储管理工具
-import { StorageManager } from '../../../store/utils.js';
+import { StorageManager } from '../../../utils/storage.js';
 
 // 引入上下文可视化相关组件
 import ContextVisualizationNavigation from './ContextVisualizationNavigation.vue';

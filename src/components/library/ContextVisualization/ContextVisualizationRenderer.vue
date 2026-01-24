@@ -9,6 +9,7 @@ import { ref, onMounted, onUnmounted, inject, provide } from 'vue';
 // 引入 Three.js 库
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import logger from '../../../utils/logger.js';
 
 // 从父组件注入属性和方法
 const nodeMaterials = inject('nodeMaterials');
@@ -316,7 +317,7 @@ const initContextScene = () => {
       });
       resizeObserver.observe(container);
     } else if (container && !(container instanceof Element)) {
-      console.warn('ResizeObserver: container is not an Element', container);
+      logger.warn('ResizeObserver: container is not an Element', container);
     }
 
     // 节点点击检测

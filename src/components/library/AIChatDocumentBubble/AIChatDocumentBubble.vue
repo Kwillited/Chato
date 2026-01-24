@@ -50,6 +50,7 @@ import { ref, watch, nextTick } from 'vue'
 import Loading from '../../common/Loading.vue'
 // 导入聊天气泡公共逻辑
 import { useChatBubble } from '../../../composables/useChatBubble.js'
+import logger from '../../../utils/logger.js';
 
 const props = defineProps({
   message: {
@@ -95,7 +96,7 @@ const useCopyButtonManager = () => {
         button.classList.remove('text-green-400')
       }
     } catch (error) {
-      console.warn('更新复制按钮状态失败:', error)
+      logger.warn('更新复制按钮状态失败:', error)
     }
   }
 

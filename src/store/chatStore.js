@@ -1,134 +1,16 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
-import { generateId } from './utils';
+import { generateId } from '../utils/helpers.js';
+import { convertDisplayTimeToMs } from '../utils/date.js';
 import { showNotification } from '../services/notificationUtils.js';
 import { ref, onUnmounted } from 'vue'; // 引入 ref 和 onUnmounted
 import eventBus, { Events } from '../services/eventBus.js'; // 引入事件总线
+import { ModelAdapter, MessageAdapter } from '../utils/modelAdapter.js'; // 引入模型和消息适配器
+import logger from '../utils/logger.js'; // 引入日志工具
+import { useBaseStore } from './baseStore'; // 引入基础Store功能
 
-// 模型适配器 - 统一处理模型配置格式
-class ModelAdapter {
-  /**
-   * 标准化模型配置格式
-   * @param {Object} modelConfig - 原始模型配置
-   * @returns {Object} 标准化后的模型配置
-   */
-  static standardizeModelConfig(modelConfig) {
-    if (!modelConfig) return null;
-
-    // 标准化模型版本配置
-    const standardizedVersions = (modelConfig.versions || []).map(version => ({
-      id: version.id || `${modelConfig.name}-${version.version_name}`,
-      version_name: version.version_name || version.name || 'default',
-      custom_name: version.custom_name || version.display_name || version.version_name || 'Default',
-      api_key: version.api_key || version.apiKey || '',
-      api_base_url: version.api_base_url || version.apiBaseUrl || '',
-      streaming: version.streaming || version.streamingConfig || version.streaming_config || false,
-      enabled: version.enabled !== false,
-      created_at: version.created_at || version.createdAt || Date.now(),
-      updated_at: version.updated_at || version.updatedAt || Date.now()
-    }));
-
-    // 标准化模型配置
-    return {
-      id: modelConfig.id || modelConfig.name,
-      name: modelConfig.name || '',
-      custom_name: modelConfig.custom_name || modelConfig.display_name || modelConfig.name || '',
-      provider: modelConfig.provider || modelConfig.name.split('-')[0] || 'unknown',
-      configured: modelConfig.configured !== false,
-      enabled: modelConfig.enabled !== false,
-      versions: standardizedVersions,
-      capabilities: modelConfig.capabilities || ['chat', 'completion'],
-      created_at: modelConfig.created_at || modelConfig.createdAt || Date.now(),
-      updated_at: modelConfig.updated_at || modelConfig.updatedAt || Date.now()
-    };
-  }
-
-  /**
-   * 标准化模型ID格式
-   * @param {string} modelId - 原始模型ID
-   * @returns {string} 标准化后的模型ID
-   */
-  static standardizeModelId(modelId) {
-    if (!modelId) return null;
-
-    // 确保模型ID使用name-version_name格式
-    if (!modelId.includes('-')) {
-      // 旧格式：只包含version_name，需要转换为name-version_name格式
-      return `default-${modelId}`;
-    }
-    return modelId;
-  }
-
-  /**
-   * 格式化模型显示名称
-   * @param {string} modelId - 模型ID
-   * @param {Array} models - 模型列表
-   * @returns {string} 格式化后的模型显示名称
-   */
-  static formatModelDisplayName(modelId, models) {
-    if (!modelId) return '默认模型';
-
-    // 处理不同的模型ID格式
-    const standardizedModelId = ModelAdapter.standardizeModelId(modelId);
-    const [modelName, versionName] = standardizedModelId.split('-', 2);
-
-    const model = models.find(m => m.name === modelName);
-    if (model && model.versions) {
-      const version = model.versions.find(v => v.version_name === versionName);
-      if (version) {
-        return `${model.custom_name || model.name}-${version.custom_name || version.version_name}`;
-      }
-    }
-
-    return modelId;
-  }
-}
-
-// 消息适配器 - 统一处理消息格式
-class MessageAdapter {
-  /**
-   * 标准化消息格式，统一使用ref包装
-   * @param {Object|ref} message - 原始消息
-   * @returns {ref} 标准化后的ref包装消息
-   */
-  static standardizeMessage(message) {
-    if (!message) return ref(null);
-
-    // 如果已经是ref对象，直接返回
-    if (typeof message.value !== 'undefined') {
-      return message;
-    }
-
-    // 标准化消息数据
-    const standardizedData = {
-      id: message.id || generateId('msg'),
-      role: message.role || 'ai',
-      content: message.content || '',
-      timestamp: message.timestamp || Date.now(),
-      status: message.status || 'received',
-      isTyping: message.isTyping || false,
-      model: message.model || '',
-      error: message.error || null,
-      files: Array.isArray(message.files) ? message.files : [],
-      lastUpdate: message.lastUpdate || Date.now(),
-      metadata: message.metadata || {}
-    };
-
-    // 使用ref包装
-    return ref(standardizedData);
-  }
-
-  /**
-   * 标准化消息列表，统一使用ref包装
-   * @param {Array} messages - 原始消息列表
-   * @returns {Array} 标准化后的ref包装消息列表
-   */
-  static standardizeMessageList(messages) {
-    if (!Array.isArray(messages)) return [];
-
-    return messages.map(message => MessageAdapter.standardizeMessage(message));
-  }
-}
+// 获取基础Store功能
+const baseStore = useBaseStore();
 
 // 定义聊天消息的类型描述 - 统一使用ref包装
 /**
@@ -165,12 +47,13 @@ class MessageAdapter {
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
+    // 基础状态
+    ...baseStore.state(),
+    
     chats: [],
     currentChatId: null,
     messageInput: '',
     uploadedFiles: [],
-    isLoading: false,
-    error: null,
     searchQuery: '',
     activeView: 'grid', // 视图模式：'grid'为对话视图，'list'为图谱视图
     retryCount: 0, // 重试计数
@@ -182,23 +65,12 @@ export const useChatStore = defineStore('chat', {
     messageAdapter: MessageAdapter
   }),
   
-  setup() {
-    // 监听文件夹选择事件
-    const handleFolderSelected = (folder) => {
-      const store = useChatStore();
-      store.currentSelectedFolder = folder;
-    };
-    
-    // 订阅文件夹选择事件
-    eventBus.on('folderSelected', handleFolderSelected);
-    
-    // 组件卸载时取消订阅
-    onUnmounted(() => {
-      eventBus.off('folderSelected', handleFolderSelected);
-    });
-  },
+
 
   getters: {
+    // 基础getters
+    ...baseStore.getters,
+    
     // 获取当前对话
     currentChat: (state) => {
       if (!state.currentChatId) return null;
@@ -241,16 +113,9 @@ export const useChatStore = defineStore('chat', {
   },
 
   actions: {
-    // 设置错误信息
-    setError(error) {
-      this.error = error;
-    },
-
-    // 清空错误信息
-    clearError() {
-      this.error = null;
-    },
-
+    // 基础actions
+    ...baseStore.actions,
+    
     // 设置搜索关键词
     setSearchQuery(query) {
       this.searchQuery = query;
@@ -258,16 +123,16 @@ export const useChatStore = defineStore('chat', {
 
     // 创建新对话（调用API）
     async createNewChat(model) {
-      try {
-        // 先取消当前会话的选中状态，实现更流畅的过渡效果
-        this.currentChatId = null;
-        
-        // 添加短暂延迟，让样式有时间过渡
-        await new Promise(resolve => setTimeout(resolve, 50));
-        
-        console.log('调用API创建新对话...');
+      // 先取消当前会话的选中状态，实现更流畅的过渡效果
+      this.currentChatId = null;
+      
+      // 添加短暂延迟，让样式有时间过渡
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      return this.callApi(async () => {
+        logger.info('调用API创建新对话...');
         const response = await apiService.chat.createChat('新对话');
-        console.log('API调用成功，响应:', response);
+        logger.info('API调用成功，响应:', response);
         
         // 处理标准化后的API响应
         let newChat = response?.data?.chat || response?.chat || {};
@@ -292,13 +157,7 @@ export const useChatStore = defineStore('chat', {
         eventBus.emit(Events.CHAT_CREATED, newChat);
 
         return newChat;
-      } catch (error) {
-        console.error('创建新对话失败:', error);
-        console.error('错误详情:', error.message, error.stack, error.response);
-        this.setError('创建新对话失败，请检查后端服务是否运行中');
-        // 后端服务不可用时，不执行本地创建操作，直接返回报错
-        throw error;
-      }
+      }, { handleError: true });
     },
 
     // 选择对话
@@ -320,7 +179,7 @@ export const useChatStore = defineStore('chat', {
         eventBus.emit(Events.CHAT_SELECTED, chat);
         
         // 可以在这里添加加载对话历史的逻辑
-        console.log('选择对话:', chatId);
+        logger.debug('选择对话:', chatId);
       }
     },
 
@@ -453,7 +312,7 @@ export const useChatStore = defineStore('chat', {
         }
         
         // 添加调试日志，查看实际发送给后端的ragConfig
-        console.log('🔍 RAG配置调试:', {
+        logger.debug('🔍 RAG配置调试:', {
           currentSelectedFolder: fileStore.currentFolder,
           selectedFolders: ragConfigToUse.selectedFolders,
           ragEnabled: ragConfigToUse.enabled
@@ -480,7 +339,7 @@ export const useChatStore = defineStore('chat', {
             },
               // 处理接收到的消息
               (data) => {
-                console.log('处理流式消息数据块:', data); // 添加日志追踪
+                logger.debug('处理流式消息数据块:', data); // 添加日志追踪
                 
                 if (!aiMessage) {
                   // 更新之前添加的typing消息，替换为实际的AI回复
@@ -568,15 +427,7 @@ export const useChatStore = defineStore('chat', {
                 c.id === currentChat.id ? { ...c, hasUnreadMessage: true } : c
               );
               // 获取通知显示时间设置
-              let displayTimeMs = 3000; // 默认3秒
-              const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
-              if (displayTimeSetting === '2秒') {
-                displayTimeMs = 2000;
-              } else if (displayTimeSetting === '5秒') {
-                displayTimeMs = 5000;
-              } else if (displayTimeSetting === '10秒') {
-                displayTimeMs = 10000;
-              }
+              let displayTimeMs = convertDisplayTimeToMs(settingsStore.notificationsConfig?.displayTime);
               // 显示新消息通知
               showNotification(`新消息: ${currentChat.title}`, 'success', displayTimeMs, true);
               // 播放未读消息通知声音
@@ -589,12 +440,12 @@ export const useChatStore = defineStore('chat', {
               },
               // 处理错误
               (error) => {
-                console.error('流式消息错误:', error);
+                logger.error('流式消息错误:', error);
                 this.setError(`流式消息失败: ${error.message || '未知错误'}`);
               },
               // 处理完成
                   () => {
-                    console.log('流式消息完成');
+                    logger.debug('流式消息完成');
                     
                     // 添加：在Promise完成回调中再次确保状态更新和model字段存在
                     if (aiMessage && aiMessage.value) {
@@ -615,15 +466,7 @@ export const useChatStore = defineStore('chat', {
               c.id === currentChat.id ? { ...c, hasUnreadMessage: true } : c
             );
             // 获取通知显示时间设置
-            let displayTimeMs = 3000; // 默认3秒
-            const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
-            if (displayTimeSetting === '2秒') {
-              displayTimeMs = 2000;
-            } else if (displayTimeSetting === '5秒') {
-              displayTimeMs = 5000;
-            } else if (displayTimeSetting === '10秒') {
-              displayTimeMs = 10000;
-            }
+            let displayTimeMs = convertDisplayTimeToMs(settingsStore.notificationsConfig?.displayTime);
             // 显示新消息通知
             showNotification(`新消息: ${currentChat.title}`, 'success', displayTimeMs, true);
             // 播放未读消息通知声音
@@ -638,7 +481,7 @@ export const useChatStore = defineStore('chat', {
               aiMessage.status = 'received';
             }
           } catch (error) {
-            console.error('发送流式消息失败:', error);
+            logger.error('发送流式消息失败:', error);
             this.setError(`发送消息失败: ${error.message || '未知错误'}`);
             
             // 更新之前添加的typing消息，替换为错误消息
@@ -680,7 +523,7 @@ export const useChatStore = defineStore('chat', {
           );
           
           // 添加调试日志，查看实际响应格式
-          console.log('非流式API响应:', JSON.stringify(response, null, 2));
+          logger.debug('非流式API响应:', JSON.stringify(response, null, 2));
           
           // 修复：处理API返回的数组格式 [response_data, status_code]
           if (Array.isArray(response) && response.length >= 1) {
@@ -730,15 +573,7 @@ export const useChatStore = defineStore('chat', {
                 c.id === currentChat.id ? { ...c, hasUnreadMessage: true } : c
               );
               // 获取通知显示时间设置
-              let displayTimeMs = 3000; // 默认3秒
-              const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
-              if (displayTimeSetting === '2秒') {
-                displayTimeMs = 2000;
-              } else if (displayTimeSetting === '5秒') {
-                displayTimeMs = 5000;
-              } else if (displayTimeSetting === '10秒') {
-                displayTimeMs = 10000;
-              }
+              let displayTimeMs = convertDisplayTimeToMs(settingsStore.notificationsConfig?.displayTime);
               // 显示新消息通知
               showNotification(`新消息: ${currentChat.title}`, 'success', displayTimeMs, true);
               // 播放未读消息通知声音
@@ -763,7 +598,7 @@ export const useChatStore = defineStore('chat', {
 
         // 不再需要本地保存，所有数据已通过API同步到后端
       } catch (error) {
-        console.error('发送消息失败:', error);
+        logger.error('发送消息失败:', error);
         this.setError(`发送消息失败: ${error.message || '未知错误'}`);
 
         // 更新之前添加的typing消息，替换为错误消息
@@ -792,10 +627,10 @@ export const useChatStore = defineStore('chat', {
 
     // 删除对话（调用API）
     async deleteChat(chatId) {
-      try {
+      return this.callApi(async () => {
         // 先调用API删除对话
         await apiService.chat.deleteChat(chatId);
-        console.log('API删除对话成功:', chatId);
+        logger.info('API删除对话成功:', chatId);
 
         // API调用成功后，从本地状态中删除对话
         const chatIndex = this.chats.findIndex((chat) => chat.id === chatId);
@@ -820,30 +655,20 @@ export const useChatStore = defineStore('chat', {
           // 发布对话删除事件
           eventBus.emit(Events.CHAT_DELETED, { chatId: chatId, deletedChat: deletedChat });
         }
-      } catch (error) {
-        console.error('API删除对话失败:', error);
-        this.setError('删除对话失败，请检查后端服务是否运行中');
-        // 后端服务不可用时，不执行本地删除操作，直接返回报错
-        throw error;
-      }
+      }, { handleError: true });
     },
 
     // 清空所有对话（调用API）
     async clearAllChats() {
-      try {
+      return this.callApi(async () => {
         // 调用API删除所有对话
         await apiService.chat.deleteAllChats();
-        console.log('API删除所有对话成功');
+        logger.info('API删除所有对话成功');
 
         // API调用成功后，清空本地状态
         this.chats = [];
         this.currentChatId = null;
-      } catch (error) {
-        console.error('API删除所有对话失败:', error);
-        this.setError('删除所有对话失败，请检查后端服务是否运行中');
-        // 后端服务不可用时，不执行本地清空操作，直接返回报错
-        throw error;
-      }
+      }, { handleError: true });
     },
 
     // 添加上传文件
@@ -865,14 +690,11 @@ export const useChatStore = defineStore('chat', {
 
     // 从后端API获取对话历史
     async loadChatHistory(_manualRetry = false) {
-      this.isLoading = true;
-      this.clearError();
-
-      try {
-        console.log('调用API获取对话历史...');
+      return this.callApi(async () => {
+        logger.info('调用API获取对话历史...');
         // 调用API获取对话历史 - 使用统一的requestWithRetry机制
         const response = await apiService.chat.getHistory();
-        console.log('API调用成功，响应:', response);
+        logger.info('API调用成功，响应:', response);
         
         // 处理标准化后的API响应
         const chatsData = response?.data?.chats || response?.chats || [];
@@ -901,15 +723,7 @@ export const useChatStore = defineStore('chat', {
           // 发布聊天历史加载完成事件（空）
           eventBus.emit(Events.CHAT_HISTORY_LOADED, []);
         }
-      } catch (error) {
-        console.error('获取对话历史失败:', error);
-        this.setError('获取对话历史失败，请检查后端服务是否运行中');
-        this.currentChatId = null;
-        // 统一的重试机制已在apiService中实现，这里不再需要额外的重试逻辑
-        throw error;
-      } finally {
-        this.isLoading = false;
-      }
+      }, { handleError: true });
     },
 
     // 确保数据一致性
@@ -968,7 +782,7 @@ export const useChatStore = defineStore('chat', {
 
         return JSON.stringify(exportData, null, 2);
       } catch (error) {
-        console.error('导出对话失败:', error);
+        logger.error('导出对话失败:', error);
         this.setError('导出对话失败');
         return null;
       }
@@ -992,7 +806,7 @@ export const useChatStore = defineStore('chat', {
         try {
           await apiService.chat.updateChatPin(chatId, newPinnedState);
         } catch (error) {
-          console.error('更新对话置顶状态失败:', error);
+          logger.error('更新对话置顶状态失败:', error);
           // 如果API调用失败，恢复原始状态
           chat.pinned = !newPinnedState;
           // 重新排序对话列表
@@ -1021,7 +835,7 @@ export const useChatStore = defineStore('chat', {
           try {
             await apiService.chat.deleteChat(chatIds[0]);
           } catch (error) {
-            console.error('后端服务不可用，无法进行批量删除:', error);
+            logger.error('后端服务不可用，无法进行批量删除:', error);
             this.setError('后端服务不可用，批量删除失败');
             throw error; // 后端服务不可用时，直接返回报错
           }
@@ -1033,9 +847,9 @@ export const useChatStore = defineStore('chat', {
           try {
             await apiService.chat.deleteChat(chatId);
             successfullyDeleted.push(chatId);
-            console.log('API删除对话成功:', chatId);
+            logger.info('API删除对话成功:', chatId);
           } catch (error) {
-            console.error('单个对话删除失败:', chatId, error);
+            logger.error('单个对话删除失败:', chatId, error);
             // 记录错误但继续删除其他对话
           }
         }
@@ -1054,7 +868,7 @@ export const useChatStore = defineStore('chat', {
 
         // 不再需要本地保存，所有数据已通过API同步到后端
       } catch (error) {
-        console.error('批量删除对话过程出错:', error);
+        logger.error('批量删除对话过程出错:', error);
         this.setError('批量删除失败，请检查后端服务是否运行中');
         // 后端服务不可用时，不执行本地删除操作，直接返回报错
         throw error;
@@ -1065,9 +879,9 @@ export const useChatStore = defineStore('chat', {
     cancelStreaming() {
       try {
         apiService.chat.closeStreamingConnection();
-        console.log('流式连接已关闭');
+        logger.debug('流式连接已关闭');
       } catch (error) {
-        console.error('关闭流式连接失败:', error);
+        logger.error('关闭流式连接失败:', error);
       }
     },
     
@@ -1085,11 +899,11 @@ async playNotificationSound() {
       const audio = new window.Audio('/src/assets/notice.mp3');
       // 播放声音，并捕获可能的错误
       audio.play().catch(err => {
-        console.warn('播放通知声音失败:', err);
+        logger.warn('播放通知声音失败:', err);
       });
     }
   } catch (error) {
-    console.error('处理通知声音时出错:', error);
+    logger.error('处理通知声音时出错:', error);
   }
 },
   },

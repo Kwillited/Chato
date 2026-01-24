@@ -57,7 +57,10 @@
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
-import { showNotification } from '../../services/notificationUtils.js';
+import { useNotifications } from '../../composables/useNotifications.js';
+
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
 
 // 定义组件属性
 const props = defineProps({
@@ -237,7 +240,7 @@ const handleClose = () => {
 // 最小化命令行
 const minimizeCommandLine = () => {
   // 这里可以实现最小化逻辑
-  showNotification('最小化功能待实现', 'info');
+  showSystemNotification('最小化功能待实现', 'info');
 };
 
 // 最大化命令行

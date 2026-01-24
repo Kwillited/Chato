@@ -207,20 +207,39 @@ import { useSettingsStore } from '../store/settingsStore.js';
 import { useVectorStore } from '../store/vectorStore.js';
 import { useFileStore } from '../store/fileStore.js';
 import { useChatStore } from '../store/chatStore.js';
-import { formatFileSize } from '../store/utils.js';
+import { formatFileSize } from '../utils/helpers.js';
 import ActionButton from '../components/common/ActionButton.vue';
 import { KnowledgeGraphVisualization } from '../components/library';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
-import { showNotification } from '../services/notificationUtils.js';
+import { useNotifications } from '../composables/useNotifications.js';
+import { useFileManagement } from '../composables/useFileManagement.js';
+import logger from '../utils/logger.js';
 
 // 导入Tauri API用于文件操作
 // 移除不再需要的Tauri导入
+
+// 使用文件管理组合函数
+const { 
+  selectedFolder, 
+  isLoading, 
+  error, 
+  files: fileManagementFiles, 
+  folders: fileManagementFolders,
+  currentFolder,
+  loadFiles, 
+  loadFolders, 
+  loadFilesInFolder, 
+  batchUploadFiles, 
+  deleteFile
+} = useFileManagement();
+
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
 
 // 初始化stores
 const settingsStore = useSettingsStore();
 const ragStore = useVectorStore();
 const chatStore = useChatStore();
-const fileStore = useFileStore();
 
 // 处理新对话点击事件
 const handleNewChat = () => {
@@ -239,40 +258,28 @@ const handleNewChat = () => {
 
 // 本地状态
 const searchQuery = ref('');
-const isLoading = ref(false);
-const selectedFolder = ref(null); // 当前选中的文件夹
-const currentFolder = ref('');
-const folders = ref([]);
+const showDeleteModal = ref(false); // 确认删除模态框显示状态
+const fileIdToDelete = ref(null); // 要删除的文件ID
+
 // 使用计算属性从settingsStore获取视图状态，默认true（文件列表视图）
 const isSliderActive = computed(() => {
   return settingsStore.systemSettings.rag_view_mode !== false;
 });
-const showDeleteModal = ref(false); // 确认删除模态框显示状态
-const fileIdToDelete = ref(null); // 要删除的文件ID
 
-// 初始化时加载文件夹
-const loadFolders = async () => {
-  try {
-    // 使用fileStore加载文件夹列表
-    await fileStore.loadFolders();
-    folders.value = fileStore.folders || [];
-  } catch (error) {
-    console.error('加载文件夹失败:', error);
-  }
-};
+
 
 // 获取文件列表
 const files = computed(() => {
-  // 从fileStore获取文件列表
-  if (fileStore.files && fileStore.files.length > 0) {
-    return fileStore.files.map(file => ({
+  // 从fileManagement获取文件列表
+  if (fileManagementFiles.value && fileManagementFiles.value.length > 0) {
+    return fileManagementFiles.value.map(file => ({
       ...file,
       type: getFileExtension(file.name),
       path: file.path || '',
     }));
   }
   
-  // 如果store中没有文件，返回空数组
+  // 如果没有文件，返回空数组
   return [];
 });
 
@@ -298,7 +305,7 @@ const toggleSlider = () => {
   settingsStore.updateSystemSettings({
     rag_view_mode: !isSliderActive.value
   });
-  console.log('滑动控件状态切换:', !isSliderActive.value);
+  logger.info('滑动控件状态切换:', !isSliderActive.value);
 };
 
 // 处理搜索
@@ -385,35 +392,30 @@ const getFileColor = (type) => {
 
 // 处理知识图谱节点点击事件
 const handleNodeClick = (node) => {
-  console.log('知识图谱节点被点击:', node);
+  logger.info('知识图谱节点被点击:', node);
 };
 
 // 处理知识图谱节点悬停事件
 const handleNodeHover = (node) => {
-  console.log('知识图谱节点悬停:', node);
+  logger.info('知识图谱节点悬停:', node);
 };
 
 // 处理知识图谱视图变化事件
 const handleViewChanged = (viewInfo) => {
-  console.log('知识图谱视图变化:', viewInfo);
+  logger.info('知识图谱视图变化:', viewInfo);
 };
 
 
 
 // 刷新文件列表
 const refreshFiles = async () => {
-  isLoading.value = true;
   try {
-    // 使用fileStore加载文件列表
-    await fileStore.loadFiles();
+    // 使用fileManagement加载文件列表
+    await loadFiles();
     // 模拟加载延迟
     await new Promise(resolve => setTimeout(resolve, 500));
   } catch (error) {
-    console.error('刷新文件列表失败:', error);
-  } finally {
-    // 使用nextTick确保数据更新完成后再隐藏加载状态
-    await nextTick();
-    isLoading.value = false;
+    logger.error('刷新文件列表失败:', error);
   }
 };
 
@@ -440,15 +442,15 @@ const handleUploadClick = async () => {
     
     if (files && files.length > 0) {
       
-      // 调用fileStore的批量上传方法
-      await fileStore.batchUploadFiles(files);
+      // 使用fileManagement的批量上传方法
+      await batchUploadFiles(files);
       
       // 上传完成后刷新文件列表
       await refreshFiles();
     }
   } catch (error) {
-    console.error('上传文件失败:', error);
-    showNotification(`上传文件失败: ${error.message || String(error)}`, 'error');
+    logger.error('上传文件失败:', error);
+    showSystemNotification(`上传文件失败: ${error.message || String(error)}`, 'error');
   }
 };
 
@@ -502,7 +504,7 @@ const handleDeleteConfirm = async () => {
   
   try {
     // 获取要删除的文件信息
-    const fileToDelete = fileStore.files.find(file => file.id === fileIdToDelete.value);
+    const fileToDelete = fileManagementFiles.value.find(file => file.id === fileIdToDelete.value);
     if (!fileToDelete) {
       throw new Error('文件不存在');
     }
@@ -510,8 +512,8 @@ const handleDeleteConfirm = async () => {
     // 获取当前文件夹名称（如果有）
     const folderName = selectedFolder.value?.name || '';
     
-    // 使用fileStore删除文件
-    await fileStore.deleteDocument(fileToDelete.name, folderName);
+    // 使用fileManagement删除文件
+    await deleteFile(fileToDelete.name, folderName);
     
     // 删除后刷新文件列表
     // 根据当前是否有选中的文件夹决定如何刷新
@@ -523,8 +525,8 @@ const handleDeleteConfirm = async () => {
       await refreshFiles();
     }
   } catch (error) {
-    console.error('删除文件失败:', error);
-    showNotification(`删除文件失败: ${error.message || String(error)}`, 'error');
+    logger.error('删除文件失败:', error);
+    showSystemNotification(`删除文件失败: ${error.message || String(error)}`, 'error');
   } finally {
     // 关闭模态框
     showDeleteModal.value = false;
@@ -535,26 +537,18 @@ const handleDeleteConfirm = async () => {
 
 // 处理文件夹点击
 const handleFolderClick = async (folder) => {
-  console.log(`尝试加载文件夹: ${JSON.stringify(folder)}`);
-  currentFolder.value = folder.name;
-  isLoading.value = true;
+  logger.debug(`尝试加载文件夹: ${JSON.stringify(folder)}`);
   try {
     // 保存选中的文件夹到本地存储
     localStorage.setItem('ragSelectedFolder', JSON.stringify(folder));
     
-    // 使用fileStore加载指定文件夹的文件
-    await fileStore.loadFilesInFolder(folder);
+    // 使用fileManagement加载指定文件夹的文件
+    await loadFilesInFolder(folder);
     
     // 打印文件列表用于调试
-    console.log(`加载的文件列表: ${fileStore.files?.length || 0} 个文件`);
+    logger.debug(`加载的文件列表: ${fileManagementFiles.value?.length || 0} 个文件`);
   } catch (error) {
-    console.error('读取文件夹内容失败:', error);
-    // 发生错误时清空文件列表
-    fileStore.files = [];
-  } finally {
-    // 使用nextTick确保数据更新完成后再隐藏加载状态
-    await nextTick();
-    isLoading.value = false;
+    logger.error('读取文件夹内容失败:', error);
   }
 };
 
@@ -583,7 +577,7 @@ const handleFilesUploaded = () => {
 
 // 组件挂载时加载文件并监听事件
 onMounted(() => {
-  console.log('RagManagementContent组件挂载');
+  logger.info('RagManagementContent组件挂载');
   
   // 初始加载文件夹列表
   loadFolders().then(() => {
@@ -593,22 +587,19 @@ onMounted(() => {
       try {
         const folder = JSON.parse(storedSelectedFolder);
         selectedFolder.value = folder;
-        currentFolder.value = folder.name;
         // 加载选中文件夹的内容
         handleFolderClick(folder);
       } catch (error) {
-        console.error('解析存储的选中文件夹失败:', error);
+        logger.error('解析存储的选中文件夹失败:', error);
         // 解析失败时重置状态
         selectedFolder.value = null;
-        currentFolder.value = '';
-        ragStore.files = [];
       }
     }
   });
   
-  // 监听fileStore中的当前选中文件夹变化
+  // 监听selectedFolder变化
   watch(
-    () => fileStore.currentFolder,
+    () => selectedFolder.value,
     (newFolder) => {
       if (newFolder) {
         handleFolderSelected(newFolder);
@@ -616,9 +607,9 @@ onMounted(() => {
     }
   );
   
-  // 监听fileStore中的文件列表变化
+  // 监听文件列表和文件夹列表变化
   watch(
-    () => [fileStore.files.length, fileStore.folders.length],
+    () => [fileManagementFiles.value.length, fileManagementFolders.value.length],
     ([newFilesCount, newFoldersCount], [oldFilesCount, oldFoldersCount]) => {
       // 只有当文件数量或文件夹数量变化时，才执行更新
       if (newFilesCount !== oldFilesCount || newFoldersCount !== oldFoldersCount) {
@@ -648,7 +639,7 @@ const handleContentChanged = async (event) => {
   // 如果切换到了RAG管理视图，尝试恢复之前保存的选中状态
   if (event.detail && event.detail.contentType === 'ragManagement') {
     // 确保文件夹列表已加载
-    if (folders.value.length === 0) {
+    if (fileManagementFolders.value.length === 0) {
       await loadFolders();
     }
     
@@ -658,21 +649,16 @@ const handleContentChanged = async (event) => {
       try {
         const folder = JSON.parse(storedSelectedFolder);
         selectedFolder.value = folder;
-        currentFolder.value = folder.name;
         // 自动加载选中文件夹的内容
         handleFolderClick(folder);
       } catch (error) {
-        console.error('解析存储的选中文件夹失败:', error);
+        logger.error('解析存储的选中文件夹失败:', error);
         // 解析失败时重置状态
         selectedFolder.value = null;
-        currentFolder.value = '';
-        fileStore.files = [];
       }
     } else {
       // 如果没有存储的选中状态，重置当前组件的状态
       selectedFolder.value = null;
-      currentFolder.value = '';
-      fileStore.files = [];
     }
   }
 }

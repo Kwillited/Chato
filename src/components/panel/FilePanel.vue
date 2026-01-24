@@ -71,9 +71,10 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useVectorStore } from '../../store/vectorStore.js';
 import { useFileStore } from '../../store/fileStore.js';
-import api from '../../services/apiService.js';
+import { useFileManagement } from '../../composables/useFileManagement.js';
+import { useNotifications } from '../../composables/useNotifications.js';
 import eventBus from '../../services/eventBus.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import logger from '../../utils/logger.js';
 
 // 导入子组件
 import RagFilePanelHeader from '../file/RagFilePanelHeader.vue';
@@ -86,23 +87,26 @@ import RagCreateKnowledgeBaseModal from '../file/RagCreateKnowledgeBaseModal.vue
 
 const ragStore = useVectorStore();
 const fileStore = useFileStore();
+const { 
+  folders, 
+  currentFolder, 
+  currentFiles, 
+  loadFiles, 
+  loadFolders, 
+  loadFilesInFolder, 
+  batchUploadFiles, 
+  deleteFolder, 
+  deleteAllFiles 
+} = useFileManagement();
+
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
 
 // 状态管理
-// 文件夹列表
-const folders = ref([]);
-// 当前选中的文件夹
-const currentFolder = ref(null);
-// 当前文件夹中的文件列表
-const currentFiles = ref([]);
-// 加载状态
-const loadingFolders = ref(false);
-const loadingFiles = ref(false);
 // 模态弹窗显示状态
 const showCreateModal = ref(false);
 // 确认删除所有文件模态框显示状态
 const showDeleteAllModal = ref(false);
-// 删除所有文件的加载状态
-const isDeletingAll = ref(false);
 // 确认删除文件夹模态框显示状态
 const showDeleteFolderModal = ref(false);
 // 当前要删除的文件夹数据
@@ -145,36 +149,7 @@ onUnmounted(() => {
   window.removeEventListener('searchKnowledgeBase', handleSearchKnowledgeBase);
 });
 
-// 加载文件列表
-const loadFiles = async () => {
-  loadingFiles.value = true;
-  try {
-    await fileStore.loadFiles();
-  } catch (error) {
-    console.error('加载文件列表失败:', error);
-    showNotification(`加载文件列表失败: ${error.message || String(error)}`, 'error');
-  } finally {
-    loadingFiles.value = false;
-  }
-};
-
-// 加载文件夹列表
-const loadFolders = async () => {
-  loadingFolders.value = true;
-  try {
-    // 通过fileStore加载文件夹列表
-    await fileStore.loadFolders();
-    folders.value = fileStore.folders || [];
-    
-    // 建立文件夹ID到名称的映射，方便通过ID获取名称
-    folderIdMap.value = fileStore.folderIdMap || {};
-  } catch (error) {
-    console.error('加载文件夹失败:', error);
-    showNotification(`加载文件夹失败: ${error.message || String(error)}`, 'error');
-  } finally {
-    loadingFolders.value = false;
-  }
-}
+// loadFiles 和 loadFolders 方法已从 useFileManagement 组合函数中导入
 
 // 处理返回上一级
 const handleBackToParent = () => {
@@ -235,39 +210,21 @@ const handleDeleteAllConfirm = async () => {
   isDeletingAll.value = true;
   
   try {
-    const result = await fileStore.deleteAllDocuments();
-    if (result.success) {
-      showNotification(result.message, 'success');
-      // 删除成功后，重新加载文件和文件夹列表
-      await loadFiles();
-      await loadFolders();
-      // 重置当前文件夹状态和文件列表，确保UI正确显示空状态
-      currentFolder.value = null;
-      currentFiles.value = [];
-      // 关闭模态框
-      showDeleteAllModal.value = false;
-    } else {
-      showNotification(`删除所有内容失败: ${result.error}`, 'error');
-    }
+    await deleteAllFiles();
+    // 删除成功后，重新加载文件和文件夹列表
+    await loadFiles();
+    await loadFolders();
+    // 重置当前文件夹状态和文件列表，确保UI正确显示空状态
+    currentFolder.value = null;
+    currentFiles.value = [];
+    // 关闭模态框
+    showDeleteAllModal.value = false;
   } finally {
     isDeletingAll.value = false;
   }
 };
 
-// 加载指定文件夹中的文件
-const loadFilesInFolder = async (folder) => {
-  loadingFiles.value = true;
-  try {
-    // 通过fileStore加载文件夹中的文件
-    const result = await fileStore.loadFilesInFolder(folder);
-    currentFiles.value = result || [];
-  } catch (error) {
-    console.error('加载文件失败:', error);
-    showNotification(`加载文件失败: ${error.message || String(error)}`, 'error');
-  } finally {
-    loadingFiles.value = false;
-  }
-};
+// loadFilesInFolder 方法已从 useFileManagement 组合函数中导入
 
 // 处理文件夹双击事件
 const handleFolderDoubleClick = async (event) => {
@@ -285,63 +242,15 @@ const handleFolderDoubleClick = async (event) => {
     const { folder, files } = event.detail;
     
     if (files && files.length > 0) {
-      // 存储上传失败的文件列表
-      const failedFiles = [];
-      const successFiles = [];
-      
       try {
-        // 处理每个文件
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          // 简单的文件验证
-      const maxSize = 50 * 1024 * 1024; // 50MB
-      const supportedTypes = ['pdf', 'docx', 'txt', 'csv', 'xlsx', 'pptx', 'md'];
-      const fileExtension = file.name.split('.').pop().toLowerCase();
-      
-      if (file.size > maxSize) {
-        showNotification(`文件太大: ${file.name} - 最大支持50MB`, 'error');
-        failedFiles.push(file.name);
-        continue;
-      }
-      
-      if (!supportedTypes.includes(fileExtension)) {
-        showNotification(`不支持的文件类型: ${file.name} - 支持类型: ${supportedTypes.join(', ')}`, 'error');
-        failedFiles.push(file.name);
-        continue;
-      }
-          
-          try {
-              // 使用fileStore的uploadFile方法上传文件到指定文件夹（使用ID）
-              const result = await fileStore.uploadFile(file, folder.id);
-              if (!result.success) {
-                throw new Error(result.error || '文件上传失败');
-              }
-            
-            successFiles.push(file.name);
-          } catch (fileError) {
-            console.error(`处理文件 ${file.name} 时出错:`, fileError);
-            failedFiles.push(file.name);
-          }
-        }
+        // 使用batchUploadFiles组合函数批量上传文件
+        await batchUploadFiles(files, folder.id);
         
         // 重新加载文件和文件夹列表
         await loadFiles();
         await loadFolders();
-        
-        // 更新fileStore中的文件列表
-        await fileStore.loadFiles();
-        await fileStore.loadFolders();
-        
-        // 根据上传结果显示通知
-        if (successFiles.length > 0) {
-          showNotification(`${successFiles.length} 个文件已成功上传到知识库 "${folder.name}"`, 'success');
-        }
-        if (failedFiles.length > 0) {
-          showNotification(`${failedFiles.length} 个文件上传失败，请重试`, 'error');
-        }
       } catch (error) {
-        console.error('上传文件时发生错误:', error);
-        showNotification(`上传文件失败: ${error.message || String(error)}`, 'error');
+        logger.error('上传文件时发生错误:', error);
       }
     }
   };
@@ -378,46 +287,18 @@ const handleUploadToFolder = async (event) => {
       const files = Array.from(e.target.files);
       
       if (files && files.length > 0) {
-        // 存储上传失败的文件列表
-        const failedFiles = [];
-        const successFiles = [];
-        
-        // 处理每个文件
-        for (const file of files) {
-          try {
-            // 验证文件
-            const validation = ragStore.validateFile(file);
-            if (!validation.valid) {
-              console.error('文件验证失败:', validation.message);
-              failedFiles.push(file.name);
-              continue;
-            }
-            
-            // 使用fileStore的uploadFile方法上传文件到指定文件夹
-            const result = await fileStore.uploadFile(file, folder.id);
-            if (!result.success) {
-              throw new Error(result.error || '文件上传失败');
-            }
-            successFiles.push(file.name);
-          } catch (fileError) {
-            console.error(`处理文件 ${file.name} 时出错:`, fileError);
-            failedFiles.push(file.name);
-          }
-        }
-        
-        // 重新加载文件和文件夹列表
-        await loadFiles();
-        await loadFolders();
-        
-        // 触发文件上传完成事件
-        eventBus.emit('filesUploaded');
-        
-        // 根据上传结果显示通知
-        if (successFiles.length > 0) {
-          showNotification(`${successFiles.length} 个文件已成功上传到知识库 "${folder.name}"`, 'success');
-        }
-        if (failedFiles.length > 0) {
-          showNotification(`${failedFiles.length} 个文件上传失败，请重试`, 'error');
+        try {
+          // 使用batchUploadFiles组合函数批量上传文件
+          await batchUploadFiles(files, folder.id);
+          
+          // 重新加载文件和文件夹列表
+          await loadFiles();
+          await loadFolders();
+          
+          // 触发文件上传完成事件
+          eventBus.emit('filesUploaded');
+        } catch (error) {
+          logger.error('上传文件时发生错误:', error);
         }
       }
     };
@@ -425,27 +306,11 @@ const handleUploadToFolder = async (event) => {
     // 触发文件选择器
     input.click();
   } catch (error) {
-    console.error('上传文件时发生错误:', error);
-    showNotification('上传文件失败，请重试', 'error');
+    logger.error('上传文件时发生错误:', error);
   }
 };
 
-// 处理文件的通用函数
-const _processFiles = async (files) => {
-  if (files && files.length > 0) {
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const result = await fileStore.uploadFile(file);
-      if (!result.success) {
-        showNotification(`上传文件 ${file.name} 失败: ${result.error}`, 'error');
-      }
-    }
-    // 显示成功提示
-    if (files.length > 0) {
-      showNotification(`${files.length} 个文件上传成功`, 'success');
-    }
-  }
-};
+// _processFiles 函数已被 batchUploadFiles 组合函数取代
 
 // 处理删除文件夹 - 显示确认模态框
 const handleDeleteFolder = (event) => {
@@ -463,16 +328,8 @@ const handleDeleteFolderConfirm = async () => {
   const folder = deleteFolderData.value;
   
   try {
-    // 调用后端API删除文件夹，现在使用folder_id而不是folder_name
-    const config = {
-      method: 'DELETE',
-      url: '/api/files/folders',
-      params: { folder_id: folder.id }
-    };
-    await api(config);
-    
-    // 显示成功提示
-    showNotification(`已成功删除知识库文件夹: ${folder.name}`, 'success');
+    // 使用deleteFolder组合函数删除文件夹
+    await deleteFolder(folder);
     
     // 重新加载文件夹列表
     await loadFolders();
@@ -486,8 +343,8 @@ const handleDeleteFolderConfirm = async () => {
     // 关闭模态框
     showDeleteFolderModal.value = false;
   } catch (error) {
-    // 显示错误提示
-    showNotification(`删除知识库文件夹失败: ${error.message || String(error)}`, 'error');
+    // 错误处理已在组合函数中完成
+    logger.error('删除文件夹失败:', error);
   }
 };
 
@@ -543,8 +400,8 @@ const handleSearchKnowledgeBase = async (event) => {
     // 实际项目中可能需要调用API进行后端搜索
     // const result = await ragStore.searchKnowledgeBase(searchTerm);
   } catch (error) {
-    console.error('搜索知识库失败:', error);
-    showNotification(`搜索知识库失败: ${error.message || String(error)}`, 'error');
+    logger.error('搜索知识库失败:', error);
+    showSystemNotification(`搜索知识库失败: ${error.message || String(error)}`, 'error');
   }
 };
 </script>

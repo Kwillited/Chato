@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import logger from '../utils/logger.js';
 
 /**
  * 加载状态管理Hook
@@ -79,7 +80,7 @@ export function useLoading(options = {}) {
       if (onError) {
         onError(error);
       } else {
-        console.error('Error in withLoading:', error);
+        logger.error('Error in withLoading:', error);
       }
       
       throw error;

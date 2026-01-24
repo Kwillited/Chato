@@ -75,7 +75,7 @@
 
 <script setup>
 import ActionButton from './ActionButton.vue';
-import { formatDate } from '../../store/utils.js';
+import { formatDate } from '../../utils/date.js';
 import { useDropdownMenu } from '../../composables/useDropdownMenu';
 
 // 定义组件属性

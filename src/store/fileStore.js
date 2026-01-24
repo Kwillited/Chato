@@ -2,21 +2,29 @@ import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
 import { showNotification } from '../services/notificationUtils';
 import eventBus from '../services/eventBus.js';
+import logger from '../utils/logger.js';
+import { useBaseStore } from './baseStore.js';
+
+// 获取基础Store功能
+const baseStore = useBaseStore();
 
 export const useFileStore = defineStore('file', {
   state: () => ({
+    // 基础状态
+    ...baseStore.state(),
     // 状态
     files: [],
     folders: [],
     folderIdMap: {},
     currentFolder: null,
     currentFiles: [],
-    loading: false,
-    error: null,
     fileUploadProgress: null,
   }),
   
   getters: {
+    // 基础getters
+    ...baseStore.getters,
+    
     // 获取当前文件夹中的文件数量
     currentFileCount: (state) => state.currentFiles.length,
     
@@ -28,22 +36,12 @@ export const useFileStore = defineStore('file', {
   },
   
   actions: {
-    // 设置错误
-    setError(message) {
-      this.error = message;
-    },
-    
-    // 清除错误
-    clearError() {
-      this.error = null;
-    },
+    // 基础actions
+    ...baseStore.actions,
     
     // 加载文件列表
     async loadFiles() {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         const response = await apiService.rag.getDocuments();
         if (response.success) {
           this.files = response.documents || [];
@@ -51,40 +49,24 @@ export const useFileStore = defineStore('file', {
         } else {
           this.setError('加载文件列表失败');
         }
-      } catch (error) {
-        console.error('加载文件列表失败:', error);
-        this.setError(`加载文件列表失败: ${error.message || '未知错误'}`);
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 加载文件夹列表
     async loadFolders() {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         const response = await apiService.rag.getFolders();
         if (response.success) {
           this.folders = response.folders || [];
         } else {
           this.setError('加载文件夹列表失败');
         }
-      } catch (error) {
-        console.error('加载文件夹列表失败:', error);
-        this.setError(`加载文件夹列表失败: ${error.message || '未知错误'}`);
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 加载文件夹中的文件
     async loadFilesInFolder(folder) {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         // 直接使用folder_id调用API端点
         const response = await apiService.get(`/api/files/folders/by-id/${encodeURIComponent(folder.id)}/files`);
         
@@ -101,22 +83,14 @@ export const useFileStore = defineStore('file', {
         
         this.currentFiles = files;
         return files;
-      } catch (error) {
-        console.error('加载文件夹中的文件失败:', error);
-        this.setError(`加载文件夹中的文件失败: ${error.message || '未知错误'}`);
-        return [];
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 上传文件
     async uploadFile(file, folderId = '') {
-      this.loading = true;
-      this.clearError();
       this.fileUploadProgress = 0;
       
-      try {
+      return this.callApi(async () => {
         const formData = new FormData();
         formData.append('file', file);
         if (folderId) {
@@ -135,22 +109,12 @@ export const useFileStore = defineStore('file', {
         } else {
           throw new Error(response.message || '文件上传失败');
         }
-      } catch (error) {
-        console.error('上传文件失败:', error);
-        this.setError(`上传文件失败: ${error.message || '未知错误'}`);
-        return { success: false, error: error.message };
-      } finally {
-        this.loading = false;
-        this.fileUploadProgress = null;
-      }
+      }, { handleError: true });
     },
     
     // 批量上传文件
     async batchUploadFiles(files, folderId = '') {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         const uploadResults = [];
         let successCount = 0;
         let failCount = 0;
@@ -175,21 +139,12 @@ export const useFileStore = defineStore('file', {
         }
         
         return { successCount, failCount, uploadResults };
-      } catch (error) {
-        console.error('批量上传文件失败:', error);
-        this.setError(`批量上传文件失败: ${error.message || '未知错误'}`);
-        return { successCount: 0, failCount: files.length, uploadResults: [] };
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 删除文件
     async deleteDocument(filename, foldername = '') {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         const response = await apiService.rag.deleteDocument(filename, foldername);
         
         if (response.success) {
@@ -202,21 +157,12 @@ export const useFileStore = defineStore('file', {
         } else {
           throw new Error(response.message || '文件删除失败');
         }
-      } catch (error) {
-        console.error('删除文件失败:', error);
-        this.setError(`删除文件失败: ${error.message || '未知错误'}`);
-        return { success: false, error: error.message };
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 删除所有文档
     async deleteAllDocuments() {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         // 调用后端API删除所有文件
         const response = await apiService.delete('/api/files/documents/delete-all');
         
@@ -237,24 +183,12 @@ export const useFileStore = defineStore('file', {
           message: response.data?.message || '所有文件、文件夹和向量数据库已清空',
           deleted_count: response.data?.deleted_count || 0
         };
-      } catch (error) {
-        console.error('删除所有文件失败:', error);
-        this.setError(`删除所有文件失败: ${error.message || '未知错误'}`);
-        return {
-          success: false,
-          error: error.message || '未知错误'
-        };
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 创建文件夹/知识库
     async createFolder(knowledgeBaseName) {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         let response;
         
         try {
@@ -265,7 +199,7 @@ export const useFileStore = defineStore('file', {
           });
         } catch (importError) {
           // 如果导入失败，回退到使用Python API
-          console.warn('无法使用Tauri invoke，回退到Python API:', importError);
+          logger.warn('无法使用Tauri invoke，回退到Python API:', importError);
           response = await apiService.post('/api/files/folders', {
             name: knowledgeBaseName
           });
@@ -287,26 +221,14 @@ export const useFileStore = defineStore('file', {
           success: true,
           folder: response
         };
-      } catch (error) {
-        console.error('创建文件夹失败:', error);
-        this.setError(`创建文件夹失败: ${error.message || '未知错误'}`);
-        return {
-          success: false,
-          error: error.message || '未知错误'
-        };
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 删除文件夹
     async deleteFolder(folder) {
       if (!folder || !folder.id) return;
       
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         // 调用后端API删除文件夹
         await apiService.delete(`/api/files/folders?folder_id=${folder.id}`);
         
@@ -322,21 +244,12 @@ export const useFileStore = defineStore('file', {
         }
         
         return { success: true };
-      } catch (error) {
-        console.error('删除文件夹失败:', error);
-        this.setError(`删除文件夹失败: ${error.message || '未知错误'}`);
-        return { success: false, error: error.message };
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     },
     
     // 获取文件详情
     async getFileDetails(fileId) {
-      this.loading = true;
-      this.clearError();
-      
-      try {
+      return this.callApi(async () => {
         // 首先根据fileId查找文件
         const file = this.files.find(f => f.id === fileId);
         if (!file) {
@@ -354,13 +267,7 @@ export const useFileStore = defineStore('file', {
           ...fileDetails,
           id: file.id
         };
-      } catch (error) {
-        console.error('获取文件详情失败:', error);
-        this.setError(`获取文件详情失败: ${error.message || '未知错误'}`);
-        return null;
-      } finally {
-        this.loading = false;
-      }
+      }, { handleError: true });
     }
   },
 });

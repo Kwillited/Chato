@@ -29,6 +29,7 @@ import { computed } from 'vue';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useChatStore } from '../../store/chatStore.js';
+import logger from '../../utils/logger.js';
 
 // 初始化stores
 const settingsStore = useSettingsStore();
@@ -46,7 +47,7 @@ const getAppWindow = () => {
     try {
       return getCurrentWindow();
     } catch (e) {
-      console.warn('获取 Tauri 窗口失败:', e);
+      logger.warn('获取 Tauri 窗口失败:', e);
       return null;
     }
   }

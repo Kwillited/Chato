@@ -25,6 +25,7 @@ import DisplayArea from './components/layout/DisplayArea.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
 import { apiService } from './services/apiService.js';
+import logger from './utils/logger.js'; // 引入日志工具
 
 // 初始化stores
 const chatStore = useChatStore();
@@ -66,16 +67,16 @@ onMounted(async () => {
         jitter: 0.1          // 随机抖动
       }
     );
-    console.log('后端服务健康检查通过！');
+    logger.info('后端服务健康检查通过！');
     isBackendHealthy = true;
   } catch {
-    console.error('后端服务健康检查失败，已达到最大重试次数');
+    logger.error('后端服务健康检查失败，已达到最大重试次数');
     isBackendHealthy = false;
   }
   
   // 只有在后端服务健康时，才加载设置、模型和聊天历史
   if (isBackendHealthy) {
-    console.log('后端服务健康，开始加载应用数据...');
+    logger.info('后端服务健康，开始加载应用数据...');
     
     // 加载用户设置和数据
     await settingsStore.loadSettings();
@@ -84,15 +85,15 @@ onMounted(async () => {
     try {
       await settingsStore.loadModels();
     } catch (error) {
-      console.error('初始化加载模型数据失败:', error);
+      logger.error('初始化加载模型数据失败:', error);
     }
 
     // 异步加载对话历史（非阻塞方式）
     chatStore.loadChatHistory().catch(error => {
-      console.error('初始化加载对话历史失败，但应用继续运行:', error);
+      logger.error('初始化加载对话历史失败，但应用继续运行:', error);
     });
   } else {
-    console.error('后端服务不可用，应用将以有限功能运行');
+    logger.error('后端服务不可用，应用将以有限功能运行');
     // 仅从本地存储加载设置，不请求API
     await settingsStore.loadSettingsFromStorageOnly();
     // 可以在这里添加用户友好的提示，比如显示一个通知
@@ -104,7 +105,7 @@ onMounted(async () => {
     settingsStore.setActivePanel('history');
   }
 
-  console.log('AIClient应用已初始化，使用Pinia状态管理');
+  logger.info('AIClient应用已初始化，使用Pinia状态管理');
   
   // 初始化完成，启用动画
   isInitialLoading.value = false;

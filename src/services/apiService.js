@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// 导入日志工具
+import logger from '../utils/logger.js';
+
 // 统一API配置
 const API_CONFIG = {
   BASE_URL: '/api',
@@ -31,11 +34,15 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // 可以在这里添加token等认证信息
-    console.log('API请求:', config.method?.toUpperCase(), config.url);
+    logger.info('API请求', {
+      method: config.method?.toUpperCase(),
+      url: config.url,
+      data: config.method !== 'GET' ? config.data : undefined
+    });
     return config;
   },
   (error) => {
-    console.error('API请求错误:', error);
+    logger.error('API请求错误', error);
     return Promise.reject(error);
   }
 );
@@ -150,7 +157,7 @@ class ApiResponseAdapter {
     
     // 增强错误对象
     error.errorInfo = errorInfo;
-    console.error('API错误详情:', errorInfo);
+    logger.error('API错误详情', errorInfo);
     
     return error;
   }
@@ -159,7 +166,11 @@ class ApiResponseAdapter {
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
-    console.log('API响应:', response.status, response.config.url);
+    logger.info('API响应', {
+      status: response.status,
+      url: response.config.url,
+      responseTime: response.headers['x-response-time'] || 'Unknown'
+    });
     // 标准化API响应
     const standardizedResponse = ApiResponseAdapter.standardizeResponse(response.data);
     return standardizedResponse;
@@ -173,8 +184,83 @@ api.interceptors.response.use(
 
 // 统一错误处理函数
 function handleApiError(error) {
-  console.error('API错误:', error.message);
-  return ApiResponseAdapter.standardizeError(error).errorInfo;
+  const standardizedError = ApiResponseAdapter.standardizeError(error);
+  const errorInfo = standardizedError.errorInfo;
+  
+  // 使用logger记录错误，包含更多详细信息
+  logger.error('API错误', {
+    message: error.message,
+    errorInfo: errorInfo,
+    url: error.config?.url,
+    method: error.config?.method,
+    status: error.response?.status,
+    stack: error.stack
+  });
+  
+  return errorInfo;
+}
+
+/**
+ * 构建请求配置
+ * @param {Object} options - 请求配置选项
+ * @param {string} options.method - HTTP方法
+ * @param {string} options.url - 请求URL
+ * @param {Object} [options.data] - 请求体数据
+ * @param {Object} [options.params] - URL参数
+ * @param {Object} [options.headers] - 请求头
+ * @param {number} [options.timeout] - 超时时间
+ * @param {Object} [options.cancelToken] - 取消令牌
+ * @param {Object} [options.auth] - 认证信息
+ * @returns {Object} 完整的请求配置对象
+ */
+function buildRequestConfig(options) {
+  const { 
+    method = 'GET', 
+    url, 
+    data, 
+    params, 
+    headers, 
+    timeout, 
+    cancelToken, 
+    auth 
+  } = options;
+  
+  // 构建基础配置
+  const config = {
+    method,
+    url,
+    headers: {
+      ...API_CONFIG.HEADERS,
+      ...headers
+    }
+  };
+  
+  // 添加数据（如果有）
+  if (data) {
+    config.data = data;
+  }
+  
+  // 添加URL参数（如果有）
+  if (params) {
+    config.params = params;
+  }
+  
+  // 添加超时时间（如果有）
+  if (timeout) {
+    config.timeout = timeout;
+  }
+  
+  // 添加取消令牌（如果有）
+  if (cancelToken) {
+    config.cancelToken = cancelToken;
+  }
+  
+  // 添加认证信息（如果有）
+  if (auth) {
+    config.auth = auth;
+  }
+  
+  return config;
 }
 
 // 导出API响应适配器
@@ -197,7 +283,7 @@ async function requestWithRetry(config, options = {}) {
     try {
       attempt++;
       
-      console.log(`API请求尝试 ${attempt}/${defaultOptions.maxRetries + 1}: ${config.method?.toUpperCase()} ${config.url}`);
+      logger.info(`API请求尝试 ${attempt}/${defaultOptions.maxRetries + 1}: ${config.method?.toUpperCase()} ${config.url}`);
       
       if (attempt > 1) {
         // 计算重试延迟：指数退避 + 随机抖动
@@ -209,7 +295,7 @@ async function requestWithRetry(config, options = {}) {
         const jitter = delay * defaultOptions.jitter * (Math.random() * 2 - 1); // ±10% 随机抖动
         const finalDelay = Math.max(defaultOptions.initialDelay, delay + jitter);
         
-        console.warn(`请求失败，正在进行第 ${attempt}/${defaultOptions.maxRetries + 1} 次重试，${Math.round(finalDelay/1000)}秒后重试...`);
+        logger.warn(`请求失败，正在进行第 ${attempt}/${defaultOptions.maxRetries + 1} 次重试，${Math.round(finalDelay/1000)}秒后重试...`);
         
         // 调用重试回调
         if (typeof defaultOptions.onRetry === 'function') {
@@ -220,7 +306,7 @@ async function requestWithRetry(config, options = {}) {
       }
 
       const response = await api.request(config);
-      console.log(`API请求成功: ${config.method?.toUpperCase()} ${config.url} (耗时: ${Date.now() - startTime}ms)`);
+      logger.info(`API请求成功: ${config.method?.toUpperCase()} ${config.url} (耗时: ${Date.now() - startTime}ms)`);
       return response;
     } catch (error) {
       // 增强错误信息
@@ -236,12 +322,12 @@ async function requestWithRetry(config, options = {}) {
         defaultOptions.retryableMethods.includes(config.method);
       
       if (!isRetryable || attempt > defaultOptions.maxRetries) {
-        console.error(`API请求失败，已达到最大重试次数 (${defaultOptions.maxRetries}): ${config.method?.toUpperCase()} ${config.url} (耗时: ${Date.now() - startTime}ms)`);
+        logger.error(`API请求失败，已达到最大重试次数 (${defaultOptions.maxRetries}): ${config.method?.toUpperCase()} ${config.url} (耗时: ${Date.now() - startTime}ms)`);
         lastError = error;
         break;
       }
 
-      console.warn(`API请求失败，将在下次重试: ${config.method?.toUpperCase()} ${config.url} (错误: ${error.message})`);
+      logger.warn(`API请求失败，将在下次重试: ${config.method?.toUpperCase()} ${config.url} (错误: ${error.message})`);
       lastError = error;
     }
   }
@@ -300,7 +386,7 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
             processStreamData(chunk);
           }
         } catch (error) {
-          console.error('解码数据失败:', error);
+          logger.error('解码数据失败:', error);
           onError?.(error);
         }
         
@@ -308,7 +394,7 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
         processStream();
       }).catch(error => {
         if (!signal.aborted) {
-          console.error('读取流数据失败:', error);
+          logger.error('读取流数据失败:', error);
           onError?.(error);
         }
       });
@@ -318,7 +404,7 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
     processStream();
   }).catch(error => {
     if (!signal.aborted) {
-      console.error('流式请求失败:', error);
+      logger.error('流式请求失败:', error);
       onError?.(error);
     }
   });
@@ -338,10 +424,10 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
         
         try {
           const parsedData = JSON.parse(dataPart);
-          console.log('接收到流式数据块:', parsedData); // 添加日志追踪
+          logger.debug('接收到流式数据块:', parsedData); // 添加日志追踪
           onMessage(parsedData);
         } catch (error) {
-          console.error('解析SSE消息失败:', error);
+          logger.error('解析SSE消息失败:', error);
           onError?.(error);
         }
       }
@@ -402,11 +488,11 @@ export const apiService = {
         
         clearTimeout(timeoutId);
         
-        console.log('使用 /api/health 端点进行健康检查，服务正常');
+        logger.info('使用 /api/health 端点进行健康检查，服务正常');
         return healthResponse;
       } catch {
         // 如果健康检查端点不存在，尝试使用模型列表端点作为替代
-        console.log('使用备用端点 /api/models 进行健康检查...');
+        logger.info('使用备用端点 /api/models 进行健康检查...');
         
         // 重置控制器和超时
         clearTimeout(timeoutId);
@@ -417,14 +503,14 @@ export const apiService = {
             timeout: API_CONFIG.FALLBACK_HEALTH_CHECK_TIMEOUT
           });
           
-          console.log('使用 /api/models 端点进行健康检查，服务正常');
+          logger.info('使用 /api/models 端点进行健康检查，服务正常');
           return { status: 'healthy', message: 'Backend service is running (fallback check)' };
         } catch (error) {
           throw new Error(`Fallback health check failed with status: ${error.response?.status || 0}`);
         }
       }
     } catch (error) {
-      console.warn('健康检查失败:', error.message || error);
+      logger.warn('健康检查失败:', error.message || error);
       throw error;
     }
   },
@@ -494,7 +580,7 @@ export const apiService = {
           // 存储关闭连接的方法，以便在需要时手动关闭
           apiService.chat.activeStreamingConnection = closeConnection;
         } catch (error) {
-          console.error('创建流式连接失败:', error);
+          logger.error('创建流式连接失败:', error);
           reject(error);
         }
       });
@@ -589,16 +675,20 @@ export const apiService = {
 
   // 通用请求方法
   get: async (url, params = {}) => {
-    return await requestWithRetry({ method: 'GET', url, params });
+    const config = buildRequestConfig({ method: 'GET', url, params });
+    return await requestWithRetry(config);
   },
   post: async (url, data = {}) => {
-    return await requestWithRetry({ method: 'POST', url, data });
+    const config = buildRequestConfig({ method: 'POST', url, data });
+    return await requestWithRetry(config);
   },
   put: async (url, data = {}) => {
-    return await requestWithRetry({ method: 'PUT', url, data });
+    const config = buildRequestConfig({ method: 'PUT', url, data });
+    return await requestWithRetry(config);
   },
   delete: async (url) => {
-      return await requestWithRetry({ method: 'DELETE', url });
+      const config = buildRequestConfig({ method: 'DELETE', url });
+      return await requestWithRetry(config);
     },
   };
 

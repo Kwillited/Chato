@@ -478,10 +478,15 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { StorageManager, formatFileSize } from '../../../store/utils.js';
+import { StorageManager } from '../../../utils/storage.js';
+import { formatFileSize } from '../../../utils/helpers.js';
 import { Tooltip } from '../index.js';
-import { showNotification } from '../../../services/notificationUtils.js';
 import DragDropZone from '../../common/DragDropZone.vue';
+import logger from '../../../utils/logger.js';
+import { useChatStore } from '../../../store/chatStore.js';
+import { useSettingsStore } from '../../../store/settingsStore.js';
+import { useModelConfig } from '../../../composables/useModelConfig.js';
+import { useNotifications } from '../../../composables/useNotifications.js';
 
 // 接收从父组件传递的视图状态
 const _props = defineProps({
@@ -494,10 +499,6 @@ const _props = defineProps({
     default: true
   }
 });
-import { useChatStore } from '../../../store/chatStore.js';
-import { useSettingsStore } from '../../../store/settingsStore.js';
-
-
 
 // 定义存储键
 const STORAGE_KEYS = {
@@ -508,7 +509,22 @@ const STORAGE_KEYS = {
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-const modelStore = useSettingsStore();
+
+// 使用模型配置管理组合函数
+const { 
+  availableModels, 
+  loadModels, 
+  getModelById, 
+  checkStreamingSupport,
+  standardizeModelId,
+  setSelectedModel,
+  modelList,
+  selectedModel,
+  getModelDefaultParams
+} = useModelConfig();
+
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
 
 // 拖拽状态管理
 const dragCounter = ref(0);
@@ -558,8 +574,12 @@ const currentAgentDisplayName = computed(() => {
 const activeTooltip = ref('');
 const tooltipStyle = ref({});
 
-// 从store获取模型参数
-const modelParams = computed(() => modelStore.currentModelParams);
+// 从useModelConfig获取模型参数
+const modelParams = computed(() => {
+  // 使用当前模型获取对应的参数
+  if (!currentModel.value) return {};
+  return getModelDefaultParams(currentModel.value);
+});
 
 
 
@@ -599,12 +619,12 @@ const currentModelDisplayName = computed(() => {
   }
   
   // 当currentModel为空或无效时，使用默认模型名称
-  if (!currentModel.value || !modelStore.allModels.length) {
+  if (!currentModel.value || !modelList.value.length) {
     return currentModel.value || settingsStore.systemSettings.defaultModel || '默认模型';
   }
   
   // 遍历所有模型，找到匹配的模型
-  for (const model of modelStore.allModels) {
+  for (const model of modelList.value) {
     if (model.versions) {
       for (const version of model.versions) {
         // 构建select组件使用的模型ID格式：model.name-version_name
@@ -633,7 +653,7 @@ const formattedModels = computed(() => {
   // 确保availableModels是数组
   const modelsList = availableModels.value || [];
   
-  if (!modelStore.allModels.length) {
+  if (!modelList.value.length) {
     return modelsList.map(model => ({ 
       value: model, 
       displayName: model 
@@ -647,7 +667,7 @@ const formattedModels = computed(() => {
     let found = false;
     
     // 遍历所有模型和版本，找到匹配的模型
-    for (const model of modelStore.allModels) {
+    for (const model of modelList.value) {
       if (model.versions) {
         for (const version of model.versions) {
           // 构建select组件使用的模型ID格式：model.name-version_name
@@ -682,8 +702,7 @@ const formattedModels = computed(() => {
   return result;
 });
 
-// 获取可用模型列表，确保始终返回数组
-const availableModels = computed(() => modelStore.availableModelList || []);
+// availableModels 已从 useModelConfig 组合函数中导入
 
 // 排序模型列表，使当前选中的模型在最底部
 const orderedModels = computed(() => {
@@ -741,17 +760,17 @@ const handleSendMessage = async () => {
           
           if (!ollamaStatus.installed) {
             // Ollama未安装，显示提示
-            showNotification('Ollama未安装，请先安装Ollama后再使用该模型', 'error', 3000);
+            showSystemNotification('Ollama未安装，请先安装Ollama后再使用该模型', 'error', 3000);
           } else if (!ollamaStatus.running) {
             // 如果服务没有运行，启动它
             await invoke('start_ollama_service');
             // 显示服务正在启动的提示
-            showNotification('Ollama服务正在启动，请稍候...', 'success', 3000);
+            showSystemNotification('Ollama服务正在启动，请稍候...', 'success', 3000);
           }
         } catch (error) {
-          console.error('Ollama服务管理失败:', error);
+          logger.error('Ollama服务管理失败:', error);
           // 显示更具体的错误信息
-          showNotification(`Ollama服务管理失败: ${error.message || error}`, 'error', 3000);
+          showSystemNotification(`Ollama服务管理失败: ${error.message || error}`, 'error', 3000);
         }
       }, 0);
     }
@@ -765,7 +784,7 @@ watch(
     // 新聊天时，重置用户选择标志
     userHasSelectedModel = false;
     // 优先使用当前对话保存的模型，如果没有则使用系统默认模型
-    currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || modelStore.currentSelectedModel;
+    currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || selectedModel.value;
   }
 );
 
@@ -817,11 +836,11 @@ watch(
 
 // 监听模型列表变化，更新当前模型
 watch(
-  () => modelStore.allModels,
+  () => modelList.value,
   () => {
     // 模型列表更新后，如果当前模型无效或为空，重新设置当前模型
     if (!currentModel.value || !availableModels.value.includes(currentModel.value)) {
-      currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || modelStore.availableModelList[0];
+      currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || availableModels.value[0];
     }
   },
   { deep: true }
@@ -829,7 +848,7 @@ watch(
 
 // 监听可用模型列表变化，更新当前模型
 watch(
-  () => modelStore.availableModelList,
+  () => availableModels.value,
   (newList) => {
     // 可用模型列表更新后，如果当前模型无效或为空，重新设置当前模型
     if (!currentModel.value || !newList.includes(currentModel.value)) {
@@ -877,22 +896,22 @@ const toggleParamsPanel = () => {
 
 // 处理温度参数变化
 const handleTemperatureChange = (event) => {
-  modelStore.updateModelParams({ temperature: parseFloat(event.target.value) });
+  settingsStore.updateModelParams({ temperature: parseFloat(event.target.value) });
 };
 
 // 处理Top-p参数变化
 const handleTopPChange = (event) => {
-  modelStore.updateModelParams({ top_p: parseFloat(event.target.value) });
+  settingsStore.updateModelParams({ top_p: parseFloat(event.target.value) });
 };
 
 // 处理Top-k参数变化
 const handleTopKChange = (event) => {
-  modelStore.updateModelParams({ top_k: parseInt(event.target.value) });
+  settingsStore.updateModelParams({ top_k: parseInt(event.target.value) });
 };
 
 // 处理最大长度参数变化
 const handleMaxLengthChange = (event) => {
-  modelStore.updateModelParams({ max_tokens: parseInt(event.target.value) });
+  settingsStore.updateModelParams({ max_tokens: parseInt(event.target.value) });
 };
 
 // 显示提示信息
@@ -996,11 +1015,11 @@ const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value; };
 const closeUserMenu = () => { showUserMenu.value = false; };
 const handleSwitchAccount = () => {
   closeUserMenu();
-  console.log('切换账户');
+  logger.info('切换账户');
 };
 const handleLogout = () => {
   closeUserMenu();
-  showNotification('退出账号功能待实现', 'info');
+  showSystemNotification('退出账号功能待实现', 'info');
 };
 
 // 生命周期钩子

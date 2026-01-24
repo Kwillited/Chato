@@ -23,6 +23,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import logger from '../../utils/logger.js';
 
 const props = defineProps({
   content: {
@@ -109,7 +110,7 @@ const calculatePosition = () => {
     style.visibility = 'visible';
     tooltipStyle.value = style;
   } catch (error) {
-    console.error('Tooltip position calculation error:', error);
+    logger.error('Tooltip position calculation error:', error);
   }
 };
 

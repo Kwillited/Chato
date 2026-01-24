@@ -209,7 +209,9 @@ import Loading from '../../common/Loading.vue'
 // 导入聊天气泡公共逻辑
 import { useChatBubble } from '../../../composables/useChatBubble.js'
 // 导入文件处理工具函数
-import { getFileIcon, getFileExtension, formatFileSize } from '../../../store/utils.js'
+import { getFileIcon, getFileExtension, formatFileSize } from '../../../utils/helpers.js'
+// 导入日志工具
+import logger from '../../../utils/logger.js'
 
 const props = defineProps({
   message: {
@@ -280,7 +282,7 @@ const previewFile = async (file) => {
   
   try {
     // 调试：打印文件对象结构
-    console.log('Previewing file:', file);
+    logger.debug('Previewing file:', file);
     
     // 文件类型处理配置
     const textExtensions = ['txt', 'md', 'csv', 'js', 'ts', 'json', 'html', 'css', 'py', 'java', 'cpp', 'c', 'xml', 'yaml', 'yml', 'sh', 'bash'];
@@ -290,7 +292,7 @@ const previewFile = async (file) => {
     const fileName = file.name || '';
     const fileExtension = fileName.split('.').pop().toLowerCase();
     
-    console.log('File info:', { fileName, fileExtension, isFileObject: file instanceof File, hasContent: !!file.content });
+    logger.debug('File info:', { fileName, fileExtension, isFileObject: file instanceof File, hasContent: !!file.content });
     
     // 文本文件处理
     if (textExtensions.includes(fileExtension)) {
@@ -307,7 +309,7 @@ const previewFile = async (file) => {
           const decodedContent = new TextDecoder('utf-8').decode(bytes);
           previewFileContent.value = decodedContent;
         } catch (decodeError) {
-          console.error('解码文件内容失败:', decodeError);
+          logger.error('解码文件内容失败:', decodeError);
           previewError.value = '解码文件内容失败: ' + decodeError.message;
         }
       } else if (file instanceof File) {
@@ -325,7 +327,7 @@ const previewFile = async (file) => {
           });
           previewFileContent.value = fileContent;
         } catch (readError) {
-          console.error('读取文件内容失败:', readError);
+          logger.error('读取文件内容失败:', readError);
           previewError.value = '读取文件内容失败: ' + readError.message;
         }
       } else if (file.url) {
@@ -356,7 +358,7 @@ const previewFile = async (file) => {
           });
           previewImageUrl.value = imageUrl;
         } catch (readError) {
-          console.error('读取图片失败:', readError);
+          logger.error('读取图片失败:', readError);
           previewError.value = '读取图片失败: ' + readError.message;
         }
       } else if (file.url) {
@@ -386,7 +388,7 @@ const previewFile = async (file) => {
           });
           previewPdfUrl.value = pdfUrl;
         } catch (readError) {
-          console.error('读取PDF失败:', readError);
+          logger.error('读取PDF失败:', readError);
           previewError.value = '读取PDF失败: ' + readError.message;
         }
       } else if (file.url) {
@@ -399,11 +401,11 @@ const previewFile = async (file) => {
     // 其他文件类型处理
     else {
       // 对于不支持的文件类型，显示提示
-      console.error('不支持的文件类型:', fileExtension);
+      logger.warn('不支持的文件类型:', fileExtension);
       previewError.value = `不支持的文件类型: ${fileExtension}`;
     }
   } catch (error) {
-    console.error('预览文件失败:', error);
+    logger.error('预览文件失败:', error);
     previewError.value = '预览文件失败: ' + error.message;
   } finally {
     previewLoading.value = false;
@@ -432,7 +434,7 @@ const downloadFile = (file) => {
     document.body.removeChild(link);
   } else {
     // 如果没有URL，提示用户
-    console.error('文件没有下载链接');
+    logger.error('文件没有下载链接');
     previewError.value = '文件没有下载链接';
   }
 };

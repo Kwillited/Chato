@@ -1,4 +1,5 @@
 import { ref } from 'vue';
+import logger from '../utils/logger.js';
 
 /**
  * 生成唯一ID
@@ -24,7 +25,7 @@ export class StorageManager {
       const item = localStorage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
     } catch (error) {
-      console.error(`Error reading from localStorage key: ${key}`, error);
+      logger.error(`Error reading from localStorage key: ${key}`, error);
       return defaultValue;
     }
   }
@@ -40,7 +41,7 @@ export class StorageManager {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.error(`Error saving to localStorage key: ${key}`, error);
+      logger.error(`Error saving to localStorage key: ${key}`, error);
       return false;
     }
   }
@@ -55,7 +56,7 @@ export class StorageManager {
       localStorage.removeItem(key);
       return true;
     } catch (error) {
-      console.error(`Error removing from localStorage key: ${key}`, error);
+      logger.error(`Error removing from localStorage key: ${key}`, error);
       return false;
     }
   }
@@ -69,7 +70,7 @@ export class StorageManager {
       localStorage.clear();
       return true;
     } catch (error) {
-      console.error('Error clearing localStorage', error);
+      logger.error('Error clearing localStorage', error);
       return false;
     }
   }
@@ -329,7 +330,7 @@ export const copyToClipboard = async (text) => {
     await navigator.clipboard.writeText(text);
     return true;
   } catch (error) {
-    console.error('复制失败:', error);
+    logger.error('复制失败:', error);
     return false;
   }
 };
@@ -383,4 +384,137 @@ export const getFileIcon = (fileName) => {
 export const getFileExtension = (fileName) => {
   const extension = fileName.split('.').pop().toLowerCase();
   return `.${extension}`;
+};
+
+/**
+ * 将显示时间字符串转换为毫秒
+ * @param {string} displayTime - 显示时间字符串（如'2秒'）
+ * @returns {number} 毫秒数
+ */
+export const convertDisplayTimeToMs = (displayTime) => {
+  const timeMap = {
+    '2秒': 2000,
+    '5秒': 5000,
+    '10秒': 10000
+  };
+  return timeMap[displayTime] || 3000; // 默认3秒
+};
+
+/**
+ * 根据配置显示通知
+ * @param {Object} config - 通知配置
+ * @param {string} config.message - 消息内容
+ * @param {string} config.type - 消息类型（success, error, warning, info）
+ * @param {number} [config.displayTimeMs=3000] - 显示时间（毫秒）
+ * @param {boolean} [config.isNewMessage=false] - 是否为新消息通知
+ * @param {boolean} [config.playSound=false] - 是否播放声音
+ * @returns {boolean} 是否成功显示通知
+ */
+export const showNotificationWithConfig = (config) => {
+  try {
+    const { 
+      message, 
+      type = 'info', 
+      displayTimeMs = 3000, 
+      isNewMessage = false,
+      playSound = false
+    } = config;
+    
+    // 动态导入settingsStore，减少直接依赖
+    const { useSettingsStore } = require('../store/settingsStore.js');
+    const settingsStore = useSettingsStore();
+    const notificationsConfig = settingsStore.currentNotificationsConfig;
+    
+    // 检查通知是否应该显示
+    if (isNewMessage && !notificationsConfig.newMessage) {
+      return false; // 如果是新消息但用户禁用了新消息通知，则不显示
+    }
+    
+    // 如果是系统通知但用户禁用了系统通知，则不显示
+    if (!isNewMessage && !notificationsConfig.system) {
+      return false;
+    }
+    
+    // 根据设置获取显示时间
+    const actualDisplayTime = convertDisplayTimeToMs(notificationsConfig?.displayTime) || displayTimeMs;
+    
+    // 动态导入showNotification函数
+    const { showNotification } = require('../services/notificationUtils.js');
+    
+    // 调用现有的showNotification函数
+    return showNotification(message, type, actualDisplayTime, isNewMessage);
+  } catch (error) {
+    logger.error('根据配置显示通知失败:', error);
+    return false;
+  }
+};
+
+/**
+ * 正则表达式常量，避免重复创建
+ */
+export const REGEX_PATTERNS = {
+  THINKING_TAG: /<think>[\s\S]*?<\/think>/g,
+  THINKING_TAG_CONTENT: /<think>([\s\S]*?)<\/think>/,
+  MARKDOWN_CODE_BLOCK: /```([\s\S]*?)```/g,
+  MARKDOWN_INLINE_CODE: /`([^`]+)`/g,
+  MARKDOWN_BOLD: /\*\*([\s\S]*?)\*\*/g,
+  MARKDOWN_ITALIC: /\*([\s\S]*?)\*/g,
+  MARKDOWN_LINK: /\[([^\]]+)\]\(([^\)]+)\)/g,
+  MARKDOWN_IMAGE: /!\[([^\]]*)\]\(([^\)]+)\)/g,
+  MARKDOWN_HEADING: /^(#{1,6})\s+([\s\S]+)$/gm,
+  MARKDOWN_LIST: /^(\s*)([-*+]|\d+\.)\s+([\s\S]+)$/gm,
+  MARKDOWN_QUOTE: /^>\s+([\s\S]+)$/gm,
+  MARKDOWN_HORIZONTAL_RULE: /^(\*\*\*|---|___)$/gm
+};
+
+/**
+ * 从消息内容中提取思考标签内容
+ * @param {string} content - 消息内容
+ * @returns {string} 思考标签内容
+ */
+export const extractThinkingContent = (content) => {
+  if (!content) return '';
+  
+  const match = content.match(REGEX_PATTERNS.THINKING_TAG_CONTENT);
+  return match ? match[1] : '';
+};
+
+/**
+ * 格式化消息内容（支持Markdown和思考标签）
+ * @param {string} content - 原始消息内容
+ * @param {Object} options - 格式化选项
+ * @param {boolean} [options.stripThinkingTag=true] - 是否移除思考标签
+ * @param {boolean} [options.enableMarkdown=true] - 是否启用Markdown格式化
+ * @returns {string} 格式化后的消息内容
+ */
+export const formatMessageContent = (content, options = {}) => {
+  if (!content) return '';
+  
+  const { 
+    stripThinkingTag = true, 
+    enableMarkdown = true 
+  } = options;
+  
+  let formattedContent = content;
+  
+  // 移除思考标签（如果需要）
+  if (stripThinkingTag) {
+    formattedContent = formattedContent.replace(REGEX_PATTERNS.THINKING_TAG, '');
+  }
+  
+  // 如果启用了Markdown格式化，使用marked库进行转换
+  if (enableMarkdown) {
+    try {
+      // 动态导入marked库，减少直接依赖
+      const { marked } = require('../plugins/markdown.js');
+      return marked.parse(formattedContent);
+    } catch (error) {
+      logger.error('Markdown解析错误:', error);
+      // 解析失败时，返回原始内容（移除思考标签后）
+      return formattedContent.replace(/\n/g, '<br>');
+    }
+  }
+  
+  // 不启用Markdown时，只处理换行
+  return formattedContent.replace(/\n/g, '<br>');
 };

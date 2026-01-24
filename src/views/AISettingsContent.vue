@@ -696,6 +696,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { useChatStore } from '../store/chatStore.js';
+import logger from '../utils/logger.js';
 
 // 初始化stores
 const activeTab = ref('basic');
@@ -762,7 +763,7 @@ const loadModels = async () => {
   try {
     await modelStore.loadModels();
   } catch (error) {
-    console.error('加载模型数据失败:', error);
+    logger.error('加载模型数据失败:', error);
   }
 };
 
@@ -911,7 +912,7 @@ const saveModelMapping = async () => {
     editingProvider.value = null;
     editingModel.value = null;
   } catch (error) {
-    console.error('保存模型映射失败:', error);
+    logger.error('保存模型映射失败:', error);
   }
 };
 
@@ -946,7 +947,7 @@ const deleteModelMapping = async (provider, model) => {
   try {
     await modelStore.deleteModelVersion(provider.name, model.id);
   } catch (error) {
-    console.error('删除模型映射失败:', error);
+    logger.error('删除模型映射失败:', error);
   }
 };
 

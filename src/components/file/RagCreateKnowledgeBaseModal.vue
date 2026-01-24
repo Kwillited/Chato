@@ -4,7 +4,7 @@
     title="新建知识库"
     confirm-text="创建"
     cancel-text="取消"
-    :loading="fileStore.loading"
+    :loading="isLoading"
     loading-text="创建中..."
     confirm-type="primary"
     @confirm="handleCreate"
@@ -31,8 +31,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { useFileStore } from '../../store/fileStore.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { useFileManagement } from '../../composables/useFileManagement.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
 // Props
@@ -46,8 +45,8 @@ const props = defineProps({
 // Emits
 const emit = defineEmits(['close', 'created']);
 
-// Store
-const fileStore = useFileStore();
+// 使用文件管理组合函数
+const { createFolder, isLoading } = useFileManagement();
 
 // Refs
 const knowledgeBaseName = ref('');
@@ -81,25 +80,18 @@ const handleCreate = async () => {
   }
   
   try {
-    // 通过fileStore创建知识库
-    const result = await fileStore.createFolder(knowledgeBaseName.value.trim());
-    if (result.success) {
-      // 显示成功提示
-      showNotification(`已成功创建知识库: ${knowledgeBaseName.value.trim()}`, 'success');
-      
-      // 触发创建成功事件
-      emit('created', result);
-      
-      // 重置表单并关闭模态框
-      resetForm();
-      emit('close');
-    } else {
-      throw new Error(result.error || '创建知识库失败');
-    }
+    // 使用组合函数创建知识库
+    const result = await createFolder(knowledgeBaseName.value.trim());
+    
+    // 触发创建成功事件
+    emit('created', result);
+    
+    // 重置表单并关闭模态框
+    resetForm();
+    emit('close');
   } catch (error) {
     // 显示错误提示
     error.value = `创建失败: ${error.message || String(error)}`;
-    showNotification(`创建知识库失败: ${error.message || String(error)}`, 'error');
   }
 };
 

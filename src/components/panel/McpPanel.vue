@@ -69,11 +69,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { showNotification } from '../../services/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
+import { useNotifications } from '../../composables/useNotifications.js';
 import ActionButton from '../common/ActionButton.vue';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 import PanelHeader from '../common/PanelHeader.vue';
+import logger from '../../utils/logger.js';
+
+// 使用通知管理组合函数
+const { showSystemNotification } = useNotifications();
 
 // 确认删除模态框状态
 const showDeleteModal = ref(false);
@@ -104,13 +108,13 @@ onMounted(() => {
 const loadMcpTools = async () => {
   try {
     // 这里可以添加实际的API调用来获取可用的MCP工具列表
-    console.log('Loading MCP tools...');
+    logger.info('Loading MCP tools...');
     // 模拟加载过程
     // const response = await apiService.getMcpTools();
     // tools.value = response.data || [];
   } catch (error) {
-    console.error('Failed to load MCP tools:', error);
-    showNotification('加载MCP工具失败', 'error');
+    logger.error('Failed to load MCP tools:', error);
+    showSystemNotification('加载MCP工具失败', 'error');
   }
 }
 
@@ -124,7 +128,7 @@ const handleFileUpload = async (event) => {
   try {
     // 检查文件类型
     if (!['.py', '.json'].some(ext => file.name.toLowerCase().endsWith(ext))) {
-      showNotification('请上传Python (.py) 或 JSON (.json) 文件', 'error');
+      showSystemNotification('请上传Python (.py) 或 JSON (.json) 文件', 'error');
       return;
     }
     
@@ -133,7 +137,7 @@ const handleFileUpload = async (event) => {
     formData.append('toolFile', file);
     
     // 显示上传中通知
-    showNotification('正在上传工具...', 'success');
+    showSystemNotification('正在上传工具...', 'success');
     
     // 这里可以添加实际的上传API调用
     // const response = await apiService.uploadMcpTool(formData);
@@ -151,15 +155,15 @@ const handleFileUpload = async (event) => {
         type: 'custom'
       });
       
-      showNotification('工具上传成功', 'success');
+      showSystemNotification('工具上传成功', 'success');
       
       // 清空文件输入
       event.target.value = '';
     }, 1000);
     
   } catch (error) {
-    console.error('Failed to upload MCP tool:', error);
-    showNotification('工具上传失败', 'error');
+    logger.error('Failed to upload MCP tool:', error);
+    showSystemNotification('工具上传失败', 'error');
   }
 };
 
@@ -190,14 +194,14 @@ const handleDeleteToolConfirm = async () => {
     const index = tools.value.findIndex(tool => tool.id === currentDeleteToolId.value);
     if (index !== -1) {
       const deletedTool = tools.value.splice(index, 1)[0];
-      showNotification(`${deletedTool.name} 已删除`, 'success');
+      showSystemNotification(`${deletedTool.name} 已删除`, 'success');
     }
     
     // 关闭模态框
     showDeleteModal.value = false;
   } catch (error) {
-    console.error('Failed to delete MCP tool:', error);
-    showNotification('工具删除失败', 'error');
+    logger.error('Failed to delete MCP tool:', error);
+    showSystemNotification('工具删除失败', 'error');
   } finally {
     isDeletingTool.value = false;
   }

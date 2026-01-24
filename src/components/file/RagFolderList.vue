@@ -37,10 +37,10 @@
 <script setup>
 import { ref } from 'vue';
 import ActionButton from '../common/ActionButton.vue';
-import { useFileStore } from '../../store/fileStore.js';
+import { useFileManagement } from '../../composables/useFileManagement.js';
 
-// 初始化stores
-const fileStore = useFileStore();
+// 使用文件管理组合函数
+const { batchUploadFiles } = useFileManagement();
 
 defineProps({
   folders: {
@@ -86,14 +86,14 @@ const handleFolderDragOver = (event, folder) => {
   };
   
   // 处理文件夹拖拽放置
-  const handleFolderDrop = (event, folder) => {
+  const handleFolderDrop = async (event, folder) => {
     draggingFolder.value = null;
     const files = Array.from(event.dataTransfer.files);
     
     if (files && files.length > 0) {
-    // 直接调用fileStore方法批量上传文件到指定文件夹
-    fileStore.batchUploadFiles(files, folder.id);
-  }
+      // 使用组合函数批量上传文件到指定文件夹
+      await batchUploadFiles(files, folder.id);
+    }
   };
 
 // 处理文件夹点击事件

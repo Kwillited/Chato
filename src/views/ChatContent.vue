@@ -34,11 +34,13 @@
 <script setup>
 import { ref, onMounted, nextTick, computed, watch } from 'vue';
 import { useChatHeader } from '../composables/useChatHeader';
+import { useChatMessages } from '../composables/useChatMessages';
 import ChatMessagesContainer from '../components/chat/ChatMessagesContainer.vue';
 import { ContextVisualizationContent } from '../components/library';
 import ScrollToBottomButton from '../components/chat/ScrollToBottomButton.vue';
 import { UserInputBox } from '../components/library';
 import ChatHeader from '../components/common/ChatHeader.vue';
+import logger from '../utils/logger.js';
 
 // 使用组合式函数
 const { 
@@ -50,6 +52,14 @@ const {
   getCurrentChatTitle,
   chatHistory 
 } = useChatHeader();
+
+// 使用聊天消息管理组合函数
+const { 
+  sendMessage,
+  currentChatMessages,
+  isLoading: isSendingMessage,
+  error: sendMessageError
+} = useChatMessages();
 
 // 引用子组件
 const chatMessagesContainerRef = ref(null);
@@ -65,7 +75,8 @@ const currentTitle = computed(() => {
 // 处理发送消息事件
 const handleSendMessage = (message, model, deepThinking, webSearchEnabled) => {
   if (message.trim() || chatStore.uploadedFiles.length > 0) {
-    chatStore.sendMessage(message, model, deepThinking, webSearchEnabled);
+    // 使用组合函数中的sendMessage方法
+    sendMessage(message, model, deepThinking, webSearchEnabled);
 
     // 发送消息后安全滚动到底部
     nextTick(() => {
@@ -93,7 +104,7 @@ const hideScrollButton = () => {
 
 // 监听消息变化，自动滚动到底部
 watch(
-  () => chatStore.currentChatMessages.length,
+  () => currentChatMessages.length,
   (newLength, oldLength) => {
     if (newLength > oldLength && settingsStore.systemSettings.autoScroll) {
       nextTick(() => {
@@ -107,7 +118,7 @@ watch(
 watch(
   [
     () => {
-      const messages = chatStore.currentChatMessages;
+      const messages = currentChatMessages;
       if (messages.length > 0) {
         const lastMessage = messages[messages.length - 1];
         const messageData = lastMessage?.value || lastMessage;
@@ -138,7 +149,7 @@ watch(
   () => chatStore.currentChatId,
   (newChatId) => {
     // 检查如果消息为空，切换到发送消息视图
-    if (newChatId && chatStore.currentChatMessages.length === 0) {
+    if (newChatId && currentChatMessages.length === 0) {
       settingsStore.setActiveContent('sendMessage');
       return;
     }
@@ -151,7 +162,7 @@ watch(
 
 // 监听当前对话消息列表变化，当消息为空时切换到发送消息视图
 watch(
-  () => chatStore.currentChatMessages.length,
+  () => currentChatMessages.length,
   (newLength) => {
     if (newLength === 0 && chatStore.currentChatId) {
       settingsStore.setActiveContent('sendMessage');
@@ -173,8 +184,8 @@ const safeScrollToBottom = () => {
 };
 
 // 组件挂载后的操作
-onMounted(() => {
-  console.log('ChatContent组件已挂载，使用Pinia状态管理');
+  onMounted(() => {
+    logger.info('ChatContent组件已挂载，使用Pinia状态管理');
 
   // 检查如果消息为空，切换到发送消息视图
   if (chatStore.currentChatMessages.length === 0) {

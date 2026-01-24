@@ -1,4 +1,5 @@
 // src/store/baseStore.js
+import logger from '../utils/logger.js';
 
 /**
  * 基础Store功能，提供通用的状态管理和API调用封装
@@ -38,7 +39,7 @@ export function useBaseStore() {
     setError(error) {
       this.error = error;
       if (error) {
-        console.error('Store错误:', error);
+        logger.error('Store错误:', error);
       }
     },
 
