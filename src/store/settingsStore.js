@@ -178,7 +178,10 @@ export const useSettingsStore = defineStore('settings', {
     availableModelList: (state) => state.availableModels,
     allModels: (state) => state.models,
     configuredModels: (state) => state.models.filter(model => model.configured),
-    unconfiguredModels: (state) => state.models.filter(model => !model.configured),
+    unconfiguredModels: (state) => {
+      // 确保返回所有未配置的模型，如果模型没有configured字段，默认为未配置
+      return state.models.filter(model => model.configured !== true);
+    },
   },
 
   actions: {
@@ -653,8 +656,8 @@ export const useSettingsStore = defineStore('settings', {
         
         // 从后端加载模型列表
         const response = await apiService.models.getModels();
-        // 确保models是数组
-        this.models = Array.isArray(response.models) ? response.models : [];
+        // 确保models是数组，API响应已经被标准化，模型列表在response.data中
+        this.models = Array.isArray(response.data?.models) ? response.data.models : [];
         
         // 更新可用模型列表
         this.updateAvailableModels();

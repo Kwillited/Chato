@@ -18,7 +18,7 @@ router = APIRouter(prefix='/api/chats')
 @handle_exception
 def get_chats(chat_service: ChatService = Depends(get_chat_service)):
     chats = chat_service.get_chats()
-    return ChatListResponse(chats=chats)
+    return ChatListResponse(data=chats)
 
 # 创建新对话
 @router.post('', status_code=201, response_model=ChatCreateResponse)
@@ -26,7 +26,7 @@ def get_chats(chat_service: ChatService = Depends(get_chat_service)):
 def create_chat(data: ChatCreate = Body(...), chat_service: ChatService = Depends(get_chat_service)):
     title = data.title
     new_chat = chat_service.create_chat(title)
-    return ChatCreateResponse(chat=new_chat)
+    return ChatCreateResponse(data=new_chat, message="对话创建成功")
 
 # 获取单个对话记录（按ID）
 @router.get('/{chat_id}', response_model=ChatResponse)
@@ -37,7 +37,7 @@ def get_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_c
     if not chat:
         raise HTTPException(status_code=404, detail='对话不存在')
     
-    return ChatResponse(chat=chat)
+    return ChatResponse(data=chat)
 
 # 删除所有对话记录
 @router.delete('/delete-all', response_model=SuccessResponse)
@@ -45,7 +45,7 @@ def get_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_c
 def delete_all_chats(chat_service: ChatService = Depends(get_chat_service)):
     # 使用服务层删除所有对话
     chat_service.delete_all_chats()
-    return SuccessResponse(success=True, message='所有对话已删除')
+    return SuccessResponse(message='所有对话已删除')
 
 # 删除单个对话记录（按ID）
 @router.delete('/{chat_id}', response_model=DeleteChatResponse)
@@ -56,7 +56,7 @@ def delete_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(ge
     if not success:
         raise HTTPException(status_code=404, detail='对话不存在')
     
-    return DeleteChatResponse(success=True, message='对话已删除')
+    return DeleteChatResponse(message='对话已删除')
 
 # 更新对话置顶状态
 @router.patch('/{chat_id}/pin', response_model=PinUpdateResponse)
@@ -69,7 +69,7 @@ def update_chat_pin(chat_id: str = Path(...), data: PinUpdateRequest = Body(...)
     if not success:
         raise HTTPException(status_code=404, detail='对话不存在')
     
-    return PinUpdateResponse(success=True, message=f'对话已{"置顶" if pinned else "取消置顶"}')
+    return PinUpdateResponse(message=f'对话已{"置顶" if pinned else "取消置顶"}')
 
 # 发送消息（应用层）
 @router.post('/{chat_id}/messages')

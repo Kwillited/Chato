@@ -952,7 +952,13 @@ const deleteModelMapping = async (provider, model) => {
 
 // 从modelStore获取可用的供应商数据（未配置的模型）
 const availableProviders = computed(() => {
-  return modelStore.unconfiguredModels;
+  // 确保返回的数据结构与模板期望的一致
+  return modelStore.unconfiguredModels.map(model => ({
+    name: model.name,
+    desc: model.description || '',
+    // 保留原始模型对象的所有属性
+    ...model
+  }));
 });
 </script>
 

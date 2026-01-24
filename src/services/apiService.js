@@ -1,12 +1,30 @@
 import axios from 'axios';
 
-// 创建axios实例
-const api = axios.create({
-  baseURL: '/api',
-  timeout: 60000, // 增加超时时间到60秒，以确保非流式请求有足够时间完成
-  headers: {
+// 统一API配置
+const API_CONFIG = {
+  BASE_URL: '/api',
+  TIMEOUT: 60000, // 增加超时时间到60秒，以确保非流式请求有足够时间完成
+  HEALTH_CHECK_TIMEOUT: 3000,
+  FALLBACK_HEALTH_CHECK_TIMEOUT: 5000,
+  HEADERS: {
     'Content-Type': 'application/json',
   },
+  RETRY_CONFIG: {
+    maxRetries: 5,
+    initialDelay: 500,
+    backoffFactor: 1.5,
+    maxDelay: 8000,
+    jitter: 0.1, // ±10% 随机抖动
+    retryableStatusCodes: [500, 502, 503, 504],
+    retryableMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+  }
+};
+
+// 创建axios实例
+const api = axios.create({
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: API_CONFIG.TIMEOUT,
+  headers: API_CONFIG.HEADERS,
 });
 
 // 请求拦截器
@@ -166,13 +184,7 @@ export { ApiResponseAdapter };
 async function requestWithRetry(config, options = {}) {
   // 默认重试配置
   const defaultOptions = {
-    maxRetries: 5,
-    initialDelay: 500,
-    backoffFactor: 1.5,
-    maxDelay: 8000,
-    jitter: 0.1, // ±10% 随机抖动
-    retryableStatusCodes: [500, 502, 503, 504],
-    retryableMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+    ...API_CONFIG.RETRY_CONFIG,
     onRetry: null, // 重试回调
     ...options
   };
@@ -345,6 +357,33 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
   };
 }
 
+// 提取公共文件处理函数
+async function processFiles(files) {
+  return await Promise.all(
+    files.map(async (file) => {
+      if (file instanceof File) {
+        // 将File对象转换为base64
+        const content = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            // 移除data URL前缀，只保留base64内容
+            const base64Content = reader.result.split(',')[1];
+            resolve(base64Content);
+          };
+          reader.readAsDataURL(file);
+        });
+        return {
+          name: file.name,
+          content: content,
+          type: file.type,
+          size: file.size
+        };
+      }
+      return file;
+    })
+  );
+}
+
 // API服务方法
 export const apiService = {
   // 健康检查方法 - 优化版：使用已有端点作为健康检查，避免404
@@ -352,43 +391,37 @@ export const apiService = {
     try {
       // 使用较短的超时时间进行健康检查
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.HEALTH_CHECK_TIMEOUT);
       
       try {
-        // 首先尝试调用健康检查端点
-        const healthResponse = await fetch('/api/health', {
-          method: 'GET',
-          signal: controller.signal
+        // 首先尝试调用健康检查端点，使用axios统一API调用方式
+        const healthResponse = await api.get('/api/health', {
+          signal: controller.signal,
+          timeout: API_CONFIG.HEALTH_CHECK_TIMEOUT
         });
         
         clearTimeout(timeoutId);
         
-        if (healthResponse.ok) {
-          console.log('使用 /api/health 端点进行健康检查，服务正常');
-          return await healthResponse.json();
-        }
+        console.log('使用 /api/health 端点进行健康检查，服务正常');
+        return healthResponse;
       } catch {
         // 如果健康检查端点不存在，尝试使用模型列表端点作为替代
         console.log('使用备用端点 /api/models 进行健康检查...');
         
         // 重置控制器和超时
         clearTimeout(timeoutId);
-        const fallbackController = new AbortController();
-        const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 5000);
         
-        // 尝试调用模型列表端点
-        const modelsResponse = await fetch('/api/models', {
-          method: 'GET',
-          signal: fallbackController.signal
-        });
-        
-        clearTimeout(fallbackTimeoutId);
-        
-        if (modelsResponse.ok) {
+        try {
+          // 使用axios调用模型列表端点
+          await api.get('/api/models', {
+            timeout: API_CONFIG.FALLBACK_HEALTH_CHECK_TIMEOUT
+          });
+          
           console.log('使用 /api/models 端点进行健康检查，服务正常');
           return { status: 'healthy', message: 'Backend service is running (fallback check)' };
+        } catch (error) {
+          throw new Error(`Fallback health check failed with status: ${error.response?.status || 0}`);
         }
-        throw new Error(`Fallback health check failed with status: ${modelsResponse.status}`);
       }
     } catch (error) {
       console.warn('健康检查失败:', error.message || error);
@@ -415,29 +448,7 @@ export const apiService = {
       const endpoint = `/api/chats/${chatId}/messages`;
       
       // 处理文件，转换为可序列化的格式
-      const processedFiles = await Promise.all(
-        files.map(async (file) => {
-          if (file instanceof File) {
-            // 将File对象转换为base64
-            const content = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                // 移除data URL前缀，只保留base64内容
-                const base64Content = reader.result.split(',')[1];
-                resolve(base64Content);
-              };
-              reader.readAsDataURL(file);
-            });
-            return {
-              name: file.name,
-              content: content,
-              type: file.type,  // 保留文件类型
-              size: file.size  // 保留文件大小
-            };
-          }
-          return file;
-        })
-      );
+      const processedFiles = await processFiles(files);
       
       return await requestWithRetry({
         method: 'POST',
@@ -459,28 +470,7 @@ export const apiService = {
       const { model = 'GPT-4', modelParams = {}, ragConfig = {}, deepThinking = false } = options;
       
       // 处理文件，转换为可序列化的格式
-      const processedFiles = await Promise.all(
-        files.map(async (file) => {
-          if (file instanceof File) {
-            // 将File对象转换为base64
-            const content = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                // 移除data URL前缀，只保留base64内容
-                const base64Content = reader.result.split(',')[1];
-                resolve(base64Content);
-              };
-              reader.readAsDataURL(file);
-            });
-            return {
-              name: file.name,
-              content: content,
-              size: file.size  // 保留文件大小
-            };
-          }
-          return file;
-        })
-      );
+      const processedFiles = await processFiles(files);
       
       const url = `/api/chats/${chatId}/messages`;
       const data = {

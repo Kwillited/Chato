@@ -679,13 +679,6 @@ const handleContentChanged = async (event) => {
 </script>
 
 <style scoped>
-/* 可以添加组件特定的样式 */
-.panel-header {
-  /* 移除底部边框 */
-}
-
-
-
 /* 视图切换滑块样式 */
 .toggle-wrapper {
   position: relative;

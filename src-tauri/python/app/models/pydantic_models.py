@@ -1,7 +1,18 @@
 """Pydantic模型定义"""
 from pydantic import BaseModel, Field
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Generic, TypeVar
 from datetime import datetime
+
+# 泛型类型变量
+T = TypeVar('T')
+
+
+class BaseResponse(BaseModel, Generic[T]):
+    """统一基础响应模型"""
+    success: bool = True
+    message: str = "操作成功"
+    data: Optional[T] = None
+    version: str = "1.0.0"
 
 
 class MessageBase(BaseModel):
@@ -57,19 +68,19 @@ class Chat(ChatBase):
         from_attributes = True
 
 
-class ChatListResponse(BaseModel):
+class ChatListResponse(BaseResponse[List[Chat]]):
     """对话列表响应模型"""
-    chats: List[Chat]
+    data: List[Chat] = Field(default_factory=list)
 
 
-class ChatResponse(BaseModel):
+class ChatResponse(BaseResponse[Chat]):
     """单个对话响应模型"""
-    chat: Chat
+    data: Optional[Chat] = None
 
 
-class ChatCreateResponse(BaseModel):
+class ChatCreateResponse(BaseResponse[Chat]):
     """创建对话响应模型"""
-    chat: Chat
+    data: Optional[Chat] = None
 
 
 class PinUpdateRequest(BaseModel):
@@ -77,16 +88,14 @@ class PinUpdateRequest(BaseModel):
     pinned: int = Field(..., ge=0, le=1, description="0: 取消置顶, 1: 置顶")
 
 
-class PinUpdateResponse(BaseModel):
+class PinUpdateResponse(BaseResponse):
     """更新对话置顶状态响应模型"""
-    success: bool
-    message: str
+    pass
 
 
-class DeleteChatResponse(BaseModel):
+class DeleteChatResponse(BaseResponse):
     """删除对话响应模型"""
-    success: bool
-    message: str
+    pass
 
 
 class ModelParam(BaseModel):
@@ -220,10 +229,9 @@ class SystemSettings(BaseModel):
     max_recent_files: int = 10
 
 
-class SettingResponse(BaseModel):
+class SettingResponse(BaseResponse[dict]):
     """设置响应模型"""
-    message: str
-    settings: dict
+    data: Optional[dict] = None
 
 
 # RAG相关模型
@@ -241,83 +249,62 @@ class FolderInfo(BaseModel):
     path: str
 
 
-class FileUploadResponse(BaseModel):
+class FileUploadResponse(BaseResponse[dict]):
     """文件上传响应模型"""
-    success: bool
-    message: str
-    file_path: str
+    data: Optional[dict] = None
 
 
-class DocumentListResponse(BaseModel):
+class DocumentListResponse(BaseResponse[dict]):
     """文档列表响应模型"""
-    success: bool
-    documents: List[DocumentInfo]
-    folder_id_map: Optional[dict] = None
+    data: Optional[dict] = None
 
 
-class FolderListResponse(BaseModel):
+class FolderListResponse(BaseResponse[List[FolderInfo]]):
     """文件夹列表响应模型"""
-    success: bool
-    folders: List[FolderInfo]
+    data: List[FolderInfo] = Field(default_factory=list)
 
 
-class FolderCreateResponse(BaseModel):
+class FolderCreateResponse(BaseResponse[dict]):
     """创建文件夹响应模型"""
-    success: bool
-    message: str
-    id: str
-    name: str
-    path: str
+    data: Optional[dict] = None
 
 
-class FilesInFolderResponse(BaseModel):
+class FilesInFolderResponse(BaseResponse[dict]):
     """文件夹文件列表响应模型"""
-    success: bool
-    files: List[dict]
-    folder_id: Optional[str] = None
+    data: Optional[dict] = None
 
 
-class SearchResponse(BaseModel):
+class SearchResponse(BaseResponse[List[dict]]):
     """搜索响应模型"""
-    success: bool
-    results: List[dict]
+    data: List[dict] = Field(default_factory=list)
 
 
-class DocumentDetailsResponse(BaseModel):
+class DocumentDetailsResponse(BaseResponse[dict]):
     """文档详情响应模型"""
-    success: bool
-    details: dict
+    data: Optional[dict] = None
 
 
-class DocumentDeleteResponse(BaseModel):
+class DocumentDeleteResponse(BaseResponse[dict]):
     """删除文档响应模型"""
-    success: bool
-    message: str
-    deleted_file: str
-    folder: str
+    data: Optional[dict] = None
 
 
-class FolderDeleteResponse(BaseModel):
+class FolderDeleteResponse(BaseResponse[dict]):
     """删除文件夹响应模型"""
-    success: bool
-    message: str
-    deleted_folder: str
-    folder_id: Optional[str] = None
+    data: Optional[dict] = None
 
 
-class DeleteAllResponse(BaseModel):
+class DeleteAllResponse(BaseResponse[dict]):
     """删除所有文档响应模型"""
-    success: bool
-    message: str
-    deleted_count: int
+    data: Optional[dict] = None
 
 
-class ErrorResponse(BaseModel):
+class ErrorResponse(BaseResponse):
     """错误响应模型"""
-    error: str
+    success: bool = False
     
 
-class SuccessResponse(BaseModel):
+
+class SuccessResponse(BaseResponse):
     """成功响应模型"""
-    success: bool
-    message: str
+    pass

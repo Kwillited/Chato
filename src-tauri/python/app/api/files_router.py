@@ -8,7 +8,7 @@ from app.dependencies import get_document_service
 from app.models.pydantic_models import (
     DocumentListResponse, FolderListResponse, FolderCreateResponse,
     FilesInFolderResponse, DocumentDetailsResponse, DeleteAllResponse,
-    DocumentDeleteResponse, FolderDeleteResponse, SearchResponse
+    DocumentDeleteResponse, FolderDeleteResponse, SearchResponse, FileUploadResponse
 )
 
 # 创建文件系统API路由（前缀统一为 /api/files）
@@ -28,9 +28,11 @@ def get_documents(document_service: DocumentService = Depends(get_document_servi
     
     # 直接返回文档列表和文件夹ID映射
     return DocumentListResponse(
-        success=True,
-        documents=documents,
-        folder_id_map=folder_id_to_name  # 返回ID到名称的映射供前端使用
+        data={
+            'documents': documents,
+            'folder_id_map': folder_id_to_name
+        },
+        message="文档列表获取成功"
     )
 
 # 获取文件夹列表
@@ -42,8 +44,8 @@ def get_folders(document_service: DocumentService = Depends(get_document_service
     folders = document_service.get_folders()
     
     return FolderListResponse(
-        success=True,
-        folders=folders
+        data=folders,
+        message="文件夹列表获取成功"
     )
 
 # 创建文件夹/知识库
@@ -57,11 +59,8 @@ def create_folder(folder_data: dict, document_service: DocumentService = Depends
     result = document_service.create_folder(folder_name)
     
     return FolderCreateResponse(
-        success=True,
-        message=result['message'],
-        id=result['id'],
-        name=result['name'],
-        path=result['path']
+        data=result,
+        message=result['message']
     )
 
 # 获取指定文件夹中的文件(通过folder_id)
@@ -73,9 +72,11 @@ def get_files_in_folder_by_id(folder_id: str = Path(...), document_service: Docu
     files = document_service.get_files_in_folder_by_id(folder_id)
     
     return FilesInFolderResponse(
-        success=True,
-        files=files,
-        folder_id=folder_id
+        data={
+            'files': files,
+            'folder_id': folder_id
+        },
+        message="文件夹文件列表获取成功"
     )
 
 # 获取文件详情
@@ -87,8 +88,8 @@ def get_document_details(file_id: str = Path(...), document_service: DocumentSer
     details = document_service.get_document_details(file_id)
     
     return DocumentDetailsResponse(
-        success=True,
-        details=details
+        data=details,
+        message="文件详情获取成功"
     )
 
 # 删除所有文档
@@ -106,9 +107,8 @@ def delete_all_documents(document_service: DocumentService = Depends(get_documen
     
     # 处理成功情况
     return DeleteAllResponse(
-        success=True,
-        message=result['message'],
-        deleted_count=result['deleted_count']
+        data=result,
+        message=result['message']
     )
 
 # 删除文档
@@ -126,10 +126,8 @@ def delete_document(foldername: str = Path(...), filename: str = Path(...), docu
     
     # 处理成功情况
     return DocumentDeleteResponse(
-        success=True,
-        message=result['message'],
-        deleted_file=result['deleted_file'],
-        folder=result['folder']
+        data=result,
+        message=result['message']
     )
 
 # 删除文件夹/知识库
@@ -147,25 +145,24 @@ def delete_folder(folder_id: str = Query(..., description='文件夹ID'), docume
     
     # 处理成功情况
     return FolderDeleteResponse(
-        success=True,
-        message=result['message'],
-        deleted_folder=result['deleted_folder'],
-        folder_id=folder_id
+        data=result,
+        message=result['message']
     )
 
 # 上传文档
-@router.post('/upload')
+@router.post('/upload', response_model=FileUploadResponse)
 @handle_exception
 def upload_document(file: UploadFile = File(...), folder_id: str = Form(''), document_service: DocumentService = Depends(get_document_service)):
     """上传文件到文件系统并进行向量化处理"""
     # 调用服务层方法，传递folder_id参数
     result = document_service.upload_document(file, folder_id=folder_id)
     
-    return {
-        'success': True,
-        'message': result['message'],
-        'file_path': result['file_path']
-    }
+    return FileUploadResponse(
+        data={
+            'file_path': result['file_path']
+        },
+        message=result['message']
+    )
 
 # 搜索文件内容
 @router.get('/search', response_model=SearchResponse)
@@ -180,6 +177,6 @@ def search_file_content(query: str = Query('', description='搜索关键词'), d
     results = document_service.search_file_content(query)
     
     return SearchResponse(
-        success=True,
-        results=results
+        data=results,
+        message="搜索完成"
     )
