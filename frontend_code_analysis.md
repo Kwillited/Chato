@@ -1,4 +1,4 @@
-# 前端代码迭代文档
+# 前端代码迭代与架构演进文档
 
 ## 文档信息
 - **文档类型**：前端代码迭代记录
@@ -197,19 +197,93 @@
 - 所有 store 都使用 `baseStore` 统一处理基础功能
 - 统一的 API 调用方式和错误处理
 
-## 5. 下一步迭代计划
+## 5. 架构演进建议
 
-### 5.1 性能优化
+### 5.1 模块式架构迁移
+
+基于当前代码结构分析，建议采用 **模块式架构** 重新组织前端架构，核心是将相关功能整合为完整的高内聚模块，实现更好的代码组织和团队协作。
+
+#### 5.1.1 模块式架构核心原则
+
+| 原则 | 描述 |
+|------|------|
+| **高内聚** | 每个模块包含完整的功能实现，包括 API、组合函数、组件和类型定义 |
+| **低耦合** | 模块之间通过清晰的接口通信，减少直接依赖 |
+| **功能驱动** | 按业务功能组织模块，而非技术类型 |
+| **简化分层** | 减少不必要的分层，采用更直观的模块结构 |
+| **渐进式迁移** | 支持逐步迁移，无需一次性重构 |
+| **封装性** | 模块通过 index.js 暴露最小必要 API |
+
+#### 5.1.2 建议的模块式目录结构
+
+```
+/src
+├── app/                       # 应用配置
+│   ├── App.vue                 # 根组件
+│   ├── main.js                 # 应用入口
+│   ├── router/                # 路由集中管理
+│   └── store/                 # 真正的全局状态（如用户信息）
+│
+├── pages/                     # 路由入口页面
+│   ├── chat/                  # 聊天主页面目录
+│   └── knowledge-graph/       # 图谱全屏页面目录
+│
+├── modules/                   # 核心功能模块（替代 features + widgets + entities）
+│   ├── conversation/          # 核心对话模块
+│   │   ├── api/               # 所有对话相关API（普通、RAG、工具调用）
+│   │   ├── composables/       # 核心逻辑：useConversation, useMessageStream
+│   │   ├── components/        # 专用组件：MessageBubble, ChatInput
+│   │   ├── types/             # 模块内专用的类型定义
+│   │   └── index.js           # 导出模块公共接口
+│   │
+│   ├── rag-qa/                # RAG增强模块
+│   │   ├── composables/       # useRagOptions（管理知识库选择等）
+│   │   └── components/        # RagSourceDisplay, KnowledgeBaseSelector
+│   │
+│   ├── mcp-tools/             # MCP工具模块
+│   │   ├── api/               # 工具发现、调用的API（如果需要独立调用）
+│   │   ├── composables/       # useToolBox, useToolExecution
+│   │   └── components/        # ToolPanel, ToolCallCard
+│   │
+│   └── knowledge-graph/       # 知识图谱模块
+│       ├── api/               # 图谱查询API
+│       ├── composables/       # useGraphQuery, useGraphLayout
+│       └── components/        # GraphCanvas, GraphControls
+│
+└── shared/                    # 通用基础设施
+    ├── ui/                    # 通用UI组件：Button, Input, Card
+    ├── utils/                 # 纯工具函数：日期格式化、防抖
+    └── api/                   # axios实例、请求拦截器
+```
+
+#### 5.1.3 迁移实施计划
+
+| 阶段 | 任务 | 预期成果 |
+|------|------|----------|
+| 1 | 建立模块式基础结构 | 创建 `app/`、`pages/`、`modules/`、`shared/` 目录结构<br>将 `app/router.js` 迁移到 `app/router/` 目录<br>将 `app/store.js` 迁移到 `app/store/` 目录 |
+| 2 | 迁移共享资源 | 将通用组件、工具函数迁移到 `shared/` 目录，特别注意：<br>- 创建 `shared/ui/` 目录存放通用UI组件<br>- 创建 `shared/api/` 目录存放axios实例和请求拦截器<br>- 将 `shared/lib/` 重命名为 `shared/utils/` |
+| 3 | 迁移核心对话功能 | 创建 `modules/conversation/` 目录，整合原聊天相关功能：<br>- 将聊天API迁移到 `modules/conversation/api/`<br>- 将聊天组合函数迁移到 `modules/conversation/composables/`<br>- 将聊天组件迁移到 `modules/conversation/components/`<br>- 将聊天类型定义迁移到 `modules/conversation/types/`<br>- 创建 `modules/conversation/index.js` 导出公共API |
+| 4 | 迁移RAG增强功能 | 创建 `modules/rag-qa/` 目录，迁移RAG相关功能：<br>- 将RAG组合函数迁移到 `modules/rag-qa/composables/`<br>- 将RAG组件迁移到 `modules/rag-qa/components/` |
+| 5 | 迁移MCP工具功能 | 创建 `modules/mcp-tools/` 目录，迁移MCP相关功能：<br>- 将MCP API迁移到 `modules/mcp-tools/api/`<br>- 将MCP组合函数迁移到 `modules/mcp-tools/composables/`<br>- 将MCP组件迁移到 `modules/mcp-tools/components/` |
+| 6 | 迁移知识图谱功能 | 创建 `modules/knowledge-graph/` 目录，迁移知识图谱相关功能：<br>- 将图谱API迁移到 `modules/knowledge-graph/api/`<br>- 将图谱组合函数迁移到 `modules/knowledge-graph/composables/`<br>- 将图谱组件迁移到 `modules/knowledge-graph/components/` |
+| 7 | 简化页面组件 | 将现有页面组件迁移到 `pages/` 目录，简化为路由入口：<br>- 创建 `pages/chat/` 目录存放聊天页面<br>- 创建 `pages/knowledge-graph/` 目录存放图谱页面 |
+| 8 | 更新应用入口 | 更新 `app/` 目录下的配置文件，调整路由和全局状态管理，确保正确引用模块API |
+| 9 | 验证依赖关系 | 确保模块之间通过公共接口通信，无直接依赖内部实现 |
+| 10 | 优化和调整 | 完善模块接口，确保低耦合，添加必要的文档注释 |
+
+### 5.2 性能优化
 - 实现组件懒加载
 - 对频繁更新的组件使用 `v-memo` 指令
 - 优化大型数据集的渲染，考虑使用虚拟滚动
+- 实现功能模块的按需加载
 
-### 5.2 代码质量提升
+### 5.3 代码质量提升
 - 添加 TypeScript 类型定义
 - 增加单元测试和集成测试
 - 完善文档注释
+- 制定 FSD 代码组织规范
 
-### 5.3 功能增强
+### 5.4 功能增强
 - 全面应用曳光弹追踪
 - 优化用户体验，添加更多交互反馈
 - 增强错误处理和恢复机制
@@ -223,3 +297,6 @@
 | v1.2 | 2026-01-25 | 统一工具函数管理 | 工具层 |
 | v1.3 | 2026-01-25 | 增强日志系统与性能优化 | 服务层 |
 | v1.4 | 2026-01-25 | 修复 bug 与优化组合函数 | 组件层 |
+| v1.5 | 2026-01-25 | 架构演进：引入 Feature-Sliced Design (FSD) 建议 | 架构层 |
+| v1.6 | 2026-01-25 | 架构调整：修正为 FSD v2 标准架构 | 架构层 |
+| v1.7 | 2026-01-25 | 架构变革：采用模块式架构，替代 FSD v2 | 架构层 |

@@ -50,16 +50,19 @@ Chato 采用前后端分离的架构设计，结合了现代 Web 技术和本地
 src/
 ├── App.vue                 # 主应用组件
 ├── main.js                 # 应用入口
+├── assets/                 # 静态资源文件
 ├── components/             # 组件目录
 │   ├── chat/               # 聊天相关组件
 │   ├── common/             # 通用组件
 │   ├── file/               # 文件管理组件
 │   ├── layout/             # 布局组件
-│   ├── library/            # 可复用组件库
-│   └── panel/              # 面板组件
+│   └── library/            # 可复用组件库
 ├── composables/            # 组合函数
+├── plugins/                # 插件目录
+├── router/                 # 路由配置
 ├── services/               # 服务层
 ├── store/                  # Pinia 状态管理
+├── styles/                 # 样式文件
 ├── static/                 # 静态资源
 ├── utils/                  # 工具函数
 └── views/                  # 页面视图
@@ -88,11 +91,13 @@ src-tauri/python/
 ├── app/                    # 主应用目录
 │   ├── api/                # API 路由
 │   ├── core/               # 核心配置和工具
+│   ├── dependencies/       # 依赖管理
 │   ├── mcp/                # MCP 相关功能
 │   ├── models/             # 模型定义和管理
 │   ├── repositories/       # 数据访问层
 │   ├── services/           # 业务逻辑层
 │   └── utils/              # 工具函数
+├── logs/                   # 日志目录
 ├── scripts/                # 辅助脚本
 ├── tests/                  # 测试代码
 ├── main.py                 # 应用入口
