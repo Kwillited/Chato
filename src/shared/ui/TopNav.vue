@@ -96,7 +96,7 @@ const toggleHistoryMenu = () => {
 
 <style scoped>
 .top-nav {
-  height: 60px;
+  height: 40px;
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   display: flex;
