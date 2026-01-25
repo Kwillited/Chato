@@ -78,7 +78,7 @@ const componentMap = {
   settings: SettingsPage,
   aiSettings: SettingsPage,
   ragManagement: FileManager,
-  sendMessage: Home
+  home: Home
 };
 
 // 计算当前头部组件

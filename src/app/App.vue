@@ -25,9 +25,9 @@ const isInitialLoading = ref(true);
 watch(
   () => settingsStore.activePanel,
   (newPanel) => {
-    // 只有当前视图不是sendMessage时，才根据activePanel更新视图
-    if (settingsStore.activeContent !== 'sendMessage') {
-      settingsStore.setActiveContent(newPanel === 'settings' ? 'settings' : 'chat');
+    // 只有当前视图不是home时，才根据activePanel更新视图
+    if (settingsStore.activeContent !== 'home') {
+      settingsStore.setActiveContent(newPanel === 'settings' ? 'settings' : 'home');
     }
   },
   { immediate: true } // 立即执行，确保初始状态正确

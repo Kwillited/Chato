@@ -4,7 +4,7 @@
     <SettingsHeader 
       title="ChaTo Setting & Configuration"
       :active-tab="activeTab"
-      @back="settingsStore.setActiveContent('chat')"
+      @back="settingsStore.setActiveContent('home')"
       @tab-change="handleTabChange"
     />
 

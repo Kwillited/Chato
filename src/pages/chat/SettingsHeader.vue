@@ -16,8 +16,21 @@
     <!-- 标题区域 -->
     <h1 class="font-bold text-sm sm:text-base tracking-tight text-gray-900 dark:text-white">{{ title }}</h1>
     
-    <!-- 右侧空白区域（用于平衡布局） -->
-    <div class="w-16"></div>
+    <!-- 右侧选项卡导航 -->
+    <div class="flex items-center gap-1.5 overflow-x-auto py-1 px-2 bg-gray-100 dark:bg-dark-700 rounded-lg shadow-sm border border-gray-200 dark:border-dark-600">
+      <button
+        v-for="tab in tabs"
+        :key="tab.value"
+        class="px-4 py-1.5 text-sm font-medium rounded-md transition-all duration-300 whitespace-nowrap focus:outline-none"
+        :class="{
+          'bg-white dark:bg-dark-800 text-gray-900 dark:text-white shadow-sm': activeTab === tab.value,
+          'bg-transparent hover:bg-gray-200 dark:hover:bg-dark-600 text-gray-600 dark:text-gray-300': activeTab !== tab.value
+        }"
+        @click="$emit('tab-change', tab.value)"
+      >
+        {{ tab.label }}
+      </button>
+    </div>
   </div>
 </template>
 

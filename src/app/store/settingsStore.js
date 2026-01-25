@@ -94,7 +94,7 @@ export const useSettingsStore = defineStore('settings', {
     // 当前激活的设置面板
     activePanel: 'history',
     // 当前激活的内容视图
-    activeContent: 'sendMessage',
+    activeContent: 'home',
     // 当前激活的设置部分
     activeSection: 'general',
 

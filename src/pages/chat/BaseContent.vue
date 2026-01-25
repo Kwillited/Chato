@@ -45,8 +45,8 @@ const handleSendMessage = async (message, model, deepThinking = false, webSearch
     // 发送消息
     await sendMessage(message, model, deepThinking, webSearchEnabled);
     
-    // 切换到chat视图
-    settingsStore.setActiveContent('chat');
+    // 切换到home视图
+    settingsStore.setActiveContent('home');
   }
 };
 

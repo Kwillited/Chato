@@ -18,7 +18,7 @@ export function useAppHeader() {
       case 'settings':
         return 'settings-header';
       case 'chat':
-      case 'sendMessage':
+      case 'home':
       default:
         return 'chat-header';
     }
