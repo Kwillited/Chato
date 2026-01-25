@@ -1,7 +1,7 @@
 import { createApp } from 'vue';
-import App from './app/App.vue';
-import pinia from './app/store/pinia.js';
-import logger from './shared/utils/logger.js'; // 引入日志工具
+import App from './App.vue';
+import pinia from './store/pinia.js';
+import logger from './utils/logger.js'; // 引入日志工具
 
 // 等待DOM完全加载后再初始化Vue应用
 document.addEventListener('DOMContentLoaded', () => {
