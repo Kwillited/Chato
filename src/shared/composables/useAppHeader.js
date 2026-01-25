@@ -31,7 +31,24 @@ export function useAppHeader() {
     return {
       component: activeComponent,
       props: getHeaderProps(activeComponent),
-      events: getHeaderEvents(activeComponent)
+      events: {
+        // 通用事件处理
+        toggleSideMenu: () => {
+          settingsStore.toggleLeftNav();
+        },
+        newChat: () => {
+          console.log('New chat requested');
+        },
+        selectHistoryChat: (chatId) => {
+          console.log('Select chat:', chatId);
+        },
+        back: () => {
+          settingsStore.setActiveContent('chat');
+        },
+        tabChange: (tabValue) => {
+          settingsStore.setActiveTab(tabValue);
+        }
+      }
     };
   });
   
@@ -59,18 +76,6 @@ export function useAppHeader() {
     }
   }
   
-  // 根据组件类型获取对应的事件
-  function getHeaderEvents(componentName) {
-    return {
-      // 通用事件处理
-      'toggleSideMenu': handleToggleSideMenu,
-      'newChat': handleNewChat,
-      'selectHistoryChat': handleSelectHistoryChat,
-      'back': handleBack,
-      'tabChange': handleTabChange
-    };
-  }
-  
   // 根据组件类型获取头部标题
   function getHeaderTitle(componentName) {
     switch (componentName) {
@@ -83,41 +88,8 @@ export function useAppHeader() {
     }
   }
   
-  // 切换侧边菜单
-  function handleToggleSideMenu() {
-    settingsStore.toggleLeftNav();
-  }
-  
-  // 新建对话
-  function handleNewChat() {
-    // 调用聊天相关的组合式函数
-    // 这里可以通过事件总线或直接调用 store 方法
-    console.log('New chat requested');
-  }
-  
-  // 选择历史对话
-  function handleSelectHistoryChat(chatId) {
-    // 调用聊天相关的组合式函数
-    console.log('Select chat:', chatId);
-  }
-  
-  // 返回按钮处理
-  function handleBack() {
-    settingsStore.setActiveContent('chat');
-  }
-  
-  // 标签切换处理
-  function handleTabChange(tabValue) {
-    settingsStore.setActiveTab(tabValue);
-  }
-  
   return {
     activeHeaderComponent,
-    headerConfig,
-    handleToggleSideMenu,
-    handleNewChat,
-    handleSelectHistoryChat,
-    handleBack,
-    handleTabChange
+    headerConfig
   };
 }

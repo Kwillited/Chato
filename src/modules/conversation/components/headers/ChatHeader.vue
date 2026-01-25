@@ -82,8 +82,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import Button from '../Button.vue';
-import { formatDate } from '../../../shared/utils/date.js';
+import Button from '../../../../shared/ui/Button.vue';
+import { formatDate } from '../../../../shared/utils/date.js';
 
 // 定义组件属性
 defineProps({

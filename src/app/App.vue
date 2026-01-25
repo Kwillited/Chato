@@ -1,26 +1,14 @@
 <template>
-  <!-- 使用语义化的应用容器标签 -->
-  <app-layout 
+  <!-- 使用统一的应用布局组件 -->
+  <AppLayout 
     class="h-screen flex flex-col overflow-hidden bg-light text-dark dark:bg-dark-primary dark:text-light"
     :class="{ 'transition-all duration-300': !isInitialLoading }"
-  >
-    <!-- 1. 顶部导航栏：动态加载不同的 header 组件 -->
-    <AppHeader 
-      :header-type="headerConfig.component"
-      :header-props="headerConfig.props"
-      :header-events="headerConfig.events"
-    />
-
-    <!-- 2. 主内容区域：使用独立的 MainLayout 组件 -->
-    <MainLayout :is-initial-loading="isInitialLoading" />
-  </app-layout>
+  />
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import MainLayout from '../shared/ui/layout/MainLayout.vue';
-import AppHeader from '../shared/ui/layout/AppHeader.vue';
-import { useAppHeader } from '../shared/composables/useAppHeader.js';
+import AppLayout from '../shared/ui/layout/AppLayout.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
 import { apiService } from '../shared/api/apiService.js';
@@ -29,9 +17,6 @@ import logger from '../shared/utils/logger.js';
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-
-// 使用应用头部组合式函数，动态管理不同页面的头部组件
-const { headerConfig } = useAppHeader();
 
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
@@ -72,7 +57,7 @@ async function checkBackendHealth() {
   try {
     await apiService.requestWithRetry(
       { method: 'GET', url: '/api/health' },
-      { 
+      {
         maxRetries: 8,       // 健康检查需要更多重试次数
         initialDelay: 500,   // 初始延迟500ms
         backoffFactor: 1.5,  // 指数退避
@@ -118,7 +103,7 @@ async function initializeAppData(isBackendHealthy) {
 
 <style scoped>
 /* 应用布局容器样式 */
-:deep(app-layout) {
+.app-layout {
   display: flex;
   flex-direction: column;
 }

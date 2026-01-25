@@ -33,8 +33,8 @@ const props = defineProps({
 });
 
 // 动态导入头部组件
-const ChatHeader = defineAsyncComponent(() => import('./ChatHeader.vue'));
-const SettingsHeader = defineAsyncComponent(() => import('./SettingsHeader.vue'));
+const ChatHeader = defineAsyncComponent(() => import('../../../modules/conversation/components/headers/ChatHeader.vue'));
+const SettingsHeader = defineAsyncComponent(() => import('../../../pages/chat/SettingsHeader.vue'));
 
 // 组件映射表：将字符串类型映射到实际组件
 const componentMap = {

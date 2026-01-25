@@ -662,7 +662,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../../app/store/settingsStore.js';
 import { useChatStore } from '../../app/store/chatStore.js';
 import logger from '../../shared/utils/logger.js';
-import SettingsHeader from '../../shared/ui/layout/SettingsHeader.vue';
+import SettingsHeader from './SettingsHeader.vue';
 
 // 初始化stores
 const activeTab = ref('basic');

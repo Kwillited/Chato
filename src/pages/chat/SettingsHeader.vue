@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import Button from '../Button.vue';
+import Button from '../../shared/ui/Button.vue';
 
 // 定义组件属性
 const props = defineProps({

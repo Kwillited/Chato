@@ -48,9 +48,9 @@
 
 <script setup>
 import { computed } from 'vue';
-import { useChatStore } from '../../../app/store/chatStore.js';
-import { useSettingsStore } from '../../../app/store/settingsStore.js';
-import Sidebar from './Sidebar.vue';
+import { useChatStore } from '../../app/store/chatStore.js';
+import { useSettingsStore } from '../../app/store/settingsStore.js';
+import Sidebar from '../../shared/ui/layout/Sidebar.vue';
 
 // 初始化stores
 const chatStore = useChatStore();
