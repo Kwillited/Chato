@@ -6,17 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@idcpj/vue-tree": "^3.2.2",
     "@monaco-editor/loader": "^1.7.0",
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-cli": "^2.4.1",
-    "@tauri-apps/plugin-dialog": "^2.4.2",
-    "@tauri-apps/plugin-fs": "^2.4.4",
-    "@tauri-apps/plugin-opener": "^2",
     "axios": "^1.12.2",
     "highlight.js": "^11.11.1",
     "mitt": "^3.0.1",
@@ -28,7 +22,6 @@
   "devDependencies": {
     "@babel/eslint-parser": "^7.28.5",
     "@eslint/js": "^9.39.2",
-    "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^5.2.1",
     "eslint": "^9.39.2",
     "eslint-plugin-unused-imports": "^4.3.0",

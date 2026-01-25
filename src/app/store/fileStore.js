@@ -192,17 +192,13 @@ export const useFileStore = defineStore('file', {
         let response;
         
         try {
-          // 优先尝试使用Tauri的文件系统API
-          const { invoke } = await import('@tauri-apps/api');
-          response = await invoke('create_knowledge_base', {
-            name: knowledgeBaseName
-          });
-        } catch (importError) {
-          // 如果导入失败，回退到使用Python API
-          logger.warn('无法使用Tauri invoke，回退到Python API:', importError);
+          // 直接使用Python API创建知识库
           response = await apiService.post('/api/files/folders', {
             name: knowledgeBaseName
           });
+        } catch (error) {
+          logger.error('创建知识库失败:', error);
+          throw error;
         }
         
         // 通知事件总线知识库已创建
@@ -219,9 +215,9 @@ export const useFileStore = defineStore('file', {
         
         return {
           success: true,
-          folder: response
+          response: response
         };
-      }, { handleError: true });
+      });
     },
     
     // 删除文件夹

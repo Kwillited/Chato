@@ -22,10 +22,10 @@
 import { ref, onMounted, watch } from 'vue';
 import TopNav from './components/layout/TopNav.vue';
 import DisplayArea from './components/layout/DisplayArea.vue';
-import { useChatStore } from './store/chatStore.js';
-import { useSettingsStore } from './store/settingsStore.js';
-import { apiService } from './services/apiService.js';
-import logger from './utils/logger.js'; // 引入日志工具
+import { useChatStore } from './app/store/chatStore.js';
+import { useSettingsStore } from './app/store/settingsStore.js';
+import { apiService } from './shared/api/apiService.js';
+import logger from './shared/utils/logger.js'; // 引入日志工具
 
 // 初始化stores
 const chatStore = useChatStore();

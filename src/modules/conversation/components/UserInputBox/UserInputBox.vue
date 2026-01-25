@@ -782,18 +782,16 @@ const handleSendMessage = async () => {
       // 使用setTimeout将检查操作放入事件队列，避免阻塞UI
       setTimeout(async () => {
         try {
-          // 动态导入Tauri API，避免在非Tauri环境中出错
-          const { invoke } = await import('@tauri-apps/api/core');
-          
+          // 使用Python API检查和启动Ollama服务
           // 检查Ollama服务状态
-          const ollamaStatus = await invoke('check_ollama_service');
+          const ollamaStatus = await apiService.get('/api/ollama/status');
           
           if (!ollamaStatus.installed) {
             // Ollama未安装，显示提示
             showSystemNotification('Ollama未安装，请先安装Ollama后再使用该模型', 'error', 3000);
           } else if (!ollamaStatus.running) {
             // 如果服务没有运行，启动它
-            await invoke('start_ollama_service');
+            await apiService.post('/api/ollama/start');
             // 显示服务正在启动的提示
             showSystemNotification('Ollama服务正在启动，请稍候...', 'success', 3000);
           }

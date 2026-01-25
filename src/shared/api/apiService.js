@@ -481,29 +481,30 @@ export const apiService = {
       
       try {
         // 首先尝试调用健康检查端点，使用axios统一API调用方式
-        const healthResponse = await api.get('/api/health', {
+        // 注意：axios实例已经配置了baseURL: '/api'，所以这里不需要再添加/api前缀
+        const healthResponse = await api.get('/health', {
           signal: controller.signal,
           timeout: API_CONFIG.HEALTH_CHECK_TIMEOUT
         });
         
         clearTimeout(timeoutId);
         
-        logger.info('使用 /api/health 端点进行健康检查，服务正常');
+        logger.info('使用 /health 端点进行健康检查，服务正常');
         return healthResponse;
       } catch {
         // 如果健康检查端点不存在，尝试使用模型列表端点作为替代
-        logger.info('使用备用端点 /api/models 进行健康检查...');
+        logger.info('使用备用端点 /models 进行健康检查...');
         
         // 重置控制器和超时
         clearTimeout(timeoutId);
         
         try {
-          // 使用axios调用模型列表端点
-          await api.get('/api/models', {
+          // 使用axios调用模型列表端点，不需要添加/api前缀
+          await api.get('/models', {
             timeout: API_CONFIG.FALLBACK_HEALTH_CHECK_TIMEOUT
           });
           
-          logger.info('使用 /api/models 端点进行健康检查，服务正常');
+          logger.info('使用 /models 端点进行健康检查，服务正常');
           return { status: 'healthy', message: 'Backend service is running (fallback check)' };
         } catch (error) {
           throw new Error(`Fallback health check failed with status: ${error.response?.status || 0}`);
