@@ -11,9 +11,9 @@ import { useSettingsStore } from '../../app/store/settingsStore.js';
 
 // 组件导入
 import ChatContent from './ChatContent.vue';
-import AISettingsContent from './AISettingsContent.vue';
-import RagManagementContent from './RagManagementContent.vue';
-import SendMessageContent from './SendMessageContent.vue';
+import SettingsPage from './SettingsPage.vue';
+import FileManager from './FileManager.vue';
+import home from './home.vue';
 
 // Props
 const props = defineProps({
@@ -28,14 +28,13 @@ const emitter = inject('emitter', null);
 // 动态组件映射
 const componentMap = {
   chat: ChatContent,
-  settings: AISettingsContent,
-  aiSettings: AISettingsContent,
-  ragManagement: RagManagementContent,
-  contextVisualization: RagManagementContent,
-  sendMessage: SendMessageContent
+  settings: SettingsPage,
+  aiSettings: SettingsPage,
+  ragManagement: FileManager,
+  sendMessage: home
 };
 
-const currentContentComponent = computed(() => componentMap[props.activeContent] || SendMessageContent);
+const currentContentComponent = computed(() => componentMap[props.activeContent] || home);
 </script>
 
 <style scoped>

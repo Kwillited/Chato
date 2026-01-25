@@ -18,6 +18,8 @@ export function useChatHeader() {
    * 切换侧边菜单可见性
    */
   const handleSideMenuToggle = () => {
+    console.log('handleSideMenuToggle called');
+    // 切换左侧导航栏可见性
     settingsStore.toggleLeftNav();
   };
 

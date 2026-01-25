@@ -1,25 +1,32 @@
 <template>
-  <!-- RAG文件管理主内容区域 -->
-  <div id="ragManagementMainContent" class="flex-1 flex flex-col overflow-hidden bg-transparent dark:bg-transparent">
-    <!-- 顶部导航 -->
-    <div class="panel-header p-3 flex flex-wrap items-center justify-between gap-4 transition-all duration-300">
-      <!-- 左侧区域：按钮组 + 搜索框 -->
-      <div class="flex items-center space-x-2 flex-1 min-w-0">
-        <!-- 左侧按钮组 -->
-        <div class="flex space-x-2">
-          <ActionButton 
-            icon="fa-bars" 
-            title="隐藏左侧面板" 
-            @click="handleSideMenuToggle"
-          />
-          <!-- 新增会话按钮 -->
-          <ActionButton 
-            id="newChat"
-            icon="fa-comment-dots" 
-            title="新对话"
-            @click="handleNewChat"
-          />
-        </div>
+  <!-- RAG文件管理主内容区域 - 基于BaseContent -->
+  <BaseContent>
+    <div id="ragManagementMainContent" class="flex-1 flex flex-col overflow-hidden bg-transparent dark:bg-transparent">
+      <!-- 顶部导航 -->
+      <div class="panel-header p-3 flex flex-wrap items-center justify-between gap-4 transition-all duration-300">
+        <!-- 左侧区域：按钮组 + 搜索框 -->
+        <div class="flex items-center space-x-2 flex-1 min-w-0">
+          <!-- 左侧按钮组 -->
+          <div class="flex space-x-2">
+            <Button 
+              icon="fa-bars" 
+              tooltip="隐藏左侧面板" 
+              variant="secondary"
+              size="md"
+              shape="full"
+              @click="handleSideMenuToggle"
+            />
+            <!-- 新增会话按钮 -->
+            <Button 
+              id="newChat"
+              icon="fa-comment-dots" 
+              tooltip="新对话"
+              variant="secondary"
+              size="md"
+              shape="full"
+              @click="handleNewChat"
+            />
+          </div>
         
         <!-- 搜索框 -->
         <div class="relative flex-1 ml-4 min-w-[200px]">
@@ -58,18 +65,24 @@
         </div>
         
         <!-- 上传文件按钮 -->
-        <ActionButton 
-          icon="fa-upload" 
-          title="上传文件" 
-          @click="handleUploadClick"
-        />
+        <Button 
+            icon="fa-upload" 
+            tooltip="上传文件" 
+            variant="secondary"
+            size="md"
+            shape="full"
+            @click="handleUploadClick"
+          />
         
         <!-- 刷新按钮 -->
-        <ActionButton 
-          icon="fa-arrows-rotate" 
-          title="刷新" 
-          @click="refreshFiles"
-        />
+        <Button 
+            icon="fa-arrows-rotate" 
+            tooltip="刷新" 
+            variant="secondary"
+            size="md"
+            shape="full"
+            @click="refreshFiles"
+          />
       </div>
     </div>
     
@@ -104,10 +117,13 @@
             <div class="text-xs text-gray-500 mt-1">{{ formatFileSize(file.size) }}</div>
             <!-- 操作按钮 -->
             <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity">
-              <ActionButton 
+              <Button 
                 icon="fa-trash" 
-                title="删除" 
+                tooltip="删除" 
                 @click.stop="handleDeleteFile(file.id)"
+                variant="secondary"
+                size="sm"
+                shape="full"
                 class="text-gray-500 hover:text-red-500 w-6 h-6 p-1"
               />
             </div>
@@ -142,15 +158,21 @@
             <div class="col-span-2 flex items-center">{{ file.type || 'unknown' }}</div>
             <div class="col-span-2 flex items-center">{{ formatFileSize(file.size) }}</div>
             <div class="col-span-2 flex items-center justify-end space-x-2">
-                <ActionButton 
+                <Button 
                   icon="fa-eye" 
-                  title="预览"
+                  tooltip="预览"
+                  variant="secondary"
+                  size="sm"
+                  shape="full"
                   class="text-gray-500 hover:text-primary w-6 h-6 p-1"
                 />
-                <ActionButton 
+                <Button 
                   icon="fa-trash" 
-                  title="删除" 
+                  tooltip="删除" 
                   @click="handleDeleteFile(file.id)"
+                  variant="secondary"
+                  size="sm"
+                  shape="full"
                   class="text-gray-500 hover:text-red-500 w-6 h-6 p-1"
                 />
               </div>
@@ -199,21 +221,24 @@
     @confirm="handleDeleteConfirm"
     @cancel="showDeleteModal = false"
   />
+  </BaseContent>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { useSettingsStore } from '../../app/store/settingsStore.js';
 import { useVectorStore } from '../../app/store/vectorStore.js';
-import { useFileStore } from '../../app/store/fileStore.js';
+import { useSettingsStore } from '../../app/store/settingsStore.js';
 import { useChatStore } from '../../app/store/chatStore.js';
+import { useFileStore } from '../../app/store/fileStore.js';
 import { formatFileSize } from '../../shared/utils/helpers.js';
-import ActionButton from '../../shared/ui/ActionButton.vue';
+import Button from '../../shared/ui/Button.vue';
 import ConfirmationModal from '../../shared/ui/ConfirmationModal.vue';
 import { KnowledgeGraphCanvas as KnowledgeGraphVisualization } from '../../modules/knowledge-graph';
 import { useNotifications } from '../../modules/conversation';
 import { useFileManagement } from '../../modules/rag-qa';
+import { useKnowledgeGraph } from '../../modules/knowledge-graph/composables/useKnowledgeGraph.js';
 import logger from '../../shared/utils/logger.js';
+import BaseContent from './BaseContent.vue';
 
 // 导入Tauri API用于文件操作
 // 移除不再需要的Tauri导入
@@ -236,25 +261,20 @@ const {
 // 使用通知管理组合函数
 const { showSystemNotification } = useNotifications();
 
+// 使用知识图谱管理组合函数
+const { 
+  getFileColor,
+  generateKnowledgeGraphNodes,
+  generateKnowledgeGraphLinks,
+  handleNodeClick,
+  handleNodeHover,
+  handleViewChanged
+} = useKnowledgeGraph();
+
 // 初始化stores
 const settingsStore = useSettingsStore();
-const ragStore = useVectorStore();
 const chatStore = useChatStore();
-
-// 处理新对话点击事件
-const handleNewChat = () => {
-  // 取消当前会话的激活状态
-  chatStore.currentChatId = null;
-  
-  // 清除所有对话的未读标记
-  chatStore.chats = chatStore.chats.map(chat => ({
-    ...chat,
-    hasUnreadMessage: false
-  }));
-  
-  // 切换到发送消息视图
-  settingsStore.setActiveContent('sendMessage');
-};
+const ragStore = useVectorStore();
 
 // 本地状态
 const searchQuery = ref('');
@@ -315,95 +335,13 @@ const handleSearch = () => {
 
 // 将文件转换为知识图谱节点
 const knowledgeGraphNodes = computed(() => {
-  const nodes = [];
-  
-  // 为每个文件创建一个节点
-  filteredFiles.value.forEach((file, index) => {
-    const node = {
-      id: file.id || file.path || index,
-      name: file.name,
-      type: file.type,
-      radius: 20,
-      color: getFileColor(file.type)
-    };
-    nodes.push(node);
-  });
-  
-  // 增加更多随机测试节点
-  const testNodeCount = 15; // 增加15个测试节点
-  const fileTypes = ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'md'];
-  
-  for (let i = 0; i < testNodeCount; i++) {
-    const randomType = fileTypes[Math.floor(Math.random() * fileTypes.length)];
-    const node = {
-      id: `test-node-${i}`,
-      name: `Test-${i}.${randomType}`,
-      type: randomType,
-      radius: 20,
-      color: getFileColor(randomType)
-    };
-    nodes.push(node);
-  }
-  
-  return nodes;
+  return generateKnowledgeGraphNodes(filteredFiles.value, 15);
 });
 
 // 生成知识图谱连线
 const knowledgeGraphLinks = computed(() => {
-  const links = [];
-  const nodeCount = knowledgeGraphNodes.value.length;
-  
-  // 生成随机连线
-  for (let i = 0; i < nodeCount; i++) {
-    for (let j = i + 1; j < nodeCount; j++) {
-      if (Math.random() < 0.15) { // 增加连线概率
-        links.push({
-          source: i,
-          target: j
-        });
-      }
-    }
-  }
-  
-  return links;
+  return generateKnowledgeGraphLinks(knowledgeGraphNodes.value, 0.15);
 });
-
-
-
-
-
-
-
-// 获取文件类型对应的颜色
-const getFileColor = (type) => {
-  const colorMap = {
-    'pdf': '#FF5733',
-    'docx': '#3366FF',
-    'doc': '#3366FF',
-    'xlsx': '#33FF57',
-    'xls': '#33FF57',
-    'pptx': '#FF33F5',
-    'ppt': '#FF33F5',
-    'txt': '#FFC300',
-    'md': '#8E44AD'
-  };
-  return colorMap[type] || '#95A5A6';
-};
-
-// 处理知识图谱节点点击事件
-const handleNodeClick = (node) => {
-  logger.info('知识图谱节点被点击:', node);
-};
-
-// 处理知识图谱节点悬停事件
-const handleNodeHover = (node) => {
-  logger.info('知识图谱节点悬停:', node);
-};
-
-// 处理知识图谱视图变化事件
-const handleViewChanged = (viewInfo) => {
-  logger.info('知识图谱视图变化:', viewInfo);
-};
 
 
 
@@ -454,12 +392,9 @@ const handleUploadClick = async () => {
   }
 };
 
-// 处理隐藏菜单
-const handleSideMenuToggle = () => {
-  // 只使用store提供的方法切换左侧导航栏的可见性
-  // DOM操作逻辑移至App.vue中统一管理
-  settingsStore.toggleLeftNav();
-};
+// 处理隐藏菜单 - 从BaseContent继承
+// handleSideMenuToggle方法已在BaseContent中定义，会自动可用
+// handleNewChat方法已在BaseContent中定义，会自动可用
 
 
 
@@ -577,7 +512,7 @@ const handleFilesUploaded = () => {
 
 // 组件挂载时加载文件并监听事件
 onMounted(() => {
-  logger.info('RagManagementContent组件挂载');
+  logger.info('FileManager组件挂载');
   
   // 初始加载文件夹列表
   loadFolders().then(() => {

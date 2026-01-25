@@ -4,16 +4,25 @@
       <!-- 左侧按钮组 -->
       <div class="flex space-x-2">
         <!-- 隐藏左侧面板按钮 -->
-        <ActionButton 
+        <Button 
           icon="bars"
-          title="隐藏左侧面板"
-          @click="handleSideMenuToggle"
+          tooltip="隐藏左侧面板"
+          variant="secondary"
+          size="md"
+          shape="full"
+          @click="() => {
+            console.log('TopNav handleSideMenuToggle called directly');
+            handleSideMenuToggle();
+          }"
         />
         <!-- 新增会话按钮 -->
-        <ActionButton 
+        <Button 
           id="newChat"
           icon="comment-dots"
-          title="新对话"
+          tooltip="新对话"
+          variant="secondary"
+          size="md"
+          shape="full"
           @click="handleNewChat"
         />
       </div>
@@ -25,10 +34,13 @@
       <div class="flex space-x-2">
         <!-- 历史对话按钮（带下拉菜单） -->
         <div class="relative hover-scale">
-          <ActionButton 
+          <Button 
             id="historyChat"
             icon="clock-rotate-left"
-            title="历史对话"
+            tooltip="历史对话"
+            variant="secondary"
+            size="md"
+            shape="full"
             @click.stop="toggleHistoryMenu"
           />
           
@@ -74,9 +86,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import ActionButton from './ActionButton.vue';
-import { useChatHeader } from '../../modules/conversation/composables/useChatHeader.js';
-import { formatDate } from '../../shared/utils/date.js';
+import Button from '../Button.vue';
+import { useChatHeader } from '../../../modules/conversation/composables/useChatHeader.js';
+import { formatDate } from '../../../shared/utils/date.js';
 
 // 使用聊天头部组合函数
 const { 
@@ -96,8 +108,8 @@ const toggleHistoryMenu = () => {
 
 <style scoped>
 .top-nav {
-  height: 40px;
-  background-color: #ffffff;
+  height: 2.5rem;
+  background-color: inherit;
   border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
@@ -107,10 +119,9 @@ const toggleHistoryMenu = () => {
   transition: all 0.3s ease;
 }
 
-.top-nav.dark {
-  background-color: #1f2937;
+.dark .top-nav {
+  background-color: inherit;
   border-bottom-color: #374151;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
 }
 
 .top-nav-content {
@@ -126,16 +137,6 @@ const toggleHistoryMenu = () => {
   margin: 0;
   color: #111827;
   transition: color 0.3s ease;
-}
-
-.top-nav-title.dark {
-  color: #f9fafb;
-}
-
-/* 深色模式样式 */
-.dark .top-nav {
-  background-color: #1f2937;
-  border-bottom-color: #374151;
 }
 
 .dark .top-nav-title {

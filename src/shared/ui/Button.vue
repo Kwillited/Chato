@@ -48,7 +48,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { Tooltip } from '../library/index.js';
+import Tooltip from './Tooltip.vue';
 
 // 定义组件属性
 const props = defineProps({

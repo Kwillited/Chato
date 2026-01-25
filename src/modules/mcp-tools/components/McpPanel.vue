@@ -37,11 +37,14 @@
                     </div>
                   </div>
                 </div>
-                <ActionButton 
+                <Button 
                   class="text-neutral-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors"
                   @click.stop="handleDeleteTool(tool.id)"
                   icon="fa-trash"
-                  title="删除此工具"
+                  tooltip="删除此工具"
+                  variant="secondary"
+                  size="md"
+                  shape="full"
                 />
               </div>
             </div>
@@ -71,7 +74,7 @@
 import { ref, onMounted } from 'vue';
 import { useSearch } from '../../composables/useSearch.js';
 import { useNotifications } from '../../composables/useNotifications.js';
-import ActionButton from '../common/ActionButton.vue';
+import Button from '../../../shared/ui/Button.vue';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 import PanelHeader from '../common/PanelHeader.vue';
 import logger from '../../utils/logger.js';

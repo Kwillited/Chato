@@ -1,105 +1,79 @@
 <template>
-  <!-- 聊天内容区域 -->
-  <div id="chatMainContent" class="flex-1 flex flex-col overflow-hidden">
+  <!-- 聊天内容区域 - 基于BaseContent -->
+  <BaseContent>
+    <div id="chatMainContent" class="flex-1 flex flex-col overflow-hidden">
 
-    <!-- 条件渲染聊天消息或知识图谱 -->
-    <div class="flex-1 overflow-hidden">
-      <!-- 聊天消息容器 -->
-      <ChatMessagesContainer 
-        v-if="chatStore.activeView === 'grid'"
-        ref="chatMessagesContainerRef" 
-        @updateScrollVisibility="updateScrollButtonVisibility"
-        @scrollToBottom="hideScrollButton"
-        class="w-full h-full"
-      />
+      <!-- 条件渲染聊天消息或知识图谱 -->
+      <div class="flex-1 overflow-hidden">
+        <!-- 聊天消息容器 -->
+        <ChatMessagesContainer 
+          v-if="chatStore.activeView === 'grid'"
+          ref="chatMessagesContainerRef" 
+          @updateScrollVisibility="updateScrollButtonVisibility"
+          @scrollToBottom="hideScrollButton"
+          class="w-full h-full"
+        />
+        
+        <!-- 上下文可视化容器 -->
+        <ContextVisualizationContent 
+          v-else
+          class="w-full h-full"
+        />
+      </div>
       
-      <!-- 上下文可视化容器 -->
-      <ContextVisualizationContent 
-        v-else
-        class="w-full h-full"
-      />
-    </div>
-    
-    <!-- 浮动按钮 - 只在聊天视图且有对话消息时显示 -->
+      <!-- 浮动按钮 - 只在聊天视图且有对话消息时显示 -->
       <ScrollToBottomButton 
         :isVisible="chatStore.activeView === 'grid' && isScrollToBottomVisible && chatStore.currentChatMessages.length > 0"
         @scrollToBottom="scrollToBottom"
       />
 
-    <!-- 消息输入区域 - 传递当前视图状态 -->
+      <!-- 消息输入区域 - 传递当前视图状态 -->
       <UserInputBox @sendMessage="handleSendMessage" :activeView="chatStore.activeView" />
-  </div>
+    </div>
+  </BaseContent>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed, watch } from 'vue';
-import { useChatHeader, useChatMessages } from '../../modules/conversation';
+import { ref, onMounted, nextTick, watch } from 'vue';
+import BaseContent from './BaseContent.vue';
 import ChatMessagesContainer from '../../modules/conversation/components/ChatMessagesContainer.vue';
 import ScrollToBottomButton from '../../modules/conversation/components/ScrollToBottomButton.vue';
 import UserInputBox from '../../modules/conversation/components/UserInputBox/UserInputBox.vue';
 import { KnowledgeGraphCanvas as ContextVisualizationContent } from '../../modules/knowledge-graph';
-import ChatHeader from '../../shared/ui/ChatHeader.vue';
+import { useChatScroll } from '../../modules/conversation/composables/useChatScroll.js';
 import logger from '../../shared/utils/logger.js';
-
-// 使用组合式函数
-const { 
-  chatStore, 
-  settingsStore, 
-  handleSideMenuToggle, 
-  handleNewChat, 
-  handleSelectHistoryChat,
-  getCurrentChatTitle,
-  chatHistory 
-} = useChatHeader();
-
-// 使用聊天消息管理组合函数
-const { 
-  sendMessage,
-  currentChatMessages,
-  isLoading: isSendingMessage,
-  error: sendMessageError
-} = useChatMessages();
 
 // 引用子组件
 const chatMessagesContainerRef = ref(null);
 
-// 本地UI状态
-const isScrollToBottomVisible = ref(false);
+// 从BaseContent继承的属性和方法会自动可用
 
-// 从store计算属性获取数据
-const currentTitle = computed(() => {
-  return getCurrentChatTitle();
+// 使用聊天滚动管理组合函数
+const { 
+  isScrollToBottomVisible,
+  scrollToBottom,
+  updateScrollButtonVisibility,
+  hideScrollButton,
+  safeScrollToBottom
+} = useChatScroll({
+  chatMessagesContainerRef
 });
 
-// 处理发送消息事件
-const handleSendMessage = (message, model, deepThinking, webSearchEnabled) => {
-  if (message.trim() || chatStore.uploadedFiles.length > 0) {
-    // 使用组合函数中的sendMessage方法
-    sendMessage(message, model, deepThinking, webSearchEnabled);
+// 组件挂载后的操作
+onMounted(() => {
+  logger.info('ChatContent组件已挂载，基于BaseContent组件');
 
-    // 发送消息后安全滚动到底部
-    nextTick(() => {
-      safeScrollToBottom();
-    });
+  // 检查如果消息为空，切换到发送消息视图
+  if (chatStore.currentChatMessages.length === 0) {
+    settingsStore.setActiveContent('sendMessage');
+    return;
   }
-};
 
-// 滚动到底部
-const scrollToBottom = () => {
-  if (chatMessagesContainerRef.value) {
-    chatMessagesContainerRef.value.scrollToBottom();
-  }
-};
-
-// 更新滚动按钮可见性
-const updateScrollButtonVisibility = (isVisible) => {
-  isScrollToBottomVisible.value = isVisible;
-};
-
-// 隐藏滚动按钮
-const hideScrollButton = () => {
-  isScrollToBottomVisible.value = false;
-};
+  // 初始化时安全滚动到底部
+  nextTick(() => {
+    safeScrollToBottom();
+  });
+});
 
 // 监听消息变化，自动滚动到底部
 watch(
@@ -112,93 +86,6 @@ watch(
     }
   }
 );
-
-// 监听最后一条消息内容变化，用于长文本实时渲染时的自动滚动
-watch(
-  [
-    () => {
-      const messages = currentChatMessages;
-      if (messages.length > 0) {
-        const lastMessage = messages[messages.length - 1];
-        const messageData = lastMessage?.value || lastMessage;
-        return {
-          content: messageData.content || '',
-          isTyping: messageData.isTyping || false,
-          lastUpdate: messageData.lastUpdate || Date.now()
-        };
-      }
-      return { content: '', isTyping: false, lastUpdate: Date.now() };
-    }
-  ],
-  (newValue, oldValue) => {
-    // 只有当内容确实发生变化时才滚动
-    if (JSON.stringify(newValue) !== JSON.stringify(oldValue) && settingsStore.systemSettings.autoScroll && !isScrollToBottomVisible.value) {
-      nextTick(() => {
-        safeScrollToBottom();
-      });
-    }
-  },
-  {
-    deep: true // 深度监听，确保能捕获对象内部属性变化
-  }
-);
-
-// 监听当前对话变化，安全滚动到底部
-watch(
-  () => chatStore.currentChatId,
-  (newChatId) => {
-    // 检查如果消息为空，切换到发送消息视图
-    if (newChatId && currentChatMessages.length === 0) {
-      settingsStore.setActiveContent('sendMessage');
-      return;
-    }
-    
-    nextTick(() => {
-      safeScrollToBottom();
-    });
-  }
-);
-
-// 监听当前对话消息列表变化，当消息为空时切换到发送消息视图
-watch(
-  () => currentChatMessages.length,
-  (newLength) => {
-    if (newLength === 0 && chatStore.currentChatId) {
-      settingsStore.setActiveContent('sendMessage');
-    }
-  }
-);
-
-// 使用requestAnimationFrame确保DOM完全渲染后再滚动
-const safeScrollToBottom = () => {
-  // 使用requestAnimationFrame确保在浏览器下一次重绘之前执行
-  requestAnimationFrame(() => {
-    scrollToBottom();
-    
-    // 对于复杂内容，可能需要第二次确认
-    requestAnimationFrame(() => {
-      scrollToBottom();
-    });
-  });
-};
-
-// 组件挂载后的操作
-  onMounted(() => {
-    logger.info('ChatContent组件已挂载，使用Pinia状态管理');
-
-  // 检查如果消息为空，切换到发送消息视图
-  if (chatStore.currentChatMessages.length === 0) {
-    settingsStore.setActiveContent('sendMessage');
-    return;
-  }
-
-  // 初始化时安全滚动到底部
-  nextTick(() => {
-    safeScrollToBottom();
-  });
-
-  // 注意：已移除自动保存功能，所有数据操作均通过后端API完成
-});
 </script>
 
 <style scoped>

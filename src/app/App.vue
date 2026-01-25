@@ -1,35 +1,37 @@
 <template>
-  <div 
-    class="app-container h-screen flex flex-col overflow-hidden bg-light text-dark dark:bg-dark-primary dark:text-light"
+  <!-- 使用语义化的应用容器标签 -->
+  <app-layout 
+    class="h-screen flex flex-col overflow-hidden bg-light text-dark dark:bg-dark-primary dark:text-light"
     :class="{ 'transition-all duration-300': !isInitialLoading }"
   >
-    <!-- 1. 顶部导航栏 -->
-    <TopNav/>
+    <!-- 1. 顶部导航栏：动态加载不同的 header 组件 -->
+    <AppHeader 
+      :header-type="headerConfig.component"
+      :header-props="headerConfig.props"
+      :header-events="headerConfig.events"
+    />
 
-    <!-- 主内容区域：显示区域 -->
-    <div class="flex flex-1 overflow-hidden">
-      <!-- 3. 显示区域容器 -->
-      <DisplayArea 
-        :active-content="settingsStore.activeContent" 
-        :saved-right-panel-width="settingsStore.rightPanelWidth" 
-        :is-initial-loading="isInitialLoading"
-      />
-    </div>
-  </div>
+    <!-- 2. 主内容区域：使用独立的 MainLayout 组件 -->
+    <MainLayout :is-initial-loading="isInitialLoading" />
+  </app-layout>
 </template>
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import TopNav from '../shared/ui/TopNav.vue';
-import DisplayArea from '../pages/chat/DisplayArea.vue';
+import MainLayout from '../shared/ui/layout/MainLayout.vue';
+import AppHeader from '../shared/ui/layout/AppHeader.vue';
+import { useAppHeader } from '../shared/composables/useAppHeader.js';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
 import { apiService } from '../shared/api/apiService.js';
-import logger from '../shared/utils/logger.js'; // 引入日志工具
+import logger from '../shared/utils/logger.js';
 
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
+
+// 使用应用头部组合式函数，动态管理不同页面的头部组件
+const { headerConfig } = useAppHeader();
 
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
@@ -40,21 +42,33 @@ watch(
   (newPanel) => {
     // 只有当前视图不是sendMessage时，才根据activePanel更新视图
     if (settingsStore.activeContent !== 'sendMessage') {
-      if (newPanel === 'settings') {
-        settingsStore.setActiveContent('settings');
-      } else {
-        // 当面板不是settings时，切换回chat内容
-        settingsStore.setActiveContent('chat');
-      }
+      settingsStore.setActiveContent(newPanel === 'settings' ? 'settings' : 'chat');
     }
-  }
+  },
+  { immediate: true } // 立即执行，确保初始状态正确
 );
 
 // 初始化应用
 onMounted(async () => {
-  let isBackendHealthy = false;
-  
   // 执行健康检查，使用优化后的重试机制
+  const isBackendHealthy = await checkBackendHealth();
+  
+  // 根据后端健康状态加载数据
+  await initializeAppData(isBackendHealthy);
+
+  // 初始化默认面板
+  if (!settingsStore.activePanel) {
+    settingsStore.setActivePanel(appConfig.initialActivePanel);
+  }
+
+  logger.info('AIClient应用已初始化，使用Pinia状态管理');
+  
+  // 初始化完成，启用动画
+  isInitialLoading.value = false;
+});
+
+// 检查后端健康状态 - 封装为独立函数
+async function checkBackendHealth() {
   try {
     await apiService.requestWithRetry(
       { method: 'GET', url: '/api/health' },
@@ -68,25 +82,25 @@ onMounted(async () => {
       }
     );
     logger.info('后端服务健康检查通过！');
-    isBackendHealthy = true;
+    return true;
   } catch {
     logger.error('后端服务健康检查失败，已达到最大重试次数');
-    isBackendHealthy = false;
+    return false;
   }
-  
-  // 只有在后端服务健康时，才加载设置、模型和聊天历史
+}
+
+// 初始化应用数据 - 封装为独立函数
+async function initializeAppData(isBackendHealthy) {
   if (isBackendHealthy) {
     logger.info('后端服务健康，开始加载应用数据...');
     
-    // 加载用户设置和数据
-    await settingsStore.loadSettings();
-    
-    // 加载模型数据
-    try {
-      await settingsStore.loadModels();
-    } catch (error) {
-      logger.error('初始化加载模型数据失败:', error);
-    }
+    // 并行加载非依赖数据，提高初始化速度
+    await Promise.all([
+      settingsStore.loadSettings(),
+      settingsStore.loadModels().catch(error => {
+        logger.error('初始化加载模型数据失败:', error);
+      })
+    ]);
 
     // 异步加载对话历史（非阻塞方式）
     chatStore.loadChatHistory().catch(error => {
@@ -99,19 +113,13 @@ onMounted(async () => {
     // 可以在这里添加用户友好的提示，比如显示一个通知
     // showNotification('后端服务连接失败，请检查服务状态', 'error');
   }
-
-  // 初始化默认面板
-  if (!settingsStore.activePanel) {
-    settingsStore.setActivePanel('history');
-  }
-
-  logger.info('AIClient应用已初始化，使用Pinia状态管理');
-  
-  // 初始化完成，启用动画
-  isInitialLoading.value = false;
-});
+}
 </script>
 
 <style scoped>
-/* App 组件特定样式 */
+/* 应用布局容器样式 */
+:deep(app-layout) {
+  display: flex;
+  flex-direction: column;
+}
 </style>

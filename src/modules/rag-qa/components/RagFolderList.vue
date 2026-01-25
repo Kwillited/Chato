@@ -23,11 +23,14 @@
             <i class="fa-solid fa-upload mr-1 text-xs"></i>释放以上传
           </div>
         </div>
-        <ActionButton
+        <Button
           icon="fa-trash-can"
-          title="删除此知识库文件夹"
+          tooltip="删除此知识库文件夹"
           @click.stop="handleDeleteFolder(folder)"
           class="text-gray-500 hover:text-red-500 text-sm"
+          variant="secondary"
+          size="md"
+          shape="full"
         />
       </div>
     </div>
@@ -36,7 +39,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import ActionButton from '../common/ActionButton.vue';
+import Button from '../../../shared/ui/Button.vue';
 import { useFileManagement } from '../../composables/useFileManagement.js';
 
 // 使用文件管理组合函数

@@ -1,36 +1,43 @@
 <template>
   <!-- 聊天顶部导航栏 -->
-  <div class="panel-header p-3 flex flex-wrap items-center justify-end gap-4 relative transition-all duration-300" :class="{ 'border-b-0': !showBorder }">
+  <div class="w-full flex items-center justify-between gap-2">
     <!-- 左侧按钮组 -->
-    <div class="absolute left-3 flex space-x-2">
+    <div class="flex items-center gap-2">
       <!-- 隐藏左侧面板按钮 -->
-      <ActionButton 
+      <Button 
         icon="bars"
-        title="隐藏左侧面板"
+        tooltip="隐藏左侧面板"
+        variant="secondary"
+        size="md"
+        shape="full"
         @click="handleSideMenuToggle"
       />
       <!-- 新增会话按钮 -->
-      <ActionButton 
+      <Button 
         id="newChat"
         icon="comment-dots"
-        title="新对话"
+        tooltip="新对话"
+        variant="secondary"
+        size="md"
+        shape="full"
         @click="handleNewChat"
       />
     </div>
     
-    <!-- 标题绝对居中 - 可选 -->
-    <div v-if="title" class="absolute left-1/2 transform -translate-x-1/2 flex items-center">
-      <h2 class="text-lg font-bold text-gray-800 dark:text-white">{{ title }}</h2>
-    </div>
+    <!-- 标题区域 -->
+    <h1 v-if="title" class="font-bold text-sm sm:text-base tracking-tight text-gray-900 dark:text-white">{{ title }}</h1>
     
-    <!-- 按钮区域靠右对齐 -->
-    <div class="flex items-center space-x-2">
+    <!-- 右侧按钮区域 -->
+    <div class="flex items-center gap-2">
       <!-- 历史对话按钮（带下拉菜单） -->
       <div class="relative hover-scale">
-        <ActionButton 
+        <Button 
           id="historyChat"
           icon="clock-rotate-left"
-          title="历史对话"
+          tooltip="历史对话"
+          variant="secondary"
+          size="md"
+          shape="full"
           @click.stop="toggleHistoryMenu"
         />
         
@@ -75,8 +82,8 @@
 
 <script setup>
 import { ref } from 'vue';
-import ActionButton from './ActionButton.vue';
-import { formatDate } from '../utils/date.js';
+import Button from '../Button.vue';
+import { formatDate } from '../../../shared/utils/date.js';
 
 // 定义组件属性
 defineProps({
