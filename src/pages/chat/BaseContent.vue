@@ -1,5 +1,5 @@
 <template>
-  <div class="base-content">
+  <div class="base-content flex flex-col h-full">
     <!-- 预留插槽，用于子组件自定义内容 -->
     <slot></slot>
   </div>

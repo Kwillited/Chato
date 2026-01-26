@@ -906,5 +906,11 @@ async playNotificationSound() {
     logger.error('处理通知声音时出错:', error);
   }
 },
+
+    // 获取当前对话标题
+    getCurrentChatTitle() {
+      const currentChat = this.chats.find(chat => chat.id === this.currentChatId);
+      return currentChat ? currentChat.title : '新对话';
+    },
   },
 });

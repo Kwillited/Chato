@@ -1,20 +1,20 @@
 <template>
   <!-- 设置页面头部导航栏 -->
   <div class="w-full flex items-center justify-between gap-2">
-    <!-- 左侧返回按钮 -->
-    <div class="flex items-center gap-2">
+    <!-- 左侧：返回按钮 + 标题 -->
+    <div class="flex items-center gap-1">
       <Button 
-        icon="arrow-left"
+        icon="chevron-left"
         tooltip="返回"
         variant="secondary"
         size="md"
         shape="full"
         @click="$emit('back')"
       />
+      
+      <!-- 标题区域 -->
+      <h1 class="font-bold text-sm sm:text-base tracking-tight text-gray-900 dark:text-white">{{ title }}</h1>
     </div>
-    
-    <!-- 标题区域 -->
-    <h1 class="font-bold text-sm sm:text-base tracking-tight text-gray-900 dark:text-white">{{ title }}</h1>
     
     <!-- 右侧选项卡导航 -->
     <div class="flex items-center gap-1.5 overflow-x-auto py-1 px-2 bg-gray-100 dark:bg-dark-700 rounded-lg shadow-sm border border-gray-200 dark:border-dark-600">

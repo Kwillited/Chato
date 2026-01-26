@@ -88,24 +88,9 @@ const STORAGE_KEYS = {
 
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
-    // 基础状态
+    // 基础状态 - 只保留必要的应用数据，移除UI状态
     ...updatedBaseStore.state(),
     
-    // 当前激活的设置面板
-    activePanel: 'history',
-    // 当前激活的设置部分
-    activeSection: 'general',
-
-    // 左侧导航栏可见性
-    leftNavVisible: false,
-    // 左侧导航栏宽度
-    leftNavWidth: '200px',
-
-    // 右侧面板可见性
-    rightPanelVisible: false,
-    // 右侧面板宽度
-    rightPanelWidth: '200px',
-
     // MCP相关设置
     mcpConfig: {
       enabled: false,
@@ -223,50 +208,11 @@ export const useSettingsStore = defineStore('settings', {
     getDefaultModel() {
       return this.systemSettings.defaultModel;
     },
-    
-    // 切换设置面板
-    setActivePanel(panel) {
-      this.activePanel = panel;
-    },
-
-    // 切换设置部分
-    setActiveSection(section) {
-      this.activeSection = section;
-    },
-
-    // 设置右侧面板可见性
-    setRightPanelVisible(visible) {
-      this.rightPanelVisible = visible;
-    },
-
-    // 切换右侧面板可见性
-    toggleRightPanel() {
-      this.rightPanelVisible = !this.rightPanelVisible;
-    },
-
-    // 切换左侧导航栏可见性
-    toggleLeftNav() {
-      this.leftNavVisible = !this.leftNavVisible;
-    },
-
-    // 设置左侧导航栏宽度
-    setLeftNavWidth(width) {
-      this.leftNavWidth = width;
-    },
-
-    // 设置右侧面板宽度
-    setRightNavWidth(width) {
-      this.rightPanelWidth = width;
-    },
 
     // 设置全局加载状态
     setLoading(loading) {
       this.isLoading = loading;
     },
-
-
-
-
 
     // 切换MCP功能
     toggleMcp(enabled) {
@@ -554,11 +500,6 @@ export const useSettingsStore = defineStore('settings', {
       if (savedSettings.modelParams && typeof savedSettings.modelParams === 'object') {
         this.modelParams = mergeSettings(this.modelParams, savedSettings.modelParams);
       }
-
-      // 恢复上次选择的设置部分
-      if (savedSettings.activeSection) {
-        this.activeSection = savedSettings.activeSection;
-      }
     },
 
     // 更新最后使用时间
@@ -616,8 +557,6 @@ export const useSettingsStore = defineStore('settings', {
           notificationsConfig: this.notificationsConfig,
           systemSettings: this.systemSettings,
           modelParams: this.modelParams, // 保存模型参数
-          leftNavWidth: this.leftNavWidth, // 保存导航栏宽度设置
-          rightPanelWidth: this.rightPanelWidth, // 保存右侧面板宽度设置
           timestamp: Date.now(),
         };
 

@@ -1,23 +1,39 @@
 <template>
   <!-- 统一的应用布局组件 -->
   <div class="app-layout h-screen flex flex-col overflow-hidden">
-    <!-- 1. 顶部导航栏：动态加载不同的 header 组件 -->
+    <!-- 1. 顶部导航栏：提供基础header结构，根据路由动态切换header组件 -->
     <header class="w-full px-4 sm:px-6 h-10 flex items-center justify-between gap-2 sticky top-0 bg-[#F8FAFC] dark:bg-dark-primary backdrop-blur-md z-30 border-b border-gray-100 dark:border-dark-700 transition-all duration-300">
-      <!-- 动态渲染不同的头部组件内容 -->
-      <component 
-        :is="currentHeaderComponent" 
-        v-bind="headerConfig.props" 
-        v-on="headerConfig.events"
-      />
+      <!-- 头部内容插槽，允许子组件定制header -->
+      <slot name="header">
+        <!-- 根据当前路由动态渲染合适的header组件 -->
+        <template v-if="currentRoute === '/settings'">
+          <SettingsHeader 
+            title="ChaTo Setting & Configuration"
+            :active-tab="activeTab"
+            @back="handleBackToHome"
+            @tab-change="handleTabChange"
+          />
+        </template>
+        <template v-else>
+          <!-- 默认的ChatHeader，用于聊天页面 -->
+          <ChatHeader 
+            :title="defaultHeaderTitle" 
+            :chat-history="chatHistory" 
+            @toggle-side-menu="handleSideMenuToggle"
+            @new-chat="handleNewChat"
+            @select-history-chat="handleSelectHistoryChat"
+          />
+        </template>
+      </slot>
     </header>
 
     <!-- 2. 主内容区域：左侧导航栏 + 主内容 + 右侧面板 -->
     <main class="flex flex-1 overflow-hidden">
       <!-- 左侧导航栏 -->
       <aside 
-        v-if="settingsStore.leftNavVisible" 
+        v-if="leftNavVisible" 
         class="left-sidebar" 
-        :style="{ width: settingsStore.leftNavWidth }"
+        :style="{ width: leftNavWidth }"
       >
         <LeftSidebar />
       </aside>
@@ -29,9 +45,9 @@
       
       <!-- 右侧面板 -->
       <aside 
-        v-if="settingsStore.rightPanelVisible" 
+        v-if="rightPanelVisible" 
         class="right-sidebar" 
-        :style="{ width: settingsStore.rightPanelWidth }"
+        :style="{ width: rightPanelWidth }"
       >
         <RightSidebar />
       </aside>
@@ -40,36 +56,69 @@
 </template>
 
 <script setup>
-import { computed, defineAsyncComponent } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSettingsStore } from '../../../app/store/settingsStore.js';
-import { useAppHeader } from '../../../shared/composables/useAppHeader.js';
+import { useChatHeader } from '../../../modules/conversation';
+import { useAppUI } from '../../../shared/composables/useAppUI.js';
+import ChatHeader from '../../../modules/conversation/components/headers/ChatHeader.vue';
+import SettingsHeader from '../../../pages/chat/SettingsHeader.vue';
+import { defineAsyncComponent } from 'vue';
+import { useRouter } from 'vue-router';
 
 // 初始化 stores
 const settingsStore = useSettingsStore();
+const router = useRouter();
 
-// 使用应用头部组合式函数，动态管理不同页面的头部组件
-const { headerConfig } = useAppHeader();
+// 使用应用UI状态组合式函数
+const {
+  leftNavVisible,
+  leftNavWidth,
+  rightPanelVisible,
+  rightPanelWidth,
+  activeTab,
+  toggleLeftNav,
+  setActiveTab
+} = useAppUI();
 
-// 动态导入头部组件
-const ChatHeader = defineAsyncComponent(() => import('../../../modules/conversation/components/headers/ChatHeader.vue'));
-const SettingsHeader = defineAsyncComponent(() => import('../../../pages/chat/SettingsHeader.vue'));
+// 使用聊天头部组合式函数获取默认header所需的数据
+const {
+  handleNewChat,
+  handleSelectHistoryChat,
+  getCurrentChatTitle,
+  chatHistory
+} = useChatHeader();
+
+// 监听路由变化，更新当前路由
+const currentRoute = ref(router.currentRoute.value.path);
+
+// 监听路由变化
+watch(() => router.currentRoute.value, (newRoute) => {
+  currentRoute.value = newRoute.path;
+}, { immediate: true });
+
+// 默认header标题
+const defaultHeaderTitle = computed(() => {
+  return getCurrentChatTitle();
+});
+
+// 返回首页
+const handleBackToHome = () => {
+  router.push('/');
+};
+
+// 处理标签切换
+const handleTabChange = (tabValue) => {
+  setActiveTab(tabValue);
+};
+
+// 切换侧边菜单可见性
+const handleSideMenuToggle = () => {
+  toggleLeftNav();
+};
 
 // 导入侧边栏组件
 const LeftSidebar = defineAsyncComponent(() => import('../../../pages/chat/LeftSidebar.vue'));
 const RightSidebar = defineAsyncComponent(() => import('../../../pages/chat/RightSidebar.vue'));
-
-// 统一的组件映射表
-const componentMap = {
-  // 头部组件映射
-  'chat-header': ChatHeader,
-  'settings-header': SettingsHeader
-};
-
-// 计算当前头部组件
-const currentHeaderComponent = computed(() => {
-  const headerType = headerConfig.component;
-  return componentMap[headerType] || ChatHeader;
-});
 </script>
 
 <style scoped>

@@ -487,6 +487,7 @@ import { useChatStore } from '../../../../app/store/chatStore.js';
 import { useSettingsStore } from '../../../../app/store/settingsStore.js';
 import { useNotifications } from '../../composables/useNotifications.js';
 import { useNavigation } from '../../../../shared/composables/useNavigation.js';
+import { useAppUI } from '../../../../shared/composables/useAppUI.js';
 
 // 接收从父组件传递的视图状态
 const _props = defineProps({
@@ -510,6 +511,7 @@ const STORAGE_KEYS = {
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const { handleSystemSettingsClick } = useNavigation();
+const { toggleRightPanel } = useAppUI();
 
 // 直接使用settingsStore的模型相关功能
 const availableModels = computed(() => settingsStore.availableModels);
@@ -1034,7 +1036,7 @@ const handleClickOutside = (event) => {
 };
 
 // 顶部导航栏迁移功能的函数
-const toggleViewPanel = () => settingsStore.toggleRightPanel();
+const toggleViewPanel = () => toggleRightPanel();
 const handleToggleTheme = () => settingsStore.toggleDarkMode();
 
 const toggleUserMenu = () => { showUserMenu.value = !showUserMenu.value; };

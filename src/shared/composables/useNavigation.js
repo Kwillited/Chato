@@ -28,7 +28,6 @@ export function useNavigation() {
    * 跳转到设置页面
    */
   const navigateToSettings = () => {
-    settingsStore.setActivePanel('settings');
     router.push('/settings');
   };
 
@@ -43,7 +42,6 @@ export function useNavigation() {
    * 处理系统设置点击事件
    */
   const handleSystemSettingsClick = () => {
-    settingsStore.setActivePanel('settings');
     router.push('/settings');
   };
 

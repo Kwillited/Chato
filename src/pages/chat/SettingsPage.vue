@@ -1,14 +1,5 @@
 <template>
   <div class="text-gray-900 min-h-screen flex flex-col items-center">
-    <!-- 提取为独立组件的设置页面头部导航栏 -->
-    <SettingsHeader 
-      title="ChaTo Setting & Configuration"
-      :active-tab="activeTab"
-      @back="navigateToHome"
-      @tab-change="handleTabChange"
-    />
-
-
     <!-- Main Content -->
     <main class="w-full px-6 py-8">
       <!-- =======================
@@ -332,7 +323,7 @@
       <!-- =======================
            VIEW 2: MCP 工具
            ======================= -->
-      <div v-if="activeTab === 'mcp'" class="max-w-4xl mx-auto dark:bg-dark-primary">
+      <div v-if="activeTab === 'mcp'" class="max-w-5xl mx-auto dark:bg-dark-primary">
 
         <div class="space-y-4">
           <!-- MCP Server Item: Filesystem -->
@@ -408,7 +399,7 @@
       <!-- =======================
            VIEW 5: 知识库配置
            ======================= -->
-      <div v-if="activeTab === 'knowledge'" class="max-w-4xl mx-auto dark:bg-dark-primary">
+      <div v-if="activeTab === 'knowledge'" class="max-w-5xl mx-auto dark:bg-dark-primary">
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <!-- Embedder模型卡片 -->
@@ -659,17 +650,19 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useSettingsStore } from '../../app/store/settingsStore.js';
 import { useChatStore } from '../../app/store/chatStore.js';
+import { useAppUI } from '../../shared/composables/useAppUI.js';
 import logger from '../../shared/utils/logger.js';
 import SettingsHeader from './SettingsHeader.vue';
 import { useNavigation } from '../../shared/composables/useNavigation.js';
 
 // 初始化stores
-const activeTab = ref('basic');
 const settingsStore = useSettingsStore();
 const chatStore = useChatStore();
 const modelStore = useSettingsStore();
 const { navigateToHome } = useNavigation();
-let originalLeftNavVisible = null;
+
+// 使用应用UI状态组合式函数
+const { activeTab } = useAppUI();
 
 // 处理标签切换
 const handleTabChange = (tabValue) => {
@@ -694,21 +687,11 @@ const newModel = ref({
   apiBaseUrl: ''
 });
 
-// 组件挂载时隐藏左侧边栏并加载模型
+// 组件挂载时加载模型
 onMounted(() => {
-  originalLeftNavVisible = settingsStore.leftNavVisible;
-  settingsStore.leftNavVisible = false;
-  
   // 如果当前是模型标签页，加载模型数据
   if (activeTab.value === 'models') {
     loadModels();
-  }
-});
-
-// 组件卸载时恢复左侧边栏状态
-onUnmounted(() => {
-  if (originalLeftNavVisible !== null) {
-    settingsStore.leftNavVisible = originalLeftNavVisible;
   }
 });
 
