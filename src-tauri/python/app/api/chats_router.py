@@ -1,0 +1,91 @@
+"""对话相关API路由"""
+from fastapi import APIRouter, Body, Path, HTTPException, Depends
+from fastapi.responses import StreamingResponse
+from app.services.chat.chat_service import ChatService  # 导入对话服务类
+from app.utils.decorators import handle_exception
+from app.dependencies import get_chat_service
+from app.models.pydantic_models import (
+    ChatListResponse, ChatCreate, ChatResponse, ChatCreateResponse,
+    PinUpdateRequest, PinUpdateResponse, DeleteChatResponse,
+    SuccessResponse, SendMessageRequest
+)
+
+# 创建对话API路由（前缀统一为 /api/chats）
+router = APIRouter(prefix='/api/chats')
+
+# 获取所有对话
+@router.get('', response_model=ChatListResponse)
+@handle_exception
+def get_chats(chat_service: ChatService = Depends(get_chat_service)):
+    chats = chat_service.get_chats()
+    return ChatListResponse(chats=chats)
+
+# 创建新对话
+@router.post('', status_code=201, response_model=ChatCreateResponse)
+@handle_exception
+def create_chat(data: ChatCreate = Body(...), chat_service: ChatService = Depends(get_chat_service)):
+    title = data.title
+    new_chat = chat_service.create_chat(title)
+    return ChatCreateResponse(chat=new_chat)
+
+# 获取单个对话记录（按ID）
+@router.get('/{chat_id}', response_model=ChatResponse)
+@handle_exception
+def get_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_chat_service)):
+    # 使用服务层获取对话
+    chat = chat_service.get_chat(chat_id)
+    if not chat:
+        raise HTTPException(status_code=404, detail='对话不存在')
+    
+    return ChatResponse(chat=chat)
+
+# 删除所有对话记录
+@router.delete('/delete-all', response_model=SuccessResponse)
+@handle_exception
+def delete_all_chats(chat_service: ChatService = Depends(get_chat_service)):
+    # 使用服务层删除所有对话
+    chat_service.delete_all_chats()
+    return SuccessResponse(success=True, message='所有对话已删除')
+
+# 删除单个对话记录（按ID）
+@router.delete('/{chat_id}', response_model=DeleteChatResponse)
+@handle_exception
+def delete_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_chat_service)):
+    # 使用服务层删除对话
+    success = chat_service.delete_chat(chat_id)
+    if not success:
+        raise HTTPException(status_code=404, detail='对话不存在')
+    
+    return DeleteChatResponse(success=True, message='对话已删除')
+
+# 更新对话置顶状态
+@router.patch('/{chat_id}/pin', response_model=PinUpdateResponse)
+@handle_exception
+def update_chat_pin(chat_id: str = Path(...), data: PinUpdateRequest = Body(...), chat_service: ChatService = Depends(get_chat_service)):
+    pinned = data.pinned
+    
+    # 使用服务层更新对话置顶状态
+    success = chat_service.update_chat_pin(chat_id, pinned)
+    if not success:
+        raise HTTPException(status_code=404, detail='对话不存在')
+    
+    return PinUpdateResponse(success=True, message=f'对话已{"置顶" if pinned else "取消置顶"}')
+
+# 发送消息（应用层）
+@router.post('/{chat_id}/messages')
+@handle_exception
+def send_message(chat_id: str = Path(...), data: SendMessageRequest = Body(...), chat_service: ChatService = Depends(get_chat_service)):
+    # 使用服务层处理消息发送，直接传递整个data对象
+    result = chat_service.send_message(chat_id, data.dict())
+    
+    # 从请求数据中获取stream参数
+    stream = data.stream
+    
+    # 根据stream参数处理响应
+    if stream:
+        # 流式响应返回生成器函数
+        return StreamingResponse(result(), media_type='text/event-stream')
+    else:
+        # 普通响应返回json和状态码
+        response_data, status_code = result
+        return response_data, status_code

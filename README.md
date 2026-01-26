@@ -171,18 +171,6 @@ npm run tauri -- --help
 3. pip install -r src-tauri/resources/python/requirements.txt
 4. deactivate
 
-## 文档
-
-项目文档位于 `docs/` 目录下，包含以下内容：
-
-- **[架构设计](docs/ARCHITECTURE.md)** - 详细描述了项目的整体架构设计，包含架构图和核心技术栈说明
-- **[模块/服务详述](docs/MODULES.md)** - 详细描述了应用的各个模块和服务，包括功能、架构和依赖关系
-- **[开发与部署指南](docs/DEVELOPMENT_GUIDE.md)** - 开发者的详细指南，包括环境搭建、开发流程、测试、构建与部署等
-- **[API 接口文档](docs/API.md)** - 详细描述了应用的 API 接口，包括接口地址、请求方法、参数说明等
-- **[协议与集成文档](docs/PROTOCOLS.md)** - 详细描述了应用使用的各种协议和集成方式
-- **[用户指南](docs/USER_GUIDE.md)** - 面向最终用户的使用手册
-- **[文档索引](docs/README.md)** - 文档目录索引
-
 ## 学习资源
 
 - [Tauri 官方文档](https://tauri.app/)
