@@ -1,11 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import App from '../App.vue'; // 你的主应用组件
+import AppLayout from '../../shared/ui/layout/AppLayout.vue';
+import ChatContent from '../../pages/chat/ChatContent.vue';
+import SettingsPage from '../../pages/chat/SettingsPage.vue';
+import Home from '../../pages/chat/home.vue';
 
 const routes = [
   {
     path: '/',
-    name: 'Home',
-    component: App
+    component: AppLayout,
+    children: [
+      {
+        path: '',
+        name: 'Home',
+        component: Home
+      },
+      {
+        path: 'chat',
+        name: 'Chat',
+        component: ChatContent
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: SettingsPage
+      }
+    ]
   }
 ];
 

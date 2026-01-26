@@ -1,6 +1,7 @@
 // 应用头部组合式函数
 import { computed } from 'vue';
 import { useSettingsStore } from '../../app/store/settingsStore.js';
+import { useNavigation } from './useNavigation.js';
 
 /**
  * 应用头部组合式函数，用于动态管理不同页面的头部组件
@@ -8,20 +9,19 @@ import { useSettingsStore } from '../../app/store/settingsStore.js';
  */
 export function useAppHeader() {
   const settingsStore = useSettingsStore();
+  const { navigateToChat } = useNavigation();
   
-  // 根据当前激活的内容自动选择合适的头部组件
+  // 根据当前路由自动选择合适的头部组件
   const activeHeaderComponent = computed(() => {
-    const activeContent = settingsStore.activeContent;
+    const currentRoute = window.location.pathname;
     
-    // 根据不同的内容类型返回对应的头部组件名称
-    switch (activeContent) {
-      case 'settings':
-        return 'settings-header';
-      case 'chat':
-      case 'home':
-      default:
-        return 'chat-header';
+    // 根据不同的路由路径返回对应的头部组件名称
+    if (currentRoute === '/settings') {
+      return 'settings-header';
+    } else if (currentRoute === '/chat' || currentRoute === '/') {
+      return 'chat-header';
     }
+    return 'chat-header';
   });
   
   // 动态加载头部组件的配置
@@ -42,9 +42,7 @@ export function useAppHeader() {
         selectHistoryChat: (chatId) => {
           console.log('Select chat:', chatId);
         },
-        back: () => {
-          settingsStore.setActiveContent('chat');
-        },
+        back: navigateToChat,
         tabChange: (tabValue) => {
           settingsStore.setActiveTab(tabValue);
         }

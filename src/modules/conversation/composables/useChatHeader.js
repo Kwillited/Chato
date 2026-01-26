@@ -29,8 +29,7 @@ export function useChatHeader() {
   const handleNewChat = async () => {
     try {
       await createNewChat();
-      // 切换到发送消息视图
-      settingsStore.setActiveContent('sendMessage');
+      // 切换到发送消息视图 - 路由管理下不需要手动切换
     } catch (error) {
       console.error('创建新对话失败:', error);
     }
@@ -43,8 +42,7 @@ export function useChatHeader() {
   const handleSelectHistoryChat = async (chatId) => {
     try {
       await selectChat(chatId);
-      // 切换到聊天视图
-      settingsStore.setActiveContent('chat');
+      // 切换到聊天视图 - 路由管理下不需要手动切换
     } catch (error) {
       console.error('选择对话失败:', error);
     }

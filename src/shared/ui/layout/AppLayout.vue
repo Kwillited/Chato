@@ -22,9 +22,9 @@
         <LeftSidebar />
       </aside>
       
-      <!-- 主内容区域 - 动态内容渲染 -->
+      <!-- 主内容区域 - 使用路由视图 -->
       <section class="main-content flex-1 overflow-hidden w-full h-full flex flex-col">
-        <component :is="currentContentComponent" />
+        <router-view />
       </section>
       
       <!-- 右侧面板 -->
@@ -40,15 +40,12 @@
 </template>
 
 <script setup>
-import { ref, computed, defineAsyncComponent, onMounted, watch } from 'vue';
+import { computed, defineAsyncComponent } from 'vue';
 import { useSettingsStore } from '../../../app/store/settingsStore.js';
-import { useChatStore } from '../../../app/store/chatStore.js';
-import logger from '../../../shared/utils/logger.js';
 import { useAppHeader } from '../../../shared/composables/useAppHeader.js';
 
 // 初始化 stores
 const settingsStore = useSettingsStore();
-const chatStore = useChatStore();
 
 // 使用应用头部组合式函数，动态管理不同页面的头部组件
 const { headerConfig } = useAppHeader();
@@ -56,12 +53,6 @@ const { headerConfig } = useAppHeader();
 // 动态导入头部组件
 const ChatHeader = defineAsyncComponent(() => import('../../../modules/conversation/components/headers/ChatHeader.vue'));
 const SettingsHeader = defineAsyncComponent(() => import('../../../pages/chat/SettingsHeader.vue'));
-
-// 动态导入内容组件
-const ChatContent = defineAsyncComponent(() => import('../../../pages/chat/ChatContent.vue'));
-const SettingsPage = defineAsyncComponent(() => import('../../../pages/chat/SettingsPage.vue'));
-const FileManager = defineAsyncComponent(() => import('../../../pages/chat/FileManager.vue'));
-const Home = defineAsyncComponent(() => import('../../../pages/chat/home.vue'));
 
 // 导入侧边栏组件
 const LeftSidebar = defineAsyncComponent(() => import('../../../pages/chat/LeftSidebar.vue'));
@@ -71,37 +62,13 @@ const RightSidebar = defineAsyncComponent(() => import('../../../pages/chat/Righ
 const componentMap = {
   // 头部组件映射
   'chat-header': ChatHeader,
-  'settings-header': SettingsHeader,
-  
-  // 内容组件映射
-  chat: ChatContent,
-  settings: SettingsPage,
-  aiSettings: SettingsPage,
-  ragManagement: FileManager,
-  home: Home
+  'settings-header': SettingsHeader
 };
 
 // 计算当前头部组件
 const currentHeaderComponent = computed(() => {
   const headerType = headerConfig.component;
   return componentMap[headerType] || ChatHeader;
-});
-
-// 计算当前内容组件
-const currentContentComponent = computed(() => {
-  const activeContent = settingsStore.activeContent;
-  return componentMap[activeContent] || Home;
-});
-
-// 暴露方法给父组件
-const registerComponent = (type, component) => {
-  componentMap[type] = component;
-  logger.info(`组件已注册: ${type}`);
-};
-
-// 暴露公共方法
-defineExpose({
-  registerComponent
 });
 </script>
 

@@ -23,14 +23,10 @@
       <!-- 设置面板 -->
       <div v-else-if="activePanel === 'settings'" class="settings-panel p-4">
         <h3 class="text-lg font-bold mb-4 text-gray-800 dark:text-white">设置</h3>
-        <button class="w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-300 transition-colors mb-2"
-          @click="setActiveContent('settings')"
-        >
+        <router-link to="/settings" class="block w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-300 transition-colors mb-2">
           应用设置
-        </button>
-        <button class="w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-300 transition-colors"
-          @click="setActiveContent('ragManagement')"
-        >
+        </router-link>
+        <button class="w-full text-left p-2 rounded hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-300 transition-colors">
           知识库配置
         </button>
       </div>
@@ -63,10 +59,6 @@ const chatHistory = computed(() => chatStore.chatHistory);
 // 方法
 const selectChat = (chatId) => {
   chatStore.selectChat(chatId);
-};
-
-const setActiveContent = (content) => {
-  settingsStore.setActiveContent(content);
 };
 </script>
 

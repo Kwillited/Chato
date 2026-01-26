@@ -63,15 +63,9 @@ const {
 onMounted(() => {
   logger.info('ChatContent组件已挂载，基于BaseContent组件');
 
-  // 检查如果消息为空，切换到发送消息视图
-  if (chatStore.currentChatMessages.length === 0) {
-    settingsStore.setActiveContent('sendMessage');
-    return;
-  }
-
   // 初始化时安全滚动到底部
   nextTick(() => {
-    safeScrollToBottom();
+    scrollToBottom();
   });
 });
 

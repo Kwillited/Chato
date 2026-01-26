@@ -4,7 +4,7 @@
     <SettingsHeader 
       title="ChaTo Setting & Configuration"
       :active-tab="activeTab"
-      @back="settingsStore.setActiveContent('home')"
+      @back="navigateToHome"
       @tab-change="handleTabChange"
     />
 
@@ -15,8 +15,6 @@
            VIEW 1: 基本设置
            ======================= -->
       <div v-if="activeTab === 'basic'" class="max-w-5xl mx-auto dark:bg-dark-primary">
-
-        
         <div class="flex flex-col md:flex-row gap-6 items-stretch">
           <!-- 左侧：个人信息设置区 -->
           <div class="w-full md:w-1/3 space-y-6">
@@ -663,12 +661,14 @@ import { useSettingsStore } from '../../app/store/settingsStore.js';
 import { useChatStore } from '../../app/store/chatStore.js';
 import logger from '../../shared/utils/logger.js';
 import SettingsHeader from './SettingsHeader.vue';
+import { useNavigation } from '../../shared/composables/useNavigation.js';
 
 // 初始化stores
 const activeTab = ref('basic');
 const settingsStore = useSettingsStore();
 const chatStore = useChatStore();
 const modelStore = useSettingsStore();
+const { navigateToHome } = useNavigation();
 let originalLeftNavVisible = null;
 
 // 处理标签切换

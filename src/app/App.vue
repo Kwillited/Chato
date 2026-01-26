@@ -1,14 +1,10 @@
 <template>
-  <!-- 使用统一的应用布局组件 -->
-  <AppLayout 
-    class="h-screen flex flex-col overflow-hidden bg-light text-dark dark:bg-dark-primary dark:text-light"
-    :class="{ 'transition-all duration-300': !isInitialLoading }"
-  />
+  <!-- 根组件：只渲染路由视图 -->
+  <router-view />
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
-import AppLayout from '../shared/ui/layout/AppLayout.vue';
+import { ref, onMounted } from 'vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
 import { apiService } from '../shared/api/apiService.js';
@@ -18,20 +14,8 @@ import logger from '../shared/utils/logger.js';
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 
-// 初始加载状态，用于控制首次加载时的动画
+// 初始加载状态
 const isInitialLoading = ref(true);
-
-// 监听activePanel变化，同步更新activeContent
-watch(
-  () => settingsStore.activePanel,
-  (newPanel) => {
-    // 只有当前视图不是home时，才根据activePanel更新视图
-    if (settingsStore.activeContent !== 'home') {
-      settingsStore.setActiveContent(newPanel === 'settings' ? 'settings' : 'home');
-    }
-  },
-  { immediate: true } // 立即执行，确保初始状态正确
-);
 
 // 初始化应用
 onMounted(async () => {
@@ -43,12 +27,12 @@ onMounted(async () => {
 
   // 初始化默认面板
   if (!settingsStore.activePanel) {
-    settingsStore.setActivePanel(appConfig.initialActivePanel);
+    settingsStore.setActivePanel('history');
   }
 
-  logger.info('AIClient应用已初始化，使用Pinia状态管理');
+  logger.info('AIClient应用已初始化，使用Vue Router路由管理');
   
-  // 初始化完成，启用动画
+  // 初始化完成
   isInitialLoading.value = false;
 });
 
@@ -101,10 +85,17 @@ async function initializeAppData(isBackendHealthy) {
 }
 </script>
 
-<style scoped>
-/* 应用布局容器样式 */
-.app-layout {
-  display: flex;
-  flex-direction: column;
+<style>
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>
