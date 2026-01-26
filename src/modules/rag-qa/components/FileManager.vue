@@ -234,7 +234,7 @@ import { formatFileSize } from '../../shared/utils/helpers.js';
 import Button from '../../shared/ui/Button.vue';
 import ConfirmationModal from '../../shared/ui/ConfirmationModal.vue';
 import { KnowledgeGraphCanvas as KnowledgeGraphVisualization } from '../../modules/knowledge-graph';
-import { useNotifications } from '../../modules/conversation';
+import { useNotifications } from '../../modules/chat';
 import { useFileManagement } from '../../modules/rag-qa';
 import { useKnowledgeGraph } from '../../modules/knowledge-graph/composables/useKnowledgeGraph.js';
 import logger from '../../shared/utils/logger.js';

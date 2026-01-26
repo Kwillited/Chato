@@ -61,9 +61,9 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useSettingsStore } from '../../../app/store/settingsStore.js';
-import { useChatHeader } from '../../../modules/conversation';
+import { useChatHeader } from '../../../modules/chat';
 import { useAppUI } from '../../../shared/composables/useAppUI.js';
-import ChatHeader from '../../../modules/conversation/components/headers/ChatHeader.vue';
+import ChatHeader from '../../../modules/chat/components/headers/ChatHeader.vue';
 import SettingsHeader from '../../../pages/chat/SettingsHeader.vue';
 import { defineAsyncComponent } from 'vue';
 import { useRouter } from 'vue-router';

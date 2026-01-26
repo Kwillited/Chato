@@ -7,7 +7,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useChatHeader, useChatMessages } from '../../modules/conversation';
+import { useChatHeader, useChatMessages } from '../../modules/chat';
 import logger from '../../shared/utils/logger.js';
 
 // 使用组合式函数

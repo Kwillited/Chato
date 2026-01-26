@@ -10,8 +10,8 @@
 </template>
 
 <script setup>
-import UserInputBox from '../../modules/conversation/components/UserInputBox/UserInputBox.vue';
-import { useChatHeader, useChatMessages } from '../../modules/conversation';
+import UserInputBox from '../../modules/chat/components/UserInputBox/UserInputBox.vue';
+import { useChatHeader, useChatMessages } from '../../modules/chat';
 import { useAppUI } from '../../shared/composables/useAppUI.js';
 import { useNavigation } from '../../shared/composables/useNavigation.js';
 

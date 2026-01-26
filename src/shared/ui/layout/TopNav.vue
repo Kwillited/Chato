@@ -87,7 +87,7 @@
 <script setup>
 import { ref } from 'vue';
 import Button from '../Button.vue';
-import { useChatHeader } from '../../../modules/conversation/composables/useChatHeader.js';
+import { useChatHeader } from '../../../modules/chat/composables/useChatHeader.js';
 import { formatDate } from '../../../shared/utils/date.js';
 
 // 使用聊天头部组合函数

@@ -32,12 +32,12 @@
 
 <script setup>
 import { ref, onMounted, nextTick, watch } from 'vue';
-import ChatMessagesContainer from '../../modules/conversation/components/ChatMessagesContainer.vue';
-import ScrollToBottomButton from '../../modules/conversation/components/ScrollToBottomButton.vue';
-import UserInputBox from '../../modules/conversation/components/UserInputBox/UserInputBox.vue';
+import ChatMessagesContainer from '../../modules/chat/components/ChatMessagesContainer.vue';
+import ScrollToBottomButton from '../../modules/chat/components/ScrollToBottomButton.vue';
+import UserInputBox from '../../modules/chat/components/UserInputBox/UserInputBox.vue';
 import { KnowledgeGraphCanvas as ContextVisualizationContent } from '../../modules/knowledge-graph';
 import logger from '../../shared/utils/logger.js';
-import { useChatHeader, useChatMessages } from '../../modules/conversation';
+import { useChatHeader, useChatMessages } from '../../modules/chat';
 import { useAppUI } from '../../shared/composables/useAppUI.js';
 import { useNavigation } from '../../shared/composables/useNavigation.js';
 
