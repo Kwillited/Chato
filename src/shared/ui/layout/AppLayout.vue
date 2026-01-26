@@ -39,7 +39,6 @@
         <MessageListSidebar v-if="activeSidebar === 'message'" />
         <FolderListSidebar v-else-if="activeSidebar === 'folder'" />
         <MCPToolListSidebar v-else-if="activeSidebar === 'mcp'" />
-        <LeftSidebar v-else />
       </aside>
       
       <!-- 主内容区域 - 使用路由视图 -->
@@ -53,7 +52,7 @@
         class="right-sidebar" 
         :style="{ width: rightPanelWidth }"
       >
-        <RightSidebar />
+        <!-- 右侧侧边栏内容可在此处添加 -->
       </aside>
     </main>
   </div>
@@ -123,11 +122,9 @@ const handleSideMenuToggle = () => {
 };
 
 // 导入侧边栏组件
-const LeftSidebar = defineAsyncComponent(() => import('../../../pages/chat/LeftSidebar.vue'));
 const FolderListSidebar = defineAsyncComponent(() => import('../../../pages/chat/FolderListSidebar.vue'));
 const MessageListSidebar = defineAsyncComponent(() => import('../../../pages/chat/MessageListSidebar.vue'));
 const MCPToolListSidebar = defineAsyncComponent(() => import('../../../pages/chat/MCPToolListSidebar.vue'));
-const RightSidebar = defineAsyncComponent(() => import('../../../pages/chat/RightSidebar.vue'));
 </script>
 
 <style scoped>

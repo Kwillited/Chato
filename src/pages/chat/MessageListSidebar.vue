@@ -2,168 +2,90 @@
   <!-- 消息列表侧边栏组件 -->
   <Sidebar class="message-list-sidebar left">
     <template #content>
-      <div id="historyPanel" class="h-full flex flex-col">
-        <!-- 搜索框 -->
-        <div class="p-2 border-b border-gray-100 dark:border-dark-700">
-          <div class="relative">
-            <input 
-              type="text" 
-              placeholder="搜索消息..." 
-              class="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-dark-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              v-model="searchQuery"
-            >
-            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
-          </div>
+      <!-- 搜索框 -->
+      <div class="p-2 border-b border-gray-100 dark:border-dark-700">
+        <div class="relative">
+          <input 
+            type="text" 
+            placeholder="搜索消息..." 
+            class="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-dark-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            v-model="searchQuery"
+          >
+          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
         </div>
+      </div>
 
-        <div ref="scrollContainer" class="overflow-y-auto h-[calc(100%-80px)] scrollbar-thin transition-colors duration-300 ease-in-out">
-          <div id="chatHistory" class="p-2 space-y-3 transition-all duration-300 ease-in-out">
-            <!-- 有消息时显示 -->
-            <div v-if="groupedMessages.length > 0" class="transition-opacity duration-300">
-              <div v-for="group in groupedMessages" :key="group.title" class="mb-4 transition-all duration-300">
-                <h3 class="text-xs font-medium text-gray-500 dark:text-white mb-2 px-2 cursor-pointer flex items-center uppercase tracking-wider transition-colors duration-300"
-                     @click="toggleGroup(group.title)">
-                
-                  <i
-                    class="fa-solid fa-chevron-down mr-1.5 text-[8px] transition-transform duration-200 ease-in-out"
-                    :class="{ 'rotate-[-90deg]': collapsedGroups[group.title] }"
-                  ></i>
-                  {{ group.title }} ({{ group.messages.length }})
-                </h3>
-                <div class="space-y-1" v-if="!collapsedGroups[group.title]">
-                  <div
-                    v-for="chat in group.messages"
-                    :key="chat.id"
-                    class="p-2 rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-dark-500 hover:shadow-md hover:-translate-y-0.5 min-h-9 flex items-center relative focus-within:outline-2 focus-within:outline-gray-400 dark:focus-within:outline-gray-500 focus-within:outline-offset-2"
-                    :class="{ 'font-semibold bg-gray-200 dark:bg-dark-500': isActiveChat(chat.id), pinned: chat.pinned }"
-                    @click="selectMessage(chat.id)"
-                  >
-                    <div class="flex items-center w-full">
-                      <div class="flex items-center space-x-2 flex-1 min-w-0">
-                        <div class="relative">
-                          <i v-if="chat.pinned" class="fa-solid fa-thumbtack text-sm text-blue-500 flex-shrink-0 transition-colors duration-300"></i>
-                          <i v-else class="fa-solid fa-comment text-sm text-gray-400 dark:text-gray-300 flex-shrink-0 transition-colors duration-300"></i>
-                          <!-- 未读消息红点提示 -->
-                          <span v-if="hasUnreadMessage(chat)" class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full transition-all duration-300"></span>
-                        </div>
-                        <div class="font-medium text-sm text-slate-800 dark:text-white truncate transition-colors duration-300">{{ chat.title }}</div>
-                      </div>
-                      <div class="flex items-center space-x-2 ml-2 flex-shrink-0">
-                        <button
-                          class="text-[10px] text-neutral-400 opacity-0 hover:text-blue-500 hover:bg-blue-50 p-0.5 rounded transition-all duration-200 ease-in-out"
-                          @click.stop="chatStore.togglePinChat(chat.id)"
-                          :title="chat.pinned ? '取消置顶' : '置顶对话'"
-                        >
-                          <i class="fa-solid fa-thumbtack"></i>
-                        </button>
-                      </div>
+      <!-- 滚动容器 -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-3 scrollbar-thin transition-colors duration-300 ease-in-out">
+        <!-- 有消息时显示 -->
+        <div v-if="groupedMessages.length > 0" class="transition-opacity duration-300">
+          <div v-for="group in groupedMessages" :key="group.title" class="mb-4 transition-all duration-300">
+            <h3 class="text-xs font-medium text-gray-500 dark:text-white mb-2 px-2 cursor-pointer flex items-center uppercase tracking-wider transition-colors duration-300"
+                 @click="toggleGroup(group.title)">
+            
+              <i
+                class="fa-solid fa-chevron-down mr-1.5 text-[8px] transition-transform duration-200 ease-in-out"
+                :class="{ 'rotate-[-90deg]': collapsedGroups[group.title] }"
+              ></i>
+              {{ group.title }} ({{ group.messages.length }})
+            </h3>
+            <div class="space-y-1" v-if="!collapsedGroups[group.title]">
+              <div
+                v-for="chat in group.messages"
+                :key="chat.id"
+                class="p-2 rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-dark-500 hover:shadow-md hover:-translate-y-0.5 min-h-9 flex items-center relative focus-within:outline-2 focus-within:outline-gray-400 dark:focus-within:outline-gray-500 focus-within:outline-offset-2"
+                :class="{ 'font-semibold bg-gray-200 dark:bg-dark-500': isActiveChat(chat.id), pinned: chat.pinned }"
+                @click="selectMessage(chat.id)"
+              >
+                <div class="flex items-center w-full">
+                  <div class="flex items-center space-x-2 flex-1 min-w-0">
+                    <div class="relative">
+                      <i v-if="chat.pinned" class="fa-solid fa-thumbtack text-sm text-blue-500 flex-shrink-0 transition-colors duration-300"></i>
+                      <i v-else class="fa-solid fa-comment text-sm text-gray-400 dark:text-gray-300 flex-shrink-0 transition-colors duration-300"></i>
+                      <!-- 未读消息红点提示 -->
+                      <span v-if="hasUnreadMessage(chat)" class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full transition-all duration-300"></span>
                     </div>
+                    <div class="font-medium text-sm text-slate-800 dark:text-white truncate transition-colors duration-300">{{ chat.title }}</div>
+                  </div>
+                  <div class="flex items-center space-x-2 ml-2 flex-shrink-0">
+                    <button
+                      class="text-[10px] text-neutral-400 opacity-0 hover:text-blue-500 hover:bg-blue-50 p-0.5 rounded transition-all duration-200 ease-in-out"
+                      @click.stop="chatStore.togglePinChat(chat.id)"
+                      :title="chat.pinned ? '取消置顶' : '置顶对话'"
+                    >
+                      <i class="fa-solid fa-thumbtack"></i>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-            <!-- 搜索无结果 -->
-            <div v-else-if="searchQuery.trim()"
-              class="p-6 text-center text-neutral dark:text-gray-300 text-sm transition-colors duration-300">
-              没有找到与 "{{ searchQuery }}" 相关的消息
-            </div>
-            <!-- 空状态 -->
-            <div v-else id="emptyChatState" class="p-10 text-center text-gray-500 dark:text-gray-300 text-sm italic transition-colors duration-300">暂无消息记录</div>
           </div>
         </div>
+        <!-- 搜索无结果 -->
+        <div v-else-if="searchQuery.trim()"
+          class="p-6 text-center text-neutral dark:text-gray-300 text-sm transition-colors duration-300">
+          没有找到与 "{{ searchQuery }}" 相关的消息
+        </div>
+        <!-- 空状态 -->
+        <div v-else class="p-10 text-center text-gray-500 dark:text-gray-300 text-sm italic transition-colors duration-300">暂无消息记录</div>
       </div>
     </template>
   </Sidebar>
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { useChatStore } from '../../app/store/chatStore.js';
 import Sidebar from '../../shared/ui/layout/Sidebar.vue';
-
-// 滚动容器引用
-const scrollContainer = ref(null);
-
-// 滚动计时器
-let scrollTimer = null;
-
-// 处理滚动开始
-const handleScrollStart = () => {
-  if (scrollContainer.value) {
-    scrollContainer.value.classList.add('scrolling');
-    
-    // 清除之前的计时器
-    if (scrollTimer) {
-      clearTimeout(scrollTimer);
-    }
-  }
-};
-
-// 处理滚动结束
-const handleScrollEnd = () => {
-  if (scrollContainer.value) {
-    scrollTimer = setTimeout(() => {
-      scrollContainer.value.classList.remove('scrolling');
-    }, 150);
-  }
-};
-
-// 组件挂载时添加事件监听
-onMounted(() => {
-  if (scrollContainer.value) {
-    const container = scrollContainer.value;
-    
-    // 防抖滚动处理函数
-    const handleScroll = () => {
-      handleScrollStart();
-      
-      // 清除之前的计时器
-      if (scrollTimer) {
-        clearTimeout(scrollTimer);
-      }
-      
-      // 设置新的计时器来检测滚动结束
-      scrollTimer = setTimeout(handleScrollEnd, 150);
-    };
-    
-    // 添加滚动事件监听
-    container.addEventListener('scroll', handleScroll);
-    
-    // 对于支持scrollend事件的浏览器，添加额外的滚动结束监听
-    if ('scrollend' in window) {
-      container.addEventListener('scrollend', handleScrollEnd);
-    }
-    
-    // 保存处理函数引用以便卸载时移除
-    container._scrollHandler = handleScroll;
-  }
-});
-
-// 组件卸载时移除事件监听
-onUnmounted(() => {
-  if (scrollContainer.value) {
-    const container = scrollContainer.value;
-    
-    // 移除滚动事件监听
-    if (container._scrollHandler) {
-      container.removeEventListener('scroll', container._scrollHandler);
-    }
-    
-    // 移除scrollend事件监听
-    container.removeEventListener('scrollend', handleScrollEnd);
-  }
-  
-  // 清除计时器
-  if (scrollTimer) {
-    clearTimeout(scrollTimer);
-  }
-});
 
 // 初始化store
 const chatStore = useChatStore();
 
-// 搜索查询 - 与 chatStore 同步
-const searchQuery = ref('');
+// 搜索查询 - 使用 chatStore 中的状态
+const searchQuery = computed({
+  get: () => chatStore.searchQuery,
+  set: (value) => chatStore.setSearchQuery(value)
+});
 
 // 用于管理分组的展开/折叠状态
 const collapsedGroups = reactive({});
@@ -291,51 +213,8 @@ const hasUnreadMessage = (chat) => {
 </script>
 
 <style scoped>
-.message-panel {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.message-list {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.message-item {
-  /* 消息项基础样式 - 已在模板中通过类名实现 */
-}
-
 /* 添加悬停时显示按钮的效果 */
 .hover\:shadow-md:hover .opacity-0 {
   opacity: 1;
-}
-
-/* 滚动条样式 - 与HistoryPanel.vue保持一致 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* 深色模式滚动条样式 */
-.dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  transition: background-color 0.3s ease-in-out;
-}
-
-.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 </style>
