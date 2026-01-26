@@ -528,9 +528,7 @@ export const useSettingsStore = defineStore('settings', {
         };
         await apiService.post('/api/mcp', mcpSettingsToSave);
         
-        // 保存向量配置
-        await apiService.post('/api/settings/vector', this.vectorConfig);
-        
+        // 向量配置不需要单独保存到后端，因为它会在每次向量API调用时传递
         // 保存系统设置，转换字段名以匹配后端模型
         const systemSettingsToSave = {
           dark_mode: this.systemSettings.darkMode,
