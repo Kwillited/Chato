@@ -102,11 +102,11 @@
 
 <script setup>
 import { onMounted, onUnmounted, ref } from 'vue';
-import { useVectorStore } from '../../app/store/vectorStore.js';
-import { useFileStore } from '../../app/store/fileStore.js';
-import { showNotification } from '../../shared/utils/notificationUtils.js';
-import ConfirmationModal from '../../shared/ui/ConfirmationModal.vue';
-import Sidebar from '../../shared/ui/layout/Sidebar.vue';
+import { useVectorStore } from '../../../app/store/vectorStore.js';
+import { useFileStore } from '../../../app/store/fileStore.js';
+import { showNotification } from '../../../shared/utils/notificationUtils.js';
+import ConfirmationModal from '../../../shared/ui/ConfirmationModal.vue';
+import Sidebar from '../layout/Sidebar.vue';
 
 const ragStore = useVectorStore();
 const fileStore = useFileStore();

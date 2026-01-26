@@ -238,7 +238,7 @@ import { useNotifications } from '../../modules/conversation';
 import { useFileManagement } from '../../modules/rag-qa';
 import { useKnowledgeGraph } from '../../modules/knowledge-graph/composables/useKnowledgeGraph.js';
 import logger from '../../shared/utils/logger.js';
-import BaseContent from './BaseContent.vue';
+import BaseContent from '../../../shared/ui/layout/BaseContent.vue';
 
 // 导入Tauri API用于文件操作
 // 移除不再需要的Tauri导入

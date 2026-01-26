@@ -62,7 +62,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import Sidebar from '../../shared/ui/layout/Sidebar.vue';
+import Sidebar from '../layout/Sidebar.vue';
 
 // 搜索查询
 const searchQuery = ref('');

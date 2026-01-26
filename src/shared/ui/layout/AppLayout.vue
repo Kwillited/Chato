@@ -122,9 +122,9 @@ const handleSideMenuToggle = () => {
 };
 
 // 导入侧边栏组件
-const FolderListSidebar = defineAsyncComponent(() => import('../../../pages/chat/FolderListSidebar.vue'));
-const MessageListSidebar = defineAsyncComponent(() => import('../../../pages/chat/MessageListSidebar.vue'));
-const MCPToolListSidebar = defineAsyncComponent(() => import('../../../pages/chat/MCPToolListSidebar.vue'));
+const FolderListSidebar = defineAsyncComponent(() => import('../sidebar/FolderListSidebar.vue'));
+const MessageListSidebar = defineAsyncComponent(() => import('../sidebar/MessageListSidebar.vue'));
+const MCPToolListSidebar = defineAsyncComponent(() => import('../sidebar/MCPToolListSidebar.vue'));
 </script>
 
 <style scoped>

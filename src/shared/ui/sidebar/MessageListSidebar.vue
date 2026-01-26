@@ -75,8 +75,8 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue';
-import { useChatStore } from '../../app/store/chatStore.js';
-import Sidebar from '../../shared/ui/layout/Sidebar.vue';
+import { useChatStore } from '../../../app/store/chatStore.js';
+import Sidebar from '../layout/Sidebar.vue';
 
 // 初始化store
 const chatStore = useChatStore();
