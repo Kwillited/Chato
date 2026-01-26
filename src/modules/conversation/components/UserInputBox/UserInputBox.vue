@@ -404,15 +404,7 @@
                 <i class="fa-solid fa-globe"></i>
               </button>
             </Tooltip>
-            <!-- 消息列表按钮 -->
-            <Tooltip content="消息列表">
-              <button
-                class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out text-gray-500 dark:text-gray-300 hover:text-primary"
-                @click="setActiveSidebar('message')"
-              >
-                <i class="fa-solid fa-comment-dots"></i>
-              </button>
-            </Tooltip>
+
             <!-- MCP启动按钮 -->
             <Tooltip content="MCP工具">
               <button

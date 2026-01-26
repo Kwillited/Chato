@@ -1,6 +1,6 @@
 <template>
   <!-- 左侧侧边栏组件 - 基于通用 Sidebar -->
-  <Sidebar type="left" default-title="左侧边栏" default-content="左侧边栏内容">
+  <Sidebar class="left">
     <template #content>
       <!-- 历史对话面板 -->
       <div v-if="activePanel === 'history'" class="history-panel p-4">

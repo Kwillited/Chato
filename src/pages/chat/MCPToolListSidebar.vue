@@ -1,6 +1,6 @@
 <template>
   <!-- MCP工具列表侧边栏组件 -->
-  <Sidebar type="left" class="mcp-tool-sidebar">
+  <Sidebar class="mcp-tool-sidebar left">
     <template #content>
       <div class="mcp-tool-panel">
         <!-- 标题和搜索 -->

@@ -1,6 +1,6 @@
 <template>
   <!-- 右侧侧边栏组件 - 基于通用 Sidebar -->
-  <Sidebar type="right" default-title="右侧面板" default-content="右侧面板内容区域">
+  <Sidebar class="right">
     <template #content>
       <!-- 右侧侧边栏内容 -->
       <div class="p-4">
