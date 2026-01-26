@@ -25,11 +25,6 @@ onMounted(async () => {
   // 根据后端健康状态加载数据
   await initializeAppData(isBackendHealthy);
 
-  // 初始化默认面板
-  if (!settingsStore.activePanel) {
-    settingsStore.setActivePanel('history');
-  }
-
   logger.info('AIClient应用已初始化，使用Vue Router路由管理');
   
   // 初始化完成

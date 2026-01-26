@@ -37,6 +37,7 @@
 import { ref, onMounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useVectorStore } from '../../store/vectorStore.js';
+import { useAppUI } from '../../../shared/composables/useAppUI.js';
 import { Button, SearchBar } from '../library/index.js';
 
 defineProps({
@@ -49,6 +50,9 @@ defineProps({
 // 初始化store
 const settingsStore = useSettingsStore();
 const ragStore = useVectorStore();
+
+// 使用appUI组合函数管理UI状态
+const { activeContent, setActiveContent } = useAppUI();
 
 // 搜索查询
 const searchQuery = ref('');
@@ -72,17 +76,17 @@ const handleDeleteAll = () => {
 // 处理视图切换
 const handleViewToggle = () => {
   if (isRagManagementView.value) {
-    settingsStore.setActiveContent('chat');
+    setActiveContent('chat');
     isRagManagementView.value = false;
   } else {
-    settingsStore.setActiveContent('ragManagement');
+    setActiveContent('ragManagement');
     isRagManagementView.value = true;
   }
 };
 
-// 监听store中的activeContent变化
+// 监听activeContent变化
 watch(
-  () => settingsStore.activeContent,
+  activeContent,
   (newContent) => {
     isRagManagementView.value = newContent === 'ragManagement';
   },
@@ -91,8 +95,8 @@ watch(
 
 // 初始化当前视图状态
 const initializeViewState = () => {
-  // 直接从store获取当前活动内容
-  isRagManagementView.value = settingsStore.activeContent === 'ragManagement';
+  // 直接从组合函数获取当前活动内容
+  isRagManagementView.value = activeContent.value === 'ragManagement';
 };
 
 onMounted(() => {

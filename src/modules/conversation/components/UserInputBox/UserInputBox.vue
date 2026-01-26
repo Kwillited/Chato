@@ -589,8 +589,8 @@ const hasActiveStreaming = ref(false);
 const isDeepThinking = ref(StorageManager.getItem(STORAGE_KEYS.DEEP_THINKING, false));
 // 联网搜索状态 - 从存储加载
 const isWebSearchEnabled = ref(StorageManager.getItem(STORAGE_KEYS.WEB_SEARCH, false));
-// RAG模式状态 - 从settingsStore获取
-const _isRagMode = computed(() => settingsStore.activePanel === 'rag');
+// 使用appUI组合函数管理UI状态
+const { activePanel, setActivePanel, isRagMode } = useAppUI();
 
 // 智能体相关状态
 const currentAgent = ref('default');
@@ -995,24 +995,20 @@ const hideTooltip = (tooltipId) => {
 
 // 处理MCP工具点击事件
 const handleMcpService = () => {
-  settingsStore.setActivePanel('mcp');
+  setActivePanel('mcp');
 };
 
 // 切换知识库状态
 const toggleKnowledgeBase = () => {
-  if (settingsStore.activePanel === 'rag') {
+  if (activePanel.value === 'rag') {
     // 如果当前是知识库模式，切换回聊天模式
-    settingsStore.setActivePanel('history');
-    
-    // 主显示区：如果没有聊天消息，显示sendMessage视图，否则显示chat视图
-    const hasMessages = chatStore.currentChatMessages && chatStore.currentChatMessages.length > 0;
-    settingsStore.setActiveContent(hasMessages ? 'chat' : 'sendMessage');
+    setActivePanel('history');
     
     // 关闭RAG功能
     settingsStore.updateVectorConfig({ enabled: false });
   } else {
     // 如果当前不是知识库模式，切换到知识库模式
-    settingsStore.setActivePanel('rag');
+    setActivePanel('rag');
     
     // 启用RAG功能
     settingsStore.updateVectorConfig({ enabled: true });

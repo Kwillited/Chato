@@ -33,9 +33,14 @@ export function useAppUI() {
   // UI状态 - 设置页面选项卡
   const activeTab = ref('basic');
 
+  // UI状态 - 面板状态（从usePanelState合并）
+  const activePanel = ref('history'); // 默认激活历史面板
+  const activeContent = ref('chat'); // 默认激活聊天视图
+
   // 计算属性
   const isLeftNavOpen = computed(() => leftNavVisible.value);
   const isRightPanelOpen = computed(() => rightPanelVisible.value);
+  const isRagMode = computed(() => activePanel.value === 'rag'); // 从usePanelState合并
 
   // 方法 - 导航栏控制
   const toggleLeftNav = () => {
@@ -77,6 +82,15 @@ export function useAppUI() {
     activeTab.value = 'basic';
   };
 
+  // 方法 - 面板状态控制（从usePanelState合并）
+  const setActivePanel = (panel) => {
+    activePanel.value = panel;
+  };
+
+  const setActiveContent = (content) => {
+    activeContent.value = content;
+  };
+
   // 构建appUI状态对象
   const appUI = {
     // 状态 - 导航栏
@@ -95,6 +109,11 @@ export function useAppUI() {
     // 状态 - 设置页面选项卡
     activeTab,
 
+    // 状态 - 面板状态（从usePanelState合并）
+    activePanel,
+    activeContent,
+    isRagMode,
+
     // 方法 - 导航栏控制
     toggleLeftNav,
     setLeftNavVisible,
@@ -110,7 +129,11 @@ export function useAppUI() {
 
     // 方法 - 设置页面选项卡控制
     setActiveTab,
-    resetActiveTab
+    resetActiveTab,
+
+    // 方法 - 面板状态控制（从usePanelState合并）
+    setActivePanel,
+    setActiveContent
   };
 
   // 提供appUI状态给子组件
