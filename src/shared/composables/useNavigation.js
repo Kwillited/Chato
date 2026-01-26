@@ -38,18 +38,10 @@ export function useNavigation() {
     router.back();
   };
 
-  /**
-   * 处理系统设置点击事件
-   */
-  const handleSystemSettingsClick = () => {
-    router.push('/settings');
-  };
-
   return {
     navigateToChat,
     navigateToHome,
     navigateToSettings,
-    navigateBack,
-    handleSystemSettingsClick
+    navigateBack
   };
 }

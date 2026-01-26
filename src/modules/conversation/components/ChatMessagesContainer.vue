@@ -42,7 +42,11 @@ const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 
 const scrollContainer = ref(null);
+const chatMessagesContainer = ref(null);
 const jumpIndicatorRef = ref(null);
+
+// 滚动状态管理
+const isScrollToBottomVisible = ref(false);
 
 // 核心数据：直接获取纯对象数组
 const chatMessages = computed(() => chatStore.currentChatMessages || []);
@@ -70,6 +74,20 @@ const scrollToBottom = async (smooth = true) => {
       behavior: smooth ? 'smooth' : 'auto'
     });
     emit('scrollToBottom');
+    hideScrollButton();
+  }
+};
+
+// 安全滚动到底部 - 只有在用户接近底部时才自动滚动
+const safeScrollToBottom = async () => {
+  await nextTick();
+  if (!scrollContainer.value) return;
+  
+  const { scrollTop, clientHeight, scrollHeight } = scrollContainer.value;
+  const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+  
+  if (isNearBottom) {
+    await scrollToBottom(true);
   }
 };
 
@@ -80,23 +98,42 @@ const checkScrollPosition = () => {
   const { scrollTop, clientHeight, scrollHeight } = scrollContainer.value;
   // 距离底部超过 100px 显示按钮
   const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+  const shouldShowButton = !isNearBottom;
   
-  emit('updateScrollVisibility', !isNearBottom);
+  if (isScrollToBottomVisible.value !== shouldShowButton) {
+    isScrollToBottomVisible.value = shouldShowButton;
+    emit('updateScrollVisibility', shouldShowButton);
+  }
   
   // 更新跳转指示器高亮
   jumpIndicatorRef.value?.updateCurrentHighlightedMessage();
 };
 
+// 隐藏滚动按钮
+const hideScrollButton = () => {
+  if (isScrollToBottomVisible.value) {
+    isScrollToBottomVisible.value = false;
+    emit('updateScrollVisibility', false);
+  }
+};
+
 // 监听新消息，自动滚动
 watch(() => chatMessages.value.length, async (newLen, oldLen) => {
-  if (newLen > oldLen) {
-    // 只有在用户已经在底部，或者这是新对话的第一条消息时才自动滚动
-    // 这里简单处理：总是尝试滚动，或者由父组件控制
-    // await scrollToBottom(); 
+  if (newLen > oldLen && settingsStore.systemSettings.autoScroll) {
+    await safeScrollToBottom();
+  }
+});
+
+// 监听自动滚动设置变化
+watch(() => settingsStore.systemSettings.autoScroll, async (newValue) => {
+  if (newValue && chatMessages.value.length > 0) {
+    await safeScrollToBottom();
   }
 });
 
 defineExpose({
-  scrollToBottom
+  scrollToBottom,
+  safeScrollToBottom,
+  hideScrollButton
 });
 </script>

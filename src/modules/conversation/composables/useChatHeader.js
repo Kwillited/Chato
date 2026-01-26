@@ -1,6 +1,7 @@
 import { useChatStore } from '../../../app/store/chatStore.js';
 import { useSettingsStore } from '../../../app/store/settingsStore.js';
 import { useChatManagement } from './useChatManagement.js';
+import { useNavigation } from '../../../shared/composables/useNavigation.js';
 
 /**
  * 聊天头部组件的组合式函数，封装共享逻辑
@@ -10,6 +11,9 @@ export function useChatHeader() {
   // 初始化stores
   const chatStore = useChatStore();
   const settingsStore = useSettingsStore();
+  
+  // 使用导航组合函数
+  const { navigateToHome } = useNavigation();
   
   // 使用对话管理组合函数
   const { createNewChat, selectChat, getCurrentChatTitle, chatHistory, currentChatId, currentChat } = useChatManagement();
@@ -24,15 +28,11 @@ export function useChatHeader() {
   };
 
   /**
-   * 处理新对话点击事件
+   * 处理新对话点击事件 - 直接跳转到首页
    */
-  const handleNewChat = async () => {
-    try {
-      await createNewChat();
-      // 切换到发送消息视图 - 路由管理下不需要手动切换
-    } catch (error) {
-      console.error('创建新对话失败:', error);
-    }
+  const handleNewChat = () => {
+    // 直接跳转到根目录（首页），不创建新对话
+    navigateToHome();
   };
 
   /**

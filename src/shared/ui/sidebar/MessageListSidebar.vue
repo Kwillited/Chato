@@ -3,17 +3,11 @@
   <Sidebar class="message-list-sidebar left">
     <template #content>
       <!-- 搜索框 -->
-      <div class="p-2 border-b border-gray-100 dark:border-dark-700">
-        <div class="relative">
-          <input 
-            type="text" 
-            placeholder="搜索消息..." 
-            class="w-full pl-9 pr-4 py-2 rounded-lg bg-gray-50 dark:bg-dark-800 border border-gray-200 dark:border-dark-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-            v-model="searchQuery"
-          >
-          <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</span>
-        </div>
-      </div>
+      <SearchBar
+        v-model="searchQuery"
+        placeholder="搜索消息..."
+        class="border-b border-gray-100 dark:border-dark-700"
+      />
 
       <!-- 滚动容器 -->
       <div class="flex-1 overflow-y-auto p-2 space-y-3 scrollbar-thin transition-colors duration-300 ease-in-out">
@@ -77,6 +71,7 @@
 import { ref, computed, reactive } from 'vue';
 import { useChatStore } from '../../../app/store/chatStore.js';
 import Sidebar from '../layout/Sidebar.vue';
+import SearchBar from '../SearchBar.vue';
 
 // 初始化store
 const chatStore = useChatStore();

@@ -1,5 +1,6 @@
 // 应用头部组合式函数
 import { computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { useSettingsStore } from '../../app/store/settingsStore.js';
 import { useNavigation } from './useNavigation.js';
 
@@ -10,10 +11,11 @@ import { useNavigation } from './useNavigation.js';
 export function useAppHeader() {
   const settingsStore = useSettingsStore();
   const { navigateToChat } = useNavigation();
+  const route = useRoute();
   
   // 根据当前路由自动选择合适的头部组件
   const activeHeaderComponent = computed(() => {
-    const currentRoute = window.location.pathname;
+    const currentRoute = route.path;
     
     // 根据不同的路由路径返回对应的头部组件名称
     if (currentRoute === '/settings') {

@@ -46,7 +46,7 @@ export function useChatManagement() {
       isLoading.value = true;
       error.value = null;
 
-      const result = await chatStore.handleNewChat();
+      const result = await chatStore.createNewChat();
       currentChatId.value = chatStore.currentChatId;
       showSystemNotification('新对话已创建', 'success');
       return result;
@@ -70,7 +70,7 @@ export function useChatManagement() {
       isLoading.value = true;
       error.value = null;
 
-      await chatStore.handleSelectHistoryChat(chatId);
+      await chatStore.selectChat(chatId);
       currentChatId.value = chatId;
       return true;
     } catch (err) {

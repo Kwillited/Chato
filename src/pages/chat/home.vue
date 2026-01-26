@@ -12,6 +12,14 @@
 <script setup>
 import UserInputBox from '../../modules/conversation/components/UserInputBox/UserInputBox.vue';
 import { useChatHeader, useChatMessages } from '../../modules/conversation';
+import { useAppUI } from '../../shared/composables/useAppUI.js';
+import { useNavigation } from '../../shared/composables/useNavigation.js';
+
+// 使用应用UI组合函数
+const { setActiveContent } = useAppUI();
+
+// 使用导航组合函数
+const { navigateToChat } = useNavigation();
 
 // 使用聊天头部组合函数
 const {
@@ -26,12 +34,18 @@ const {
 // 处理发送消息事件
 const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false) => {
   if (message.trim() || chatStore.uploadedFiles.length > 0) {
-    // 先确保有当前对话（如果没有则创建）
+    // 1. 先跳转路由到chat页面
+    await navigateToChat();
+    
+    // 2. 确保有当前对话（如果没有则创建）
     if (!chatStore.currentChatId) {
       await chatStore.createNewChat(model);
     }
     
-    // 发送消息
+    // 3. 切换到聊天视图
+    setActiveContent('chat');
+    
+    // 4. 发送消息
     await sendMessage(message, model, deepThinking, webSearchEnabled);
   }
 };

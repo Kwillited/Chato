@@ -1,7 +1,7 @@
 <template>
   
   <!-- 聊天输入区域 - 在切换到图谱视图时添加顶部padding -->
-  <div id="UserInputBox" class="border-t-0 pb-4 px-6 transition-colors duration-300 ease-in-out" :class="{ 'pt-4': activeView !== 'grid' }">
+  <div id="UserInputBox" class="border-t-0 pb-4 px-6 transition-colors duration-300 ease-in-out" :class="{ 'pt-4': activeView !== 'chat' }">
     <div class="relative w-full max-w-4xl mx-auto">
       <DragDropZone @drop="handleDrop">
         <div class="bg-white dark:bg-dark-700 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus-within:shadow-md transition-all duration-300 ease-in-out relative">
@@ -83,7 +83,7 @@
             <Tooltip content="系统设置">
               <button
                 class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-                @click="handleSystemSettingsClick"
+                @click="navigateToSettings"
               >
                 <i class="fa-solid fa-gear text-xs"></i>
               </button>
@@ -516,7 +516,7 @@ const STORAGE_KEYS = {
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-const { handleSystemSettingsClick } = useNavigation();
+const { navigateToSettings } = useNavigation();
 const { toggleRightPanel, setActiveSidebar } = useAppUI();
 
 // 直接使用settingsStore的模型相关功能

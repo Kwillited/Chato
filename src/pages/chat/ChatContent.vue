@@ -6,10 +6,9 @@
     <div class="flex-1 overflow-hidden">
       <!-- 聊天消息容器 -->
       <ChatMessagesContainer 
-        v-if="chatStore.activeView === 'grid'"
+        v-if="activeContent === 'chat'"
         ref="chatMessagesContainerRef" 
         @updateScrollVisibility="updateScrollButtonVisibility"
-        @scrollToBottom="hideScrollButton"
         class="w-full h-full"
       />
       
@@ -22,12 +21,12 @@
     
     <!-- 浮动按钮 - 只在聊天视图且有对话消息时显示 -->
     <ScrollToBottomButton 
-      :isVisible="chatStore.activeView === 'grid' && isScrollToBottomVisible && chatStore.currentChatMessages.length > 0"
+      :isVisible="activeContent === 'chat' && isScrollToBottomVisible && chatStore.currentChatMessages.length > 0"
       @scrollToBottom="scrollToBottom"
     />
 
     <!-- 消息输入区域 - 传递当前视图状态 -->
-    <UserInputBox @sendMessage="handleSendMessage" :activeView="chatStore.activeView" />
+    <UserInputBox @sendMessage="handleSendMessage" :activeView="activeContent" />
   </div>
 </template>
 
@@ -37,16 +36,22 @@ import ChatMessagesContainer from '../../modules/conversation/components/ChatMes
 import ScrollToBottomButton from '../../modules/conversation/components/ScrollToBottomButton.vue';
 import UserInputBox from '../../modules/conversation/components/UserInputBox/UserInputBox.vue';
 import { KnowledgeGraphCanvas as ContextVisualizationContent } from '../../modules/knowledge-graph';
-import { useChatScroll } from '../../modules/conversation/composables/useChatScroll.js';
 import logger from '../../shared/utils/logger.js';
 import { useChatHeader, useChatMessages } from '../../modules/conversation';
-import { useSettingsStore } from '../../app/store/settingsStore.js';
+import { useAppUI } from '../../shared/composables/useAppUI.js';
+import { useNavigation } from '../../shared/composables/useNavigation.js';
 
-// 初始化 stores
-const settingsStore = useSettingsStore();
+// 使用应用UI组合函数
+const { activeContent, setActiveContent } = useAppUI();
+
+// 使用导航组合函数
+const { navigateToChat } = useNavigation();
 
 // 引用子组件
 const chatMessagesContainerRef = ref(null);
+
+// 滚动按钮可见性状态
+const isScrollToBottomVisible = ref(false);
 
 // 使用聊天头部组合函数
 const {
@@ -59,26 +64,31 @@ const {
   currentChatMessages
 } = useChatMessages();
 
-// 使用聊天滚动管理组合函数
-const { 
-  isScrollToBottomVisible,
-  scrollToBottom,
-  updateScrollButtonVisibility,
-  hideScrollButton,
-  safeScrollToBottom
-} = useChatScroll({
-  chatMessagesContainerRef
-});
+// 更新滚动按钮可见性
+const updateScrollButtonVisibility = (visible) => {
+  isScrollToBottomVisible.value = visible;
+};
+
+// 滚动到底部
+const scrollToBottom = () => {
+  chatMessagesContainerRef.value?.scrollToBottom();
+};
 
 // 处理发送消息事件
 const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false) => {
   if (message.trim() || chatStore.uploadedFiles.length > 0) {
-    // 先确保有当前对话（如果没有则创建）
+    // 1. 先跳转路由到chat页面
+    await navigateToChat();
+    
+    // 2. 确保有当前对话（如果没有则创建）
     if (!chatStore.currentChatId) {
       await chatStore.createNewChat(model);
     }
     
-    // 发送消息
+    // 3. 切换到聊天视图
+    setActiveContent('chat');
+    
+    // 4. 发送消息
     await sendMessage(message, model, deepThinking, webSearchEnabled);
   }
 };
@@ -87,23 +97,11 @@ const handleSendMessage = async (message, model, deepThinking = false, webSearch
 onMounted(() => {
   logger.info('ChatContent组件已挂载');
 
-  // 初始化时安全滚动到底部
+  // 初始化时滚动到底部
   nextTick(() => {
     scrollToBottom();
   });
 });
-
-// 监听消息变化，自动滚动到底部
-watch(
-  () => currentChatMessages.length,
-  (newLength, oldLength) => {
-    if (newLength > oldLength && settingsStore.systemSettings.autoScroll) {
-      nextTick(() => {
-        safeScrollToBottom();
-      });
-    }
-  }
-);
 </script>
 
 <style scoped>
