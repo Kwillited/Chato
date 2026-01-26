@@ -69,16 +69,17 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue';
-import { useChatStore } from '../../../app/store/chatStore.js';
+import { useChatStore } from '../../../modules/chat/composables/useChatStore.js';
+import { useChatManagement } from '../../../modules/chat/composables/useChatManagement.js';
 import Sidebar from '../layout/Sidebar.vue';
 import SearchBar from '../SearchBar.vue';
 import { useAppUI } from '../../../shared/composables/useAppUI.js';
 
-// 初始化store
-const chatStore = useChatStore();
-
 // 使用应用UI组合函数
 const { searchQuery } = useAppUI();
+
+// 使用聊天管理组合函数
+const { chatHistory, currentChatId, selectChat } = useChatStore();
 
 // 用于管理分组的展开/折叠状态
 const collapsedGroups = reactive({});
@@ -103,8 +104,8 @@ const groupedMessages = computed(() => {
   const withinYear = [];
   const older = [];
 
-  // 使用 chatStore 的对话历史数据
-  chatStore.chatHistory.forEach((chat) => {
+  // 使用 chatHistory 计算属性
+  (chatHistory.value || []).forEach((chat) => {
     // 应用搜索过滤
     if (searchQuery.value.trim()) {
       const query = searchQuery.value.toLowerCase().trim();
@@ -173,12 +174,12 @@ const groupedMessages = computed(() => {
 
 // 判断对话是否为当前活跃对话
 const isActiveChat = (chatId) => {
-  return chatStore.currentChatId === chatId;
+  return currentChatId.value === chatId;
 };
 
 // 处理选择对话
 const selectMessage = (chatId) => {
-  chatStore.selectChat(chatId);
+  selectChat(chatId);
 };
 
 // 判断对话是否有未读消息

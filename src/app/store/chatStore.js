@@ -778,6 +778,31 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
+    // 重命名对话
+    async renameChat(chatId, newTitle) {
+      const chat = this.chats.find((chat) => chat.id === chatId);
+      if (chat) {
+        // 更新本地状态
+        const oldTitle = chat.title;
+        chat.title = newTitle;
+        chat.updatedAt = Date.now();
+
+        // 调用API同步到后端
+        try {
+          await apiService.chat.updateChat(chatId, { title: newTitle });
+          logger.debug(`对话重命名成功: ${oldTitle} -> ${newTitle}`);
+          return true;
+        } catch (error) {
+          logger.error('更新对话标题失败:', error);
+          // 如果API调用失败，恢复原始状态
+          chat.title = oldTitle;
+          chat.updatedAt = Date.now() - 1;
+          return false;
+        }
+      }
+      return false;
+    },
+
     // 重置所有对话的未读状态
     resetUnreadStatus() {
       this.chats = this.chats.map(chat => ({

@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { useChatStore } from '../../../app/store/chatStore.js';
+import { useChatStore } from './useChatStore.js';
 import { useSettingsStore } from '../../../app/store/settingsStore.js';
 import { useFileStore } from '../../../app/store/fileStore.js';
 import logger from '../../../shared/utils/logger.js';

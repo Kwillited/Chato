@@ -489,7 +489,7 @@ import { formatFileSize } from '../../../../shared/utils/helpers.js';
 import Tooltip from '../../../../shared/ui/Tooltip.vue';
 import DragDropZone from '../../../../shared/ui/DragDropZone.vue';
 import logger from '../../../../shared/utils/logger.js';
-import { useChatStore } from '../../../../app/store/chatStore.js';
+import { useChatStore } from '../../composables/useChatStore.js';
 import { useSettingsStore } from '../../../../app/store/settingsStore.js';
 import { useNotifications } from '../../composables/useNotifications.js';
 import { useNavigation } from '../../../../shared/composables/useNavigation.js';

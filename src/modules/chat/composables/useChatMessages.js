@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue';
-import { useChatStore } from '../../../app/store/chatStore.js';
+import { useChatStore } from './useChatStore.js';
 import { useNotifications } from './useNotifications.js';
 import { useMessageSending } from './useMessageSending.js';
 import logger from '../../../shared/utils/logger.js';
