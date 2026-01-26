@@ -35,15 +35,15 @@ const currentTitle = computed(() => {
 });
 
 // 处理发送消息事件
-  const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false) => {
-    if (message.trim() || chatStore.uploadedFiles.length > 0) {
+  const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false, files = []) => {
+    if (message.trim() || files.length > 0) {
       // 先确保有当前对话（如果没有则创建）
       if (!chatStore.currentChatId) {
         await chatStore.createNewChat(model);
       }
       
-      // 发送消息
-      await sendMessage(message, model, deepThinking, webSearchEnabled);
+      // 发送消息，传递文件列表
+      await sendMessage(message, model, deepThinking, webSearchEnabled, files);
       
       // 切换到home视图
       // settingsStore.setActiveContent('home'); // 已改为路由管理

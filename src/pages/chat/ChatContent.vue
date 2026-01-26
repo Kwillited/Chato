@@ -75,8 +75,8 @@ const scrollToBottom = () => {
 };
 
 // 处理发送消息事件
-const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false) => {
-  if (message.trim() || chatStore.uploadedFiles.length > 0) {
+const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false, files = []) => {
+  if (message.trim() || files.length > 0) {
     // 1. 先跳转路由到chat页面
     await navigateToChat();
     
@@ -88,8 +88,8 @@ const handleSendMessage = async (message, model, deepThinking = false, webSearch
     // 3. 切换到聊天视图
     setActiveContent('chat');
     
-    // 4. 发送消息
-    await sendMessage(message, model, deepThinking, webSearchEnabled);
+    // 4. 发送消息，传递文件列表
+    await sendMessage(message, model, deepThinking, webSearchEnabled, files);
   }
 };
 

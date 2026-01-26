@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue';
 import { useChatStore } from '../../../app/store/chatStore.js';
 import { useNotifications } from './useNotifications.js';
+import { useMessageSending } from './useMessageSending.js';
 import logger from '../../../shared/utils/logger.js';
 
 /**
@@ -10,6 +11,7 @@ import logger from '../../../shared/utils/logger.js';
 export function useChatMessages() {
   const chatStore = useChatStore();
   const { showNewMessageNotification } = useNotifications();
+  const { sendMessage: sendMessageCore, isSending, sendProgress, messageError } = useMessageSending();
 
   // 响应式状态
   const messages = ref([]);
@@ -37,14 +39,16 @@ export function useChatMessages() {
    * @param {string} [modelId] - 模型ID
    * @param {boolean} [deepThinking=false] - 是否启用深度思考
    * @param {boolean} [webSearchEnabled=false] - 是否启用网络搜索
+   * @param {Array} [files=[]] - 上传的文件列表
    * @returns {Promise<Object>} 发送结果
    */
-  const sendMessage = async (content, modelId, deepThinking = false, webSearchEnabled = false) => {
+  const sendMessage = async (content, modelId, deepThinking = false, webSearchEnabled = false, files = []) => {
     try {
       isLoading.value = true;
       error.value = null;
 
-      const result = await chatStore.sendMessage(content, modelId, deepThinking, webSearchEnabled);
+      // 使用消息发送核心方法
+      const result = await sendMessageCore(content, modelId, deepThinking, webSearchEnabled, files);
       return result;
     } catch (err) {
       error.value = err.message || '发送消息失败';

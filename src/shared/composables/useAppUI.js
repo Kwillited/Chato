@@ -36,6 +36,9 @@ export function useAppUI() {
   // UI状态 - 面板状态（从usePanelState合并）
   const activePanel = ref('history'); // 默认激活历史面板
   const activeContent = ref('chat'); // 默认激活聊天视图
+  
+  // UI状态 - 搜索查询
+  const searchQuery = ref(''); // 搜索查询
 
   // 计算属性
   const isLeftNavOpen = computed(() => leftNavVisible.value);
@@ -90,6 +93,11 @@ export function useAppUI() {
   const setActiveContent = (content) => {
     activeContent.value = content;
   };
+  
+  // 方法 - 搜索查询控制
+  const setSearchQuery = (query) => {
+    searchQuery.value = query;
+  };
 
   // 构建appUI状态对象
   const appUI = {
@@ -113,6 +121,9 @@ export function useAppUI() {
     activePanel,
     activeContent,
     isRagMode,
+    
+    // 状态 - 搜索查询
+    searchQuery,
 
     // 方法 - 导航栏控制
     toggleLeftNav,
@@ -133,7 +144,10 @@ export function useAppUI() {
 
     // 方法 - 面板状态控制（从usePanelState合并）
     setActivePanel,
-    setActiveContent
+    setActiveContent,
+    
+    // 方法 - 搜索查询控制
+    setSearchQuery
   };
 
   // 提供appUI状态给子组件

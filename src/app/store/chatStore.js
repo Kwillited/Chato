@@ -52,10 +52,6 @@ export const useChatStore = defineStore('chat', {
     
     chats: [],
     currentChatId: null,
-    messageInput: '',
-    uploadedFiles: [],
-    searchQuery: '',
-    activeView: 'grid', // 视图模式：'grid'为对话视图，'list'为图谱视图
     retryCount: 0, // 重试计数
     maxRetries: 10, // 最大重试次数
     retryInterval: 3000, // 初始重试间隔（毫秒）
@@ -88,23 +84,7 @@ export const useChatStore = defineStore('chat', {
       return [...state.chats].sort((a, b) => b.updatedAt - a.updatedAt);
     },
 
-    // 获取过滤后的对话列表
-    getFilteredChats: (state) => {
-      if (!state.searchQuery.trim()) {
-        return state.chats;
-      }
 
-      const query = state.searchQuery.toLowerCase();
-      return state.chats.filter(
-        (chat) =>
-          chat.title.toLowerCase().includes(query) ||
-          chat.messages.some((message) => {
-            // 统一处理ref包装的消息对象
-            const messageValue = message?.value;
-            return messageValue && messageValue.content.toLowerCase().includes(query);
-          })
-      );
-    },
     
     // 获取标准化的模型列表
     standardizedModels: (state) => {
@@ -116,10 +96,7 @@ export const useChatStore = defineStore('chat', {
     // 基础actions
     ...baseStore.actions,
     
-    // 设置搜索关键词
-    setSearchQuery(query) {
-      this.searchQuery = query;
-    },
+
 
     // 创建新对话（调用API）
     async createNewChat(model) {
@@ -151,7 +128,6 @@ export const useChatStore = defineStore('chat', {
         // 将新对话添加到本地状态
         this.chats.unshift(newChat); // 添加到开头，保持最新优先
         this.currentChatId = newChat.id;
-        this.messageInput = '';
         
         // 发布新对话创建事件
         eventBus.emit(Events.CHAT_CREATED, newChat);
@@ -165,8 +141,7 @@ export const useChatStore = defineStore('chat', {
       const chat = this.chats.find((c) => c.id === chatId);
       if (chat) {
         this.currentChatId = chatId;
-        this.messageInput = '';
-        this.uploadedFiles = [];
+
         
         // 为了确保未读状态正确清除，我们可以在每个对话对象上添加一个显式的未读标记
         // 遍历所有对话，将当前选中的对话未读标记设置为false
@@ -184,8 +159,8 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 发送消息（使用API服务）
-    async sendMessage(content, model, deepThinking = false, webSearchEnabled = false) {
-      if (!content.trim() && this.uploadedFiles.length === 0) return;
+    async sendMessage(content, model, deepThinking = false, webSearchEnabled = false, files = []) {
+      if (!content.trim() && files.length === 0) return;
       if (!model) {
         this.setError('请先选择一个AI模型');
         return;
@@ -200,7 +175,6 @@ export const useChatStore = defineStore('chat', {
 
       // 立即设置isLoading为true，确保按钮状态立即更新
       this.isLoading = true;
-      this.messageInput = '';
       this.clearError();
 
       // 添加用户消息，并使用ref包装确保完整响应式
@@ -208,7 +182,7 @@ export const useChatStore = defineStore('chat', {
         id: generateId('msg'),
         role: 'user',
         content: content.trim(),
-        files: this.uploadedFiles.length > 0 ? [...this.uploadedFiles] : [],
+        files: files.length > 0 ? [...files] : [],
         timestamp: Date.now(),
         status: 'sent',
       });
@@ -322,9 +296,8 @@ export const useChatStore = defineStore('chat', {
         // 使用流式消息发送
         let aiMessage = null;
 
-        // 立即清空上传文件列表，提供更好的用户体验
-        const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
-        this.uploadedFiles = []; // 立即清空
+        // 使用传入的文件列表
+        const filesToSend = [...files];
 
         try {
           await apiService.chat.sendStreamingMessage(
@@ -506,8 +479,7 @@ export const useChatStore = defineStore('chat', {
         } else {
           // 使用普通消息发送
           // 立即清空上传文件列表，提供更好的用户体验
-          const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
-          this.uploadedFiles = []; // 立即清空
+          const filesToSend = [...files]; // 使用传入的文件列表
           
           let response = await apiService.chat.sendMessage(
             currentChat.id,         // chatId
@@ -671,22 +643,9 @@ export const useChatStore = defineStore('chat', {
       }, { handleError: true });
     },
 
-    // 添加上传文件
-    addUploadedFile(file) {
-      this.uploadedFiles.push(file);
-    },
 
-    // 移除上传文件
-    removeUploadedFile(index) {
-      if (index >= 0 && index < this.uploadedFiles.length) {
-        this.uploadedFiles.splice(index, 1);
-      }
-    },
 
-    // 更新消息输入
-    updateMessageInput(content) {
-      this.messageInput = content;
-    },
+
 
     // 从后端API获取对话历史
     async loadChatHistory(_manualRetry = false) {

@@ -72,15 +72,13 @@ import { ref, computed, reactive } from 'vue';
 import { useChatStore } from '../../../app/store/chatStore.js';
 import Sidebar from '../layout/Sidebar.vue';
 import SearchBar from '../SearchBar.vue';
+import { useAppUI } from '../../../shared/composables/useAppUI.js';
 
 // 初始化store
 const chatStore = useChatStore();
 
-// 搜索查询 - 使用 chatStore 中的状态
-const searchQuery = computed({
-  get: () => chatStore.searchQuery,
-  set: (value) => chatStore.setSearchQuery(value)
-});
+// 使用应用UI组合函数
+const { searchQuery } = useAppUI();
 
 // 用于管理分组的展开/折叠状态
 const collapsedGroups = reactive({});

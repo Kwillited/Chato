@@ -2,6 +2,7 @@ import { useChatStore } from '../../../app/store/chatStore.js';
 import { useSettingsStore } from '../../../app/store/settingsStore.js';
 import { useChatManagement } from './useChatManagement.js';
 import { useNavigation } from '../../../shared/composables/useNavigation.js';
+import { useAppUI } from '../../../shared/composables/useAppUI.js';
 
 /**
  * 聊天头部组件的组合式函数，封装共享逻辑
@@ -15,6 +16,9 @@ export function useChatHeader() {
   // 使用导航组合函数
   const { navigateToHome } = useNavigation();
   
+  // 使用应用UI组合函数
+  const { toggleLeftNav } = useAppUI();
+  
   // 使用对话管理组合函数
   const { createNewChat, selectChat, getCurrentChatTitle, chatHistory, currentChatId, currentChat } = useChatManagement();
 
@@ -24,7 +28,7 @@ export function useChatHeader() {
   const handleSideMenuToggle = () => {
     console.log('handleSideMenuToggle called');
     // 切换左侧导航栏可见性
-    settingsStore.toggleLeftNav();
+    toggleLeftNav();
   };
 
   /**

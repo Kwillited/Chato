@@ -494,6 +494,8 @@ import { useSettingsStore } from '../../../../app/store/settingsStore.js';
 import { useNotifications } from '../../composables/useNotifications.js';
 import { useNavigation } from '../../../../shared/composables/useNavigation.js';
 import { useAppUI } from '../../../../shared/composables/useAppUI.js';
+import { useChatFileUpload } from '../../composables/useChatFileUpload.js';
+import { useChatUI } from '../../composables/useChatUI.js';
 
 // 接收从父组件传递的视图状态
 const _props = defineProps({
@@ -518,6 +520,12 @@ const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const { navigateToSettings } = useNavigation();
 const { toggleRightPanel, setActiveSidebar } = useAppUI();
+
+// 使用聊天文件上传组合函数
+const { uploadedFiles, addFiles, removeFile, clearUploadedFiles } = useChatFileUpload();
+
+// 使用聊天UI组合函数
+const { messageInput, setMessageInput, clearMessageInput } = useChatUI();
 
 // 直接使用settingsStore的模型相关功能
 const availableModels = computed(() => settingsStore.availableModels);
@@ -762,13 +770,7 @@ const orderedModels = computed(() => {
   return models;
 });
 
-const messageInput = computed({
-  get: () => chatStore.messageInput,
-  set: (value) => chatStore.updateMessageInput(value),
-});
 
-// 从store直接获取响应式数据
-const uploadedFiles = computed(() => chatStore.uploadedFiles);
 
 // 定义事件
 const emit = defineEmits(['sendMessage']);
@@ -783,7 +785,12 @@ const handleSendMessage = async () => {
     const webSearchEnabled = isWebSearchEnabled.value;
     
     // 立即发送消息，不等待Ollama服务检查
-    emit('sendMessage', messageToSend, modelToUse, deepThinking, webSearchEnabled);
+    emit('sendMessage', messageToSend, modelToUse, deepThinking, webSearchEnabled, uploadedFiles.value);
+    
+    // 发送后清空输入和文件列表
+    clearMessageInput();
+    clearUploadedFiles();
+    
     // 发送消息后立即检查是否有流式输出
     checkForActiveStreaming();
     
@@ -1108,14 +1115,14 @@ const handleFileInputChange = (e) => {
 // 处理上传文件事件
 const handleFileUpload = (files) => {
   // 将文件添加到上传列表
-  Array.from(files).forEach((file) => {
-    chatStore.addUploadedFile(file);
-  });
+  addFiles(files);
 };
 
 // 移除已上传的文件
 const removeUploadedFile = (index) => {
-  chatStore.removeUploadedFile(index);
+  if (uploadedFiles.value[index]) {
+    removeFile(uploadedFiles.value[index].id);
+  }
 };
 
 // 获取文件图标
