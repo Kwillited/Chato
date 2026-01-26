@@ -113,7 +113,9 @@ const handleBackToHome = () => {
 
 // 处理标签切换
 const handleTabChange = (tabValue) => {
+  console.log('AppLayout handleTabChange called with:', tabValue);
   setActiveTab(tabValue);
+  console.log('After setActiveTab, activeTab.value:', activeTab.value);
 };
 
 // 切换侧边菜单可见性

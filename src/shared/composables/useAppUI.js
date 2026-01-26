@@ -3,19 +3,19 @@ import { ref, computed, provide, inject } from 'vue';
 // 创建一个唯一的注入键
 const APP_UI_INJECT_KEY = Symbol('appUI');
 
+// 创建全局appUI状态实例，确保所有组件共享同一个状态
+let globalAppUI = null;
+
 /**
  * 应用UI状态组合式函数
  * 集中管理应用的UI状态，如导航栏可见性、面板宽度等
- * 使用provide/inject模式确保所有组件共享同一个状态实例
+ * 使用全局单例模式确保所有组件共享同一个状态实例
  * @returns {Object} 包含UI状态和操作方法的对象
  */
 export function useAppUI() {
-  // 尝试从父组件注入appUI状态
-  const existingAppUI = inject(APP_UI_INJECT_KEY, null);
-
-  // 如果已经存在appUI状态，直接返回
-  if (existingAppUI) {
-    return existingAppUI;
+  // 如果全局appUI状态已经存在，直接返回
+  if (globalAppUI) {
+    return globalAppUI;
   }
 
   // 如果不存在，创建新的appUI状态
@@ -78,7 +78,10 @@ export function useAppUI() {
 
   // 方法 - 设置页面选项卡控制
   const setActiveTab = (tab) => {
+    console.log('useAppUI setActiveTab called with:', tab);
+    console.log('Before setActiveTab, activeTab.value:', activeTab.value);
     activeTab.value = tab;
+    console.log('After setActiveTab, activeTab.value:', activeTab.value);
   };
 
   const resetActiveTab = () => {
@@ -150,8 +153,8 @@ export function useAppUI() {
     setSearchQuery
   };
 
-  // 提供appUI状态给子组件
-  provide(APP_UI_INJECT_KEY, appUI);
+  // 保存到全局变量
+  globalAppUI = appUI;
 
   return appUI;
 }

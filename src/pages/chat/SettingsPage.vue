@@ -662,11 +662,17 @@ const modelStore = useSettingsStore();
 const { navigateToHome } = useNavigation();
 
 // 使用应用UI状态组合式函数
-const { activeTab } = useAppUI();
+const { activeTab, setActiveTab } = useAppUI();
+
+// 监听activeTab变化
+watch(activeTab, (newValue) => {
+  console.log('SettingsPage activeTab changed to:', newValue);
+});
 
 // 处理标签切换
 const handleTabChange = (tabValue) => {
-  activeTab.value = tabValue;
+  console.log('SettingsPage handleTabChange called with:', tabValue);
+  setActiveTab(tabValue);
 };
 
 // 已配置模型列表的展开状态管理
