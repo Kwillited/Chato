@@ -382,15 +382,11 @@
                 <i class="fa-solid fa-lightbulb"></i>
               </button>
             </Tooltip>
-            <!-- 知识库按钮 - 恢复切换功能 -->
-            <Tooltip content="知识库">
+            <!-- 文件夹列表按钮 -->
+            <Tooltip content="文件夹列表">
               <button
-                class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out"
-                :class="{
-                    'text-gray-500 dark:text-gray-300 hover:text-primary': settingsStore.activePanel !== 'rag',
-                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': settingsStore.activePanel === 'rag'
-                  }"
-                @click="toggleKnowledgeBase"
+                class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out text-gray-500 dark:text-gray-300 hover:text-primary"
+                @click="setActiveSidebar('folder')"
               >
                 <i class="fa-solid fa-book-open"></i>
               </button>
@@ -408,11 +404,20 @@
                 <i class="fa-solid fa-globe"></i>
               </button>
             </Tooltip>
+            <!-- 消息列表按钮 -->
+            <Tooltip content="消息列表">
+              <button
+                class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out text-gray-500 dark:text-gray-300 hover:text-primary"
+                @click="setActiveSidebar('message')"
+              >
+                <i class="fa-solid fa-comment-dots"></i>
+              </button>
+            </Tooltip>
             <!-- MCP启动按钮 -->
             <Tooltip content="MCP工具">
               <button
                 class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out text-gray-500 dark:text-gray-300 hover:text-primary"
-                @click="handleMcpService"
+                @click="setActiveSidebar('mcp')"
               >
                 <i class="fa-solid fa-gear"></i>
               </button>
@@ -511,7 +516,7 @@ const STORAGE_KEYS = {
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const { handleSystemSettingsClick } = useNavigation();
-const { toggleRightPanel } = useAppUI();
+const { toggleRightPanel, setActiveSidebar } = useAppUI();
 
 // 直接使用settingsStore的模型相关功能
 const availableModels = computed(() => settingsStore.availableModels);

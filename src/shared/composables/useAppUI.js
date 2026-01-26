@@ -23,6 +23,9 @@ export function useAppUI() {
   const leftNavVisible = ref(false);
   const leftNavWidth = ref('200px');
 
+  // UI状态 - 侧边栏类型
+  const activeSidebar = ref('message'); // message, folder, mcp
+
   // UI状态 - 面板
   const rightPanelVisible = ref(false);
   const rightPanelWidth = ref('200px');
@@ -60,6 +63,11 @@ export function useAppUI() {
     rightPanelWidth.value = width;
   };
 
+  // 方法 - 侧边栏类型控制
+  const setActiveSidebar = (sidebarType) => {
+    activeSidebar.value = sidebarType;
+  };
+
   // 方法 - 设置页面选项卡控制
   const setActiveTab = (tab) => {
     activeTab.value = tab;
@@ -76,6 +84,9 @@ export function useAppUI() {
     leftNavWidth,
     isLeftNavOpen,
 
+    // 状态 - 侧边栏类型
+    activeSidebar,
+
     // 状态 - 面板
     rightPanelVisible,
     rightPanelWidth,
@@ -88,6 +99,9 @@ export function useAppUI() {
     toggleLeftNav,
     setLeftNavVisible,
     setLeftNavWidth,
+
+    // 方法 - 侧边栏类型控制
+    setActiveSidebar,
 
     // 方法 - 面板控制
     toggleRightPanel,

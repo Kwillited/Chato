@@ -35,7 +35,11 @@
         class="left-sidebar" 
         :style="{ width: leftNavWidth }"
       >
-        <LeftSidebar />
+        <!-- 根据activeSidebar动态渲染不同的侧边栏组件 -->
+        <MessageListSidebar v-if="activeSidebar === 'message'" />
+        <FolderListSidebar v-else-if="activeSidebar === 'folder'" />
+        <MCPToolListSidebar v-else-if="activeSidebar === 'mcp'" />
+        <LeftSidebar v-else />
       </aside>
       
       <!-- 主内容区域 - 使用路由视图 -->
@@ -76,8 +80,10 @@ const {
   rightPanelVisible,
   rightPanelWidth,
   activeTab,
+  activeSidebar,
   toggleLeftNav,
-  setActiveTab
+  setActiveTab,
+  setActiveSidebar
 } = useAppUI();
 
 // 使用聊天头部组合式函数获取默认header所需的数据
@@ -118,6 +124,9 @@ const handleSideMenuToggle = () => {
 
 // 导入侧边栏组件
 const LeftSidebar = defineAsyncComponent(() => import('../../../pages/chat/LeftSidebar.vue'));
+const FolderListSidebar = defineAsyncComponent(() => import('../../../pages/chat/FolderListSidebar.vue'));
+const MessageListSidebar = defineAsyncComponent(() => import('../../../pages/chat/MessageListSidebar.vue'));
+const MCPToolListSidebar = defineAsyncComponent(() => import('../../../pages/chat/MCPToolListSidebar.vue'));
 const RightSidebar = defineAsyncComponent(() => import('../../../pages/chat/RightSidebar.vue'));
 </script>
 
