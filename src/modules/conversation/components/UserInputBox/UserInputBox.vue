@@ -458,10 +458,11 @@
           </div>
           <button
               v-if="!hasActiveStreaming"
-              class="w-8 h-8 flex items-center justify-center text-white bg-primary hover:bg-secondary rounded-full transition-all duration-300 ease-in-out hover:scale-105"
+              class="h-8 flex items-center gap-2 px-4 py-0 text-white bg-primary hover:bg-secondary rounded-lg transition-all duration-300 ease-in-out hover:scale-105 font-medium"
             @click="handleSendMessage"
           >
-            <i class="fa-solid fa-arrow-up"></i>
+            <span>ENTER</span>
+            <span class="text-lg font-bold">↵</span>
           </button>
           <Tooltip v-else content="终止输出">
             <button
