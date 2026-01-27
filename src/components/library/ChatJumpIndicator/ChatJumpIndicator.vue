@@ -162,7 +162,7 @@ watch(() => props.chatMessages, () => {
 
 // 计算指示器位置：根据右侧面板的宽度和可见性动态调整
 const indicatorPosition = computed(() => {
-  const baseRight = 10; // 基础right值
+  const baseRight = 20; // 基础right值
   let rightPanelWidth = 0;
   
   // 如果右侧面板可见，计算其宽度

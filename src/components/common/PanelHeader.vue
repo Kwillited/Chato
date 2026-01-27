@@ -1,10 +1,6 @@
 <template>
   <div class="panel-header p-3 flex justify-between items-center transition-all duration-300">
-    <div class="flex items-center space-x-4">
-      <!-- 左侧按钮插槽 -->
-      <slot name="left-actions"></slot>
-      <h2 class="text-lg font-bold text-dark dark:text-white">{{ title }}</h2>
-    </div>
+    <h2 class="text-lg font-bold text-dark dark:text-white">{{ title }}</h2>
     <!-- 默认返回按钮（如果有返回按钮配置） -->
     <Button
       v-if="showBackButton && !hideDefaultActions"

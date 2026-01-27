@@ -16,50 +16,6 @@
         </div>
       <!-- NeoVAI标题已删除 -->
     </div>
-
-    <!-- 中间：占位，确保右侧元素靠右 -->
-    <div class="flex-1"></div>
-    
-
-  </div>
-  
-  <!-- 导航栏Header -->
-  <div id="mainHeader" class="sticky top-8 z-40 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
-    <div class="flex items-center justify-between px-4 h-10">
-      <!-- 左侧：导航链接 -->
-      <div class="flex items-center">
-        <nav class="hidden md:flex space-x-4">
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'history' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('history')"
-          >
-            聊天
-          </button>
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'rag' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('rag')"
-          >
-            知识库
-          </button>
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'mcp' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('mcp')"
-          >
-            MCP工具
-          </button>
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'settings' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('settings')"
-          >
-            设置
-          </button>
-        </nav>
-      </div>
-    </div>
   </div>
   
   <!-- 命令行窗口组件 -->
