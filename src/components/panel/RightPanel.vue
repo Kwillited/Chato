@@ -6,19 +6,23 @@
     :style="{ width: settingsStore.rightPanelVisible ? settingsStore.rightPanelWidth : '0px', display: settingsStore.rightPanelVisible ? 'block' : 'none', flexShrink: 0 }"
   >
     <!-- 右侧面板标题 -->
-    <div class="panel-header p-3 flex items-center justify-between gap-2">
-      <h2 class="text-lg font-bold text-dark dark:text-white flex-1">上下文工程</h2>
-      <ActionButton
-        :icon="chatStore.activeView === 'grid' ? 'fa-sitemap' : 'fa-comments'"
-        :title="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
-        @click="toggleView"
-      />
-      <ActionButton
-        icon="fa-times"
-        title="关闭面板"
-        @click="settingsStore.toggleRightPanel()"
-      />
-    </div>
+    <Header
+      title="上下文工程"
+      :center-title="true"
+    >
+      <template #actions>
+        <ActionButton
+          :icon="chatStore.activeView === 'grid' ? 'fa-sitemap' : 'fa-comments'"
+          :title="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
+          @click="toggleView"
+        />
+        <ActionButton
+          icon="fa-times"
+          title="关闭面板"
+          @click="settingsStore.toggleRightPanel()"
+        />
+      </template>
+    </Header>
     
     <!-- 右侧面板内容 -->
     <div class="p-3 space-y-4">
@@ -119,6 +123,7 @@ import { useSettingsStore } from '../../store/settingsStore.js';
 import { useModelSettingStore } from '../../store/modelSettingStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import ActionButton from '../common/ActionButton.vue';
+import Header from '../common/Header.vue';
 import { showNotification } from '../../services/notificationUtils.js';
 import { ref, watch } from 'vue';
 // 导入公共工具函数
