@@ -1,21 +1,16 @@
 <template>
   <div class="panel-header p-3 flex justify-between items-center transition-all duration-300">
     <h2 class="text-lg font-bold text-dark dark:text-white">{{ title }}</h2>
-    <div class="flex gap-2" v-if="!hideDefaultActions">
-      <!-- 自定义按钮插槽 -->
-      <slot name="actions"></slot>
-      
-      <!-- 默认返回按钮（如果有返回按钮配置） -->
-      <Button
-        v-if="showBackButton"
-        :id="backButtonId"
-        icon="fa-arrow-left"
-        tooltip="返回聊天"
-        @click="handleBack"
-        size="sm"
-        shape="full"
-      />
-    </div>
+    <!-- 默认返回按钮（如果有返回按钮配置） -->
+    <Button
+      v-if="showBackButton && !hideDefaultActions"
+      :id="backButtonId"
+      icon="fa-arrow-left"
+      tooltip="返回聊天"
+      @click="handleBack"
+      size="sm"
+      shape="full"
+    />
   </div>
 </template>
 
