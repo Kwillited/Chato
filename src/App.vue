@@ -66,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import TopNav from './components/layout/TopNav.vue';
 import ModelVersionForm from './components/models/ModelVersionForm.vue';
 import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
