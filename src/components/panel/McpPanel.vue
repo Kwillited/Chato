@@ -1,9 +1,5 @@
 <template>
   <div id="mcpPanel" class="h-full flex flex-col">
-    <PanelHeader title="MCP服务" />
-    
-    <!-- 移除原有的handleBackToChat方法，使用PanelHeader组件的默认行为 -->
-
     <!-- 上传区域 -->
     <div class="p-3">
       <label class="upload-button cursor-pointer block w-full text-center px-4 py-3 border border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-all duration-300 text-sm">
@@ -73,7 +69,6 @@ import { showNotification } from '../../services/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
 import ActionButton from '../common/ActionButton.vue';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
-import PanelHeader from '../common/PanelHeader.vue';
 
 // 确认删除模态框状态
 const showDeleteModal = ref(false);
