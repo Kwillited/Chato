@@ -1,28 +1,12 @@
 <template>
   <div class="relative flex items-center justify-center" ref="tooltipWrapper">
     <slot></slot>
-    <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-    <div
-      v-if="content"
-      class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure"
-    >
-      {{ content }}
-    </div>
-    <!-- 实际显示的tooltip，使用Teleport挂载到body -->
-    <Teleport to="body">
-      <div
-        v-if="show && content"
-        class="fixed z-50 bg-black/80 text-white px-2 py-1 rounded text-xs shadow-lg custom-tooltip"
-        :style="tooltipStyle"
-      >
-        {{ content }}
-      </div>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import tooltipManager from '../../utils/tooltipManager';
 
 const props = defineProps({
   content: {
@@ -38,100 +22,90 @@ const props = defineProps({
   }
 });
 
+// 解构 props
+const { content, placement } = props;
+
 // 阻止Vue自动将$attrs传递给组件根元素
 defineOptions({
   name: 'BaseTooltip',
   inheritAttrs: false
 });
 
-const show = ref(false);
 const tooltipWrapper = ref(null);
-const tooltipStyle = ref({});
 
 // 计算tooltip位置
 const calculatePosition = () => {
-  if (!tooltipWrapper.value) return;
+  if (!tooltipWrapper.value || !content) return null;
   
   try {
     const wrapperRect = tooltipWrapper.value.getBoundingClientRect();
     
-    // 优先使用预渲染的测量元素获取尺寸，确保准确性
-    let tooltipElement = tooltipWrapper.value.querySelector('.custom-tooltip.tooltip-measure');
-    let tooltipRect;
+    // 创建临时元素用于测量尺寸
+    const tempElement = document.createElement('div');
+    tempElement.className = 'absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip';
+    tempElement.textContent = content;
+    document.body.appendChild(tempElement);
     
-    if (tooltipElement) {
-      // 使用预渲染元素获取尺寸
-      tooltipRect = tooltipElement.getBoundingClientRect();
-    } else {
-      // 备用方案：使用实际显示的tooltip元素
-      tooltipElement = tooltipWrapper.value.querySelector('.custom-tooltip:not(.tooltip-measure)');
-      if (!tooltipElement) return;
-      tooltipRect = tooltipElement.getBoundingClientRect();
-    }
+    // 获取临时元素的尺寸
+    const tooltipRect = tempElement.getBoundingClientRect();
+    
+    // 移除临时元素
+    document.body.removeChild(tempElement);
     
     // 计算位置，添加防护措施确保数值有效
-    const style = {
-      position: 'fixed',
-      zIndex: '9999', // 确保层级最高
-      pointerEvents: 'none',
-      // 初始位置设置，避免闪烁
-      visibility: 'hidden'
-    };
+    const position = {};
     
     // 根据placement计算位置，直接计算准确位置，不使用transform居中
-    switch (props.placement) {
+    switch (placement) {
       case 'top':
-        style.top = `${Math.max(0, wrapperRect.top - tooltipRect.height - 8)}px`;
-        style.left = `${Math.max(0, wrapperRect.left + wrapperRect.width / 2 - tooltipRect.width / 2)}px`;
-        // 初始transform用于动画，后续由CSS动画控制
-        style.transform = 'translateY(0)';
+        position.top = Math.max(0, wrapperRect.top - tooltipRect.height - 8);
+        position.left = Math.max(0, wrapperRect.left + wrapperRect.width / 2 - tooltipRect.width / 2);
         break;
       case 'bottom':
-        style.top = `${Math.max(0, wrapperRect.bottom + 8)}px`;
-        style.left = `${Math.max(0, wrapperRect.left + wrapperRect.width / 2 - tooltipRect.width / 2)}px`;
-        style.transform = 'translateY(0)';
+        position.top = Math.max(0, wrapperRect.bottom + 8);
+        position.left = Math.max(0, wrapperRect.left + wrapperRect.width / 2 - tooltipRect.width / 2);
         break;
       case 'left':
-        style.top = `${Math.max(0, wrapperRect.top + wrapperRect.height / 2 - tooltipRect.height / 2)}px`;
-        style.left = `${Math.max(0, wrapperRect.left - tooltipRect.width - 8)}px`;
-        style.transform = 'translateX(0)';
+        position.top = Math.max(0, wrapperRect.top + wrapperRect.height / 2 - tooltipRect.height / 2);
+        position.left = Math.max(0, wrapperRect.left - tooltipRect.width - 8);
         break;
       case 'right':
-        style.top = `${Math.max(0, wrapperRect.top + wrapperRect.height / 2 - tooltipRect.height / 2)}px`;
-        style.left = `${Math.max(0, wrapperRect.right + 8)}px`;
-        style.transform = 'translateX(0)';
+        position.top = Math.max(0, wrapperRect.top + wrapperRect.height / 2 - tooltipRect.height / 2);
+        position.left = Math.max(0, wrapperRect.right + 8);
         break;
       default:
         break;
     }
     
-    // 移除visibility控制，直接应用样式
-    style.visibility = 'visible';
-    tooltipStyle.value = style;
+    return position;
   } catch (error) {
     console.error('Tooltip position calculation error:', error);
+    return null;
   }
 };
 
 // 显示tooltip
 const showTooltip = () => {
-  // 先计算位置，再显示tooltip，确保首次显示就在正确位置
-  nextTick(() => {
-    calculatePosition();
-    show.value = true;
-  });
+  if (!content) return;
+  const position = calculatePosition();
+  if (position) {
+    tooltipManager.show({
+      content,
+      position,
+      placement
+    });
+  }
 };
 
 // 隐藏tooltip
 const hideTooltip = () => {
-  show.value = false;
+  tooltipManager.hide();
 };
 
 // 监听窗口大小变化，重新计算位置
 const handleResize = () => {
-  if (show.value) {
-    calculatePosition();
-  }
+  // 窗口大小变化时，隐藏tooltip
+  tooltipManager.hide();
 };
 
 // 添加防抖处理，避免频繁计算位置
