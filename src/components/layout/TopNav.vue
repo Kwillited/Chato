@@ -22,6 +22,70 @@
     
 
   </div>
+  
+  <!-- 导航栏Header -->
+  <div id="mainHeader" class="sticky top-8 z-40 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
+    <div class="flex items-center justify-between px-4 h-10">
+      <!-- 左侧：标题和导航链接 -->
+      <div class="flex items-center space-x-6">
+        <h1 class="text-lg font-bold text-primary">Chato</h1>
+        <nav class="hidden md:flex space-x-4">
+          <button 
+            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
+            :class="settingsStore.activePanel === 'history' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
+            @click="navigateTo('history')"
+          >
+            聊天
+          </button>
+          <button 
+            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
+            :class="settingsStore.activePanel === 'rag' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
+            @click="navigateTo('rag')"
+          >
+            知识库
+          </button>
+          <button 
+            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
+            :class="settingsStore.activePanel === 'mcp' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
+            @click="navigateTo('mcp')"
+          >
+            MCP工具
+          </button>
+          <button 
+            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
+            :class="settingsStore.activePanel === 'settings' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
+            @click="navigateTo('settings')"
+          >
+            设置
+          </button>
+        </nav>
+      </div>
+      
+      <!-- 右侧：搜索框和功能按钮 -->
+      <div class="flex items-center space-x-3">
+        <!-- 搜索框 -->
+        <div class="relative hidden md:block">
+          <input
+            type="text"
+            placeholder="搜索..."
+            class="w-48 pl-8 pr-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-dark-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+          >
+          <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs"></i>
+        </div>
+        
+        <!-- 通知按钮 -->
+        <button class="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300">
+          <i class="fa-solid fa-bell text-sm"></i>
+        </button>
+        
+        <!-- 帮助按钮 -->
+        <button class="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300">
+          <i class="fa-solid fa-question text-sm"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  
   <!-- 命令行窗口组件 -->
   <CommandLine 
     :visible="showCommandLine" 
@@ -104,6 +168,28 @@ const handleLogout = () => {
 // 关闭命令行窗口
 const closeCommandLine = () => {
   showCommandLine.value = false;
+};
+
+// 导航方法
+const navigateTo = (panel) => {
+  settingsStore.setActivePanel(panel);
+  // 根据面板类型设置默认内容
+  switch (panel) {
+    case 'history':
+      settingsStore.setActiveContent('chat');
+      break;
+    case 'rag':
+      settingsStore.setActiveContent('ragManagement');
+      break;
+    case 'mcp':
+      settingsStore.setActiveContent('mcp');
+      break;
+    case 'settings':
+      settingsStore.setActiveContent('settings');
+      break;
+    default:
+      break;
+  }
 };
 
 // 点击外部区域关闭菜单
