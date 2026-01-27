@@ -5,6 +5,7 @@ import { useSettingsStore } from './settingsStore.js';
 import { useVectorStore } from './vectorStore.js';
 import { useUiStore } from './uiStore.js';
 import { showNotification } from '../utils/notificationUtils.js';
+import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils, stateUtils } from '../utils/storeUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
 // 定义聊天消息的类型描述
@@ -79,12 +80,12 @@ export const useChatStore = defineStore('chat', {
   actions: {
     // 设置错误信息
     setError(error) {
-      this.error = error;
+      errorUtils.setError(this, error);
     },
 
     // 清空错误信息
     clearError() {
-      this.error = null;
+      errorUtils.clearError(this);
     },
 
     // 设置搜索关键词
@@ -128,7 +129,7 @@ export const useChatStore = defineStore('chat', {
       } catch (error) {
         console.error('创建新对话失败:', error);
         console.error('错误详情:', error.message, error.stack, error.response);
-        this.setError('创建新对话失败，请检查后端服务是否运行中');
+        errorUtils.setError(this, '创建新对话失败，请检查后端服务是否运行中');
         // 后端服务不可用时，不执行本地创建操作，直接返回报错
         throw error;
       }
@@ -202,7 +203,7 @@ export const useChatStore = defineStore('chat', {
       currentChat.messages.push(typingMessageRef);
       
       // 强制更新currentChat，确保所有组件都能感知到变化
-      this.currentChat = { ...this.currentChat };
+      stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
 
       return typingMessageRef;
     },
@@ -367,7 +368,7 @@ export const useChatStore = defineStore('chat', {
                   aiMessage.value = updatedMessage;
                   
                   // 添加：强制更新currentChat，确保所有组件都能感知到变化
-                  this.currentChat = { ...this.currentChat };
+                  stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                   
                   // 如果用户当前没有查看该对话，设置未读标记并显示通知
                   this.handleNewMessageNotification(currentChat);
@@ -379,7 +380,7 @@ export const useChatStore = defineStore('chat', {
             // 处理错误
             (error) => {
               console.error('流式消息错误:', error);
-              this.setError(`流式消息失败: ${error.message || '未知错误'}`);
+              errorUtils.setError(this, `流式消息失败: ${error.message || '未知错误'}`);
             },
             // 处理完成
                 () => {
@@ -396,7 +397,7 @@ export const useChatStore = defineStore('chat', {
                     aiMessage.value = updatedMessage;
                 
                 // 强制更新currentChat
-                this.currentChat = { ...this.currentChat };
+                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                 
                 // 如果用户当前没有查看该对话，设置未读标记并显示通知
                 this.handleNewMessageNotification(currentChat);
@@ -410,7 +411,7 @@ export const useChatStore = defineStore('chat', {
           }
       } catch (error) {
         console.error('发送流式消息失败:', error);
-        this.setError(`发送消息失败: ${error.message || '未知错误'}`);
+        errorUtils.setError(this, `发送消息失败: ${error.message || '未知错误'}`);
         
         // 处理错误消息
         this.handleMessageError(currentChat, error);
@@ -501,7 +502,7 @@ export const useChatStore = defineStore('chat', {
         }
       } catch (error) {
         console.error('发送非流式消息失败:', error);
-        this.setError(`发送消息失败: ${error.message || '未知错误'}`);
+        errorUtils.setError(this, `发送消息失败: ${error.message || '未知错误'}`);
         
         // 处理错误消息
         this.handleMessageError(currentChat, error);
@@ -582,7 +583,7 @@ export const useChatStore = defineStore('chat', {
         // 不再需要本地保存，所有数据已通过API同步到后端
       } catch (error) {
         console.error('发送消息失败:', error);
-        this.setError(`发送消息失败: ${error.message || '未知错误'}`);
+        errorUtils.setError(this, `发送消息失败: ${error.message || '未知错误'}`);
 
         // 处理消息错误
         this.handleMessageError(currentChat, error);
@@ -620,7 +621,7 @@ export const useChatStore = defineStore('chat', {
         }
       } catch (error) {
         console.error('API删除对话失败:', error);
-        this.setError('删除对话失败，请检查后端服务是否运行中');
+        errorUtils.setError(this, '删除对话失败，请检查后端服务是否运行中');
         // 后端服务不可用时，不执行本地删除操作，直接返回报错
         throw error;
       }
@@ -638,7 +639,7 @@ export const useChatStore = defineStore('chat', {
         this.currentChatId = null;
       } catch (error) {
         console.error('API删除所有对话失败:', error);
-        this.setError('删除所有对话失败，请检查后端服务是否运行中');
+        errorUtils.setError(this, '删除所有对话失败，请检查后端服务是否运行中');
         // 后端服务不可用时，不执行本地清空操作，直接返回报错
         throw error;
       }
@@ -692,7 +693,7 @@ export const useChatStore = defineStore('chat', {
         }
       } catch (error) {
         console.error('获取对话历史失败:', error);
-        this.setError('获取对话历史失败，请检查后端服务是否运行中');
+        errorUtils.setError(this, '获取对话历史失败，请检查后端服务是否运行中');
         this.currentChatId = null;
         // 统一的重试机制已在apiService中实现，这里不再需要额外的重试逻辑
         throw error;
@@ -775,7 +776,7 @@ export const useChatStore = defineStore('chat', {
         return JSON.stringify(exportData, null, 2);
       } catch (error) {
         console.error('导出对话失败:', error);
-        this.setError('导出对话失败');
+        errorUtils.setError(this, '导出对话失败');
         return null;
       }
     },
@@ -800,7 +801,7 @@ export const useChatStore = defineStore('chat', {
         console.log('对话历史导出成功');
       } catch (error) {
         console.error('导出对话历史失败:', error);
-        this.setError('导出对话历史失败');
+        errorUtils.setError(this, '导出对话历史失败');
         throw error;
       }
     },
@@ -886,7 +887,7 @@ export const useChatStore = defineStore('chat', {
         // 不再需要本地保存，所有数据已通过API同步到后端
       } catch (error) {
         console.error('批量删除对话过程出错:', error);
-        this.setError('批量删除失败，请检查后端服务是否运行中');
+        errorUtils.setError(this, '批量删除失败，请检查后端服务是否运行中');
         // 后端服务不可用时，不执行本地删除操作，直接返回报错
         throw error;
       }

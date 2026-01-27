@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService.js';
+import { errorUtils, loadingUtils, apiUtils } from '../utils/storeUtils.js';
 
 export const useVectorStore = defineStore('vector', {
   state: () => ({
@@ -71,12 +72,12 @@ export const useVectorStore = defineStore('vector', {
   actions: {
     // 设置错误信息
     setError(error) {
-      this.error = error;
+      errorUtils.setError(this, error);
     },
     
     // 清空错误信息
     clearError() {
-      this.error = null;
+      errorUtils.clearError(this);
     },
     
     // 设置上传进度
@@ -149,131 +150,115 @@ export const useVectorStore = defineStore('vector', {
     async searchFileContent(query) {
       if (!query.trim()) return [];
 
-      this.loading = true;
-      this.clearError();
-
       try {
-        // 调用后端API搜索文件内容
-        const response = await apiService.post('/api/vectors/search-documents', {
-          query, 
-          k: this.config.retrieval.topK,
-          score_threshold: this.config.retrieval.threshold,
-          search_type: this.config.retrieval.mode
-        });
+        const results = await apiUtils.wrapApiCall(this, async () => {
+          // 调用后端API搜索文件内容
+          const response = await apiService.post('/api/vectors/search-documents', {
+            query, 
+            k: this.config.retrieval.topK,
+            score_threshold: this.config.retrieval.threshold,
+            search_type: this.config.retrieval.mode
+          });
+          
+          // 确保正确处理响应格式
+          return response.success && response.results ? response.results : [];
+        }, '搜索文件内容失败');
         
-        // 确保正确处理响应格式
-        return response.success && response.results ? response.results : [];
+        return results;
       } catch (error) {
-        console.error('搜索文件内容失败:', error);
-        this.setError(`搜索失败: ${error.message || '未知错误'}`);
         return [];
-      } finally {
-        this.loading = false;
       }
     },
 
     // 生成增强响应
     async generateRagResponse(query, chatHistory, k = 5) {
-      this.loading = true;
-      this.clearError();
-
       try {
-        // 调用后端API生成增强响应
-        const response = await apiService.post('/api/vectors/enhanced-prompt', {
-          query,
-          chatHistory,
-          k,
-          ragConfig: {
-            enabled: this.config.enabled,
-            topK: this.config.retrieval.topK,
-            scoreThreshold: this.config.retrieval.threshold,
-            searchType: this.config.retrieval.mode
-          }
-        });
+        const response = await apiUtils.wrapApiCall(this, async () => {
+          // 调用后端API生成增强响应
+          const response = await apiService.post('/api/vectors/enhanced-prompt', {
+            query,
+            chatHistory,
+            k,
+            ragConfig: {
+              enabled: this.config.enabled,
+              topK: this.config.retrieval.topK,
+              scoreThreshold: this.config.retrieval.threshold,
+              searchType: this.config.retrieval.mode
+            }
+          });
+          
+          // 确保正确处理响应格式
+          return response.success ? response : { success: false, error: response.message || '生成增强响应失败' };
+        }, '生成增强响应失败');
         
-        // 确保正确处理响应格式
-        return response.success ? response : { success: false, error: response.message || '生成增强响应失败' };
+        return response;
       } catch (error) {
-        console.error('生成增强响应失败:', error);
-        this.setError(`生成增强响应失败: ${error.message || '未知错误'}`);
         return { success: false, error: error.message || '生成增强响应失败' };
-      } finally {
-        this.loading = false;
       }
     },
 
     // 重新加载向量库
     async reloadVectorStore() {
-      this.loading = true;
-      this.clearError();
-
       try {
-        // 调用后端API重新加载向量库
-        const response = await apiService.post('/api/vectors/manage', {
-          action: 'reload'
-        });
+        const response = await apiUtils.wrapApiCall(this, async () => {
+          // 调用后端API重新加载向量库
+          const response = await apiService.post('/api/vectors/manage', {
+            action: 'reload'
+          });
+          
+          // 确保正确处理响应格式
+          if (response.success) {
+            return { success: true, message: response.message || '向量库重新加载成功' };
+          } else {
+            return { success: false, error: response.message || '向量库重新加载失败' };
+          }
+        }, '重新加载向量库失败');
         
-        // 确保正确处理响应格式
-        if (response.success) {
-          return { success: true, message: response.message || '向量库重新加载成功' };
-        } else {
-          return { success: false, error: response.message || '向量库重新加载失败' };
-        }
+        return response;
       } catch (error) {
-        console.error('重新加载向量库失败:', error);
-        this.setError(`重新加载向量库失败: ${error.message || '未知错误'}`);
         return { success: false, error: error.message || '重新加载向量库失败' };
-      } finally {
-        this.loading = false;
       }
     },
 
     // 加载向量库列表
     async loadVectorStores() {
-      this.loading = true;
-      this.clearError();
-
       try {
-        // 调用后端API获取向量库列表
-        const response = await apiService.get('/api/vectors/stores');
-        
-        if (response.success && Array.isArray(response.stores)) {
-          this.vectorStores = response.stores;
-          if (response.stores.length > 0 && !this.currentVectorStore) {
-            this.currentVectorStore = response.stores[0].id;
+        await apiUtils.wrapApiCall(this, async () => {
+          // 调用后端API获取向量库列表
+          const response = await apiService.get('/api/vectors/stores');
+          
+          if (response.success && Array.isArray(response.stores)) {
+            this.vectorStores = response.stores;
+            if (response.stores.length > 0 && !this.currentVectorStore) {
+              this.currentVectorStore = response.stores[0].id;
+            }
           }
-        }
+        }, '加载向量库列表失败');
       } catch (error) {
-        console.error('加载向量库列表失败:', error);
-        this.setError(`加载向量库列表失败: ${error.message || '未知错误'}`);
-      } finally {
-        this.loading = false;
+        // 错误已在 wrapApiCall 中处理
       }
     },
 
     // 切换向量库
     async switchVectorStore(storeId) {
-      this.loading = true;
-      this.clearError();
-
       try {
-        // 调用后端API切换向量库
-        const response = await apiService.post('/api/vectors/switch', {
-          store_id: storeId
-        });
+        const response = await apiUtils.wrapApiCall(this, async () => {
+          // 调用后端API切换向量库
+          const response = await apiService.post('/api/vectors/switch', {
+            store_id: storeId
+          });
+          
+          if (response.success) {
+            this.currentVectorStore = storeId;
+            return { success: true, message: response.message || '向量库切换成功' };
+          } else {
+            return { success: false, error: response.message || '向量库切换失败' };
+          }
+        }, '切换向量库失败');
         
-        if (response.success) {
-          this.currentVectorStore = storeId;
-          return { success: true, message: response.message || '向量库切换成功' };
-        } else {
-          return { success: false, error: response.message || '向量库切换失败' };
-        }
+        return response;
       } catch (error) {
-        console.error('切换向量库失败:', error);
-        this.setError(`切换向量库失败: ${error.message || '未知错误'}`);
         return { success: false, error: error.message || '切换向量库失败' };
-      } finally {
-        this.loading = false;
       }
     },
     
@@ -282,27 +267,21 @@ export const useVectorStore = defineStore('vector', {
       if (!query.trim()) return;
       
       try {
-        this.loading = true;
-        this.clearError();
-        
         // 调用搜索文件内容方法
         const results = await this.searchFileContent(query);
         console.log('知识库搜索结果:', results);
         return results;
       } catch (error) {
         console.error('知识库搜索失败:', error);
-        this.setError(`搜索失败: ${error.message || '未知错误'}`);
+        errorUtils.setError(this, `搜索失败: ${error.message || '未知错误'}`);
         return [];
-      } finally {
-        this.loading = false;
       }
     },
     
     // 加载文件列表（兼容ragStore）
     async loadFiles() {
       try {
-        this.loading = true;
-        this.clearError();
+        loadingUtils.startLoading(this);
         
         // 调用fileStore的loadFiles方法
         const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
@@ -311,22 +290,21 @@ export const useVectorStore = defineStore('vector', {
         // 将fileStore的文件列表同步到vectorStore的files属性
         this.files = fileStore.files;
         
+        loadingUtils.setLoadingFalse(this);
         return this.files;
       } catch (error) {
         console.error('加载文件列表失败:', error);
-        this.setError(`加载文件列表失败: ${error.message || '未知错误'}`);
+        errorUtils.setError(this, `加载文件列表失败: ${error.message || '未知错误'}`);
+        loadingUtils.setLoadingFalse(this);
         this.files = [];
         return this.files;
-      } finally {
-        this.loading = false;
       }
     },
     
     // 批量上传文件（兼容ragStore）
     async batchUploadFiles(files) {
       try {
-        this.loading = true;
-        this.clearError();
+        loadingUtils.startLoading(this);
         
         // 调用fileStore的batchUploadFiles方法
         const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
@@ -335,21 +313,20 @@ export const useVectorStore = defineStore('vector', {
         // 重新加载文件列表
         await this.loadFiles();
         
+        loadingUtils.setLoadingFalse(this);
         return result;
       } catch (error) {
         console.error('批量上传文件失败:', error);
-        this.setError(`批量上传文件失败: ${error.message || '未知错误'}`);
+        errorUtils.setError(this, `批量上传文件失败: ${error.message || '未知错误'}`);
+        loadingUtils.setLoadingFalse(this);
         return { successCount: 0, failCount: files.length, uploadResults: [] };
-      } finally {
-        this.loading = false;
       }
     },
     
     // 删除文件（兼容ragStore）
     async deleteFile(fileId, folderId) {
       try {
-        this.loading = true;
-        this.clearError();
+        loadingUtils.startLoading(this);
         
         // 查找要删除的文件
         const fileToDelete = this.files.find(f => f.id === fileId);
@@ -364,13 +341,13 @@ export const useVectorStore = defineStore('vector', {
         // 重新加载文件列表
         await this.loadFiles();
         
+        loadingUtils.setLoadingFalse(this);
         return { success: true };
       } catch (error) {
         console.error('删除文件失败:', error);
-        this.setError(`删除文件失败: ${error.message || '未知错误'}`);
+        errorUtils.setError(this, `删除文件失败: ${error.message || '未知错误'}`);
+        loadingUtils.setLoadingFalse(this);
         return { success: false, error: error.message };
-      } finally {
-        this.loading = false;
       }
     },
     

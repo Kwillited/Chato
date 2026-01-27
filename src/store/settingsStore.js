@@ -4,6 +4,7 @@ import { mergeSettings } from '../utils/data.js';
 import { apiService } from '../services/apiService.js';
 import { eventBus } from '../services/eventBus.js';
 import { showNotification } from '../utils/notificationUtils.js';
+import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils } from '../utils/storeUtils.js';
 
 // 存储键名常量
 const STORAGE_KEYS = {
@@ -466,7 +467,7 @@ export const useSettingsStore = defineStore('settings', {
     
     // 设置模型错误信息
     setModelError(error) {
-      this.modelError = error;
+      errorUtils.setError(this, error);
       if (error) {
         console.error('模型管理错误:', error);
       }
@@ -604,13 +605,13 @@ export const useSettingsStore = defineStore('settings', {
         eventBus.emit('modelUpdated');
         
         // 显示成功通知
-        showNotification(`已删除${modelName}的配置`, 'success');
+        notifyUtils.showSuccess(`已删除${modelName}的配置`);
         
         return true;
       } catch (error) {
         this.setModelError('删除模型配置失败');
         console.error('删除模型配置失败:', error);
-        showNotification('删除失败: ' + (error.message || '未知错误'), 'error');
+        notifyUtils.showError('删除失败: ' + (error.message || '未知错误'));
         throw error;
       } finally {
         this.setModelLoading(false);
@@ -734,13 +735,13 @@ export const useSettingsStore = defineStore('settings', {
         const version = model?.versions?.find(v => v.version_name === versionName);
         
         // 显示成功通知
-        showNotification(`已删除${modelName}的版本 ${version?.custom_name || versionName}`, 'success');
+        notifyUtils.showSuccess(`已删除${modelName}的版本 ${version?.custom_name || versionName}`);
         
         return true;
       } catch (error) {
         this.setModelError('删除模型版本失败');
         console.error('删除模型版本失败:', error);
-        showNotification('删除失败: ' + (error.message || '未知错误'), 'error');
+        notifyUtils.showError('删除失败: ' + (error.message || '未知错误'));
         throw error;
       } finally {
         this.setModelLoading(false);
