@@ -497,9 +497,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { StorageManager, formatFileSize } from '../../../store/utils.js';
+import { StorageManager } from '../../../utils/storage.js';
+import { formatFileSize } from '../../../utils/file.js';
 import { Tooltip } from '../index.js';
-import { showNotification } from '../../../services/notificationUtils.js';
+import { showNotification } from '../../../utils/notificationUtils.js';
 import DragDropZone from '../../common/DragDropZone.vue';
 import { Button } from '../../../components/library/index.js';
 

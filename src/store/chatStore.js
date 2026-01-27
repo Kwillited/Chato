@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
-import { generateId } from './utils';
+import { generateId } from '../utils/data.js';
 import { useSettingsStore } from './settingsStore.js';
 import { useModelSettingStore } from './modelSettingStore.js';
 import { useVectorStore } from './vectorStore.js';
-import { showNotification } from '../services/notificationUtils.js';
+import { showNotification } from '../utils/notificationUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
 // 定义聊天消息的类型描述

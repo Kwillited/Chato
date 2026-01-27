@@ -23,9 +23,11 @@
             <i class="fa-solid fa-upload mr-1 text-xs"></i>释放以上传
           </div>
         </div>
-        <ActionButton
+        <Button
+          shape="full"
+          size="md"
           icon="fa-trash-can"
-          title="删除此知识库文件夹"
+          tooltip="删除此知识库文件夹"
           @click.stop="handleDeleteFolder(folder)"
           class="text-gray-500 hover:text-red-500 text-sm"
         />
@@ -36,7 +38,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import ActionButton from '../common/ActionButton.vue';
+import { Button } from '../library/index.js';
 import { useFileStore } from '../../store/fileStore.js';
 
 // 初始化stores

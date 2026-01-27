@@ -29,7 +29,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { Window } from '@tauri-apps/api/window';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 import CommandLine from '../../components/common/CommandLine.vue';
 import { Tooltip } from '../library/index.js';
 import { Button } from '../library/index.js';

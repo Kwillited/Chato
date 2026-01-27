@@ -1,7 +1,7 @@
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { marked } from '../plugins/markdown.js'
-import { copyToClipboard } from '../store/utils.js'
-import { showNotification } from '../services/notificationUtils.js'
+import { copyToClipboard } from '../utils/browser.js'
+import { showNotification } from '../utils/notificationUtils.js'
 
 /**
  * 聊天气泡组件的公共逻辑

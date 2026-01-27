@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
-import { StorageManager, mergeSettings } from './utils';
+import { StorageManager } from '../utils/storage.js';
+import { mergeSettings } from '../utils/data.js';
 import { apiService } from '../services/apiService.js';
 import { eventBus } from '../services/eventBus.js';
-import { showNotification } from '../services/notificationUtils.js';
+import { showNotification } from '../utils/notificationUtils.js';
 
 // 存储键名常量
 const STORAGE_KEYS = {

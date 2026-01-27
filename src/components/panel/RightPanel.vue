@@ -22,16 +22,18 @@
         <div class="flex justify-between items-center mb-2">
           <h3 class="text-sm font-semibold text-gray-500">上下文筛选</h3>
           <div class="flex space-x-2">
-            <ActionButton
-              icon="fa-check-square"
-              title="全选"
+            <Button
+              shape="full"
               size="sm"
+              icon="fa-check-square"
+              tooltip="全选"
               @click="selectAllMessages"
             />
-            <ActionButton
-              icon="fa-square"
-              title="取消全选"
+            <Button
+              shape="full"
               size="sm"
+              icon="fa-square"
+              tooltip="取消全选"
               @click="clearAllSelections"
             />
           </div>
@@ -84,14 +86,18 @@
         
         <!-- 操作按钮 -->
         <div class="flex justify-end mt-2 space-x-2">
-          <ActionButton
+          <Button
+            shape="full"
+            size="md"
             :icon="chatStore.activeView === 'grid' ? 'fa-sitemap' : 'fa-comments'"
-            :title="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
+            :tooltip="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
             @click="toggleView"
           />
-          <ActionButton
+          <Button
+            shape="full"
+            size="md"
             icon="fa-check"
-            title="应用调整"
+            tooltip="应用调整"
             @click="applyContextChanges"
             :disabled="selectedMessages.size === 0"
           />
@@ -105,11 +111,11 @@
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useModelSettingStore } from '../../store/modelSettingStore.js';
 import { useChatStore } from '../../store/chatStore.js';
-import ActionButton from '../common/ActionButton.vue';
-import { showNotification } from '../../services/notificationUtils.js';
+import { Button } from '../library/index.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 import { ref, watch } from 'vue';
 // 导入公共工具函数
-import { formatTime } from '../../store/utils.js';
+import { formatTime } from '../../utils/time.js';
 
 // 定义props
 const _props = defineProps({

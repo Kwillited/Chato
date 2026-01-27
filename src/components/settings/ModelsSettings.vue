@@ -159,7 +159,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useModelSettingStore } from '../../store/modelSettingStore.js';
 import { eventBus } from '../../services/eventBus.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 import ModelSettingsDrawer from '../models/ModelSettingsDrawer.vue';
 import ModelVersionForm from '../models/ModelVersionForm.vue';
 

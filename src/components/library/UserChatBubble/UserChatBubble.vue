@@ -209,7 +209,7 @@ import Loading from '../../common/Loading.vue'
 // 导入聊天气泡公共逻辑
 import { useChatBubble } from '../../../composables/useChatBubble.js'
 // 导入文件处理工具函数
-import { getFileIcon, getFileExtension, formatFileSize } from '../../../store/utils.js'
+import { getFileIcon, getFileExtension, formatFileSize } from '../../../utils/file.js'
 
 const props = defineProps({
   message: {

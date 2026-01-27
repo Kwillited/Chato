@@ -7,16 +7,20 @@
       <div class="flex items-center space-x-2 flex-1 min-w-0">
         <!-- 左侧按钮组 -->
         <div class="flex space-x-2">
-          <ActionButton 
+          <Button 
+            shape="full"
+            size="md"
             icon="fa-bars" 
-            title="隐藏左侧面板" 
+            tooltip="隐藏左侧面板" 
             @click="handleSideMenuToggle"
           />
           <!-- 新增会话按钮 -->
-          <ActionButton 
+          <Button 
             id="newChat"
+            shape="full"
+            size="md"
             icon="fa-comment-dots" 
-            title="新对话"
+            tooltip="新对话"
             @click="handleNewChat"
           />
         </div>
@@ -58,16 +62,20 @@
         </div>
         
         <!-- 上传文件按钮 -->
-        <ActionButton 
+        <Button 
+          shape="full"
+          size="md"
           icon="fa-upload" 
-          title="上传文件" 
+          tooltip="上传文件" 
           @click="handleUploadClick"
         />
         
         <!-- 刷新按钮 -->
-        <ActionButton 
+        <Button 
+          shape="full"
+          size="md"
           icon="fa-arrows-rotate" 
-          title="刷新" 
+          tooltip="刷新" 
           @click="refreshFiles"
         />
       </div>
@@ -104,9 +112,11 @@
             <div class="text-xs text-gray-500 mt-1">{{ formatFileSize(file.size) }}</div>
             <!-- 操作按钮 -->
             <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity">
-              <ActionButton 
+              <Button 
+                shape="full"
+                size="sm"
                 icon="fa-trash" 
-                title="删除" 
+                tooltip="删除" 
                 @click.stop="handleDeleteFile(file.id)"
                 class="text-gray-500 hover:text-red-500 w-6 h-6 p-1"
               />
@@ -142,14 +152,18 @@
             <div class="col-span-2 flex items-center">{{ file.type || 'unknown' }}</div>
             <div class="col-span-2 flex items-center">{{ formatFileSize(file.size) }}</div>
             <div class="col-span-2 flex items-center justify-end space-x-2">
-                <ActionButton 
+                <Button 
+                  shape="full"
+                  size="sm"
                   icon="fa-eye" 
-                  title="预览"
+                  tooltip="预览"
                   class="text-gray-500 hover:text-primary w-6 h-6 p-1"
                 />
-                <ActionButton 
+                <Button 
+                  shape="full"
+                  size="sm"
                   icon="fa-trash" 
-                  title="删除" 
+                  tooltip="删除" 
                   @click="handleDeleteFile(file.id)"
                   class="text-gray-500 hover:text-red-500 w-6 h-6 p-1"
                 />
@@ -208,11 +222,12 @@ import { useVectorStore } from '../store/vectorStore.js';
 import { useFileStore } from '../store/fileStore.js';
 import { useChatStore } from '../store/chatStore.js';
 import { eventBus } from '../services/eventBus.js';
-import { generateId, formatFileSize } from '../store/utils.js';
-import ActionButton from '../components/common/ActionButton.vue';
+import { generateId } from '../utils/data.js';
+import { formatFileSize } from '../utils/file.js';
+import { Button } from '../components/library/index.js';
 import { KnowledgeGraphVisualization } from '../components/library';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
-import { showNotification } from '../services/notificationUtils.js';
+import { showNotification } from '../utils/notificationUtils.js';
 
 // 导入Tauri API用于文件操作
 // 移除不再需要的Tauri导入

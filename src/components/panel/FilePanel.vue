@@ -73,7 +73,7 @@ import { useVectorStore } from '../../store/vectorStore.js';
 import { useFileStore } from '../../store/fileStore.js';
 import api from '../../services/apiService.js';
 import { eventBus } from '../../services/eventBus.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 
 // 导入子组件
 import RagFilePanelHeader from '../file/RagFilePanelHeader.vue';

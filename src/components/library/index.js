@@ -11,7 +11,6 @@ export { default as ContextVisualizationContent } from './ContextVisualization/C
 export { default as KnowledgeGraphVisualization } from './KnowledgeGraphVisualization/KnowledgeGraphCanvas.vue'
 
 export { default as Button } from '../common/Button.vue'
-export { default as ActionButton } from '../common/ActionButton.vue'
 export { default as Loading } from '../common/Loading.vue'
 export { default as ConfirmationModal } from '../common/ConfirmationModal.vue'
 export { default as DragDropZone } from '../common/DragDropZone.vue'

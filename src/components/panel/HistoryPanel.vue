@@ -120,8 +120,8 @@
 import { computed, reactive, ref, onMounted, onUnmounted } from 'vue';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { showNotification } from '../../services/notificationUtils.js';
-import { SearchBar, ActionButton, ConfirmationModal } from '../library/index.js';
+import { showNotification } from '../../utils/notificationUtils.js';
+import { SearchBar, ConfirmationModal } from '../library/index.js';
 
 // 滚动容器引用
 const scrollContainer = ref(null);

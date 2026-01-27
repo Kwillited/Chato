@@ -32,7 +32,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useFileStore } from '../../store/fileStore.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
 // Props

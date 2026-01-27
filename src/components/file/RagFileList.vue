@@ -30,7 +30,7 @@
 
 <script setup>
 import StateDisplay from '../common/StateDisplay.vue';
-import { formatFileSize } from '../../store/utils.js';
+import { formatFileSize } from '../../utils/file.js';
 
 defineProps({
   currentFolder: {

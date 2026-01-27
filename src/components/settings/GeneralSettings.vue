@@ -19,17 +19,21 @@
       <div class="flex justify-between items-center">
         <h3 class="font-medium text-sm text-gray-700 dark:text-gray-200">对话管理</h3>
         <div class="flex gap-2">
-          <ActionButton
+          <Button
             id="exportAllBtn"
+            shape="full"
+            size="md"
             icon="fa-download"
-            title="导出所有对话"
+            tooltip="导出所有对话"
             @click="handleExportAll"
             class="w-8 h-8 p-1.5 text-gray-500 dark:text-gray-300 hover:text-primary hover:bg-primary/10 rounded-full transition-colors duration-200"
           />
-          <ActionButton
+          <Button
             id="deleteAllBtn"
+            shape="full"
+            size="md"
             icon="fa-trash-can"
-            title="删除所有对话"
+            tooltip="删除所有对话"
             @click="showDeleteAllModal = true"
             class="w-8 h-8 p-1.5 text-gray-500 dark:text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors duration-200"
           />
@@ -157,9 +161,9 @@ import { useSettingsStore } from '../../store/settingsStore.js';
 import { useModelSettingStore } from '../../store/modelSettingStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { eventBus } from '../../services/eventBus.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 import SettingItem from '../common/SettingItem.vue';
-import ActionButton from '../common/ActionButton.vue';
+import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
 const settingsStore = useSettingsStore();

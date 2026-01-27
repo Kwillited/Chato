@@ -33,11 +33,13 @@
                     </div>
                   </div>
                 </div>
-                <ActionButton 
+                <Button 
+                  shape="full"
+                  size="md"
                   class="text-neutral-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors"
                   @click.stop="handleDeleteTool(tool.id)"
                   icon="fa-trash"
-                  title="删除此工具"
+                  tooltip="删除此工具"
                 />
               </div>
             </div>
@@ -65,9 +67,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
-import ActionButton from '../common/ActionButton.vue';
+import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
 // 确认删除模态框状态

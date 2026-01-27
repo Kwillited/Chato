@@ -93,7 +93,7 @@
 import { ref, computed, watch } from 'vue';
 import { useModelSettingStore } from '../../store/modelSettingStore.js';
 import { eventBus } from '../../services/eventBus.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
 // 定义组件名称

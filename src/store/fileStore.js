@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
-import { showNotification } from '../services/notificationUtils';
+import { showNotification } from '../utils/notificationUtils.js';
 import eventBus from '../services/eventBus.js';
 
 export const useFileStore = defineStore('file', {

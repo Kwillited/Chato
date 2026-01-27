@@ -107,7 +107,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useModelSettingStore } from '../../store/modelSettingStore.js';
-import { showNotification } from '../../services/notificationUtils.js';
+import { showNotification } from '../../utils/notificationUtils.js';
 
 // 定义组件属性
 const props = defineProps({
