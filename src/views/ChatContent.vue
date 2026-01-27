@@ -1,7 +1,78 @@
 <template>
   <!-- 聊天内容区域 -->
   <div id="chatMainContent" class="flex-1 flex flex-col overflow-hidden">
-
+    <!-- 顶部导航 -->
+    <div class="panel-header p-3 flex flex-wrap items-center justify-end gap-4 relative transition-all duration-300">
+      <!-- 左侧按钮组 -->
+        <div class="absolute left-3 flex space-x-2">
+          <!-- 隐藏左侧面板按钮 -->
+          <ActionButton 
+            icon="bars"
+            title="隐藏左侧面板"
+            @click="handleSideMenuToggle"
+          />
+          <!-- 新增会话按钮 -->
+          <ActionButton 
+            id="newChat"
+            icon="comment-dots"
+            title="新对话"
+            @click="handleNewChat"
+          />
+        </div>
+        
+        <!-- 标题绝对居中 -->
+        <div class="absolute left-1/2 transform -translate-x-1/2 flex items-center">
+          <h2 class="text-lg font-bold text-gray-800 dark:text-white">{{ currentTitle }}</h2>
+        </div>
+        
+        <!-- 右侧按钮组 -->
+        <div class="flex space-x-2">
+          <!-- 历史对话按钮（带下拉菜单） -->
+          <div class="relative hover-scale">
+            <ActionButton 
+              id="historyChat"
+              icon="clock-rotate-left"
+              title="历史对话"
+              @click.stop="toggleHistoryMenu"
+            />
+            
+            <!-- 历史对话下拉菜单 -->
+            <div 
+              v-if="showHistoryMenu"
+              class="absolute top-full mt-2 right-0 w-64 rounded-lg shadow-lg border z-50 dropdown-content flex flex-col py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700 max-h-96 overflow-y-auto"
+            >
+              <!-- 下拉菜单标题 -->
+              <div class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-dark-700">
+                历史对话
+              </div>
+              
+              <!-- 历史对话列表 -->
+              <div v-if="chatStore.chats.length > 0" class="py-2">
+                <button 
+                  v-for="chat in chatStore.chatHistory" 
+                  :key="chat.id"
+                  class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-700 dark:text-gray-300 transition-colors duration-200 flex items-start gap-2"
+                  @click="selectChatFromHistory(chat.id)"
+                >
+                  <i class="fa-solid fa-comments text-xs mt-1 flex-shrink-0 text-gray-400 dark:text-gray-500"></i>
+                  <div class="flex-1 min-w-0 flex items-center justify-between">
+                    <div class="font-medium truncate">{{ chat.title }}</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 truncate ml-2 whitespace-nowrap">
+                      {{ formatDate(chat.updatedAt) }}
+                    </div>
+                  </div>
+                </button>
+              </div>
+              
+              <!-- 空状态 -->
+              <div v-else class="px-4 py-4 text-center text-sm text-gray-500 dark:text-gray-400 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-inbox text-xl"></i>
+                暂无历史对话
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
 
     <!-- 条件渲染聊天消息或知识图谱 -->
     <div class="flex-1 overflow-hidden">
@@ -36,6 +107,8 @@
 import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue';
 import { useChatStore } from '../store/chatStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
+// 导入公共工具函数
+import { formatDate } from '../store/utils.js';
 
 // 导入子组件
 import ChatMessagesContainer from '../components/chat/ChatMessagesContainer.vue';
@@ -54,11 +127,79 @@ const chatMessagesContainerRef = ref(null);
 // 本地UI状态
 const isScrollToBottomVisible = ref(false);
 
+  // 处理新对话点击事件
+  const handleNewChat = () => {
+    // 取消当前会话的激活状态
+    chatStore.currentChatId = null;
+    
+    // 清除所有对话的未读标记
+    chatStore.resetUnreadStatus();
+    
+    // 切换到发送消息视图
+    settingsStore.setActiveContent('sendMessage');
+  };
+
+// 从store计算属性获取数据
+const currentTitle = computed(() => {
+  return chatStore.currentChat?.title || '当前无对话';
+});
+
+// 历史对话菜单状态
+const showHistoryMenu = ref(false);
 
 
 
+// 切换历史对话下拉菜单显示状态
+const toggleHistoryMenu = () => {
+  showHistoryMenu.value = !showHistoryMenu.value;
+};
+
+// 从历史对话下拉菜单中选择对话
+const selectChatFromHistory = (chatId) => {
+  // 关闭下拉菜单
+  showHistoryMenu.value = false;
+  
+  // 选择对话
+  chatStore.selectChat(chatId);
+  
+  // 如果当前内容不是聊天视图，切换到聊天视图
+  settingsStore.setActiveContent('chat');
+};
 
 
+
+// 点击外部区域关闭菜单
+const closeMenusOnClickOutside = (event) => {
+  const menuButtons = document.querySelectorAll('.relative.hover-scale');
+  
+  let clickedInsideMenu = false;
+  menuButtons.forEach(button => {
+    if (button.contains(event.target)) {
+      clickedInsideMenu = true;
+    }
+  });
+  
+  if (!clickedInsideMenu) {
+    showHistoryMenu.value = false;
+  }
+};
+
+// 添加点击外部事件监听
+onMounted(() => {
+  document.addEventListener('click', closeMenusOnClickOutside);
+});
+
+// 移除事件监听
+onUnmounted(() => {
+  document.removeEventListener('click', closeMenusOnClickOutside);
+});
+
+// 处理隐藏菜单按钮点击事件
+const handleSideMenuToggle = () => {
+  // 只使用store提供的方法切换左侧导航栏的可见性
+  // DOM操作逻辑移至App.vue中统一管理
+  settingsStore.toggleLeftNav();
+};
 
 // 处理发送消息事件
 const handleSendMessage = (message, model, deepThinking, webSearchEnabled) => {

@@ -1,5 +1,5 @@
 <template>
-  <div id="displayArea" class="flex-1 flex p-0 pl-0 pr-0 pt-0 bg-light dark:bg-dark-primary overflow-hidden" :class="{ 'transition-all duration-300': !isInitialLoading }">
+  <div id="displayArea" class="flex-1 flex p-0 pl-0 pr-0 pt-0 mt-8 bg-light dark:bg-dark-primary h-[calc(100vh-2rem)] overflow-hidden" :class="{ 'transition-all duration-300': !isInitialLoading }">
     <!-- 2. 历史对话/设置选项面板 -->
     <div 
       id="panelContainer" 

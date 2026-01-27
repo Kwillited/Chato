@@ -1,14 +1,27 @@
 <template>
   <div 
     id="rightPanel" 
-    class="h-full flex-shrink-0 z-40 overflow-hidden mr-0 max-w-[370px] flex flex-col"
+    class="h-full flex-shrink-0 z-40 overflow-hidden mr-0 max-w-[370px]"
     :class="{ 'transition-all duration-300': !isInitialLoading }"
-    :style="{ width: settingsStore.rightPanelVisible ? settingsStore.rightPanelWidth : '0px', display: settingsStore.rightPanelVisible ? 'flex' : 'none', flexShrink: 0 }"
+    :style="{ width: settingsStore.rightPanelVisible ? settingsStore.rightPanelWidth : '0px', display: settingsStore.rightPanelVisible ? 'block' : 'none', flexShrink: 0 }"
   >
-
+    <!-- 右侧面板标题 -->
+    <div class="panel-header p-3 flex items-center justify-between gap-2">
+      <h2 class="text-lg font-bold text-dark dark:text-white flex-1">上下文工程</h2>
+      <ActionButton
+        :icon="chatStore.activeView === 'grid' ? 'fa-sitemap' : 'fa-comments'"
+        :title="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
+        @click="toggleView"
+      />
+      <ActionButton
+        icon="fa-times"
+        title="关闭面板"
+        @click="settingsStore.toggleRightPanel()"
+      />
+    </div>
     
     <!-- 右侧面板内容 -->
-    <div class="p-3 space-y-4 flex-grow overflow-y-auto">
+    <div class="p-3 space-y-4">
       <!-- 上下文概述 -->
       <div class="panel-section">
         <h3 class="text-sm font-semibold text-gray-500 mb-2">上下文概述</h3>
@@ -42,7 +55,7 @@
           </div>
         </div>
         
-        <div class="bg-gray-50 dark:bg-dark-bg-tertiary rounded-lg overflow-y-auto">
+        <div class="bg-gray-50 dark:bg-dark-bg-tertiary rounded-lg max-h-[200px] overflow-y-auto">
           <div class="p-2">
             <!-- 消息列表 -->
             <div v-if="chatStore.currentChat && chatStore.currentChat.messages && chatStore.currentChat.messages.length > 0">
@@ -94,11 +107,6 @@
             title="应用调整"
             @click="applyContextChanges"
             :disabled="selectedMessages.size === 0"
-          />
-          <ActionButton
-            :icon="chatStore.activeView === 'grid' ? 'fa-sitemap' : 'fa-comments'"
-            :title="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
-            @click="toggleView"
           />
         </div>
       </div>

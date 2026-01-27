@@ -1,8 +1,8 @@
 <template>
   <div id="settingsPanel" class="h-full flex flex-col">
+    <PanelHeader title="系统设置" />
 
-
-    <div class="overflow-y-auto h-full scrollbar-thin">
+    <div class="overflow-y-auto h-[calc(100%-57px)] scrollbar-thin">
       <div class="p-2 space-y-1">
         <SettingNavItem 
           id="general" 
@@ -54,6 +54,7 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
+import PanelHeader from '../common/PanelHeader.vue';
 import SettingNavItem from '../common/SettingNavItem.vue';
 
 
@@ -76,4 +77,13 @@ const handleSectionClick = (section) => {
 };
 </script>
 
+<style scoped>
+/* 组件特定样式 - 遵循项目整体风格 */
 
+/* 面板标题深色模式 */
+.dark .panel-header h2 {
+  color: #e2e8f0;
+}
+
+
+</style>

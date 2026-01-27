@@ -1,8 +1,35 @@
 <template>
   <div id="historyPanel" class="h-full flex flex-col">
-
+    <PanelHeader title="历史会话" :showBackButton="false">
+      <template #actions>
+        <ActionButton
+          id="exportAllBtn"
+          icon="fa-download"
+          title="导出所有对话"
+          @click="handleExportAll"
+          class="w-8 h-8 p-1.5 text-neutral hover:text-primary hover:bg-primary/10"
+        />
+        <ActionButton
+          id="deleteAllBtn"
+          icon="fa-trash-can"
+          title="删除所有对话"
+          @click="showDeleteAllModal = true"
+          class="w-8 h-8 p-1.5 text-neutral hover:text-red-500 hover:bg-red-50"
+        />
+      </template>
+    </PanelHeader>
     
-
+    <!-- 确认删除所有对话模态框 -->
+    <ConfirmationModal
+      :visible="showDeleteAllModal"
+      title="确认删除"
+      message="确定要删除所有对话吗？这将删除所有历史对话，无法恢复！"
+      confirmText="确认删除"
+      :loading="isDeletingAll"
+      loadingText="删除中..."
+      @confirm="handleDeleteAllConfirm"
+      @close="showDeleteAllModal = false"
+    />
 
     <!-- 搜索框 -->
     <SearchBar v-model="searchQuery" placeholder="搜索对话..." />
@@ -110,10 +137,11 @@
 
 <script setup>
 import { computed, reactive, ref, onMounted, onUnmounted } from 'vue';
+import PanelHeader from '../common/PanelHeader.vue';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { showNotification } from '../../services/notificationUtils.js';
-import { SearchBar } from '../library/index.js';
+import { SearchBar, ActionButton, ConfirmationModal } from '../library/index.js';
 
 // 滚动容器引用
 const scrollContainer = ref(null);
@@ -205,6 +233,12 @@ const searchQuery = ref('');
 
 // 用于管理分组的展开/折叠状态
 const collapsedGroups = reactive({});
+
+// 显示删除所有对话模态框
+const showDeleteAllModal = ref(false);
+
+// 删除所有对话的加载状态
+const isDeletingAll = ref(false);
 
 // 切换分组的展开/折叠状态
 function toggleGroup(groupTitle) {
@@ -308,7 +342,49 @@ const handleChatSelect = (chatId) => {
   settingsStore.setActiveContent('chat');
 };
 
+// 处理导出所有对话
+const handleExportAll = () => {
+  console.log('导出所有对话');
+  try {
+    // 将对话历史转换为JSON字符串
+    const chatData = JSON.stringify(chatStore.chats, null, 2);
 
+    // 创建Blob对象和下载链接
+    const blob = new Blob([chatData], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat_history_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    console.log('对话历史导出成功');
+  } catch (error) {
+    console.error('导出对话历史失败:', error);
+    showNotification('导出失败，请重试。', 'error');
+  }
+};
+
+// 处理删除所有对话确认
+const handleDeleteAllConfirm = async () => {
+  console.log('确认删除所有对话');
+  isDeletingAll.value = true;
+  
+  try {
+    await chatStore.clearAllChats();
+    showNotification('所有对话已删除', 'success');
+    showDeleteAllModal.value = false;
+    
+    // 删除所有对话后切换到sendMessage内容
+    settingsStore.setActiveContent('sendMessage');
+  } catch (error) {
+    showNotification('删除失败: ' + error.message, 'error');
+  } finally {
+    isDeletingAll.value = false;
+  }
+};
 
 // 处理删除单个对话
 const handleDeleteChat = async (chatId) => {

@@ -1,5 +1,6 @@
 <template>
   <div id="mcpPanel" class="h-full flex flex-col">
+    <PanelHeader title="MCP服务" />
     
     <!-- 移除原有的handleBackToChat方法，使用PanelHeader组件的默认行为 -->
 
@@ -72,6 +73,7 @@ import { showNotification } from '../../services/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
 import ActionButton from '../common/ActionButton.vue';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
+import PanelHeader from '../common/PanelHeader.vue';
 
 // 确认删除模态框状态
 const showDeleteModal = ref(false);

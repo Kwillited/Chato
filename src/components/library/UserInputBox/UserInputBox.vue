@@ -53,71 +53,7 @@
           </div>
           
           <!-- 展开/折叠控制按钮 -->
-          <div class="flex-1 flex justify-end items-center gap-4">
-            <!-- 直接显示视图按钮 -->
-            <button
-              class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-              @click="toggleViewPanel"
-            >
-              <i class="fa-solid fa-columns text-xs"></i>
-            </button>
-            
-            <!-- 分隔栏 -->
-            <div class="h-4 w-px bg-gray-200 dark:bg-dark-700 mx-1"></div>
-            
-            <!-- 主题切换按钮 -->
-            <button
-              class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-              @click="handleToggleTheme"
-            >
-              <i :class="['fa-solid', settingsStore.systemSettings.darkMode ? 'fa-sun' : 'fa-moon', 'text-xs']"></i>
-            </button>
-            
-            <button
-              class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-              @click="handleSystemSettingsClick"
-            >
-              <i class="fa-solid fa-gear text-xs"></i>
-            </button>
-            
-            <button
-              class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-              @click="handleAISettingsClick"
-            >
-              <i class="fa-solid fa-brain text-xs"></i>
-            </button>
-            
-            <!-- 用户按钮带下拉菜单 -->
-            <div class="relative hover-scale">
-              <button
-                class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-                @click.stop="toggleUserMenu"
-              >
-                <i class="fa-solid fa-user-circle text-sm"></i>
-              </button>
-              
-              <!-- 用户功能下拉菜单 -->
-              <div 
-                v-if="showUserMenu"
-                class="absolute top-full mt-2 right-0 w-14 rounded-lg shadow-lg border z-50 dropdown-content flex flex-col items-center py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700"
-              >
-                <button 
-                  class="h-8 w-8 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-                  @click="handleSwitchAccount"
-                >
-                  <i class="fa-solid fa-exchange text-sm"></i>
-                </button>
-                <div class="my-1 w-8 border-t border-gray-200 dark:border-dark-700"></div>
-                <button 
-                  class="h-8 w-8 flex items-center justify-center text-sm text-red-500 hover:text-red-600 transition-all duration-300 ease-in-out"
-                  @click="handleLogout"
-                >
-                  <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
-                </button>
-              </div>
-            </div>
-            
-            <!-- 原始的展开/折叠控制按钮 -->
+          <div class="flex-1 flex justify-end items-center">
             <button
               class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
               @click="toggleParamsPanel"
@@ -125,6 +61,80 @@
             >
               <i class="fa-solid fa-chevron-down text-xs"></i>
             </button>
+          </div>
+          
+          <!-- 应用控制按钮 -->
+          <div class="flex items-center gap-2 pr-2">
+            <!-- 直接显示视图按钮 -->
+            <Button 
+              icon="fa-columns"
+              tooltip="视图"
+              @click="toggleViewPanel"
+              size="sm"
+              shape="full"
+            />
+            
+            <!-- 分隔栏 -->
+            <div class="h-4 w-px bg-gray-200 dark:bg-dark-700 mx-0.5"></div>
+            
+            <!-- 主题切换按钮 -->
+            <Button 
+              :icon="settingsStore.systemSettings.darkMode ? 'fa-sun' : 'fa-moon'"
+              tooltip="切换主题"
+              @click="handleToggleTheme"
+              size="sm"
+              shape="full"
+            />
+            
+            <Button 
+              icon="fa-gear"
+              tooltip="系统设置"
+              @click="handleSystemSettingsClick"
+              size="sm"
+              shape="full"
+            />
+            
+            <Button 
+              icon="fa-brain"
+              tooltip="AI配置"
+              @click="handleAISettingsClick"
+              size="sm"
+              shape="full"
+            />
+            
+            <!-- 用户按钮带下拉菜单 -->
+            <div class="relative hover-scale">
+                <Button 
+                  icon="fa-user-circle"
+                  @click.stop="toggleUserMenu"
+                  size="sm"
+                  shape="full"
+                  class="i:text-base"
+                />
+              
+              <!-- 用户功能下拉菜单 -->
+              <div 
+                v-if="showUserMenu"
+                class="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-14 rounded-lg shadow-lg border z-50 dropdown-content flex flex-col items-center py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700"
+              >
+                <Button 
+                  icon="fa-exchange"
+                  tooltip="切换账户"
+                  @click="handleSwitchAccount"
+                  size="lg"
+                  shape="full"
+                />
+                <div class="my-1 w-8 border-t border-gray-200 dark:border-dark-700"></div>
+                <Button 
+                  icon="fa-arrow-right-from-bracket"
+                  tooltip="退出账号"
+                  @click="handleLogout"
+                  size="lg"
+                  shape="full"
+                  class="text-red-500"
+                />
+              </div>
+            </div>
           </div>
         </div>
         
@@ -489,6 +499,7 @@ import { StorageManager, formatFileSize } from '../../../store/utils.js';
 import { Tooltip } from '../index.js';
 import { showNotification } from '../../../services/notificationUtils.js';
 import DragDropZone from '../../common/DragDropZone.vue';
+import { Button } from '../../../components/library/index.js';
 
 // 接收从父组件传递的视图状态
 const _props = defineProps({
@@ -537,10 +548,12 @@ const hasActiveStreaming = ref(false);
 const isDeepThinking = ref(StorageManager.getItem(STORAGE_KEYS.DEEP_THINKING, false));
 // 联网搜索状态 - 从存储加载
 const isWebSearchEnabled = ref(StorageManager.getItem(STORAGE_KEYS.WEB_SEARCH, false));
-// RAG模式状态 - 从settingsStore获取
-const _isRagMode = computed(() => settingsStore.activePanel === 'rag');
 // 用户菜单状态
 const showUserMenu = ref(false);
+// 命令行窗口状态
+const showCommandLine = ref(false);
+// RAG模式状态 - 从settingsStore获取
+const _isRagMode = computed(() => settingsStore.activePanel === 'rag');
 
 // 智能体相关状态
 const currentAgent = ref('default');
@@ -968,6 +981,45 @@ const toggleKnowledgeBase = () => {
   }
 };
 
+// 点击外部关闭下拉菜单
+const handleClickOutside = (event) => {
+  // 关闭模型下拉菜单
+  if (modelDropdown.value && !modelDropdown.value.contains(event.target) &&
+      !event.target.closest('button') && showModelDropdown.value) {
+    showModelDropdown.value = false;
+  }
+  
+  // 关闭智能体下拉菜单
+  if (agentDropdown.value && !agentDropdown.value.contains(event.target) &&
+      !event.target.closest('button') && showAgentDropdown.value) {
+    showAgentDropdown.value = false;
+  }
+};
+
+// 生命周期钩子
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  // 添加点击外部区域关闭用户菜单的事件监听
+  document.addEventListener('click', closeMenusOnClickOutside);
+  
+  // 立即检查isTyping状态，确保按钮显示正确
+  checkForActiveStreaming();
+  
+  // 监听chatStore.isLoading状态变化，立即更新按钮状态
+  watch(
+    () => chatStore.isLoading,
+    () => {
+      // 无论isLoading状态如何变化，都立即检查isTyping状态
+      checkForActiveStreaming();
+    }
+  );
+  
+  // 额外添加一个定时器，确保在组件完全渲染后再次检查状态
+  setTimeout(() => {
+    checkForActiveStreaming();
+  }, 0);
+});
+
 // 处理视图按钮点击事件 - 切换右侧面板
 const toggleViewPanel = () => {
   settingsStore.toggleRightPanel();
@@ -1006,50 +1058,30 @@ const handleLogout = () => {
   showNotification('退出账号功能待实现', 'info');
 };
 
-// 点击外部关闭下拉菜单
-const handleClickOutside = (event) => {
-  // 关闭模型下拉菜单
-  if (modelDropdown.value && !modelDropdown.value.contains(event.target) &&
-      !event.target.closest('button') && showModelDropdown.value) {
-    showModelDropdown.value = false;
-  }
+// 关闭命令行窗口
+const closeCommandLine = () => {
+  showCommandLine.value = false;
+};
+
+// 点击外部区域关闭菜单
+const closeMenusOnClickOutside = (event) => {
+  const menuButtons = document.querySelectorAll('.relative.hover-scale');
   
-  // 关闭智能体下拉菜单
-  if (agentDropdown.value && !agentDropdown.value.contains(event.target) &&
-      !event.target.closest('button') && showAgentDropdown.value) {
-    showAgentDropdown.value = false;
-  }
+  let clickedInsideMenu = false;
+  menuButtons.forEach(button => {
+    if (button.contains(event.target)) {
+      clickedInsideMenu = true;
+    }
+  });
   
-  // 关闭用户菜单
-  if (showUserMenu.value && !event.target.closest('.relative.hover-scale')) {
+  if (!clickedInsideMenu) {
     showUserMenu.value = false;
   }
 };
 
-// 生命周期钩子
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
-  
-  // 立即检查isTyping状态，确保按钮显示正确
-  checkForActiveStreaming();
-  
-  // 监听chatStore.isLoading状态变化，立即更新按钮状态
-  watch(
-    () => chatStore.isLoading,
-    () => {
-      // 无论isLoading状态如何变化，都立即检查isTyping状态
-      checkForActiveStreaming();
-    }
-  );
-  
-  // 额外添加一个定时器，确保在组件完全渲染后再次检查状态
-  setTimeout(() => {
-    checkForActiveStreaming();
-  }, 0);
-});
-
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('click', closeMenusOnClickOutside);
 });
 
 // 处理文件拖放

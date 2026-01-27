@@ -113,74 +113,27 @@
         </div>
       </div>
       
-      <!-- 对话管理选项卡内容 -->
-      <div v-show="activeTab === 'chat'" class="p-4">
-        <div class="space-y-4">
-          <!-- 对话管理按钮 -->
-          <div class="setting-item p-3 rounded-lg">
-            <div>
-              <div class="font-medium text-sm">对话管理</div>
-              <div class="text-xs text-neutral mt-0.5">导出或删除所有对话</div>
-              <div class="flex gap-2 mt-2">
-                <ActionButton
-                  id="exportAllBtn"
-                  icon="fa-download"
-                  title="导出所有对话"
-                  @click="handleExportAll"
-                  class="w-8 h-8 p-1.5 text-neutral hover:text-primary hover:bg-primary/10"
-                />
-                <ActionButton
-                  id="deleteAllBtn"
-                  icon="fa-trash-can"
-                  title="删除所有对话"
-                  @click="showDeleteAllModal = true"
-                  class="w-8 h-8 p-1.5 text-neutral hover:text-red-500 hover:bg-red-50"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
+
     </div>
   </div>
-  
-  <!-- 确认删除所有对话模态框 -->
-  <ConfirmationModal
-    :visible="showDeleteAllModal"
-    title="确认删除"
-    message="确定要删除所有对话吗？这将删除所有历史对话，无法恢复！"
-    confirmText="确认删除"
-    :loading="isDeletingAll"
-    loadingText="删除中..."
-    @confirm="handleDeleteAllConfirm"
-    @close="showDeleteAllModal = false"
-  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useModelSettingStore } from '../../store/modelSettingStore.js';
-import { useChatStore } from '../../store/chatStore.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import SettingItem from '../common/SettingItem.vue';
-import { ActionButton, ConfirmationModal } from '../library/index.js';
 
 const settingsStore = useSettingsStore();
 const modelStore = useModelSettingStore();
-const chatStore = useChatStore();
 
 // 状态管理
 const isLoading = ref(false);
 const models = ref([]);
 const defaultModel = ref('');
 const activeTab = ref('chat'); // 默认选中对话设置选项卡
-
-// 对话管理状态
-const showDeleteAllModal = ref(false);
-const isDeletingAll = ref(false);
 
 // 计算属性：聊天样式值（转换为字符串格式）
 const chatStyleValue = computed({
@@ -371,50 +324,6 @@ const setViewMode = (mode) => {
 // 切换深色模式
 const _toggleDarkMode = () => {
   settingsStore.toggleDarkMode();
-};
-
-// 处理导出所有对话
-const handleExportAll = () => {
-  console.log('导出所有对话');
-  try {
-    // 将对话历史转换为JSON字符串
-    const chatData = JSON.stringify(chatStore.chats, null, 2);
-
-    // 创建Blob对象和下载链接
-    const blob = new Blob([chatData], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `chat_history_${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    console.log('对话历史导出成功');
-  } catch (error) {
-    console.error('导出对话历史失败:', error);
-    showNotification('导出失败，请重试。', 'error');
-  }
-};
-
-// 处理删除所有对话确认
-const handleDeleteAllConfirm = async () => {
-  console.log('确认删除所有对话');
-  isDeletingAll.value = true;
-  
-  try {
-    await chatStore.clearAllChats();
-    showNotification('所有对话已删除', 'success');
-    showDeleteAllModal.value = false;
-    
-    // 删除所有对话后切换到sendMessage内容
-    settingsStore.setActiveContent('sendMessage');
-  } catch (error) {
-    showNotification('删除失败: ' + error.message, 'error');
-  } finally {
-    isDeletingAll.value = false;
-  }
 };
 
 

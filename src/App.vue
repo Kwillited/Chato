@@ -4,20 +4,17 @@
     :class="{ 'transition-all duration-300': !isInitialLoading }"
   >
     <!-- 1. 顶部导航栏 -->
-  <TopNav data-tauri-drag-region/>
+    <TopNav data-tauri-drag-region/>
 
-  <!-- 2. 主内容区header -->
-  <MainHeader />
-
-  <!-- 主内容区域：显示区域 -->
-  <div class="flex flex-1 overflow-hidden">
-    <!-- 3. 显示区域容器 -->
-    <DisplayArea 
-      :active-content="settingsStore.activeContent" 
-      :saved-right-panel-width="settingsStore.rightPanelWidth" 
-      :is-initial-loading="isInitialLoading"
-    />
-  </div>
+    <!-- 主内容区域：显示区域 -->
+    <div class="flex flex-1 overflow-hidden">
+      <!-- 3. 显示区域容器 -->
+      <DisplayArea 
+        :active-content="settingsStore.activeContent" 
+        :saved-right-panel-width="settingsStore.rightPanelWidth" 
+        :is-initial-loading="isInitialLoading"
+      />
+    </div>
 
     <!-- 模型版本表单（支持添加和编辑） -->
     <ModelVersionForm />
@@ -30,7 +27,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import TopNav from './components/layout/TopNav.vue';
-import MainHeader from './components/layout/MainHeader.vue';
 import ModelVersionForm from './components/models/ModelVersionForm.vue';
 import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import DisplayArea from './components/layout/DisplayArea.vue';
