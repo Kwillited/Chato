@@ -25,161 +25,106 @@
   
   <!-- 导航栏Header -->
   <div id="mainHeader" class="sticky top-8 z-40 bg-white dark:bg-dark-800 border-b border-gray-200 dark:border-gray-700 transition-all duration-300">
-    <div class="flex items-center justify-between px-4 h-10">
-      <!-- 左侧：标题和导航链接 -->
-      <div class="flex items-center space-x-6">
-        <h1 class="text-lg font-bold text-primary">Chato</h1>
-        <nav class="hidden md:flex space-x-4">
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'history' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('history')"
-          >
-            聊天
-          </button>
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'rag' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('rag')"
-          >
-            知识库
-          </button>
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'mcp' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('mcp')"
-          >
-            MCP工具
-          </button>
-          <button 
-            class="px-3 py-1 text-sm font-medium rounded-md transition-colors hover:bg-gray-100 dark:hover:bg-dark-700"
-            :class="settingsStore.activePanel === 'settings' ? 'text-primary font-semibold' : 'text-gray-600 dark:text-gray-300'"
-            @click="navigateTo('settings')"
-          >
-            设置
-          </button>
-        </nav>
+    <!-- 三个面板头部水平布局 -->
+    <div class="flex flex-wrap items-center justify-between px-4 h-auto py-2">
+      <!-- 历史会话面板头部 -->
+      <div class="flex-1 min-w-[250px] p-2">
+        <div class="flex justify-between items-center">
+          <h2 class="text-lg font-bold text-dark dark:text-white">历史会话</h2>
+          <div class="flex gap-2">
+            <!-- 自定义按钮插槽 -->
+            <div class="relative flex items-center justify-center">
+              <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="exportAllBtn">
+                <i class="fa-solid fa-download"></i>
+              </button>
+              <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
+              <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">导出所有对话</div>
+              <!-- 实际显示的tooltip，使用Teleport挂载到body -->
+              <!--teleport start-->
+              <!--teleport end-->
+            </div>
+            <div class="relative flex items-center justify-center">
+              <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="deleteAllBtn">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+              <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
+              <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">删除所有对话</div>
+              <!-- 实际显示的tooltip，使用Teleport挂载到body -->
+              <!--teleport start-->
+              <!--teleport end-->
+            </div>
+          </div>
+        </div>
       </div>
       
-      <!-- 右侧：搜索框和功能按钮 -->
-      <div class="flex items-center space-x-3">
-        <!-- 搜索框 -->
-        <div class="relative hidden md:block">
-          <input
-            type="text"
-            placeholder="搜索..."
-            class="w-48 pl-8 pr-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-full bg-gray-50 dark:bg-dark-700 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-          >
-          <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs"></i>
-        </div>
-        
-        <!-- 通知按钮 -->
-        <button class="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300">
-          <i class="fa-solid fa-bell text-sm"></i>
-        </button>
-        
-        <!-- 帮助按钮 -->
-        <button class="w-8 h-8 flex items-center justify-center rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-dark-700 text-gray-600 dark:text-gray-300">
-          <i class="fa-solid fa-question text-sm"></i>
-        </button>
-      </div>
-    </div>
-    
-    <!-- 历史会话面板头部 -->
-    <div class="panel-header p-3 flex justify-between items-center transition-all duration-300">
-      <h2 class="text-lg font-bold text-dark dark:text-white">历史会话</h2>
-      <div class="flex gap-2">
-        <!-- 自定义按钮插槽 -->
-        <div class="relative flex items-center justify-center">
-          <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="exportAllBtn">
-            <i class="fa-solid fa-download"></i>
-          </button>
-          <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-          <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">导出所有对话</div>
-          <!-- 实际显示的tooltip，使用Teleport挂载到body -->
-          <!--teleport start-->
-          <!--teleport end-->
-        </div>
-        <div class="relative flex items-center justify-center">
-          <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="deleteAllBtn">
-            <i class="fa-solid fa-trash-can"></i>
-          </button>
-          <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-          <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">删除所有对话</div>
-          <!-- 实际显示的tooltip，使用Teleport挂载到body -->
-          <!--teleport start-->
-          <!--teleport end-->
+      <!-- 聊天内容区域头部 -->
+      <div class="flex-1 min-w-[250px] p-2">
+        <div class="flex justify-between items-center">
+          <div class="flex space-x-2">
+            <!-- 隐藏左侧面板按钮 -->
+            <div class="relative flex items-center justify-center">
+              <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                <i class="fa-solid fa-bars"></i>
+              </button>
+              <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
+              <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">隐藏左侧面板</div>
+              <!-- 实际显示的tooltip，使用Teleport挂载到body -->
+              <!--teleport start-->
+              <!--teleport end-->
+            </div>
+            <!-- 新增会话按钮 -->
+            <div class="relative flex items-center justify-center">
+              <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="newChat">
+                <i class="fa-solid fa-comment-dots"></i>
+              </button>
+              <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
+              <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">新对话</div>
+              <!-- 实际显示的tooltip，使用Teleport挂载到body -->
+              <!--teleport start-->
+              <!--teleport end-->
+            </div>
+          </div>
+          <!-- 历史对话按钮（带下拉菜单） -->
+          <div class="relative hover-scale">
+            <div class="relative flex items-center justify-center">
+              <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="historyChat">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+              </button>
+              <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
+              <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">历史对话</div>
+              <!-- 实际显示的tooltip，使用Teleport挂载到body -->
+              <!--teleport start-->
+              <!--teleport end-->
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-    
-    <!-- 聊天内容区域头部 -->
-    <div class="panel-header p-3 flex flex-wrap items-center justify-end gap-4 relative transition-all duration-300 border-b-0">
-      <!-- 左侧按钮组 -->
-      <div class="absolute left-3 flex space-x-2">
-        <!-- 隐藏左侧面板按钮 -->
-        <div class="relative flex items-center justify-center">
-          <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
-            <i class="fa-solid fa-bars"></i>
-          </button>
-          <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-          <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">隐藏左侧面板</div>
-          <!-- 实际显示的tooltip，使用Teleport挂载到body -->
-          <!--teleport start-->
-          <!--teleport end-->
-        </div>
-        <!-- 新增会话按钮 -->
-        <div class="relative flex items-center justify-center">
-          <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="newChat">
-            <i class="fa-solid fa-comment-dots"></i>
-          </button>
-          <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-          <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">新对话</div>
-          <!-- 实际显示的tooltip，使用Teleport挂载到body -->
-          <!--teleport start-->
-          <!--teleport end-->
-        </div>
-      </div>
-      <!-- 按钮区域靠右对齐 -->
-      <div class="flex items-center space-x-2">
-        <!-- 历史对话按钮（带下拉菜单） -->
-        <div class="relative hover-scale">
+      
+      <!-- 上下文工程面板头部 -->
+      <div class="flex-1 min-w-[250px] p-2">
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-lg font-bold text-dark dark:text-white flex-1">上下文工程</h2>
           <div class="relative flex items-center justify-center">
-            <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700" id="historyChat">
-              <i class="fa-solid fa-clock-rotate-left"></i>
+            <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+              <i class="fa-solid fa-sitemap"></i>
             </button>
             <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-            <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">历史对话</div>
+            <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">切换到上下文工程可视化视图</div>
+            <!-- 实际显示的tooltip，使用Teleport挂载到body -->
+            <!--teleport start-->
+            <!--teleport end-->
+          </div>
+          <div class="relative flex items-center justify-center">
+            <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+              <i class="fa-solid fa-times"></i>
+            </button>
+            <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
+            <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">关闭面板</div>
             <!-- 实际显示的tooltip，使用Teleport挂载到body -->
             <!--teleport start-->
             <!--teleport end-->
           </div>
         </div>
-      </div>
-    </div>
-    
-    <!-- 上下文工程面板头部 -->
-    <div class="panel-header p-3 flex items-center justify-between gap-2">
-      <h2 class="text-lg font-bold text-dark dark:text-white flex-1">上下文工程</h2>
-      <div class="relative flex items-center justify-center">
-        <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
-          <i class="fa-solid fa-sitemap"></i>
-        </button>
-        <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-        <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">切换到上下文工程可视化视图</div>
-        <!-- 实际显示的tooltip，使用Teleport挂载到body -->
-        <!--teleport start-->
-        <!--teleport end-->
-      </div>
-      <div class="relative flex items-center justify-center">
-        <button class="btn-secondary flex items-center justify-center transition-all duration-300 w-8 h-8 p-1.5 rounded-full text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
-          <i class="fa-solid fa-times"></i>
-        </button>
-        <!-- 预渲染的隐藏tooltip，用于获取准确的尺寸 -->
-        <div class="absolute left-[-9999px] top-[-9999px] opacity-0 visibility-hidden pointer-events-none whitespace-nowrap bg-black/80 text-white px-2 py-1 rounded text-xs custom-tooltip tooltip-measure">关闭面板</div>
-        <!-- 实际显示的tooltip，使用Teleport挂载到body -->
-        <!--teleport start-->
-        <!--teleport end-->
       </div>
     </div>
   </div>
