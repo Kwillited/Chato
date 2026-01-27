@@ -10,6 +10,8 @@ export const useUiStore = defineStore('ui', {
     activePanel: 'history',
     activeContent: 'sendMessage',
     activeSection: 'general',
+    // 之前的内容视图，用于返回功能
+    previousContent: 'sendMessage',
 
     // 左侧导航栏状态
     leftNavVisible: false,

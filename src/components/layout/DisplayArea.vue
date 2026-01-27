@@ -79,12 +79,12 @@
 
       </div>
       <!-- 根据activeContent动态切换内容组件 -->
-      <ChatContent v-if="activeContent === 'chat'" />
-      <SettingsContent v-if="activeContent === 'settings'" />
-      <RagManagementContent v-if="activeContent === 'ragManagement'" />
-      <ContextVisualizationContent v-if="activeContent === 'contextVisualization'" />
-      <SendMessageContent v-if="activeContent === 'sendMessage'" />
-      <AISettingsContent v-if="activeContent === 'aiSettings'" />
+      <ChatContent v-if="props.activeContent === 'chat'" />
+      <SettingsContent v-if="props.activeContent === 'settings'" />
+      <RagManagementContent v-if="props.activeContent === 'ragManagement'" />
+      <ContextVisualizationContent v-if="props.activeContent === 'contextVisualization'" />
+      <SendMessageContent v-if="props.activeContent === 'sendMessage'" />
+      <AISettingsContent v-if="props.activeContent === 'aiSettings'" />
 
     </div>
 
@@ -284,8 +284,10 @@ const getChatTitle = () => {
 
 // 处理从设置面板返回聊天
 const handleBackToChat = () => {
+  // 先设置之前的内容视图
+  uiStore.setActiveContent(uiStore.previousContent || 'sendMessage');
+  // 然后切换到历史面板
   uiStore.setActivePanel('history');
-  uiStore.setActiveContent('chat');
 };
 
 // 处理导出所有对话

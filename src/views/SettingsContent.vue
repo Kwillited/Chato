@@ -37,7 +37,7 @@
 
 <script setup>
 import { onMounted, watch } from 'vue';
-import { useSettingsStore } from '../store/settingsStore.js';
+import { useUiStore } from '../store/uiStore.js';
 import GeneralSettings from '../components/settings/GeneralSettings.vue';
 import ModelsSettings from '../components/settings/ModelsSettings.vue';
 import NotificationsSettings from '../components/settings/NotificationsSettings.vue';
@@ -46,11 +46,11 @@ import RAGSettings from '../components/settings/RAGSettings.vue';
 import McpSettings from '../components/settings/McpSettings.vue';
 
 // 初始化store
-const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 // 更新设置部分显示
 const updateSettingsSection = () => {
-  const activeSection = settingsStore.activeSection || 'general';
+  const activeSection = uiStore.activeSection || 'general';
 
   // 隐藏所有设置部分
   document.querySelectorAll('.settings-section').forEach((section) => {
@@ -68,7 +68,7 @@ const updateSettingsSection = () => {
 
 // 监听activeSection变化
 watch(
-  () => settingsStore.activeSection,
+  () => uiStore.activeSection,
   () => {
     updateSettingsSection();
   }

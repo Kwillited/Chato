@@ -45,18 +45,20 @@ const isInitialLoading = ref(true);
 // 监听activePanel变化，同步更新activeContent
 watch(
   () => uiStore.activePanel,
-  (newPanel) => {
+  (newPanel, oldPanel) => {
     // 当切换到任何面板时，自动展开左侧面板
     uiStore.leftNavVisible = true;
     
-    // 只有当前视图不是sendMessage时，才根据activePanel更新视图
-    if (uiStore.activeContent !== 'sendMessage') {
-      if (newPanel === 'settings') {
-        uiStore.setActiveContent('settings');
-      } else {
-        // 当面板不是settings时，切换回chat内容
-        uiStore.setActiveContent('chat');
+    // 当切换到settings面板时，保存当前的activeContent作为previousContent
+    if (newPanel === 'settings' && oldPanel !== 'settings') {
+      // 确保只在从非settings面板切换过来时保存previousContent
+      if (uiStore.activeContent !== 'settings') {
+        uiStore.previousContent = uiStore.activeContent;
       }
+      uiStore.setActiveContent('settings');
+    } else if (newPanel !== 'settings' && oldPanel === 'settings') {
+      // 当从settings面板切换回来时，使用previousContent
+      uiStore.setActiveContent(uiStore.previousContent || 'sendMessage');
     }
   }
 );
