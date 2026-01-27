@@ -89,8 +89,8 @@
           <Button
             shape="full"
             size="md"
-            :icon="chatStore.activeView === 'grid' ? 'fa-sitemap' : 'fa-comments'"
-            :tooltip="`切换到${chatStore.activeView === 'grid' ? '上下文工程可视化' : '对话'}视图`"
+            :icon="uiStore.activeView === 'chat' ? 'fa-sitemap' : 'fa-comments'"
+            :tooltip="`切换到${uiStore.activeView === 'chat' ? '上下文工程可视化' : '对话'}视图`"
             @click="toggleView"
           />
           <Button
@@ -110,6 +110,7 @@
 <script setup>
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useChatStore } from '../../store/chatStore.js';
+import { useUiStore } from '../../store/uiStore.js';
 import { Button } from '../library/index.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import { ref, watch } from 'vue';
@@ -128,6 +129,7 @@ const _props = defineProps({
 const settingsStore = useSettingsStore();
 const _modelStore = useSettingsStore();
 const chatStore = useChatStore();
+const uiStore = useUiStore();
 
 // 上下文调整状态
 const selectedMessages = ref(new Set());
@@ -233,7 +235,7 @@ const applyContextChanges = () => {
 
 // 切换视图模式
 const toggleView = () => {
-  chatStore.activeView = chatStore.activeView === 'grid' ? 'list' : 'grid';
+  uiStore.setActiveView(uiStore.activeView === 'chat' ? 'Graph' : 'chat');
 };
 
 // 监听当前聊天变化，重置选择状态

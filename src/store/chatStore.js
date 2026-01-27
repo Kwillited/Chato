@@ -3,6 +3,7 @@ import { apiService } from '../services/apiService';
 import { generateId } from '../utils/data.js';
 import { useSettingsStore } from './settingsStore.js';
 import { useVectorStore } from './vectorStore.js';
+import { useUiStore } from './uiStore.js';
 import { showNotification } from '../utils/notificationUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
@@ -31,12 +32,8 @@ export const useChatStore = defineStore('chat', {
   state: () => ({
     chats: [],
     currentChatId: null,
-    messageInput: '',
     uploadedFiles: [],
-    isLoading: false,
     error: null,
-    searchQuery: '',
-    activeView: 'grid', // 视图模式：'grid'为对话视图，'list'为图谱视图
     retryCount: 0, // 重试计数
     maxRetries: 10, // 最大重试次数
     retryInterval: 3000, // 初始重试间隔（毫秒）
@@ -62,11 +59,15 @@ export const useChatStore = defineStore('chat', {
 
     // 获取过滤后的对话列表
     getFilteredChats: (state) => {
-      if (!state.searchQuery.trim()) {
+      // 使用 uiStore 获取 searchQuery
+      const uiStore = useUiStore();
+      const searchQuery = uiStore.searchQuery;
+      
+      if (!searchQuery.trim()) {
         return state.chats;
       }
 
-      const query = state.searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase();
       return state.chats.filter(
         (chat) =>
           chat.title.toLowerCase().includes(query) ||
@@ -88,7 +89,9 @@ export const useChatStore = defineStore('chat', {
 
     // 设置搜索关键词
     setSearchQuery(query) {
-      this.searchQuery = query;
+      // 使用 uiStore 更新 searchQuery
+      const uiStore = useUiStore();
+      uiStore.setSearchQuery(query);
     },
 
     // 创建新对话（调用API）
@@ -116,7 +119,10 @@ export const useChatStore = defineStore('chat', {
         // 将新对话添加到本地状态
         this.chats.unshift(newChat); // 添加到开头，保持最新优先
         this.currentChatId = newChat.id;
-        this.messageInput = '';
+        
+        // 使用 uiStore 更新 messageInput
+        const uiStore = useUiStore();
+        uiStore.updateMessageInput('');
 
         return newChat;
       } catch (error) {
@@ -133,7 +139,11 @@ export const useChatStore = defineStore('chat', {
       const chat = this.chats.find((c) => c.id === chatId);
       if (chat) {
         this.currentChatId = chatId;
-        this.messageInput = '';
+        
+        // 使用 uiStore 更新 messageInput
+        const uiStore = useUiStore();
+        uiStore.updateMessageInput('');
+        
         this.uploadedFiles = [];
         
         // 为了确保未读状态正确清除，我们可以在每个对话对象上添加一个显式的未读标记
@@ -163,9 +173,10 @@ export const useChatStore = defineStore('chat', {
       const currentChat = this.currentChat;
       if (!currentChat) return;
 
-      // 立即设置isLoading为true，确保按钮状态立即更新
-      this.isLoading = true;
-      this.messageInput = '';
+      // 使用 uiStore 更新加载状态和消息输入
+      const uiStore = useUiStore();
+      uiStore.setLoading(true);
+      uiStore.updateMessageInput('');
       this.clearError();
 
       // 添加用户消息，并使用ref包装确保完整响应式
@@ -578,7 +589,9 @@ export const useChatStore = defineStore('chat', {
 
         currentChat.messages.push(errorMessageRef);
       } finally {
-        this.isLoading = false;
+        // 使用 uiStore 更新加载状态
+        const uiStore = useUiStore();
+        uiStore.setLoading(false);
         this.uploadedFiles = [];
       }
     },
@@ -649,12 +662,16 @@ export const useChatStore = defineStore('chat', {
 
     // 更新消息输入
     updateMessageInput(content) {
-      this.messageInput = content;
+      // 使用 uiStore 更新 messageInput
+      const uiStore = useUiStore();
+      uiStore.updateMessageInput(content);
     },
 
     // 从后端API获取对话历史
     async loadChatHistory(_manualRetry = false) {
-      this.isLoading = true;
+      // 使用 uiStore 更新加载状态
+      const uiStore = useUiStore();
+      uiStore.setLoading(true);
       this.clearError();
 
       try {
@@ -684,7 +701,9 @@ export const useChatStore = defineStore('chat', {
         // 统一的重试机制已在apiService中实现，这里不再需要额外的重试逻辑
         throw error;
       } finally {
-        this.isLoading = false;
+        // 使用 uiStore 更新加载状态
+        const uiStore = useUiStore();
+        uiStore.setLoading(false);
       }
     },
 

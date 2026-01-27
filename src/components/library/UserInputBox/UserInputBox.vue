@@ -1,7 +1,7 @@
 <template>
   
   <!-- 聊天输入区域 - 在切换到图谱视图时添加顶部padding -->
-  <div id="UserInputBox" class="border-t-0 pb-4 px-6 transition-colors duration-300 ease-in-out" :class="{ 'pt-4': activeView !== 'grid' }">
+  <div id="UserInputBox" class="border-t-0 pb-4 px-6 transition-colors duration-300 ease-in-out" :class="{ 'pt-4': activeView !== 'chat' }">
     <div class="relative w-full max-w-4xl mx-auto">
       <DragDropZone @drop="handleDrop">
         <div class="bg-white dark:bg-dark-700 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus-within:shadow-md transition-all duration-300 ease-in-out relative">
@@ -725,10 +725,10 @@ const orderedModels = computed(() => {
   
   return models;
 });
-
+// 计算属性：消息输入框内容
 const messageInput = computed({
-  get: () => chatStore.messageInput,
-  set: (value) => chatStore.updateMessageInput(value),
+  get: () => uiStore.messageInput,
+  set: (value) => uiStore.updateMessageInput(value),
 });
 
 // 从store直接获取响应式数据

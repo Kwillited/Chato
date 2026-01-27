@@ -6,7 +6,7 @@
     <div class="flex-1 overflow-hidden">
       <!-- 聊天消息容器 -->
       <ChatMessagesContainer 
-        v-if="chatStore.activeView === 'grid'"
+        v-if="uiStore.activeView === 'chat'"
         ref="chatMessagesContainerRef" 
         @updateScrollVisibility="updateScrollButtonVisibility"
         @scrollToBottom="hideScrollButton"
@@ -22,12 +22,12 @@
     
     <!-- 浮动按钮 - 只在聊天视图且有对话消息时显示 -->
       <ScrollToBottomButton 
-        :isVisible="chatStore.activeView === 'grid' && isScrollToBottomVisible && chatStore.currentChatMessages.length > 0"
+        :isVisible="uiStore.activeView === 'chat' && isScrollToBottomVisible && chatStore.currentChatMessages.length > 0"
         @scrollToBottom="scrollToBottom"
       />
 
     <!-- 消息输入区域 - 传递当前视图状态 -->
-      <UserInputBox @sendMessage="handleSendMessage" :activeView="chatStore.activeView" />
+      <UserInputBox @sendMessage="handleSendMessage" :activeView="uiStore.activeView" />
   </div>
 </template>
 
@@ -35,6 +35,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useChatStore } from '../store/chatStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useUiStore } from '../store/uiStore.js';
 
 // 导入子组件
 import ChatMessagesContainer from '../components/chat/ChatMessagesContainer.vue';
@@ -45,6 +46,7 @@ import { UserInputBox } from '../components/library';
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 // 引用子组件
 const chatMessagesContainerRef = ref(null);
