@@ -105,8 +105,8 @@
     >
       <!-- 右侧面板header -->
       <div class="panel-header p-3 flex justify-end items-center">
-        <!-- 历史对话按钮（带下拉菜单） -->
-        <div class="relative hover-scale">
+        <!-- 历史对话按钮（带下拉菜单） - 只在非设置页面显示 -->
+        <div v-if="props.activeContent !== 'settings'" class="relative hover-scale">
           <ActionButton 
             id="historyChat"
             icon="clock-rotate-left"
