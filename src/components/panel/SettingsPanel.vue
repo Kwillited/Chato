@@ -1,8 +1,6 @@
 <template>
   <div id="settingsPanel" class="h-full flex flex-col">
-    <PanelHeader title="系统设置" />
-
-    <div class="overflow-y-auto h-[calc(100%-57px)] scrollbar-thin">
+    <div class="overflow-y-auto h-full scrollbar-thin">
       <div class="p-2 space-y-1">
         <SettingNavItem 
           id="general" 
@@ -54,7 +52,6 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import PanelHeader from '../common/PanelHeader.vue';
 import SettingNavItem from '../common/SettingNavItem.vue';
 
 

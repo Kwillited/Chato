@@ -2,12 +2,7 @@
   <!-- 设置内容区域 -->
   <div id="settingsMainContent" class="flex-1 flex flex-col overflow-hidden">
     <!-- 基本设置 -->
-    <!-- 标题栏 - 使用全局panel-header样式 -->
-    <div class="panel-header">
-      <div class="flex items-center gap-6">
-        <h2 class="text-lg font-bold text-dark" id="currentSettingTitle">基本设置</h2>
-      </div>
-    </div>
+
     <!-- 基本设置部分 -->
     <div class="settings-section active h-full overflow-y-auto p-6 scrollbar-hidden" id="general-section">
       <GeneralSettings />
@@ -53,8 +48,6 @@ import McpSettings from '../components/settings/McpSettings.vue';
 // 初始化store
 const settingsStore = useSettingsStore();
 
-
-
 // 更新设置部分显示
 const updateSettingsSection = () => {
   const activeSection = settingsStore.activeSection || 'general';
@@ -70,20 +63,6 @@ const updateSettingsSection = () => {
   if (activeSectionElement) {
     activeSectionElement.classList.remove('hidden');
     activeSectionElement.classList.add('active');
-  }
-
-  // 更新设置标题
-  const titleElement = document.getElementById('currentSettingTitle');
-  if (titleElement) {
-    const sectionTitles = {
-      general: '基本设置',
-      models: '模型配置',
-      notifications: '通知设置',
-      about: '关于页面',
-      rag: '知识库配置',
-      mcp: 'MCP服务设置',
-    };
-    titleElement.textContent = sectionTitles[activeSection] || '设置';
   }
 };
 

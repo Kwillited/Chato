@@ -1,24 +1,5 @@
 <template>
   <div id="historyPanel" class="h-full flex flex-col">
-    <PanelHeader title="历史会话" :showBackButton="false">
-      <template #actions>
-        <ActionButton
-          id="exportAllBtn"
-          icon="fa-download"
-          title="导出所有对话"
-          @click="handleExportAll"
-          class="w-8 h-8 p-1.5 text-neutral hover:text-primary hover:bg-primary/10"
-        />
-        <ActionButton
-          id="deleteAllBtn"
-          icon="fa-trash-can"
-          title="删除所有对话"
-          @click="showDeleteAllModal = true"
-          class="w-8 h-8 p-1.5 text-neutral hover:text-red-500 hover:bg-red-50"
-        />
-      </template>
-    </PanelHeader>
-    
     <!-- 确认删除所有对话模态框 -->
     <ConfirmationModal
       :visible="showDeleteAllModal"
@@ -137,7 +118,6 @@
 
 <script setup>
 import { computed, reactive, ref, onMounted, onUnmounted } from 'vue';
-import PanelHeader from '../common/PanelHeader.vue';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { showNotification } from '../../services/notificationUtils.js';

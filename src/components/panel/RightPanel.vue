@@ -1,15 +1,7 @@
 <template>
   <div 
-    id="rightPanel" 
-    class="h-full flex-shrink-0 z-40 overflow-hidden mr-0 max-w-[370px]"
-    :class="{ 'transition-all duration-300': !isInitialLoading }"
-    :style="{ width: settingsStore.rightPanelVisible ? settingsStore.rightPanelWidth : '0px', display: settingsStore.rightPanelVisible ? 'block' : 'none', flexShrink: 0 }"
+    class="h-full overflow-hidden"
   >
-    <!-- 右侧面板标题 -->
-    <div class="panel-header p-3">
-      <h2 class="text-lg font-bold text-dark dark:text-white">上下文工程</h2>
-    </div>
-    
     <!-- 右侧面板内容 -->
     <div class="p-3 space-y-4">
       <!-- 上下文概述 -->
