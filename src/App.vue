@@ -10,8 +10,8 @@
     <div class="flex flex-1 overflow-hidden">
       <!-- 3. 显示区域容器 -->
       <DisplayArea 
-        :active-content="settingsStore.activeContent" 
-        :saved-right-panel-width="settingsStore.rightPanelWidth" 
+        :active-content="uiStore.activeContent" 
+        :saved-right-panel-width="uiStore.rightPanelWidth" 
         :is-initial-loading="isInitialLoading"
       />
     </div>
@@ -32,30 +32,30 @@ import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import DisplayArea from './components/layout/DisplayArea.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
-import { useModelSettingStore } from './store/modelSettingStore.js';
+import { useUiStore } from './store/uiStore.js';
 
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-const modelSettingStore = useModelSettingStore();
+const uiStore = useUiStore();
 
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
 
 // 监听activePanel变化，同步更新activeContent
 watch(
-  () => settingsStore.activePanel,
+  () => uiStore.activePanel,
   (newPanel) => {
     // 当切换到任何面板时，自动展开左侧面板
-    settingsStore.leftNavVisible = true;
+    uiStore.leftNavVisible = true;
     
     // 只有当前视图不是sendMessage时，才根据activePanel更新视图
-    if (settingsStore.activeContent !== 'sendMessage') {
+    if (uiStore.activeContent !== 'sendMessage') {
       if (newPanel === 'settings') {
-        settingsStore.setActiveContent('settings');
+        uiStore.setActiveContent('settings');
       } else {
         // 当面板不是settings时，切换回chat内容
-        settingsStore.setActiveContent('chat');
+        uiStore.setActiveContent('chat');
       }
     }
   }
@@ -96,7 +96,7 @@ onMounted(async () => {
     
     // 加载模型数据
     try {
-      await modelSettingStore.loadModels();
+      await settingsStore.loadModels();
     } catch (error) {
       console.error('初始化加载模型数据失败:', error);
     }
@@ -114,8 +114,8 @@ onMounted(async () => {
   }
 
   // 初始化默认面板
-  if (!settingsStore.activePanel) {
-    settingsStore.setActivePanel('history');
+  if (!uiStore.activePanel) {
+    uiStore.setActivePanel('history');
   }
 
   console.log('AIClient应用已初始化，使用Pinia状态管理');

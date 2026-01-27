@@ -61,6 +61,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useSettingsStore } from '../../../store/settingsStore.js';
+import { useUiStore } from '../../../store/uiStore.js';
 
 const props = defineProps({
   chatMessages: {
@@ -75,6 +76,7 @@ const props = defineProps({
 
 // 初始化settingsStore
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 const emit = defineEmits(['scrollToUserMessage']);
 
@@ -166,9 +168,9 @@ const indicatorPosition = computed(() => {
   let rightPanelWidth = 0;
   
   // 如果右侧面板可见，计算其宽度
-  if (settingsStore.rightPanelVisible) {
+  if (uiStore.rightPanelVisible) {
     // 从settingsStore获取右侧面板宽度，默认256px
-    const widthStr = settingsStore.rightPanelWidth || '256px';
+    const widthStr = uiStore.rightPanelWidth || '256px';
     rightPanelWidth = parseInt(widthStr, 10) || 0;
   }
   

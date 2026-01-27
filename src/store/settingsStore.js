@@ -2,12 +2,14 @@ import { defineStore } from 'pinia';
 import { StorageManager } from '../utils/storage.js';
 import { mergeSettings } from '../utils/data.js';
 import { apiService } from '../services/apiService.js';
-
+import { eventBus } from '../services/eventBus.js';
+import { showNotification } from '../utils/notificationUtils.js';
 
 // 存储键名常量
 const STORAGE_KEYS = {
   SETTINGS: 'userSettings',
   LAST_USED: 'lastUsedSettings',
+  MODEL_SETTINGS: 'modelSettings',
 };
 
 // 定义RAG配置的类型描述
@@ -40,30 +42,18 @@ const STORAGE_KEYS = {
  * @property {boolean} chatStyleDocument - 使用文档样式
  */
 
+// 定义模型参数的类型描述
+/**
+ * @typedef {Object} ModelParams
+ * @property {number} temperature - 温度参数
+ * @property {number} max_tokens - 最大生成token数
+ * @property {number} top_p - 采样参数
+ * @property {number} top_k - 采样参数
+ * @property {number} frequency_penalty - 频率惩罚
+ */
+
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
-    // 当前激活的设置面板
-    activePanel: 'history',
-    // 当前激活的内容视图
-    activeContent: 'sendMessage',
-    // 当前激活的设置部分
-    activeSection: 'general',
-
-    // 全局加载状态
-    isLoading: false,
-
-    // 左侧导航栏可见性
-    leftNavVisible: false,
-    // 左侧导航栏宽度
-    leftNavWidth: '200px',
-
-    // 右侧面板可见性
-    rightPanelVisible: false,
-    // 右侧面板宽度
-    rightPanelWidth: '200px',
-
-
-
     // MCP相关设置
     mcpConfig: {
       enabled: false,
@@ -89,22 +79,35 @@ export const useSettingsStore = defineStore('settings', {
       language: 'zh-CN',
       autoScroll: true,
       showTimestamps: true,
-      // 知识图谱样式设置
       graphLayout: 'force',
       graphNodeSize: 40,
       showGraphNodeLabels: true,
       graphAnimations: true,
       confirmDelete: true,
-      streamingEnabled: true,  // 启用流式输出
-      chatStyleDocument: false,  // 使用文档样式
-      defaultModel: '',  // 默认模型
-      viewMode: 'grid',  // 文件视图模式：'grid' 或 'list'
+      streamingEnabled: true,
+      chatStyleDocument: false,
+      defaultModel: '',
+      viewMode: 'grid',
     },
+
+    // 模型相关设置
+    availableModels: [],
+    models: [],
+    modelParams: {
+      temperature: 0.7,
+      max_tokens: 2000,
+      top_p: 1.0,
+      top_k: 50,
+      frequency_penalty: 0.0,
+    },
+    
+    // 模型加载状态
+    modelLoading: false,
+    // 模型错误信息
+    modelError: null,
   }),
 
   getters: {
-
-
     // 获取当前系统设置
     currentSystemSettings: (state) => state.systemSettings,
 
@@ -113,13 +116,36 @@ export const useSettingsStore = defineStore('settings', {
 
     // 获取当前通知配置
     currentNotificationsConfig: (state) => state.notificationsConfig,
+
+    // 获取当前模型的参数
+    currentModelParams: (state) => state.modelParams,
+    
+    // 获取可用模型列表
+    availableModelList: (state) => state.availableModels,
+    
+    // 获取所有模型配置
+    allModels: (state) => state.models,
+    
+    // 获取已配置的模型列表
+    configuredModels: (state) => state.models.filter(model => model.configured),
+    
+    // 获取未配置的模型列表
+    unconfiguredModels: (state) => state.models.filter(model => !model.configured),
+    
+    // 获取默认模型
+    defaultModel: (state) => state.models.find(model => model.is_default),
+
+    // 获取模型加载状态
+    isModelLoading: (state) => state.modelLoading,
+
+    // 获取模型错误
+    currentModelError: (state) => state.modelError,
   },
 
   actions: {
-    // 初始化设置监听 - 移除$subscribe，避免TypeError
+    // 初始化设置监听
     initSettingsWatch() {
-      // 简化实现：移除$subscribe调用，避免TypeError
-      // 设置保存和应用通过组件内的watch和@change事件处理
+      // 简化实现：设置保存和应用通过组件内的watch和@change事件处理
     },
     
     // 设置默认模型
@@ -132,55 +158,6 @@ export const useSettingsStore = defineStore('settings', {
     getDefaultModel() {
       return this.systemSettings.defaultModel;
     },
-    
-    // 切换设置面板
-    setActivePanel(panel) {
-      this.activePanel = panel;
-    },
-
-    // 切换设置部分
-    setActiveSection(section) {
-      this.activeSection = section;
-    },
-
-    // 设置右侧面板可见性
-    setRightPanelVisible(visible) {
-      this.rightPanelVisible = visible;
-    },
-
-    // 切换右侧面板可见性
-    toggleRightPanel() {
-      this.rightPanelVisible = !this.rightPanelVisible;
-    },
-
-    // 切换左侧导航栏可见性
-    toggleLeftNav() {
-      this.leftNavVisible = !this.leftNavVisible;
-    },
-
-    // 设置当前激活的内容视图
-    setActiveContent(content) {
-      this.activeContent = content;
-    },
-
-    // 设置左侧导航栏宽度
-    setLeftNavWidth(width) {
-      this.leftNavWidth = width;
-    },
-
-    // 设置右侧面板宽度
-    setRightNavWidth(width) {
-      this.rightPanelWidth = width;
-    },
-
-    // 设置全局加载状态
-    setLoading(loading) {
-      this.isLoading = loading;
-    },
-
-
-
-
 
     // 切换MCP功能
     toggleMcp(enabled) {
@@ -265,13 +242,25 @@ export const useSettingsStore = defineStore('settings', {
         autoScroll: true,
         showTimestamps: true,
         confirmDelete: true,
-        streamingEnabled: true,  // 启用流式输出
-        chatStyleDocument: false,  // 使用文档样式
-        viewMode: 'grid',  // 默认使用网格视图
+        streamingEnabled: true,
+        chatStyleDocument: false,
+        viewMode: 'grid',
       };
+
+      this.modelParams = {
+        temperature: 0.7,
+        max_tokens: 2000,
+        top_p: 1.0,
+        top_k: 50,
+        frequency_penalty: 0.0,
+      };
+
+      this.availableModels = [];
+      this.modelError = null;
 
       this.applyDarkMode();
       this.saveSettings();
+      this.saveModelSettings();
     },
 
     // 从后端API加载设置
@@ -307,6 +296,9 @@ export const useSettingsStore = defineStore('settings', {
           };
           this.systemSettings = { ...this.systemSettings, ...updatedSystemSettings };
         }
+        
+        // 加载模型列表
+        await this.loadModels();
       } catch (error) {
         console.error('从后端加载设置失败:', error);
       }
@@ -315,13 +307,14 @@ export const useSettingsStore = defineStore('settings', {
     // 仅从存储中加载设置，不请求API
     async loadSettingsFromStorageOnly() {
       try {
-        this.setLoading(true);
-        
         // 只从localStorage加载设置，不请求API
         const savedSettings = StorageManager.getItem(STORAGE_KEYS.SETTINGS);
         if (savedSettings) {
           this.mergeSavedSettings(savedSettings);
         }
+
+        // 加载模型设置
+        this.loadModelSettings();
 
         // 应用保存的设置
         this.applyDarkMode();
@@ -332,29 +325,26 @@ export const useSettingsStore = defineStore('settings', {
           document.body.style.fontFamily = this.systemSettings.fontFamily;
         }
 
-
-
         // 记录最后使用时间
         this.updateLastUsedTime();
       } catch (error) {
         console.error('仅从存储加载设置失败:', error);
         // 加载失败时使用默认设置
         this.resetSettings();
-      } finally {
-        this.setLoading(false);
       }
     },
 
     // 从存储中加载设置（包含API请求）
     async loadSettings() {
       try {
-        this.setLoading(true);
-        
         // 先从localStorage加载设置
         const savedSettings = StorageManager.getItem(STORAGE_KEYS.SETTINGS);
         if (savedSettings) {
           this.mergeSavedSettings(savedSettings);
         }
+        
+        // 加载模型设置
+        this.loadModelSettings();
         
         // 再从后端API加载最新设置，覆盖localStorage的设置
         await this.loadSettingsFromApi();
@@ -368,27 +358,17 @@ export const useSettingsStore = defineStore('settings', {
           document.body.style.fontFamily = this.systemSettings.fontFamily;
         }
 
-
-
         // 记录最后使用时间
         this.updateLastUsedTime();
       } catch (error) {
         console.error('加载设置失败:', error);
         // 加载失败时使用默认设置
         this.resetSettings();
-      } finally {
-        this.setLoading(false);
       }
     },
 
-
-
     // 合并保存的设置
     mergeSavedSettings(savedSettings) {
-      // 注意：模型相关设置现在由modelSettingStore单独管理和加载
-
-
-
       if (savedSettings.mcpConfig && typeof savedSettings.mcpConfig === 'object') {
         this.mcpConfig = mergeSettings(this.mcpConfig, savedSettings.mcpConfig);
       }
@@ -399,11 +379,6 @@ export const useSettingsStore = defineStore('settings', {
 
       if (savedSettings.systemSettings && typeof savedSettings.systemSettings === 'object') {
         this.systemSettings = mergeSettings(this.systemSettings, savedSettings.systemSettings);
-      }
-
-      // 恢复上次选择的设置部分
-      if (savedSettings.activeSection) {
-        this.activeSection = savedSettings.activeSection;
       }
     },
 
@@ -452,13 +427,10 @@ export const useSettingsStore = defineStore('settings', {
     // 保存设置的核心功能
     async _saveSettingsCore() {
       try {
-        // 注意：模型设置现在由modelSettingStore单独管理和保存
-        
         const settingsToSave = {
           mcpConfig: this.mcpConfig,
           notificationsConfig: this.notificationsConfig,
           systemSettings: this.systemSettings,
-          activeSection: this.activeSection,
           timestamp: Date.now(),
         };
 
@@ -484,6 +456,351 @@ export const useSettingsStore = defineStore('settings', {
     saveSettings: async function() {
       // 直接调用核心保存功能，确保this上下文正确
       return await this._saveSettingsCore();
+    },
+
+    // 模型管理相关操作
+    // 设置模型加载状态
+    setModelLoading(loading) {
+      this.modelLoading = loading;
+    },
+    
+    // 设置模型错误信息
+    setModelError(error) {
+      this.modelError = error;
+      if (error) {
+        console.error('模型管理错误:', error);
+      }
+    },
+    
+    // 选择模型（仅同步到本地存储，主要通过settingsStore管理）
+    selectModel(model) {
+      if (this.availableModels.includes(model)) {
+        // 此处保留方法以确保向后兼容性
+        this.saveModelSettings();
+      }
+    },
+
+    // 更新模型参数
+    updateModelParams(params) {
+      this.modelParams = { ...this.modelParams, ...params };
+      this.saveModelSettings();
+    },
+
+    // 从后端加载模型列表
+    async loadModels() {
+      try {
+        this.setModelLoading(true);
+        this.setModelError(null);
+        
+        // 从后端加载模型列表
+        const response = await apiService.models.getModels();
+        // 确保models是数组
+        this.models = Array.isArray(response.models) ? response.models : [];
+        
+        // 更新可用模型列表
+        this.updateAvailableModels();
+        
+        // 通知事件总线，模型列表已更新
+        eventBus.emit('modelsLoaded', { models: this.models });
+      } catch (error) {
+        this.setModelError('加载模型列表失败');
+        console.error('加载模型列表失败:', error);
+      } finally {
+        this.setModelLoading(false);
+      }
+    },
+
+    // 更新模型数据，添加图标URL
+    updateModelsWithIcons(configuredModels, unconfiguredModels) {
+      // 首先更新已配置模型
+      const updatedModels = [...this.models];
+      
+      // 更新已配置模型
+      configuredModels.forEach(configuredModel => {
+        const index = updatedModels.findIndex(m => m.name === configuredModel.name);
+        if (index !== -1) {
+          updatedModels[index] = configuredModel;
+        }
+      });
+      
+      // 更新未配置模型
+      unconfiguredModels.forEach(unconfiguredModel => {
+        const index = updatedModels.findIndex(m => m.name === unconfiguredModel.name);
+        if (index !== -1) {
+          updatedModels[index] = unconfiguredModel;
+        }
+      });
+      
+      // 更新store中的models状态
+      this.models = updatedModels;
+      
+      // 更新可用模型列表
+      this.updateAvailableModels();
+    },
+    
+    // 更新可用模型列表，与select组件保持一致的模型ID格式
+    updateAvailableModels() {
+      const available = [];
+      
+      this.models.forEach(model => {
+        if (model.configured && model.enabled && model.versions) {
+          model.versions.forEach(version => {
+            if (version && version.version_name) {
+              // 与select组件保持一致：只使用version_name构建模型标识
+              // 格式：model.name-version_name
+              available.push(`${model.name}-${version.version_name}`);
+            }
+          });
+        }
+      });
+      
+      this.availableModels = available;
+    },
+
+    // 保存模型配置
+    async saveModelConfig(modelName, config) {
+      try {
+        this.setModelLoading(true);
+        this.setModelError(null);
+        
+        // 调用后端API保存配置
+        await apiService.post(`/api/models/${modelName}`, {
+          custom_name: config.customName,
+          api_key: config.apiKey,
+          api_base_url: config.apiBaseUrl,
+          version_name: config.versionName,
+          streaming_config: config.streamingConfig
+        });
+        
+        // 重新加载模型列表以更新状态
+        await this.loadModels();
+        
+        // 通过事件总线通知模型已更新
+        eventBus.emit('modelUpdated');
+        
+        return true;
+      } catch (error) {
+        this.setModelError('保存模型配置失败');
+        console.error('保存模型配置失败:', error);
+        throw error;
+      } finally {
+        this.setModelLoading(false);
+      }
+    },
+
+    // 删除模型配置
+    async deleteModelConfig(modelName) {
+      try {
+        this.setModelLoading(true);
+        this.setModelError(null);
+        
+        // 调用后端API删除配置
+        await apiService.delete(`/api/models/${modelName}`);
+        
+        // 重新加载模型列表以更新状态
+        await this.loadModels();
+        
+        // 通过事件总线通知模型已更新
+        eventBus.emit('modelUpdated');
+        
+        // 显示成功通知
+        showNotification(`已删除${modelName}的配置`, 'success');
+        
+        return true;
+      } catch (error) {
+        this.setModelError('删除模型配置失败');
+        console.error('删除模型配置失败:', error);
+        showNotification('删除失败: ' + (error.message || '未知错误'), 'error');
+        throw error;
+      } finally {
+        this.setModelLoading(false);
+      }
+    },
+
+    // 切换模型启用状态
+    async toggleModelEnabled(modelName, enabled) {
+      try {
+        this.setModelLoading(true);
+        this.setModelError(null);
+        
+        // 调用后端API更新启用状态
+        await apiService.post(`/api/models/${modelName}/enabled`, {
+          enabled: enabled
+        });
+        
+        // 重新加载模型列表以更新状态
+        await this.loadModels();
+        
+        // 通过事件总线通知模型已更新
+        eventBus.emit('modelUpdated');
+        
+        return true;
+      } catch (error) {
+        this.setModelError('更新模型启用状态失败');
+        console.error('更新模型启用状态失败:', error);
+        throw error;
+      } finally {
+        this.setModelLoading(false);
+      }
+    },
+
+    // 添加模型版本
+    async addModelVersion(modelName, versionConfig) {
+      try {
+        this.setModelLoading(true);
+        this.setModelError(null);
+        
+        // 构建请求数据
+        const modelConfig = {
+          custom_name: versionConfig.customName,
+          api_key: versionConfig.apiKey,
+          api_base_url: versionConfig.apiBaseUrl,
+          version_name: versionConfig.versionName,
+          streaming_config: versionConfig.streamingConfig
+        };
+        
+        console.log('发送的API请求数据:', JSON.stringify(modelConfig));
+        
+        // 调用后端API保存配置
+        await apiService.post(`/api/models/${modelName}`, modelConfig);
+        
+        // 重新加载模型列表以更新状态
+        await this.loadModels();
+        
+        // 通过事件总线通知模型已更新
+        eventBus.emit('modelUpdated');
+        
+        return true;
+      } catch (error) {
+        this.setModelError('添加模型版本失败');
+        console.error('添加模型版本失败:', error);
+        throw error;
+      } finally {
+        this.setModelLoading(false);
+      }
+    },
+
+    // 编辑模型版本
+    async updateModelVersion(modelName, versionName, versionConfig) {
+      try {
+        this.setModelLoading(true);
+        this.setModelError(null);
+        
+        // 构建请求数据
+        const requestData = {
+          custom_name: versionConfig.customName,
+          api_key: versionConfig.apiKey,
+          api_base_url: versionConfig.apiBaseUrl,
+          version_name: versionConfig.versionName,
+          streaming_config: versionConfig.streamingConfig
+        };
+        
+        // 调用API保存配置
+        await apiService.post(`/api/models/${modelName}`, requestData);
+        
+        // 重新加载模型列表以更新状态
+        await this.loadModels();
+        
+        // 通过事件总线通知模型已更新
+        eventBus.emit('modelUpdated');
+        
+        return true;
+      } catch (error) {
+        this.setModelError('更新模型版本失败');
+        console.error('更新模型版本失败:', error);
+        throw error;
+      } finally {
+        this.setModelLoading(false);
+      }
+    },
+
+    // 删除模型版本
+    async deleteModelVersion(modelName, versionName) {
+      try {
+        this.setModelLoading(true);
+        this.setModelError(null);
+        
+        // 调用后端API删除模型版本
+        await apiService.delete(`/api/models/${modelName}/versions/${versionName}`);
+        
+        // 重新加载模型列表以更新状态
+        await this.loadModels();
+        
+        // 通过事件总线通知模型已更新
+        eventBus.emit('modelUpdated');
+        
+        // 查找模型和版本信息用于通知
+        const model = this.models.find(m => m.name === modelName);
+        const version = model?.versions?.find(v => v.version_name === versionName);
+        
+        // 显示成功通知
+        showNotification(`已删除${modelName}的版本 ${version?.custom_name || versionName}`, 'success');
+        
+        return true;
+      } catch (error) {
+        this.setModelError('删除模型版本失败');
+        console.error('删除模型版本失败:', error);
+        showNotification('删除失败: ' + (error.message || '未知错误'), 'error');
+        throw error;
+      } finally {
+        this.setModelLoading(false);
+      }
+    },
+
+    // 重置模型设置为默认值
+    resetModelSettings() {
+      this.modelParams = {
+        temperature: 0.7,
+        max_tokens: 2000,
+        top_p: 1.0,
+        top_k: 50,
+        frequency_penalty: 0.0,
+      };
+      this.availableModels = [];
+      this.modelError = null;
+      this.saveModelSettings();
+    },
+
+    // 从存储中加载模型设置
+    loadModelSettings() {
+      try {
+        const savedSettings = StorageManager.getItem(STORAGE_KEYS.MODEL_SETTINGS);
+        if (savedSettings) {
+          this.mergeSavedModelSettings(savedSettings);
+        }
+      } catch (error) {
+        console.error('加载模型设置失败:', error);
+        // 加载失败时使用默认设置
+        this.resetModelSettings();
+      }
+    },
+
+    // 合并保存的模型设置
+    mergeSavedModelSettings(savedSettings) {
+      if (savedSettings.modelParams && typeof savedSettings.modelParams === 'object') {
+        this.modelParams = mergeSettings(this.modelParams, savedSettings.modelParams);
+      }
+    },
+
+    // 保存模型设置的核心功能
+    _saveModelSettingsCore: function() {
+      try {
+        const settingsToSave = {
+          modelParams: this.modelParams,
+          timestamp: Date.now(),
+        };
+
+        const saved = StorageManager.setItem(STORAGE_KEYS.MODEL_SETTINGS, settingsToSave);
+        return saved;
+      } catch (error) {
+        console.error('保存模型设置失败:', error);
+        return false;
+      }
+    },
+
+    // 保存模型设置
+    saveModelSettings: function() {
+      return this._saveModelSettingsCore();
     },
   },
 });

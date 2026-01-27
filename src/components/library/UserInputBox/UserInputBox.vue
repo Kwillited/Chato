@@ -404,8 +404,8 @@
               <button
                 class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out"
                 :class="{
-                    'text-gray-500 dark:text-gray-300 hover:text-primary': settingsStore.activePanel !== 'rag',
-                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': settingsStore.activePanel === 'rag'
+                    'text-gray-500 dark:text-gray-300 hover:text-primary': uiStore.activePanel !== 'rag',
+                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': uiStore.activePanel === 'rag'
                   }"
                 @click="toggleKnowledgeBase"
               >
@@ -517,7 +517,7 @@ const _props = defineProps({
 });
 import { useChatStore } from '../../../store/chatStore.js';
 import { useSettingsStore } from '../../../store/settingsStore.js';
-import { useModelSettingStore } from '../../../store/modelSettingStore.js';
+import { useUiStore } from '../../../store/uiStore.js';
 import { useVectorStore } from '../../../store/vectorStore.js';
 
 // 定义存储键
@@ -529,7 +529,8 @@ const STORAGE_KEYS = {
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
-const modelStore = useModelSettingStore();
+const uiStore = useUiStore();
+const modelStore = useSettingsStore();
 const vectorStore = useVectorStore();
 
 // 拖拽状态管理
@@ -556,7 +557,7 @@ const showUserMenu = ref(false);
 // 命令行窗口状态
 const showCommandLine = ref(false);
 // RAG模式状态 - 从settingsStore获取
-const _isRagMode = computed(() => settingsStore.activePanel === 'rag');
+const _isRagMode = computed(() => uiStore.activePanel === 'rag');
 
 // 智能体相关状态
 const currentAgent = ref('default');
@@ -965,19 +966,19 @@ const handleMcpService = () => {
 
 // 切换知识库状态
 const toggleKnowledgeBase = () => {
-  if (settingsStore.activePanel === 'rag') {
+  if (uiStore.activePanel === 'rag') {
     // 如果当前是知识库模式，切换回聊天模式
-    settingsStore.setActivePanel('history');
+    uiStore.setActivePanel('history');
     
     // 主显示区：如果没有聊天消息，显示sendMessage视图，否则显示chat视图
     const hasMessages = chatStore.currentChatMessages && chatStore.currentChatMessages.length > 0;
-    settingsStore.setActiveContent(hasMessages ? 'chat' : 'sendMessage');
+    uiStore.setActiveContent(hasMessages ? 'chat' : 'sendMessage');
     
     // 关闭RAG功能
     vectorStore.setRagConfig({ enabled: false });
   } else {
     // 如果当前不是知识库模式，切换到知识库模式
-    settingsStore.setActivePanel('rag');
+    uiStore.setActivePanel('rag');
     
     // 启用RAG功能
     vectorStore.setRagConfig({ enabled: true });
@@ -1025,18 +1026,18 @@ onMounted(() => {
 
 // 处理视图按钮点击事件 - 切换右侧面板
 const toggleViewPanel = () => {
-  settingsStore.toggleRightPanel();
+  uiStore.toggleRightPanel();
 };
 
 // 处理系统设置按钮点击事件
 const handleSystemSettingsClick = () => {
-  settingsStore.setActivePanel('settings');
-  settingsStore.setActiveContent('settings');
+  uiStore.setActivePanel('settings');
+  uiStore.setActiveContent('settings');
 };
 
 // 处理AI配置按钮点击事件
 const handleAISettingsClick = () => {
-  settingsStore.setActiveContent('aiSettings');
+  uiStore.setActiveContent('aiSettings');
 };
 
 // 切换主题

@@ -664,25 +664,27 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useUiStore } from '../store/uiStore.js';
 import { useVectorStore } from '../store/vectorStore.js';
 
 // 标签页状态
 const activeTab = ref('basic');
 const mcpCount = ref(2);
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 const vectorStore = useVectorStore();
 let originalLeftNavVisible = null;
 
 // 组件挂载时隐藏左侧边栏
 onMounted(() => {
-  originalLeftNavVisible = settingsStore.leftNavVisible;
-  settingsStore.leftNavVisible = false;
+  originalLeftNavVisible = uiStore.leftNavVisible;
+  uiStore.leftNavVisible = false;
 });
 
 // 组件卸载时恢复左侧边栏状态
 onUnmounted(() => {
   if (originalLeftNavVisible !== null) {
-    settingsStore.leftNavVisible = originalLeftNavVisible;
+    uiStore.leftNavVisible = originalLeftNavVisible;
   }
 });
 

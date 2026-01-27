@@ -109,7 +109,6 @@
 
 <script setup>
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { useModelSettingStore } from '../../store/modelSettingStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { Button } from '../library/index.js';
 import { showNotification } from '../../utils/notificationUtils.js';
@@ -127,7 +126,7 @@ const _props = defineProps({
 
 // 初始化stores
 const settingsStore = useSettingsStore();
-const _modelStore = useModelSettingStore();
+const _modelStore = useSettingsStore();
 const chatStore = useChatStore();
 
 // 上下文调整状态

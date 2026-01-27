@@ -157,7 +157,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { useModelSettingStore } from '../../store/modelSettingStore.js';
+import { useUiStore } from '../../store/uiStore.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import ModelSettingsDrawer from '../models/ModelSettingsDrawer.vue';
@@ -165,7 +165,8 @@ import ModelVersionForm from '../models/ModelVersionForm.vue';
 
 // 初始化store
 const settingsStore = useSettingsStore();
-const modelStore = useModelSettingStore();
+const uiStore = useUiStore();
+const modelStore = useSettingsStore();
 
 // 状态管理
 const configuredModelsSearch = ref('');
@@ -391,7 +392,7 @@ onUnmounted(() => {
 
 // 监听设置面板变化，刷新模型列表
 watch(
-  () => settingsStore.activePanel,
+  () => uiStore.activePanel,
   (newPanel) => {
     if (newPanel === 'settings' && settingsStore.activeSection === 'models') {
       loadModels();
@@ -403,7 +404,7 @@ watch(
 watch(
   () => settingsStore.activeSection,
   (newSection) => {
-    if (settingsStore.activePanel === 'settings' && newSection === 'models') {
+    if (uiStore.activePanel === 'settings' && newSection === 'models') {
       loadModels();
     }
   }

@@ -120,6 +120,7 @@
 import { computed, reactive, ref, onMounted, onUnmounted } from 'vue';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
+import { useUiStore } from '../../store/uiStore.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import { SearchBar, ConfirmationModal } from '../library/index.js';
 
@@ -204,6 +205,7 @@ onUnmounted(() => {
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 // 从store获取对话历史
 const chatHistory = computed(() => chatStore.chatHistory);
@@ -319,7 +321,7 @@ const handleChatSelect = (chatId) => {
   chatStore.selectChat(chatId);
   
   // 确保activeContent是'chat'，以便正确显示ChatContent组件
-  settingsStore.setActiveContent('chat');
+  uiStore.setActiveContent('chat');
 };
 
 // 处理导出所有对话
@@ -358,7 +360,7 @@ const handleDeleteAllConfirm = async () => {
     showDeleteAllModal.value = false;
     
     // 删除所有对话后切换到sendMessage内容
-    settingsStore.setActiveContent('sendMessage');
+    uiStore.setActiveContent('sendMessage');
   } catch (error) {
     showNotification('删除失败: ' + error.message, 'error');
   } finally {
@@ -377,7 +379,7 @@ const handleDeleteChat = async (chatId) => {
     // 检查是否删除了最后一个对话
     if (chatStore.chats.length === 0 || (wasCurrentChat && chatStore.chats.length === 0)) {
       // 切换回sendMessageContent视图
-      settingsStore.setActiveContent('sendMessage');
+      uiStore.setActiveContent('sendMessage');
     }
   } catch (error) {
     showNotification('删除失败: ' + error.message, 'error');

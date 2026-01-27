@@ -158,7 +158,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
-import { useModelSettingStore } from '../../store/modelSettingStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../utils/notificationUtils.js';
@@ -167,7 +166,7 @@ import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
 const settingsStore = useSettingsStore();
-const modelStore = useModelSettingStore();
+const modelStore = useSettingsStore();
 const chatStore = useChatStore();
 
 // 状态管理

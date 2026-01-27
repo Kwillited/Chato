@@ -12,9 +12,11 @@
 <script setup>
 import { useChatStore } from '../store/chatStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useUiStore } from '../store/uiStore.js';
 
 // 使用全局store
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 
 // 导入必要的子组件
 import { UserInputBox } from '../components/library';
@@ -34,7 +36,7 @@ const handleSendMessage = async (message, model, deepThinking = false, webSearch
     chatStore.sendMessage(message, model, deepThinking, webSearchEnabled);
     
     // 然后切换到ChatContent视图（此时isTyping消息已经添加，用户可以看到AI正在输入）
-    settingsStore.setActiveContent('chat');
+    uiStore.setActiveContent('chat');
   }
 };
 </script>

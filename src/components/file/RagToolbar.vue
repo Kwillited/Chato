@@ -36,6 +36,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
+import { useUiStore } from '../../store/uiStore.js';
 import { useVectorStore } from '../../store/vectorStore.js';
 import { Button, SearchBar } from '../library/index.js';
 
@@ -48,6 +49,7 @@ defineProps({
 
 // 初始化store
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 const ragStore = useVectorStore();
 
 // 搜索查询
@@ -82,7 +84,7 @@ const handleViewToggle = () => {
 
 // 监听store中的activeContent变化
 watch(
-  () => settingsStore.activeContent,
+  () => uiStore.activeContent,
   (newContent) => {
     isRagManagementView.value = newContent === 'ragManagement';
   },
@@ -92,7 +94,7 @@ watch(
 // 初始化当前视图状态
 const initializeViewState = () => {
   // 直接从store获取当前活动内容
-  isRagManagementView.value = settingsStore.activeContent === 'ragManagement';
+  isRagManagementView.value = uiStore.activeContent === 'ragManagement';
 };
 
 onMounted(() => {

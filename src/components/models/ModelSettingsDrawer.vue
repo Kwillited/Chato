@@ -106,7 +106,7 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { useModelSettingStore } from '../../store/modelSettingStore.js';
+import { useSettingsStore } from '../../store/settingsStore.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 
 // 定义组件属性
@@ -130,7 +130,7 @@ defineOptions({
 });
 
 // 初始化store
-const modelStore = useModelSettingStore();
+const modelStore = useSettingsStore();
 
 // 组件状态
 const modelVersion = ref('');
