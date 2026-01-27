@@ -268,11 +268,11 @@ export const useSettingsStore = defineStore('settings', {
     async loadSettingsFromApi() {
       try {
         // 使用现有的apiService来调用后端API
-        const notificationSettings = await apiService.get('/api/settings/notification');
+        const notificationSettings = await apiService.get('/settings/notification');
         this.notificationsConfig = notificationSettings;
         
         // 加载MCP设置
-        const mcpSettings = await apiService.get('/api/mcp');
+        const mcpSettings = await apiService.get('/mcp');
         if (mcpSettings) {
           this.mcpConfig = {
             enabled: mcpSettings.enabled,
@@ -283,7 +283,7 @@ export const useSettingsStore = defineStore('settings', {
         }
         
         // 加载系统设置
-        const systemSettings = await apiService.get('/api/settings/system');
+        const systemSettings = await apiService.get('/settings/system');
         if (systemSettings) {
           // 更新系统设置，转换字段名以匹配前端模型
           const updatedSystemSettings = {
@@ -398,7 +398,7 @@ export const useSettingsStore = defineStore('settings', {
     async saveSettingsToApi() {
       try {
         // 使用现有的apiService来调用后端API
-        await apiService.post('/api/settings/notification', this.notificationsConfig);
+        await apiService.post('/settings/notification', this.notificationsConfig);
         
         // 保存MCP设置，转换字段名
         const mcpSettingsToSave = {
@@ -407,7 +407,7 @@ export const useSettingsStore = defineStore('settings', {
           server_port: this.mcpConfig.serverPort,
           timeout: this.mcpConfig.timeout
         };
-        await apiService.post('/api/mcp', mcpSettingsToSave);
+        await apiService.post('/mcp', mcpSettingsToSave);
         
         // 保存系统设置，转换字段名以匹配后端模型
         const systemSettingsToSave = {
@@ -419,7 +419,7 @@ export const useSettingsStore = defineStore('settings', {
           auto_refresh_files: this.systemSettings.autoRefreshFiles || true,
           max_recent_files: this.systemSettings.maxRecentFiles || 10
         };
-        await apiService.post('/api/settings/system', systemSettingsToSave);
+        await apiService.post('/settings/system', systemSettingsToSave);
       } catch (error) {
         console.error('保存设置到后端失败:', error);
       }
@@ -565,7 +565,7 @@ export const useSettingsStore = defineStore('settings', {
         this.setModelError(null);
         
         // 调用后端API保存配置
-        await apiService.post(`/api/models/${modelName}`, {
+        await apiService.post(`/models/${modelName}`, {
           custom_name: config.customName,
           api_key: config.apiKey,
           api_base_url: config.apiBaseUrl,
@@ -596,7 +596,7 @@ export const useSettingsStore = defineStore('settings', {
         this.setModelError(null);
         
         // 调用后端API删除配置
-        await apiService.delete(`/api/models/${modelName}`);
+        await apiService.delete(`/models/${modelName}`);
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
@@ -625,7 +625,7 @@ export const useSettingsStore = defineStore('settings', {
         this.setModelError(null);
         
         // 调用后端API更新启用状态
-        await apiService.post(`/api/models/${modelName}/enabled`, {
+        await apiService.post(`/models/${modelName}/enabled`, {
           enabled: enabled
         });
         
@@ -663,7 +663,7 @@ export const useSettingsStore = defineStore('settings', {
         console.log('发送的API请求数据:', JSON.stringify(modelConfig));
         
         // 调用后端API保存配置
-        await apiService.post(`/api/models/${modelName}`, modelConfig);
+        await apiService.post(`/models/${modelName}`, modelConfig);
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
@@ -697,7 +697,7 @@ export const useSettingsStore = defineStore('settings', {
         };
         
         // 调用API保存配置
-        await apiService.post(`/api/models/${modelName}`, requestData);
+        await apiService.post(`/models/${modelName}`, requestData);
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
@@ -722,7 +722,7 @@ export const useSettingsStore = defineStore('settings', {
         this.setModelError(null);
         
         // 调用后端API删除模型版本
-        await apiService.delete(`/api/models/${modelName}/versions/${versionName}`);
+        await apiService.delete(`/models/${modelName}/versions/${versionName}`);
         
         // 重新加载模型列表以更新状态
         await this.loadModels();

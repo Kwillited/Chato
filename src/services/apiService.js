@@ -179,19 +179,20 @@ async function requestWithRetry(config, options = {}) {
   throw lastError;
 }
 
-
-
 // 处理SSE流式响应的方法（使用传统fetch）
 export function handleStreamingResponse(url, data, onMessage, onError, onComplete) {
   // 创建AbortController用于取消请求
   const controller = new AbortController();
   const signal = controller.signal;
-  
+
   // 用于存储累积的数据
   let buffer = '';
   
+  // 确保URL以/api开头
+  const apiUrl = url.startsWith('/api') ? url : `/api${url}`;
+  
   // 发送流式请求
-  fetch('/api' + url, {
+  fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -292,45 +293,23 @@ export const apiService = {
   // 健康检查方法 - 优化版：使用已有端点作为健康检查，避免404
   healthCheck: async () => {
     try {
-      // 使用较短的超时时间进行健康检查
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
-      
+      // 首先尝试调用健康检查端点
       try {
-        // 首先尝试调用健康检查端点
-        const healthResponse = await fetch('/api/health', {
-          method: 'GET',
-          signal: controller.signal
+        const healthResponse = await api.get('/health', {
+          timeout: 3000
         });
-        
-        clearTimeout(timeoutId);
-        
-        if (healthResponse.ok) {
-          console.log('使用 /api/health 端点进行健康检查，服务正常');
-          return await healthResponse.json();
-        }
+        console.log('使用 /health 端点进行健康检查，服务正常');
+        return healthResponse;
       } catch {
         // 如果健康检查端点不存在，尝试使用模型列表端点作为替代
-        console.log('使用备用端点 /api/models 进行健康检查...');
+        console.log('使用备用端点 /models 进行健康检查...');
         
-        // 重置控制器和超时
-        clearTimeout(timeoutId);
-        const fallbackController = new AbortController();
-        const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 5000);
-        
-        // 尝试调用模型列表端点
-        const modelsResponse = await fetch('/api/models', {
-          method: 'GET',
-          signal: fallbackController.signal
+        const modelsResponse = await api.get('/models', {
+          timeout: 5000
         });
         
-        clearTimeout(fallbackTimeoutId);
-        
-        if (modelsResponse.ok) {
-          console.log('使用 /api/models 端点进行健康检查，服务正常');
-          return { status: 'healthy', message: 'Backend service is running (fallback check)' };
-        }
-        throw new Error(`Fallback health check failed with status: ${modelsResponse.status}`);
+        console.log('使用 /models 端点进行健康检查，服务正常');
+        return { status: 'healthy', message: 'Backend service is running (fallback check)' };
       }
     } catch (error) {
       console.warn('健康检查失败:', error.message || error);
@@ -345,7 +324,7 @@ export const apiService = {
     createChat: async (title = '新对话') => {
       return await requestWithRetry({
         method: 'POST',
-        url: '/api/chats',
+        url: '/chats',
         data: { title },
       });
     },
@@ -354,7 +333,7 @@ export const apiService = {
       const { model = 'GPT-4', stream = false, modelParams = {}, ragConfig = {}, deepThinking = false } = options;
       
       // 使用合并后的单个端点，通过stream参数控制响应类型
-      const endpoint = `/api/chats/${chatId}/messages`;
+      const endpoint = `/chats/${chatId}/messages`;
       
       // 处理文件，转换为可序列化的格式
       const processedFiles = await Promise.all(
@@ -424,7 +403,7 @@ export const apiService = {
         })
       );
       
-      const url = `/api/chats/${chatId}/messages`;
+      const url = `/chats/${chatId}/messages`;
       const data = {
         message,
         files: processedFiles,
@@ -462,13 +441,13 @@ export const apiService = {
     getHistory: async () => {
       return await requestWithRetry({
         method: 'GET',
-        url: '/api/chats',
+        url: '/chats',
       });
     },
     deleteChat: async (chatId) => {
       return await requestWithRetry({
         method: 'DELETE',
-        url: `/api/chats/${chatId}`,
+        url: `/chats/${chatId}`,
       });
     },
     
@@ -476,7 +455,7 @@ export const apiService = {
     deleteAllChats: async () => {
       return await requestWithRetry({
         method: 'DELETE',
-        url: '/api/chats/delete-all',
+        url: '/chats/delete-all',
       });
     },
     
@@ -484,12 +463,12 @@ export const apiService = {
     updateChatPin: async (chatId, pinned) => {
       return await requestWithRetry({
         method: 'PATCH',
-        url: `/api/chats/${chatId}/pin`,
+        url: `/chats/${chatId}/pin`,
         data: { pinned },
       });
     },
   },
-  
+
   // RAG相关API
   rag: {
       uploadFile: async (file, folder_id = '') => {
@@ -502,7 +481,7 @@ export const apiService = {
 
         return await requestWithRetry({
           method: 'POST',
-          url: '/api/files/upload',
+          url: '/files/upload',
           data: formData,
           headers: {
             'Content-Type': 'multipart/form-data',
@@ -512,19 +491,19 @@ export const apiService = {
     getDocuments: async () => {
       return await requestWithRetry({
         method: 'GET',
-        url: '/api/files/documents',
+        url: '/files/documents',
       });
     },
     deleteDocument: async (filename, foldername = '') => {
       return await requestWithRetry({
         method: 'DELETE',
-        url: `/api/files/${foldername}/${filename}`,
+        url: `/files/${foldername}/${filename}`,
       });
     },
     getFolders: async () => {
       return await requestWithRetry({
         method: 'GET',
-        url: '/api/files/folders',
+        url: '/files/folders',
       });
     },
   },
@@ -534,7 +513,7 @@ export const apiService = {
     getModels: async () => {
       return await requestWithRetry({
         method: 'GET',
-        url: '/api/models',
+        url: '/models',
       });
     },
   },

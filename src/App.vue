@@ -72,7 +72,7 @@ onMounted(async () => {
   // 执行健康检查，使用优化后的重试机制
   try {
     await apiService.requestWithRetry(
-      { method: 'GET', url: '/api/health' },
+      { method: 'GET', url: '/health' },
       { 
         maxRetries: 8,       // 健康检查需要更多重试次数
         initialDelay: 500,   // 初始延迟500ms

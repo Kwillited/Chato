@@ -1,32 +1,18 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
-const host = process.env.TAURI_DEV_HOST;
-
 // https://vite.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig({
   plugins: [vue()],
 
-  // 为 Tauri 开发量身定制的 Vite 选项，仅在 tauri dev 或 tauri build 时应用
-  // 1. 防止 Vite 掩盖 Rust 错误
-  clearScreen: false,
-  // 2. Tauri 期望使用一个固定端口，若该端口不可用则运行失败
   server: {
     //端口配置
     port: 18450,
     strictPort: true,
-    host: host || false,
     //热载配置
-    hmr: host
-      ? {
-          protocol: "ws",
-          host,
-          port: 18451,
-        }
-      : undefined,
-    watch: {
-      // 3. 告知 Vite 忽略对 src-tauri 目录的监听
-      ignored: ["**/src-tauri/**"],
+    hmr: {
+      protocol: "ws",
+      port: 18451,
     },
     // API代理配置
     proxy: {
@@ -40,7 +26,7 @@ export default defineConfig(async () => ({
       '/api': {
         target: 'http://localhost:5000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        rewrite: (path) => path
       }
     }
   },
@@ -49,13 +35,6 @@ export default defineConfig(async () => ({
   build: {
     // 代码分割配置
     rollupOptions: {
-      // 外部化Tauri API模块，这些模块只在运行时可用
-      external: [
-        '@tauri-apps/api',
-        '@tauri-apps/api/invoke',
-        '@tauri-apps/api/core',
-        '@tauri-apps/api/tauri'
-      ],
       output: {
         // 手动代码分割配置
         manualChunks: (id) => {
@@ -95,4 +74,4 @@ export default defineConfig(async () => ({
     '**/*.ttf',
     '**/*.eot'
   ]
-}));
+});

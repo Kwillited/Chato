@@ -153,7 +153,7 @@ export const useVectorStore = defineStore('vector', {
       try {
         const results = await apiUtils.wrapApiCall(this, async () => {
           // 调用后端API搜索文件内容
-          const response = await apiService.post('/api/vectors/search-documents', {
+          const response = await apiService.post('/vectors/search-documents', {
             query, 
             k: this.config.retrieval.topK,
             score_threshold: this.config.retrieval.threshold,
@@ -175,7 +175,7 @@ export const useVectorStore = defineStore('vector', {
       try {
         const response = await apiUtils.wrapApiCall(this, async () => {
           // 调用后端API生成增强响应
-          const response = await apiService.post('/api/vectors/enhanced-prompt', {
+          const response = await apiService.post('/vectors/enhanced-prompt', {
             query,
             chatHistory,
             k,
@@ -202,7 +202,7 @@ export const useVectorStore = defineStore('vector', {
       try {
         const response = await apiUtils.wrapApiCall(this, async () => {
           // 调用后端API重新加载向量库
-          const response = await apiService.post('/api/vectors/manage', {
+          const response = await apiService.post('/vectors/manage', {
             action: 'reload'
           });
           
@@ -225,7 +225,7 @@ export const useVectorStore = defineStore('vector', {
       try {
         await apiUtils.wrapApiCall(this, async () => {
           // 调用后端API获取向量库列表
-          const response = await apiService.get('/api/vectors/stores');
+          const response = await apiService.get('/vectors/stores');
           
           if (response.success && Array.isArray(response.stores)) {
             this.vectorStores = response.stores;
@@ -244,7 +244,7 @@ export const useVectorStore = defineStore('vector', {
       try {
         const response = await apiUtils.wrapApiCall(this, async () => {
           // 调用后端API切换向量库
-          const response = await apiService.post('/api/vectors/switch', {
+          const response = await apiService.post('/vectors/switch', {
             store_id: storeId
           });
           

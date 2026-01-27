@@ -79,7 +79,7 @@ export const useFileStore = defineStore('file', {
       try {
         const files = await apiUtils.wrapApiCall(this, async () => {
           // 直接使用folder_id调用API端点
-          const response = await apiService.get(`/api/files/folders/by-id/${encodeURIComponent(folder.id)}/files`);
+          const response = await apiService.get(`/files/folders/by-id/${encodeURIComponent(folder.id)}/files`);
           
           // 确保正确处理响应格式
           const files = response.success && response.files ? response.files : [];
@@ -198,7 +198,7 @@ export const useFileStore = defineStore('file', {
       try {
         const result = await apiUtils.wrapApiCall(this, async () => {
           // 调用后端API删除所有文件
-          const response = await apiService.delete('/api/files/documents/delete-all');
+          const response = await apiService.delete('/files/documents/delete-all');
           
           // 清空文件列表和文件夹相关状态
           this.files = [];
@@ -243,7 +243,7 @@ export const useFileStore = defineStore('file', {
           } catch (importError) {
             // 如果导入失败，回退到使用Python API
             console.warn('无法使用Tauri invoke，回退到Python API:', importError);
-            response = await apiService.post('/api/files/folders', {
+            response = await apiService.post('/files/folders', {
               name: knowledgeBaseName
             });
           }
@@ -282,7 +282,7 @@ export const useFileStore = defineStore('file', {
       try {
         const result = await apiUtils.wrapApiCall(this, async () => {
           // 调用后端API删除文件夹
-          await apiService.delete(`/api/files/folders?folder_id=${folder.id}`);
+          await apiService.delete(`/files/folders?folder_id=${folder.id}`);
           
           // 重新加载文件夹列表和文件列表以确保同步
           await Promise.all([this.loadFolders(), this.loadFiles()]);
@@ -315,7 +315,7 @@ export const useFileStore = defineStore('file', {
           }
           
           // 调用后端API获取文件详情
-          const response = await apiService.get(`/api/files/documents/${fileId}`);
+          const response = await apiService.get(`/files/documents/${fileId}`);
           // 确保正确处理响应格式
           const fileDetails = response.success && response.details ? response.details : null;
           

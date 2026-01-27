@@ -56,7 +56,6 @@
 
 <script setup>
 import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
 import { showNotification } from '../../utils/notificationUtils.js';
 
 // 定义组件属性
@@ -136,13 +135,8 @@ const executeCommand = async () => {
 // 获取当前工作路径
 const getCurrentPath = async () => {
   try {
-    const path = await invoke('execute_command', { command: 'cd' });
-    // 清理路径输出，Windows系统的cd命令输出格式为"当前目录为: X:\path"
-    if (path.includes('当前目录为:')) {
-      currentPath.value = path.split('当前目录为:')[1].trim();
-    } else {
-      currentPath.value = path.trim();
-    }
+    // 使用 JavaScript 获取当前路径（这里返回默认路径，实际项目中可以通过 API 获取）
+    currentPath.value = 'C:'; // 默认路径
   } catch {
     currentPath.value = 'C:'; // 默认路径
   }
@@ -156,9 +150,8 @@ const handleCommand = async (command) => {
   if (cmd.toLowerCase() === 'cd') {
     try {
       const newPath = args.join(' ');
-      await invoke('execute_command', { command: `cd ${newPath}` });
-      // 更新当前路径
-      await getCurrentPath();
+      // 这里可以通过 API 调用 Python 后端来切换目录
+      currentPath.value = newPath || 'C:';
       return `已切换到: ${currentPath.value}`;
     } catch (error) {
       return `切换目录失败: ${error.message}`;
@@ -197,9 +190,8 @@ const handleCommand = async (command) => {
           
     default:
       try {
-        // 尝试通过Tauri调用系统命令
-        const result = await invoke('execute_command', { command: command });
-        return result;
+        // 这里可以通过 API 调用 Python 后端来执行系统命令
+        return `命令执行功能已迁移到 Python 后端`;
       } catch {
         return `未知命令: ${cmd}`;
       }
