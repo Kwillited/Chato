@@ -735,7 +735,7 @@ const messageInput = computed({
 const uploadedFiles = computed(() => chatStore.uploadedFiles);
 
 // 定义事件
-const emit = defineEmits(['sendMessage']);
+const emit = defineEmits(['messageSubmitted']);
 
 // 处理发送消息事件
 const handleSendMessage = async () => {
@@ -747,7 +747,7 @@ const handleSendMessage = async () => {
     const webSearchEnabled = isWebSearchEnabled.value;
     
     // 立即发送消息，不等待Ollama服务检查
-    emit('sendMessage', messageToSend, modelToUse, deepThinking, webSearchEnabled);
+    emit('messageSubmitted', messageToSend, modelToUse, deepThinking, webSearchEnabled);
     // 发送消息后立即检查是否有流式输出
     checkForActiveStreaming();
     

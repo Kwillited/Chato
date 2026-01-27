@@ -27,7 +27,7 @@
       />
 
     <!-- 消息输入区域 - 传递当前视图状态 -->
-      <UserInputBox @sendMessage="handleSendMessage" :activeView="uiStore.activeView" />
+      <UserInputBox @messageSubmitted="handleSendMessage" :activeView="uiStore.activeView" />
   </div>
 </template>
 

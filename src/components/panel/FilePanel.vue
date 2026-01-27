@@ -1,7 +1,5 @@
 <template>
   <div id="ragPanel" class="h-full flex flex-col">
-    <!-- 头部组件 -->
-    <RagFilePanelHeader :currentFolder="currentFolder" />
 
     <!-- 主内容区域 -->
     <div class="overflow-y-auto h-[calc(100%-57px)] scrollbar-thin">
@@ -76,7 +74,7 @@ import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 
 // 导入子组件
-import RagFilePanelHeader from '../file/RagFilePanelHeader.vue';
+// 移除空的 RagFilePanelHeader 组件导入
 import RagToolbar from '../file/RagToolbar.vue';
 import RagFolderList from '../file/RagFolderList.vue';
 import RagFileList from '../file/RagFileList.vue';

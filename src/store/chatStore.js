@@ -158,27 +158,18 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-    // 发送消息（使用API服务）
-    async sendMessage(content, model, deepThinking = false, webSearchEnabled = false) {
-      if (!content.trim() && this.uploadedFiles.length === 0) return;
+    // 验证消息参数
+    validateMessageParams(content, model) {
+      if (!content.trim() && this.uploadedFiles.length === 0) return false;
       if (!model) {
         this.setError('请先选择一个AI模型');
-        return;
+        return false;
       }
-      if (!this.currentChatId) {
-        // 如果没有当前对话，创建一个新对话
-        await this.createNewChat(model);
-      }
+      return true;
+    },
 
-      const currentChat = this.currentChat;
-      if (!currentChat) return;
-
-      // 使用 uiStore 更新加载状态和消息输入
-      const uiStore = useUiStore();
-      uiStore.setLoading(true);
-      uiStore.updateMessageInput('');
-      this.clearError();
-
+    // 准备消息状态
+    prepareMessageState(currentChat, content, model) {
       // 添加用户消息，并使用ref包装确保完整响应式
       const userMessageRef = ref({
         id: generateId('msg'),
@@ -213,356 +204,379 @@ export const useChatStore = defineStore('chat', {
       // 强制更新currentChat，确保所有组件都能感知到变化
       this.currentChat = { ...this.currentChat };
 
-      try {
-        // 获取store实例
-        const settingsStore = useSettingsStore();
+      return typingMessageRef;
+    },
+
+    // 格式化模型名称
+    formatModelName(model) {
+      const modelStore = useSettingsStore();
+      let formattedModel = model;
+      
+      // 检查是否需要进行格式转换（如果model不包含'-'，说明可能是旧格式）
+      if (!formattedModel.includes('-') && modelStore.models.length > 0) {
+        // 尝试找到对应的模型和版本
+        for (const m of modelStore.models) {
+          if (m.versions && Array.isArray(m.versions)) {
+            for (const version of m.versions) {
+              if (version.version_name === formattedModel) {
+                // 只使用version_name字段
+                formattedModel = `${m.name}-${version.version_name}`;
+                break;
+              }
+            }
+            if (formattedModel.includes('-')) break;
+          }
+        }
+      }
+      return formattedModel;
+    },
+
+    // 检查流式输出支持
+    checkStreamingSupport(formattedModel) {
+      const settingsStore = useSettingsStore();
+      const systemStreamingEnabled = settingsStore.systemSettings.streamingEnabled || false;
+      
+      // 检查模型版本是否支持流式输出
+      let modelStreamingEnabled = false;
+      if (formattedModel && formattedModel.includes('-')) {
         const modelStore = useSettingsStore();
-        
-        // 确保model参数使用name-version.version_name格式
-        let formattedModel = model;
-        
-        // 检查是否需要进行格式转换（如果model不包含'-'，说明可能是旧格式）
-        if (!formattedModel.includes('-') && modelStore.models.length > 0) {
-          // 尝试找到对应的模型和版本
-          for (const m of modelStore.models) {
-            if (m.versions && Array.isArray(m.versions)) {
-              for (const version of m.versions) {
-                if (version.version_name === formattedModel) {
-                  // 只使用version_name字段
-                  formattedModel = `${m.name}-${version.version_name}`;
-                  break;
-                }
-              }
-              if (formattedModel.includes('-')) break;
-            }
+        const [modelName, versionName] = formattedModel.split('-', 2);
+        const model = modelStore.models.find(m => m.name === modelName);
+        if (model && model.versions) {
+          const version = model.versions.find(v => v.version_name === versionName);
+          if (version) {
+            // 支持多种字段名，兼容不同版本的后端返回格式
+            modelStreamingEnabled = version.streaming || version.streamingConfig || version.streaming_config || false;
           }
         }
-        
-        const systemStreamingEnabled = settingsStore.systemSettings.streamingEnabled || false;
-        
-        // 检查模型版本是否支持流式输出
-        let modelStreamingEnabled = false;
-        if (formattedModel && formattedModel.includes('-')) {
-          const [modelName, versionName] = formattedModel.split('-', 2);
-          const model = modelStore.models.find(m => m.name === modelName);
-          if (model && model.versions) {
-            const version = model.versions.find(v => v.version_name === versionName);
-            if (version) {
-              // 支持多种字段名，兼容不同版本的后端返回格式
-              modelStreamingEnabled = version.streaming || version.streamingConfig || version.streaming_config || false;
-            }
-          }
-        }
-        
-        // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
-        const shouldUseStreaming = systemStreamingEnabled && modelStreamingEnabled;
-        
-        // 获取vectorStore实例
-        const vectorStore = useVectorStore();
-        
-        // 从vectorStore获取RAG配置
-        const vectorConfig = vectorStore.config;
-        
-        // 构建后端需要的ragConfig格式
-        let ragConfigToUse = {
-          enabled: vectorConfig.enabled,
-          topK: vectorConfig.retrieval.topK,
-          scoreThreshold: vectorConfig.retrieval.threshold,
-          searchType: vectorConfig.retrieval.mode,
-          selectedFolders: [],
-          selectedKnowledgeBases: []
-        };
-        
-        // 如果有选中的文件夹，设置检索范围为该文件夹
-        if (vectorStore.currentSelectedFolder) {
-          const targetFolder = vectorStore.currentSelectedFolder;
-          ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
-        }
-        
-        // 添加调试日志，查看实际发送给后端的ragConfig
-        console.log('🔍 RAG配置调试:', {
-          currentSelectedFolder: vectorStore.currentSelectedFolder,
-          selectedFolders: ragConfigToUse.selectedFolders,
-          ragEnabled: ragConfigToUse.enabled
-        });
-        
-        if (shouldUseStreaming) {
-        // 使用流式消息发送
-        let aiMessage = null;
+      }
+      
+      // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
+      return systemStreamingEnabled && modelStreamingEnabled;
+    },
 
-        // 立即清空上传文件列表，提供更好的用户体验
-        const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
-        this.uploadedFiles = []; // 立即清空
+    // 准备RAG配置
+    prepareRagConfig() {
+      // 获取vectorStore实例
+      const vectorStore = useVectorStore();
+      
+      // 从vectorStore获取RAG配置
+      const vectorConfig = vectorStore.config;
+      
+      // 构建后端需要的ragConfig格式
+      let ragConfigToUse = {
+        enabled: vectorConfig.enabled,
+        topK: vectorConfig.retrieval.topK,
+        scoreThreshold: vectorConfig.retrieval.threshold,
+        searchType: vectorConfig.retrieval.mode,
+        selectedFolders: [],
+        selectedKnowledgeBases: []
+      };
+      
+      // 如果有选中的文件夹，设置检索范围为该文件夹
+      if (vectorStore.currentSelectedFolder) {
+        const targetFolder = vectorStore.currentSelectedFolder;
+        ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
+      }
+      
+      // 添加调试日志，查看实际发送给后端的ragConfig
+      console.log('🔍 RAG配置调试:', {
+        currentSelectedFolder: vectorStore.currentSelectedFolder,
+        selectedFolders: ragConfigToUse.selectedFolders,
+        ragEnabled: ragConfigToUse.enabled
+      });
+      
+      return ragConfigToUse;
+    },
 
-        try {
-          await apiService.chat.sendStreamingMessage(
-            currentChat.id,         // chatId
-            content.trim(),         // message
-            filesToSend,            // 使用保存的文件列表
-            {
-              model: formattedModel, // 确保使用name-version.version_name格式的模型名称
-              deepThinking: deepThinking, // 使用传递的深度思考参数
-              ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
-              webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
-            },
-              // 处理接收到的消息
-              (data) => {
-                console.log('处理流式消息数据块:', data); // 添加日志追踪
-                
-                if (!aiMessage) {
-                  // 更新之前添加的typing消息，替换为实际的AI回复
-                  const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
-                  if (typingMessageIndex !== -1) {
-                    // 移除typing消息
-                    currentChat.messages.splice(typingMessageIndex, 1);
-                  }
-                  
-                  // 创建AI消息，并使用ref包装确保完整响应式
-                  const messageContent = ref({
-                    id: generateId('msg'),
-                    role: 'ai',
-                    content: '',
-                    timestamp: Date.now(),
-                    status: 'streaming',
-                    isTyping: false,
-                    lastUpdate: Date.now(), // 初始化lastUpdate字段
-                    model: formattedModel // 设置模型名称
-                  });
-                  
-                  aiMessage = messageContent;
-                  currentChat.messages.push(messageContent);
+    // 发送流式消息
+    async sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled) {
+      let aiMessage = null;
+
+      // 立即清空上传文件列表，提供更好的用户体验
+      const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
+      this.uploadedFiles = []; // 立即清空
+
+      try {
+        await apiService.chat.sendStreamingMessage(
+          currentChat.id,         // chatId
+          content.trim(),         // message
+          filesToSend,            // 使用保存的文件列表
+          {
+            model: formattedModel, // 确保使用name-version.version_name格式的模型名称
+            deepThinking: deepThinking, // 使用传递的深度思考参数
+            ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
+            webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
+          },
+            // 处理接收到的消息
+            (data) => {
+              console.log('处理流式消息数据块:', data); // 添加日志追踪
+              
+              if (!aiMessage) {
+                // 更新之前添加的typing消息，替换为实际的AI回复
+                const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
+                if (typingMessageIndex !== -1) {
+                  // 移除typing消息
+                  currentChat.messages.splice(typingMessageIndex, 1);
                 }
                 
-                // 处理后端返回的流式数据格式
-                let contentToAdd = '';
-                // 只处理data.chunk字段
-                if (data.chunk) {
-                  contentToAdd = data.chunk;
-                }
+                // 创建AI消息，并使用ref包装确保完整响应式
+                const messageContent = ref({
+                  id: generateId('msg'),
+                  role: 'ai',
+                  content: '',
+                  timestamp: Date.now(),
+                  status: 'streaming',
+                  isTyping: false,
+                  lastUpdate: Date.now(), // 初始化lastUpdate字段
+                  model: formattedModel // 设置模型名称
+                });
                 
-                // 确保内容更新能够触发Vue响应式更新
-                if (contentToAdd) {
-                  // 使用ref.value直接更新属性，确保任何变化都能触发响应式更新
-                  aiMessage.value.content = aiMessage.value.content + contentToAdd;
-                  aiMessage.value.lastUpdate = Date.now(); // 更新lastUpdate以触发ChatMessage组件重新渲染
-                  
-                  // 由于使用了ref，不需要额外的splice操作来强制更新数组
-                }
-                
-                // 检查是否完成
-                if (data.done || data.completed || data.type === 'end') {
-                  // 确保消息状态正确
-                  if (aiMessage && aiMessage.value.status === 'streaming') {
-                    aiMessage.value.status = 'received';
-                    
-                    // 添加：确保响应式系统能够检测到变化，同时确保model字段存在
-                    const updatedMessage = { ...aiMessage.value };
-                    updatedMessage.status = 'received';
-                    updatedMessage.isTyping = false;
-                    // 确保model字段存在，使用data.ai_message.model或fallback到formattedModel
-                    updatedMessage.model = data.ai_message?.model || formattedModel;
-                    aiMessage.value = updatedMessage;
-                    
-                    // 添加：强制更新currentChat，确保所有组件都能感知到变化
-                    this.currentChat = { ...this.currentChat };
-                    
-                    // 如果用户当前没有查看该对话，设置未读标记并显示通知
-                    if (this.currentChatId !== currentChat.id) {
-                      this.chats = this.chats.map(c => 
-                c.id === currentChat.id ? { ...c, hasUnreadMessage: true } : c
-              );
-              // 获取通知显示时间设置
-              let displayTimeMs = 3000; // 默认3秒
-              const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
-              if (displayTimeSetting === '2秒') {
-                displayTimeMs = 2000;
-              } else if (displayTimeSetting === '5秒') {
-                displayTimeMs = 5000;
-              } else if (displayTimeSetting === '10秒') {
-                displayTimeMs = 10000;
+                aiMessage = messageContent;
+                currentChat.messages.push(messageContent);
               }
-              // 显示新消息通知
-              showNotification(`新消息: ${currentChat.title}`, 'success', displayTimeMs, true);
-              // 播放未读消息通知声音
-              this.playNotificationSound();
-                    }
-                  }
-                }
+              
+              // 处理后端返回的流式数据格式
+              let contentToAdd = '';
+              // 只处理data.chunk字段
+              if (data.chunk) {
+                contentToAdd = data.chunk;
+              }
+              
+              // 确保内容更新能够触发Vue响应式更新
+              if (contentToAdd) {
+                // 使用ref.value直接更新属性，确保任何变化都能触发响应式更新
+                aiMessage.value.content = aiMessage.value.content + contentToAdd;
+                aiMessage.value.lastUpdate = Date.now(); // 更新lastUpdate以触发ChatMessage组件重新渲染
                 
-                currentChat.updatedAt = Date.now();
-              },
-              // 处理错误
-              (error) => {
-                console.error('流式消息错误:', error);
-                this.setError(`流式消息失败: ${error.message || '未知错误'}`);
-              },
-              // 处理完成
-                  () => {
-                    console.log('流式消息完成');
-                    
-                    // 添加：在Promise完成回调中再次确保状态更新和model字段存在
-                    if (aiMessage && aiMessage.value) {
-                      // 创建新对象以确保响应式系统能够检测到变化
-                      const updatedMessage = { ...aiMessage.value };
-                      updatedMessage.status = 'received';
-                      updatedMessage.isTyping = false;
-                      // 确保model字段存在，fallback到formattedModel
-                      updatedMessage.model = updatedMessage.model || formattedModel;
-                      aiMessage.value = updatedMessage;
+                // 由于使用了ref，不需要额外的splice操作来强制更新数组
+              }
+              
+              // 检查是否完成
+              if (data.done || data.completed || data.type === 'end') {
+                // 确保消息状态正确
+                if (aiMessage && aiMessage.value.status === 'streaming') {
+                  aiMessage.value.status = 'received';
                   
-                  // 强制更新currentChat
+                  // 添加：确保响应式系统能够检测到变化，同时确保model字段存在
+                  const updatedMessage = { ...aiMessage.value };
+                  updatedMessage.status = 'received';
+                  updatedMessage.isTyping = false;
+                  // 确保model字段存在，使用data.ai_message.model或fallback到formattedModel
+                  updatedMessage.model = data.ai_message?.model || formattedModel;
+                  aiMessage.value = updatedMessage;
+                  
+                  // 添加：强制更新currentChat，确保所有组件都能感知到变化
                   this.currentChat = { ...this.currentChat };
                   
                   // 如果用户当前没有查看该对话，设置未读标记并显示通知
-                  if (this.currentChatId !== currentChat.id) {
-                    this.chats = this.chats.map(c => 
-              c.id === currentChat.id ? { ...c, hasUnreadMessage: true } : c
-            );
-            // 获取通知显示时间设置
-            let displayTimeMs = 3000; // 默认3秒
-            const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
-            if (displayTimeSetting === '2秒') {
-              displayTimeMs = 2000;
-            } else if (displayTimeSetting === '5秒') {
-              displayTimeMs = 5000;
-            } else if (displayTimeSetting === '10秒') {
-              displayTimeMs = 10000;
-            }
-            // 显示新消息通知
-            showNotification(`新消息: ${currentChat.title}`, 'success', displayTimeMs, true);
-            // 播放未读消息通知声音
-            this.playNotificationSound();
-                  }
+                  this.handleNewMessageNotification(currentChat);
                 }
               }
-            );
-            
-            // 确保消息状态正确
-            if (aiMessage && aiMessage.status === 'streaming') {
-              aiMessage.status = 'received';
-            }
-          } catch (error) {
-            console.error('发送流式消息失败:', error);
-            this.setError(`发送消息失败: ${error.message || '未知错误'}`);
-            
-            // 更新之前添加的typing消息，替换为错误消息
-            const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
-            if (typingMessageIndex !== -1) {
-              // 移除typing消息
-              currentChat.messages.splice(typingMessageIndex, 1);
-            }
-            
-            // 添加错误消息，并使用ref包装
-            const errorMessageRef = ref({
-              id: (Date.now() + 2).toString(),
-              role: 'ai',
-              content: '',
-              timestamp: Date.now(),
-              error: `⚠️ 发送失败: ${error.message || '服务器连接错误'}`,
-              isTyping: false,
-            });
-            
-            currentChat.messages.push(errorMessageRef);
-          }
-        } else {
-          // 使用普通消息发送
-          // 立即清空上传文件列表，提供更好的用户体验
-          const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
-          this.uploadedFiles = []; // 立即清空
-          
-          let response = await apiService.chat.sendMessage(
-            currentChat.id,         // chatId
-            content.trim(),         // message
-            filesToSend,            // 使用保存的文件列表
-            {
-              model: formattedModel, // 确保使用name-version.version_name格式的模型名称
-              stream: false,  // 非流式输出
-              deepThinking: deepThinking, // 使用传递的深度思考参数
-              ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
-              webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
+              
+              currentChat.updatedAt = Date.now();
+            },
+            // 处理错误
+            (error) => {
+              console.error('流式消息错误:', error);
+              this.setError(`流式消息失败: ${error.message || '未知错误'}`);
+            },
+            // 处理完成
+                () => {
+                  console.log('流式消息完成');
+                  
+                  // 添加：在Promise完成回调中再次确保状态更新和model字段存在
+                  if (aiMessage && aiMessage.value) {
+                    // 创建新对象以确保响应式系统能够检测到变化
+                    const updatedMessage = { ...aiMessage.value };
+                    updatedMessage.status = 'received';
+                    updatedMessage.isTyping = false;
+                    // 确保model字段存在，fallback到formattedModel
+                    updatedMessage.model = updatedMessage.model || formattedModel;
+                    aiMessage.value = updatedMessage;
+                
+                // 强制更新currentChat
+                this.currentChat = { ...this.currentChat };
+                
+                // 如果用户当前没有查看该对话，设置未读标记并显示通知
+                this.handleNewMessageNotification(currentChat);
+              }
             }
           );
           
-          // 添加调试日志，查看实际响应格式
-          console.log('非流式API响应:', JSON.stringify(response, null, 2));
-          
-          // 修复：处理API返回的数组格式 [response_data, status_code]
-          if (Array.isArray(response) && response.length >= 1) {
-            response = response[0]; // 获取实际的响应数据对象
+          // 确保消息状态正确
+          if (aiMessage && aiMessage.status === 'streaming') {
+            aiMessage.status = 'received';
           }
-          
-          // 更新之前添加的typing消息，替换为实际的AI回复
-          const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
-          if (typingMessageIndex !== -1) {
-            // 移除typing消息
-            currentChat.messages.splice(typingMessageIndex, 1);
+      } catch (error) {
+        console.error('发送流式消息失败:', error);
+        this.setError(`发送消息失败: ${error.message || '未知错误'}`);
+        
+        // 处理错误消息
+        this.handleMessageError(currentChat, error);
+      }
+    },
+
+    // 发送非流式消息
+    async sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled) {
+      // 立即清空上传文件列表，提供更好的用户体验
+      const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
+      this.uploadedFiles = []; // 立即清空
+      
+      try {
+        let response = await apiService.chat.sendMessage(
+          currentChat.id,         // chatId
+          content.trim(),         // message
+          filesToSend,            // 使用保存的文件列表
+          {
+            model: formattedModel, // 确保使用name-version.version_name格式的模型名称
+            stream: false,  // 非流式输出
+            deepThinking: deepThinking, // 使用传递的深度思考参数
+            ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
+            webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
           }
+        );
+        
+        // 添加调试日志，查看实际响应格式
+        console.log('非流式API响应:', JSON.stringify(response, null, 2));
+        
+        // 修复：处理API返回的数组格式 [response_data, status_code]
+        if (Array.isArray(response) && response.length >= 1) {
+          response = response[0]; // 获取实际的响应数据对象
+        }
+        
+        // 更新之前添加的typing消息，替换为实际的AI回复
+        const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
+        if (typingMessageIndex !== -1) {
+          // 移除typing消息
+          currentChat.messages.splice(typingMessageIndex, 1);
+        }
+        
+        // 添加AI回复，并使用ref包装
+        if (response && response.error) {
+          // 处理后端返回的错误响应
+          const aiMessageRef = ref({
+            id: generateId('msg'),
+            role: 'ai',
+            content: '',
+            timestamp: Date.now(),
+            error: `⚠️ 发送失败: ${response.error}`,
+            status: 'error',
+            isTyping: false,
+          });
           
-          // 添加AI回复，并使用ref包装
-          if (response && response.error) {
-            // 处理后端返回的错误响应
-            const aiMessageRef = ref({
-              id: generateId('msg'),
-              role: 'ai',
-              content: '',
-              timestamp: Date.now(),
-              error: `⚠️ 发送失败: ${response.error}`,
-              status: 'error',
-              isTyping: false,
-            });
-            
-            currentChat.messages.push(aiMessageRef);
-            currentChat.updatedAt = Date.now();
-          } else if (response && response.ai_message) {
-            // 确保ai_message存在，无论content是否为空
-            const aiMessageRef = ref({
-              id: generateId('msg'),
-              role: 'ai',
-              content: response.ai_message.content || '（空回复）', // 处理空内容情况
-              timestamp: Date.now(),
-              status: 'received',
-              isTyping: false,
-              model: response.ai_message.model || formattedModel // 设置模型名称
-            });
-            
-            currentChat.messages.push(aiMessageRef);
-            currentChat.updatedAt = Date.now();
-            
-            // 如果用户当前没有查看该对话，设置未读标记并显示通知
-            if (this.currentChatId !== currentChat.id) {
-              this.chats = this.chats.map(c => 
-                c.id === currentChat.id ? { ...c, hasUnreadMessage: true } : c
-              );
-              // 获取通知显示时间设置
-              let displayTimeMs = 3000; // 默认3秒
-              const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
-              if (displayTimeSetting === '2秒') {
-                displayTimeMs = 2000;
-              } else if (displayTimeSetting === '5秒') {
-                displayTimeMs = 5000;
-              } else if (displayTimeSetting === '10秒') {
-                displayTimeMs = 10000;
-              }
-              // 显示新消息通知
-              showNotification(`新消息: ${currentChat.title}`, 'success', displayTimeMs, true);
-              // 播放未读消息通知声音
-              this.playNotificationSound();
-            }
-          } else {
-            // 处理其他情况，显示更详细的调试信息
-            const aiMessageRef = ref({
-              id: generateId('msg'),
-              role: 'ai',
-              content: '',
-              timestamp: Date.now(),
-              error: `⚠️ 发送失败: 无效的API响应格式 ${JSON.stringify(response)}`,
-              status: 'error',
-              isTyping: false,
-            });
-            
-            currentChat.messages.push(aiMessageRef);
-            currentChat.updatedAt = Date.now();
-          }
+          currentChat.messages.push(aiMessageRef);
+          currentChat.updatedAt = Date.now();
+        } else if (response && response.ai_message) {
+          // 确保ai_message存在，无论content是否为空
+          const aiMessageRef = ref({
+            id: generateId('msg'),
+            role: 'ai',
+            content: response.ai_message.content || '（空回复）', // 处理空内容情况
+            timestamp: Date.now(),
+            status: 'received',
+            isTyping: false,
+            model: response.ai_message.model || formattedModel // 设置模型名称
+          });
+          
+          currentChat.messages.push(aiMessageRef);
+          currentChat.updatedAt = Date.now();
+          
+          // 如果用户当前没有查看该对话，设置未读标记并显示通知
+          this.handleNewMessageNotification(currentChat);
+        } else {
+          // 处理其他情况，显示更详细的调试信息
+          const aiMessageRef = ref({
+            id: generateId('msg'),
+            role: 'ai',
+            content: '',
+            timestamp: Date.now(),
+            error: `⚠️ 发送失败: 无效的API响应格式 ${JSON.stringify(response)}`,
+            status: 'error',
+            isTyping: false,
+          });
+          
+          currentChat.messages.push(aiMessageRef);
+          currentChat.updatedAt = Date.now();
+        }
+      } catch (error) {
+        console.error('发送非流式消息失败:', error);
+        this.setError(`发送消息失败: ${error.message || '未知错误'}`);
+        
+        // 处理错误消息
+        this.handleMessageError(currentChat, error);
+      }
+    },
+
+    // 处理消息错误
+    handleMessageError(currentChat, error) {
+      // 更新之前添加的typing消息，替换为错误消息
+      const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
+      if (typingMessageIndex !== -1) {
+        // 移除typing消息
+        currentChat.messages.splice(typingMessageIndex, 1);
+      }
+      
+      // 添加错误消息，并使用ref包装
+      const errorMessageRef = ref({
+        id: (Date.now() + 2).toString(),
+        role: 'ai',
+        content: '',
+        timestamp: Date.now(),
+        error: `⚠️ 发送失败: ${error.message || '服务器连接错误'}`,
+        isTyping: false,
+      });
+      
+      currentChat.messages.push(errorMessageRef);
+    },
+
+    // 清理消息发送后的状态
+    cleanupAfterMessage() {
+      // 使用 uiStore 更新加载状态
+      const uiStore = useUiStore();
+      uiStore.setLoading(false);
+      this.uploadedFiles = [];
+    },
+
+    // 发送消息（使用API服务）
+    async sendMessage(content, model, deepThinking = false, webSearchEnabled = false) {
+      // 验证消息参数
+      if (!this.validateMessageParams(content, model)) return;
+      
+      // 如果没有当前对话，创建一个新对话
+      if (!this.currentChatId) {
+        await this.createNewChat(model);
+      }
+
+      const currentChat = this.currentChat;
+      if (!currentChat) return;
+
+      // 使用 uiStore 更新加载状态和消息输入
+      const uiStore = useUiStore();
+      uiStore.setLoading(true);
+      uiStore.updateMessageInput('');
+      this.clearError();
+
+      // 准备消息状态
+      this.prepareMessageState(currentChat, content, model);
+
+      try {
+        // 格式化模型名称
+        const formattedModel = this.formatModelName(model);
+        
+        // 检查流式输出支持
+        const shouldUseStreaming = this.checkStreamingSupport(formattedModel);
+        
+        // 准备RAG配置
+        const ragConfigToUse = this.prepareRagConfig();
+        
+        // 根据是否支持流式输出选择发送方式
+        if (shouldUseStreaming) {
+          // 发送流式消息
+          await this.sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled);
+        } else {
+          // 发送非流式消息
+          await this.sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled);
         }
 
         // 不再需要本地保存，所有数据已通过API同步到后端
@@ -570,29 +584,11 @@ export const useChatStore = defineStore('chat', {
         console.error('发送消息失败:', error);
         this.setError(`发送消息失败: ${error.message || '未知错误'}`);
 
-        // 更新之前添加的typing消息，替换为错误消息
-        const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
-        if (typingMessageIndex !== -1) {
-          // 移除typing消息
-          currentChat.messages.splice(typingMessageIndex, 1);
-        }
-
-        // 添加错误消息，并使用ref包装
-        const errorMessageRef = ref({
-          id: (Date.now() + 2).toString(),
-          role: 'ai',
-          content: '',
-          timestamp: Date.now(),
-          error: `⚠️ 发送失败: ${error.message || '服务器连接错误'}`,
-          isTyping: false,
-        });
-
-        currentChat.messages.push(errorMessageRef);
+        // 处理消息错误
+        this.handleMessageError(currentChat, error);
       } finally {
-        // 使用 uiStore 更新加载状态
-        const uiStore = useUiStore();
-        uiStore.setLoading(false);
-        this.uploadedFiles = [];
+        // 清理消息发送后的状态
+        this.cleanupAfterMessage();
       }
     },
 
@@ -903,6 +899,31 @@ export const useChatStore = defineStore('chat', {
         console.log('流式连接已关闭');
       } catch (error) {
         console.error('关闭流式连接失败:', error);
+      }
+    },
+    
+    // 处理新消息通知
+    handleNewMessageNotification(chat) {
+      // 如果用户当前没有查看该对话，设置未读标记并显示通知
+      if (this.currentChatId !== chat.id) {
+        this.chats = this.chats.map(c => 
+          c.id === chat.id ? { ...c, hasUnreadMessage: true } : c
+        );
+        // 获取通知显示时间设置
+        const settingsStore = useSettingsStore();
+        let displayTimeMs = 3000; // 默认3秒
+        const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
+        if (displayTimeSetting === '2秒') {
+          displayTimeMs = 2000;
+        } else if (displayTimeSetting === '5秒') {
+          displayTimeMs = 5000;
+        } else if (displayTimeSetting === '10秒') {
+          displayTimeMs = 10000;
+        }
+        // 显示新消息通知
+        showNotification(`新消息: ${chat.title}`, 'success', displayTimeMs, true);
+        // 播放未读消息通知声音
+        this.playNotificationSound();
       }
     },
     
