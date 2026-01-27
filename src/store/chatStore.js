@@ -766,6 +766,31 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
+    // 导出所有对话
+    exportAllChats() {
+      try {
+        // 将对话历史转换为JSON字符串
+        const chatData = JSON.stringify(this.chats, null, 2);
+
+        // 创建Blob对象和下载链接
+        const blob = new Blob([chatData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat_history_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log('对话历史导出成功');
+      } catch (error) {
+        console.error('导出对话历史失败:', error);
+        this.setError('导出对话历史失败');
+        throw error;
+      }
+    },
+
     // 切换对话置顶状态
     async togglePinChat(chatId) {
       const chat = this.chats.find((chat) => chat.id === chatId);

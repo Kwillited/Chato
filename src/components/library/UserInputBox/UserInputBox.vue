@@ -470,17 +470,19 @@
           </div>
           <button
               v-if="!hasActiveStreaming"
-              class="w-8 h-8 flex items-center justify-center text-white bg-primary hover:bg-secondary rounded-full transition-all duration-300 ease-in-out hover:scale-105"
+              class="flex items-center justify-center text-white bg-primary hover:bg-blue-600 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 h-8 px-2 text-xs"
             @click="handleSendMessage"
           >
-            <i class="fa-solid fa-arrow-up"></i>
+            <i class="fa-solid fa-paper-plane mr-1"></i>
+            <span>Enter</span>
           </button>
           <Tooltip v-else content="终止输出">
             <button
-              class="w-8 h-8 flex items-center justify-center text-white bg-red-500 hover:bg-red-600 rounded-full transition-all duration-300 ease-in-out hover:scale-105"
+              class="flex items-center justify-center text-white bg-red-500 hover:bg-red-600 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 h-8 px-2 text-xs"
               @click="handleCancelStreaming"
             >
-              <i class="fa-solid fa-stop"></i>
+              <i class="fa-solid fa-circle-notch fa-spin mr-1"></i>
+              <span>Stop</span>
             </button>
           </Tooltip>
         </div>

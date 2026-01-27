@@ -15,23 +15,23 @@
     </div>
 
     <!-- 导出和删除按钮 -->
-    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 bg-white dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-gray-600">
       <div class="flex justify-between items-center">
-        <h3 class="font-medium text-sm">对话管理</h3>
+        <h3 class="font-medium text-sm text-gray-700 dark:text-gray-200">对话管理</h3>
         <div class="flex gap-2">
           <ActionButton
             id="exportAllBtn"
             icon="fa-download"
             title="导出所有对话"
             @click="handleExportAll"
-            class="w-8 h-8 p-1.5 text-neutral hover:text-primary hover:bg-primary/10"
+            class="w-8 h-8 p-1.5 text-gray-500 dark:text-gray-300 hover:text-primary hover:bg-primary/10 rounded-full transition-colors duration-200"
           />
           <ActionButton
             id="deleteAllBtn"
             icon="fa-trash-can"
             title="删除所有对话"
             @click="showDeleteAllModal = true"
-            class="w-8 h-8 p-1.5 text-neutral hover:text-red-500 hover:bg-red-50"
+            class="w-8 h-8 p-1.5 text-gray-500 dark:text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors duration-200"
           />
         </div>
       </div>
