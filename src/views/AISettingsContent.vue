@@ -3,7 +3,7 @@
     <!-- Header & Compact Navigation -->
     <header class="w-full px-4 sm:px-6 py-4 sm:py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sticky top-0 bg-[#F8FAFC] dark:bg-dark-primary backdrop-blur-md z-30 border-b border-gray-100 dark:border-dark-700 transition-all duration-300">
       <div class="flex items-center gap-3 w-full sm:w-auto">
-        <button @click="settingsStore.setActiveContent('chat')" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors">
+        <button @click="uiStore.setActiveContent('chat')" class="text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white transition-colors">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         </button>
         <h1 class="font-bold text-base sm:text-lg tracking-tight text-gray-900 dark:text-white">ChaTo Setting & Configuration</h1>

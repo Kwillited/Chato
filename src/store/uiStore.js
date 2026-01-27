@@ -14,9 +14,9 @@ export const useUiStore = defineStore('ui', {
   state: () => ({
     // 面板视图状态
     activePanel: 'history', // 当前激活的面板
-    activeContent: 'sendMessage', // 当前激活的内容视图
+    activeContent: 'home', // 当前激活的内容视图
     activeSection: 'general', // 当前激活的设置部分
-    previousContent: 'sendMessage', // 之前的内容视图，用于返回功能
+    previousContent: 'home', // 之前的内容视图，用于返回功能
 
     // 左侧导航栏状态
     leftNavVisible: false, // 左侧导航栏是否可见
@@ -176,7 +176,7 @@ export const useUiStore = defineStore('ui', {
      */
     resetUiState() {
       this.activePanel = 'history';
-      this.activeContent = 'sendMessage';
+      this.activeContent = 'home';
       this.activeSection = 'general';
       this.leftNavVisible = false;
       this.rightPanelVisible = false;

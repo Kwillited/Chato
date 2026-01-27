@@ -961,7 +961,7 @@ const hideTooltip = (tooltipId) => {
 
 // 处理MCP工具点击事件
 const handleMcpService = () => {
-  settingsStore.setActivePanel('mcp');
+  uiStore.setActivePanel('mcp');
 };
 
 // 切换知识库状态
@@ -972,7 +972,7 @@ const toggleKnowledgeBase = () => {
     
     // 主显示区：如果没有聊天消息，显示sendMessage视图，否则显示chat视图
     const hasMessages = chatStore.currentChatMessages && chatStore.currentChatMessages.length > 0;
-    uiStore.setActiveContent(hasMessages ? 'chat' : 'sendMessage');
+    uiStore.setActiveContent(hasMessages ? 'chat' : 'home');
     
     // 关闭RAG功能
     vectorStore.setRagConfig({ enabled: false });

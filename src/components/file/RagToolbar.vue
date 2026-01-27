@@ -20,9 +20,9 @@
       class="text-neutral hover:text-red-500 hover:bg-red-50"
     />
     <Button
-      :id="isRagManagementView ? '返回对话' : '切换到文件管理'"
-      :icon="isRagManagementView ? 'fa-comment' : 'fa-folder-tree'"
-      :tooltip="isRagManagementView ? '返回对话' : '切换到文件管理'"
+      :id="isFileManagerView ? '返回对话' : '切换到文件管理'"
+      :icon="isFileManagerView ? 'fa-comment' : 'fa-folder-tree'"
+      :tooltip="isFileManagerView ? '返回对话' : '切换到文件管理'"
       @click="handleViewToggle"
       size="sm"
       shape="full"
@@ -55,7 +55,7 @@ const ragStore = useVectorStore();
 // 搜索查询
 const searchQuery = ref('');
 // 当前是否处于RAG文件管理视图
-const isRagManagementView = ref(false);
+const isFileManagerView = ref(false);
 
 // 处理新建知识库
 const handleCreateKnowledgeBase = () => {
@@ -73,12 +73,12 @@ const handleDeleteAll = () => {
 
 // 处理视图切换
 const handleViewToggle = () => {
-  if (isRagManagementView.value) {
-    settingsStore.setActiveContent('chat');
-    isRagManagementView.value = false;
+  if (isFileManagerView.value) {
+    uiStore.setActiveContent('chat');
+    isFileManagerView.value = false;
   } else {
-    settingsStore.setActiveContent('ragManagement');
-    isRagManagementView.value = true;
+    uiStore.setActiveContent('fileManager');
+    isFileManagerView.value = true;
   }
 };
 
@@ -86,7 +86,7 @@ const handleViewToggle = () => {
 watch(
   () => uiStore.activeContent,
   (newContent) => {
-    isRagManagementView.value = newContent === 'ragManagement';
+    isFileManagerView.value = newContent === 'fileManager';
   },
   { immediate: true }
 );
@@ -94,7 +94,7 @@ watch(
 // 初始化当前视图状态
 const initializeViewState = () => {
   // 直接从store获取当前活动内容
-  isRagManagementView.value = uiStore.activeContent === 'ragManagement';
+  isFileManagerView.value = uiStore.activeContent === 'fileManager';
 };
 
 onMounted(() => {

@@ -4,12 +4,12 @@
     :class="{ 'transition-all duration-300': !isInitialLoading }"
   >
     <!-- 1. 顶部导航栏 -->
-    <TopNav data-tauri-drag-region/>
+    <AppMenu data-tauri-drag-region/>
 
     <!-- 主内容区域：显示区域 -->
     <div class="flex flex-1 overflow-hidden">
       <!-- 3. 显示区域容器 -->
-      <DisplayArea 
+      <MainLayout 
         :active-content="uiStore.activeContent" 
         :saved-right-panel-width="uiStore.rightPanelWidth" 
         :is-initial-loading="isInitialLoading"
@@ -26,10 +26,10 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import TopNav from './components/layout/TopNav.vue';
+import AppMenu from './layout/AppMenu.vue';
 import ModelVersionForm from './components/models/ModelVersionForm.vue';
 import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
-import DisplayArea from './components/layout/DisplayArea.vue';
+import MainLayout from './layout/MainLayout.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
 import { useUiStore } from './store/uiStore.js';
@@ -58,7 +58,7 @@ watch(
       uiStore.setActiveContent('settings');
     } else if (newPanel !== 'settings' && oldPanel === 'settings') {
       // 当从settings面板切换回来时，使用previousContent
-      uiStore.setActiveContent(uiStore.previousContent || 'sendMessage');
+      uiStore.setActiveContent(uiStore.previousContent || 'home');
     }
   }
 );

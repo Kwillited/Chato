@@ -412,10 +412,12 @@ const initContextScene = () => {
       scene.remove(stars, ambientLight, directionalLight1, directionalLight2, pointLight1, pointLight2);
       
       // 正确获取contextContainer元素并移除renderer
-      const parentElement = renderer.domElement.parentNode;
-      const contextContainer = document.getElementById('context-visualization');
-      if (parentElement && parentElement === contextContainer) {
-        contextContainer.removeChild(renderer.domElement);
+      if (renderer && renderer.domElement) {
+        const parentElement = renderer.domElement.parentNode;
+        const contextContainer = document.getElementById('context-visualization');
+        if (parentElement && parentElement === contextContainer) {
+          contextContainer.removeChild(renderer.domElement);
+        }
       }
       
       renderer.dispose();

@@ -74,7 +74,7 @@ import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 
 // 导入子组件
-// 移除空的 RagFilePanelHeader 组件导入
+
 import RagToolbar from '../file/RagToolbar.vue';
 import RagFolderList from '../file/RagFolderList.vue';
 import RagFileList from '../file/RagFileList.vue';

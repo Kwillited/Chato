@@ -111,7 +111,7 @@ const loadMcpTools = async () => {
   }
 }
 
-// 使用PanelHeader组件的默认返回行为
+
 
 // 处理文件上传
 const handleFileUpload = async (event) => {

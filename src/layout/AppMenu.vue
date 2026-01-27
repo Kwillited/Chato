@@ -1,5 +1,9 @@
 <template>
-  <div id="topNav" class="z-50 absolute top-0 left-0 right-0 h-8 flex items-center px-4 bg-[#F8FAFC] dark:bg-dark-primary transition-all duration-300" data-tauri-drag-region="">
+  <div 
+    id="appMenuBar" 
+    class="z-50 relative top-0 left-0 right-0 h-8 flex items-center px-4 bg-[#F8FAFC] dark:bg-dark-primary transition-all duration-300" 
+    data-tauri-drag-region=""
+  >
     <!-- 菜单栏项目 -->
     <div class="flex items-center gap-6" data-tauri-drag-region>
       <!-- Mac风格窗口控制按钮 -->
@@ -27,12 +31,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { useSettingsStore } from '../../store/settingsStore.js';
+import { useSettingsStore } from '../store/settingsStore.js';
 import { Window } from '@tauri-apps/api/window';
-import { showNotification } from '../../utils/notificationUtils.js';
-import CommandLine from '../../components/common/CommandLine.vue';
-import { Tooltip } from '../library/index.js';
-import { Button } from '../library/index.js';
+import { showNotification } from '../utils/notificationUtils.js';
+import CommandLine from '../components/common/CommandLine.vue';
+import { Tooltip } from '../components/library/index.js';
+import { Button } from '../components/library/index.js';
 
 // 使用全局store管理视图状态
 const settingsStore = useSettingsStore();
@@ -59,18 +63,18 @@ const handleClose = () => {
 
 // 处理视图按钮点击事件 - 切换右侧面板
 const toggleViewPanel = () => {
-  settingsStore.toggleRightPanel();
+  uiStore.toggleRightPanel();
 };
 
 // 处理系统设置按钮点击事件
 const handleSystemSettingsClick = () => {
-  settingsStore.setActivePanel('settings');
-  settingsStore.setActiveContent('settings');
+  uiStore.setActivePanel('settings');
+  uiStore.setActiveContent('settings');
 };
 
 // 处理AI配置按钮点击事件
 const handleAISettingsClick = () => {
-  settingsStore.setActiveContent('aiSettings');
+  uiStore.setActiveContent('aiSettings');
 };
 
 // 切换主题
@@ -104,20 +108,20 @@ const closeCommandLine = () => {
 
 // 导航方法
 const navigateTo = (panel) => {
-  settingsStore.setActivePanel(panel);
+  uiStore.setActivePanel(panel);
   // 根据面板类型设置默认内容
   switch (panel) {
     case 'history':
-      settingsStore.setActiveContent('chat');
+      uiStore.setActiveContent('chat');
       break;
     case 'rag':
-      settingsStore.setActiveContent('ragManagement');
+      uiStore.setActiveContent('fileManager');
       break;
     case 'mcp':
-      settingsStore.setActiveContent('mcp');
+      uiStore.setActiveContent('mcp');
       break;
     case 'settings':
-      settingsStore.setActiveContent('settings');
+      uiStore.setActiveContent('settings');
       break;
     default:
       break;

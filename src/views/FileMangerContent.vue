@@ -1,32 +1,12 @@
 <template>
-  <!-- RAG文件管理主内容区域 -->
-  <div id="ragManagementMainContent" class="flex-1 flex flex-col overflow-hidden bg-transparent dark:bg-transparent">
+  <!-- 文件管理主内容区域 -->
+  <div id="fileManagerMainContent" class="flex-1 flex flex-col overflow-hidden bg-transparent dark:bg-transparent">
     <!-- 顶部导航 -->
     <div class="panel-header p-3 flex flex-wrap items-center justify-between gap-4 transition-all duration-300">
-      <!-- 左侧区域：按钮组 + 搜索框 -->
-      <div class="flex items-center space-x-2 flex-1 min-w-0">
-        <!-- 左侧按钮组 -->
-        <div class="flex space-x-2">
-          <Button 
-            shape="full"
-            size="md"
-            icon="fa-bars" 
-            tooltip="隐藏左侧面板" 
-            @click="handleSideMenuToggle"
-          />
-          <!-- 新增会话按钮 -->
-          <Button 
-            id="newChat"
-            shape="full"
-            size="md"
-            icon="fa-comment-dots" 
-            tooltip="新对话"
-            @click="handleNewChat"
-          />
-        </div>
-        
+      <!-- 左侧区域：搜索框 -->
+      <div class="flex-1 min-w-0">
         <!-- 搜索框 -->
-        <div class="relative flex-1 ml-4 min-w-[200px]">
+        <div class="relative w-full min-w-[200px]">
           <input
             type="text"
             v-model="searchQuery"
@@ -40,7 +20,7 @@
       
       <!-- 中间标题 -->
       <div class="hidden md:flex items-center">
-        <h2 class="text-lg font-bold text-dark dark:text-white">RAG文件管理</h2>
+        <h2 class="text-lg font-bold text-dark dark:text-white">文件管理</h2>
         <span class="text-sm text-gray-500 ml-2">({{filteredFiles.length}}个文件)</span>
       </div>
       
@@ -83,14 +63,14 @@
     
     <!-- 移动端标题 -->
     <div class="md:hidden p-3 text-center">
-      <h2 class="text-lg font-bold text-dark dark:text-white">RAG文件管理</h2>
+      <h2 class="text-lg font-bold text-dark dark:text-white">文件管理</h2>
       <span class="text-sm text-gray-500">({{filteredFiles.length}}个文件)</span>
     </div>
     
     <!-- 文件列表/网格容器 -->
     <div class="flex-1 overflow-y-auto p-4">
       
-      <!-- 文件列表视图 (div) -->
+      <!-- 文件列表视图 -->
       <div v-if="isSliderActive" class="w-full h-full">
         <!-- 网格视图 -->
         <div v-if="settingsStore.systemSettings.viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -178,7 +158,7 @@
           <p v-else-if="!selectedFolder">请选择左侧文件夹查看文件</p>
           <p v-else>暂无文件</p>
           <p v-if="!currentFolder && !selectedFolder" class="text-sm mt-2">选择文件夹后将显示其中的文件</p>
-          <p v-else-if="!currentFolder && selectedFolder" class="text-sm mt-2">点击上传按钮添加RAG文件</p>
+          <p v-else-if="!currentFolder && selectedFolder" class="text-sm mt-2">点击上传按钮添加文件</p>
         </div>
         
         <!-- 加载状态 -->
@@ -218,6 +198,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useUiStore } from '../store/uiStore.js';
 import { useVectorStore } from '../store/vectorStore.js';
 import { useFileStore } from '../store/fileStore.js';
 import { useChatStore } from '../store/chatStore.js';
@@ -229,14 +210,12 @@ import { KnowledgeGraphVisualization } from '../components/library';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import { showNotification } from '../utils/notificationUtils.js';
 
-// 导入Tauri API用于文件操作
-// 移除不再需要的Tauri导入
-
 // 初始化stores
 const settingsStore = useSettingsStore();
+const uiStore = useUiStore();
 const ragStore = useVectorStore();
-const chatStore = useChatStore();
 const fileStore = useFileStore();
+const chatStore = useChatStore();
 
 // 处理新对话点击事件
 const handleNewChat = () => {
@@ -250,7 +229,7 @@ const handleNewChat = () => {
   }));
   
   // 切换到发送消息视图
-  settingsStore.setActiveContent('sendMessage');
+  uiStore.setActiveContent('home');
 };
 
 // 本地状态
@@ -377,12 +356,6 @@ const knowledgeGraphLinks = computed(() => {
   return links;
 });
 
-
-
-
-
-
-
 // 获取文件类型对应的颜色
 const getFileColor = (type) => {
   const colorMap = {
@@ -413,8 +386,6 @@ const handleNodeHover = (node) => {
 const handleViewChanged = (viewInfo) => {
   console.log('知识图谱视图变化:', viewInfo);
 };
-
-
 
 // 刷新文件列表
 const refreshFiles = async () => {
@@ -468,17 +439,6 @@ const handleUploadClick = async () => {
   }
 };
 
-// 处理隐藏菜单
-const handleSideMenuToggle = () => {
-  // 只使用store提供的方法切换左侧导航栏的可见性
-  // DOM操作逻辑移至App.vue中统一管理
-  settingsStore.toggleLeftNav();
-};
-
-
-
-
-
 // 获取文件扩展名
 const getFileExtension = (filename) => {
   if (!filename) return '';
@@ -501,8 +461,6 @@ const handleFolderSelected = (folder) => {
     handleFolderClick(folder);
   }
 };
-
-
 
 // 删除文件
 const handleDeleteFile = (fileId) => {
@@ -548,7 +506,7 @@ const handleFolderClick = async (folder) => {
   isLoading.value = true;
   try {
     // 保存选中的文件夹到本地存储
-    localStorage.setItem('ragSelectedFolder', JSON.stringify(folder));
+    localStorage.setItem('fileManagerSelectedFolder', JSON.stringify(folder));
     
     // 使用fileStore加载指定文件夹的文件
     const folderFiles = await fileStore.loadFilesInFolder(folder);
@@ -584,11 +542,6 @@ const handleViewSwitch = (event) => {
   }
 };
 
-// 处理窗口大小变化
-
-
-
-
 // 处理文件上传完成事件
 const handleFilesUploaded = () => {
   // 如果有选中的文件夹，重新加载该文件夹的内容
@@ -602,12 +555,12 @@ const handleFilesUploaded = () => {
 
 // 组件挂载时加载文件并监听事件
 onMounted(() => {
-  console.log('RagManagementContent组件挂载');
+  console.log('FileMangerContent组件挂载');
   
   // 初始加载文件夹列表
   loadFolders().then(() => {
     // 尝试恢复之前保存的选中状态
-    const storedSelectedFolder = localStorage.getItem('ragSelectedFolder');
+    const storedSelectedFolder = localStorage.getItem('fileManagerSelectedFolder');
     if (storedSelectedFolder) {
       try {
         const folder = JSON.parse(storedSelectedFolder);
@@ -652,15 +605,15 @@ onUnmounted(() => {
 
 // 处理内容变化事件的单独函数
 const handleContentChanged = async (event) => {
-  // 如果切换到了RAG管理视图，尝试恢复之前保存的选中状态
-  if (event.detail && event.detail.contentType === 'ragManagement') {
+  // 如果切换到了文件管理视图，尝试恢复之前保存的选中状态
+  if (event.detail && event.detail.contentType === 'fileManager') {
     // 确保文件夹列表已加载
     if (folders.value.length === 0) {
       await loadFolders();
     }
     
     // 尝试从localStorage中获取之前保存的选中文件夹
-    const storedSelectedFolder = localStorage.getItem('ragSelectedFolder');
+    const storedSelectedFolder = localStorage.getItem('fileManagerSelectedFolder');
     if (storedSelectedFolder) {
       try {
         const folder = JSON.parse(storedSelectedFolder);
@@ -686,13 +639,6 @@ const handleContentChanged = async (event) => {
 </script>
 
 <style scoped>
-/* 可以添加组件特定的样式 */
-.panel-header {
-  /* 移除底部边框 */
-}
-
-
-
 /* 视图切换滑块样式 */
 .toggle-wrapper {
   position: relative;

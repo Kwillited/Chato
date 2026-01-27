@@ -359,8 +359,8 @@ const handleDeleteAllConfirm = async () => {
     showNotification('所有对话已删除', 'success');
     showDeleteAllModal.value = false;
     
-    // 删除所有对话后切换到sendMessage内容
-    uiStore.setActiveContent('sendMessage');
+    // 删除所有对话后切换到home内容
+    uiStore.setActiveContent('home');
   } catch (error) {
     showNotification('删除失败: ' + error.message, 'error');
   } finally {
@@ -378,8 +378,8 @@ const handleDeleteChat = async (chatId) => {
     
     // 检查是否删除了最后一个对话
     if (chatStore.chats.length === 0 || (wasCurrentChat && chatStore.chats.length === 0)) {
-      // 切换回sendMessageContent视图
-      uiStore.setActiveContent('sendMessage');
+      // 切换回home内容视图
+      uiStore.setActiveContent('home');
     }
   } catch (error) {
     showNotification('删除失败: ' + error.message, 'error');

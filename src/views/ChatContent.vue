@@ -131,7 +131,7 @@ watch(
   (newChatId) => {
     // 检查如果消息为空，切换到发送消息视图
     if (newChatId && chatStore.currentChatMessages.length === 0) {
-      settingsStore.setActiveContent('sendMessage');
+      uiStore.setActiveContent('home');
       return;
     }
     
@@ -146,7 +146,7 @@ watch(
   () => chatStore.currentChatMessages.length,
   (newLength) => {
     if (newLength === 0 && chatStore.currentChatId) {
-      settingsStore.setActiveContent('sendMessage');
+      uiStore.setActiveContent('home');
     }
   }
 );
@@ -170,7 +170,7 @@ onMounted(() => {
 
   // 检查如果消息为空，切换到发送消息视图
   if (chatStore.currentChatMessages.length === 0) {
-    settingsStore.setActiveContent('sendMessage');
+    uiStore.setActiveContent('home');
     return;
   }
 

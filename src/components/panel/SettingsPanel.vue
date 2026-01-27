@@ -64,8 +64,7 @@ onMounted(() => {
   }
 });
 
-// 使用PanelHeader组件的默认返回行为
-// 注：返回功能已在PanelHeader组件中实现
+
 
 // 处理设置项点击事件
 const handleSectionClick = (section) => {
