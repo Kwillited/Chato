@@ -1,6 +1,23 @@
 <template>
   <div id="historyPanel" class="h-full flex flex-col">
     <PanelHeader title="历史会话" :showBackButton="false">
+      <template #left-actions>
+        <!-- 隐藏左侧面板按钮 -->
+        <ActionButton 
+          icon="bars"
+          title="隐藏左侧面板"
+          @click="handleSideMenuToggle"
+          class="w-8 h-8 p-1.5 text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700"
+        />
+        <!-- 新增会话按钮 -->
+        <ActionButton 
+          id="newChat"
+          icon="comment-dots"
+          title="新对话"
+          @click="handleNewChat"
+          class="w-8 h-8 p-1.5 text-neutral dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700"
+        />
+      </template>
       <template #actions>
         <ActionButton
           id="exportAllBtn"
@@ -142,6 +159,10 @@ import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { showNotification } from '../../services/notificationUtils.js';
 import { SearchBar, ActionButton, ConfirmationModal } from '../library/index.js';
+
+// 初始化stores
+const settingsStore = useSettingsStore();
+const chatStore = useChatStore();
 
 // 滚动容器引用
 const scrollContainer = ref(null);
@@ -444,6 +465,26 @@ const hasUnreadMessage = (chat) => {
 const handleRetry = () => {
   console.log('手动触发重试获取对话历史');
   chatStore.loadChatHistory(true);
+};
+
+// 处理隐藏左侧面板
+const handleSideMenuToggle = () => {
+  settingsStore.toggleLeftNav();
+};
+
+// 处理新对话
+const handleNewChat = () => {
+  // 取消当前会话的激活状态
+  chatStore.currentChatId = null;
+  
+  // 清除所有对话的未读标记
+  chatStore.chats = chatStore.chats.map(chat => ({
+    ...chat,
+    hasUnreadMessage: false
+  }));
+  
+  // 切换到发送消息视图
+  settingsStore.setActiveContent('sendMessage');
 };
 </script>
 
