@@ -67,19 +67,19 @@ def setup():
     load_data()
     logger.info("应用数据加载完成")
 
-# 创建应用实例
-app = create_app()
+# 使用FastAPI的lifespan事件处理机制
+from contextlib import asynccontextmanager
 
-# 在应用启动前执行初始化
-setup()
-
-# 使用FastAPI的后台任务机制，在应用启动后异步初始化向量系统
-@app.on_event("startup")
-async def startup_event():
-    """应用启动事件，用于异步初始化向量系统"""
+@asynccontextmanager
+async def lifespan(app):
+    """应用生命周期管理"""
+    # 启动时执行
     logger.info("应用启动，开始异步初始化向量系统")
     import asyncio
     asyncio.create_task(init_vector_system())
+    yield
+    # 关闭时执行
+    logger.info("应用关闭")
 
 def start_backend():
     """启动后端服务"""
@@ -91,7 +91,7 @@ def start_backend():
     # 导入uvicorn并启动FastAPI应用
     import uvicorn
     uvicorn.run(
-        'webview_main:app',
+        'main:app',
         host=host,
         port=port,
         reload=False  # 禁用reload，因为在子线程中运行时会导致信号处理错误
@@ -108,6 +108,26 @@ def start_webview():
     # 构建前端URL，使用127.0.0.1而不是0.0.0.0
     frontend_url = f"http://127.0.0.1:{port}"
     
+    # 窗口状态跟踪
+    is_maximized = False
+    
+    # 定义窗口控制API
+    class Api:
+        def minimize_window(self):
+            window.minimize()
+        
+        def maximize_window(self):
+            nonlocal is_maximized
+            if is_maximized:
+                window.restore()
+                is_maximized = False
+            else:
+                window.maximize()
+                is_maximized = True
+        
+        def close_window(self):
+            window.destroy()
+    
     # 创建webview窗口
     window = webview.create_window(
         "Chato",
@@ -116,7 +136,8 @@ def start_webview():
         height=600,
         resizable=True,
         fullscreen=False,
-        min_size=(600, 400)
+        min_size=(600, 400),
+        js_api=Api()
     )
     
     # 启动webview主循环

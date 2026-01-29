@@ -330,7 +330,7 @@ export const apiService = {
     },
     
     sendMessage: async (chatId, message, files, options = {}) => {
-      const { model = 'GPT-4', stream = false, modelParams = {}, ragConfig = {}, deepThinking = false } = options;
+      const { model = 'GPT-4', stream = false, modelParams = {}, ragConfig = {}, deepThinking = false, agent = false, webSearchEnabled = false } = options;
       
       // 使用合并后的单个端点，通过stream参数控制响应类型
       const endpoint = `/chats/${chatId}/messages`;
@@ -370,14 +370,16 @@ export const apiService = {
           ragConfig,
           files: processedFiles,
           stream, // 传递stream参数给后端
-          deepThinking // 传递deepThinking参数给后端
+          deepThinking, // 传递deepThinking参数给后端
+          agent, // 传递agent参数给后端
+          webSearchEnabled // 传递webSearchEnabled参数给后端
         },
       });
     },
     
     // 发送流式消息
     sendStreamingMessage: async (chatId, message, files, options = {}, onMessage, onError, onComplete) => {
-      const { model = 'GPT-4', modelParams = {}, ragConfig = {}, deepThinking = false } = options;
+      const { model = 'GPT-4', modelParams = {}, ragConfig = {}, deepThinking = false, agent = false, webSearchEnabled = false } = options;
       
       // 处理文件，转换为可序列化的格式
       const processedFiles = await Promise.all(
@@ -411,7 +413,9 @@ export const apiService = {
         modelParams,
         ragConfig,
         stream: true,  // 传递stream参数给后端
-        deepThinking // 传递deepThinking参数给后端
+        deepThinking, // 传递deepThinking参数给后端
+        agent, // 传递agent参数给后端
+        webSearchEnabled // 传递webSearchEnabled参数给后端
       };
       
       // 创建一个Promise来包装流式请求

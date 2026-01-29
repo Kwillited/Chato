@@ -4,7 +4,7 @@
     :class="{ 'transition-all duration-300': !isInitialLoading }"
   >
     <!-- 1. 顶部导航栏 -->
-    <AppMenu data-tauri-drag-region/>
+    <AppMenu />
 
     <!-- 主内容区域：显示区域 -->
     <div class="flex flex-1 overflow-hidden">

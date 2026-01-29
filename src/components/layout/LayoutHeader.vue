@@ -1,5 +1,5 @@
 <template>
-  <div class="panel-header p-3 flex items-center justify-between border-b border-gray-200 dark:border-dark-700 transition-all duration-300">
+  <div class="panel-header p-3 flex items-center justify-between border-b border-gray-200 dark:border-dark-700 transition-all duration-300 relative z-50">
     <!-- 左侧：隐藏左侧面板按钮和新增会话按钮 -->
     <div class="flex space-x-2">
       <!-- 隐藏左侧面板按钮和新增会话按钮 - 只在非设置页面显示 -->
@@ -62,7 +62,7 @@
         <!-- 历史对话下拉菜单 -->
         <div 
           v-if="showHistoryMenu"
-          class="absolute top-full mt-2 right-0 w-64 rounded-lg shadow-lg border z-50 dropdown-content flex flex-col py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700 max-h-96 overflow-y-auto"
+          class="absolute top-full mt-2 right-0 w-64 rounded-lg shadow-lg border z-9999 dropdown-content flex flex-col py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700 max-h-96 overflow-y-auto"
         >
           <!-- 下拉菜单标题 -->
           <div class="px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-dark-700">
@@ -199,11 +199,11 @@ defineExpose({
 @keyframes fadeInDown {
   from {
     opacity: 0;
-    transform: translate(-50%, -10px);
+    transform: translateY(-10px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
   }
 }
 </style>

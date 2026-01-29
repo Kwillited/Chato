@@ -11,6 +11,12 @@ export const useUiStore = defineStore('ui', {
    * 状态定义
    * 包含所有 UI 相关的状态属性
    */
+  
+  /**
+   * 持久化配置
+   * 启用状态持久化，确保刷新页面后状态不丢失
+   */
+  persist: true,
   state: () => ({
     // 面板视图状态
     activePanel: 'history', // 当前激活的面板
@@ -36,6 +42,11 @@ export const useUiStore = defineStore('ui', {
     messageInput: '', // 消息输入框内容
     searchQuery: '', // 搜索关键词
     activeView: 'chat', // 视图模式：'chat'为对话视图，'Graph'为图谱视图
+
+    // 功能按钮状态
+    isDeepThinking: false, // 深度思考模式
+    isWebSearchEnabled: false, // 联网搜索模式
+    isAgentEnabled: false, // 智能体模式
   }),
 
   /**
@@ -216,6 +227,51 @@ export const useUiStore = defineStore('ui', {
      */
     setActiveView(view) {
       this.activeView = view;
+    },
+
+    /**
+     * 切换深度思考模式
+     */
+    toggleDeepThinking() {
+      this.isDeepThinking = !this.isDeepThinking;
+    },
+
+    /**
+     * 切换联网搜索模式
+     */
+    toggleWebSearch() {
+      this.isWebSearchEnabled = !this.isWebSearchEnabled;
+    },
+
+    /**
+     * 切换智能体模式
+     */
+    toggleAgent() {
+      this.isAgentEnabled = !this.isAgentEnabled;
+    },
+
+    /**
+     * 设置深度思考模式
+     * @param {boolean} value - 是否启用
+     */
+    setDeepThinking(value) {
+      this.isDeepThinking = value;
+    },
+
+    /**
+     * 设置联网搜索模式
+     * @param {boolean} value - 是否启用
+     */
+    setWebSearch(value) {
+      this.isWebSearchEnabled = value;
+    },
+
+    /**
+     * 设置智能体模式
+     * @param {boolean} value - 是否启用
+     */
+    setAgent(value) {
+      this.isAgentEnabled = value;
     },
   },
 });

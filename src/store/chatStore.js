@@ -291,7 +291,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 发送流式消息
-    async sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled) {
+    async sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent) {
       let aiMessage = null;
 
       // 立即清空上传文件列表，提供更好的用户体验
@@ -307,7 +307,8 @@ export const useChatStore = defineStore('chat', {
             model: formattedModel, // 确保使用name-version.version_name格式的模型名称
             deepThinking: deepThinking, // 使用传递的深度思考参数
             ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
-            webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
+            webSearchEnabled: webSearchEnabled, // 使用传递的联网搜索参数
+            agent: agent // 使用传递的智能体参数
           },
             // 处理接收到的消息
             (data) => {
@@ -419,7 +420,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 发送非流式消息
-    async sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled) {
+    async sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent) {
       // 立即清空上传文件列表，提供更好的用户体验
       const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
       this.uploadedFiles = []; // 立即清空
@@ -434,7 +435,8 @@ export const useChatStore = defineStore('chat', {
             stream: false,  // 非流式输出
             deepThinking: deepThinking, // 使用传递的深度思考参数
             ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
-            webSearchEnabled: webSearchEnabled // 使用传递的联网搜索参数
+            webSearchEnabled: webSearchEnabled, // 使用传递的联网搜索参数
+            agent: agent // 使用传递的智能体参数
           }
         );
         
@@ -540,7 +542,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 发送消息（使用API服务）
-    async sendMessage(content, model, deepThinking = false, webSearchEnabled = false) {
+    async sendMessage(content, model, deepThinking = false, webSearchEnabled = false, agent = false) {
       // 验证消息参数
       if (!this.validateMessageParams(content, model)) return;
       
@@ -574,10 +576,10 @@ export const useChatStore = defineStore('chat', {
         // 根据是否支持流式输出选择发送方式
         if (shouldUseStreaming) {
           // 发送流式消息
-          await this.sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled);
+          await this.sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent);
         } else {
           // 发送非流式消息
-          await this.sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled);
+          await this.sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent);
         }
 
         // 不再需要本地保存，所有数据已通过API同步到后端

@@ -130,6 +130,7 @@ class SendMessageRequest(BaseModel):
     ragConfig: Optional[RAGConfig] = Field(default_factory=RAGConfig)
     stream: Optional[bool] = False
     deepThinking: Optional[bool] = False
+    agent: Optional[bool] = False
     files: Optional[List[FileInfo]] = Field(default_factory=list)
 
 

@@ -2,10 +2,10 @@
   <div 
     id="appMenuBar" 
     class="z-50 relative top-0 left-0 right-0 h-8 flex items-center px-4 bg-[#F8FAFC] dark:bg-dark-primary transition-all duration-300" 
-    data-tauri-drag-region=""
+    style="-webkit-app-region: drag;"
   >
     <!-- 菜单栏项目 -->
-    <div class="flex items-center gap-6" data-tauri-drag-region>
+    <div class="flex items-center gap-6" style="-webkit-app-region: drag;">
       <!-- Mac风格窗口控制按钮 -->
        <div class="flex gap-2.5 mr-4">
           <Tooltip content="关闭">
@@ -32,7 +32,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../store/settingsStore.js';
-import { Window } from '@tauri-apps/api/window';
+import { useUiStore } from '../store/uiStore.js';
 import { showNotification } from '../utils/notificationUtils.js';
 import CommandLine from '../components/common/CommandLine.vue';
 import { Tooltip } from '../components/library/index.js';
@@ -40,7 +40,7 @@ import { Button } from '../components/library/index.js';
 
 // 使用全局store管理视图状态
 const settingsStore = useSettingsStore();
-const appWindow = new Window('main');
+const uiStore = useUiStore();
 
 // 用户菜单状态
 const showUserMenu = ref(false);
@@ -50,15 +50,35 @@ const showCommandLine = ref(false);
 
 // 处理窗口控制按钮点击事件
 const handleMinimize = () => {
-  appWindow.minimize();
+  if (window.pywebview && window.pywebview.api) {
+    window.pywebview.api.minimize_window();
+  } else {
+    showNotification('最小化窗口', 'info');
+  }
 };
 
 const handleMaximize = () => {
-  appWindow.toggleMaximize();
+  if (window.pywebview && window.pywebview.api) {
+    window.pywebview.api.maximize_window();
+  } else {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        showNotification(`全屏错误: ${err.message}`, 'error');
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
 };
 
 const handleClose = () => {
-  appWindow.close();
+  if (window.pywebview && window.pywebview.api) {
+    window.pywebview.api.close_window();
+  } else {
+    window.close();
+  }
 };
 
 // 处理视图按钮点击事件 - 切换右侧面板

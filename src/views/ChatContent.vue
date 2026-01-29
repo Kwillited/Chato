@@ -55,9 +55,9 @@ const chatMessagesContainerRef = ref(null);
 const isScrollToBottomVisible = ref(false);
 
 // 处理发送消息事件
-const handleSendMessage = (message, model, deepThinking, webSearchEnabled) => {
+const handleSendMessage = (message, model, deepThinking, webSearchEnabled, agent = false) => {
   if (message.trim() || chatStore.uploadedFiles.length > 0) {
-    chatStore.sendMessage(message, model, deepThinking, webSearchEnabled);
+    chatStore.sendMessage(message, model, deepThinking, webSearchEnabled, agent);
 
     // 发送消息后安全滚动到底部
     nextTick(() => {

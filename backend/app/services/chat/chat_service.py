@@ -8,6 +8,7 @@ from app.repositories.chat_repository import ChatRepository
 from app.repositories.message_repository import MessageRepository
 from app.services.base_service import BaseService
 from app.utils.data_utils import build_message_list, build_chat_dict
+from app.utils.response_formatter import ResponseFormatter
 
 class ChatService(BaseService):
     """对话服务类，封装所有对话相关的业务逻辑"""
@@ -500,20 +501,7 @@ class ChatService(BaseService):
 
 
 
-    def create_ai_message(self, now, content, model_display_name, files=None):
-        """创建标准格式的AI回复消息"""
-        from app.core.logging_config import logger
-        ai_message_id = str(uuid.uuid4())
-        ai_message = {
-            'id': ai_message_id,
-            'role': 'assistant',
-            'content': content,  # 保留原始content字段以兼容旧版前端
-            'createdAt': now,
-            'model': model_display_name,
-            'files': files or []  # 添加files字段，默认空列表
-        }
-        logger.debug(f"创建AI消息: id={ai_message_id}, model={model_display_name}, content_length={len(content)}")
-        return ai_message
+
 
     def update_chat_and_save(self, chat, message_text, user_message, ai_message, now):
         """更新对话并保存"""
@@ -667,7 +655,7 @@ class ChatService(BaseService):
         
         return messages
     
-    def chat_with_model_stream(self, model_name, messages, parsed_version_name, temperature=0.7):
+    def chat_with_model_stream(self, model_name, messages, parsed_version_name, temperature=0.7, use_agent=False):
         """
         直接调用的流式模型回复函数
         
@@ -676,6 +664,7 @@ class ChatService(BaseService):
             messages: 消息列表
             temperature: 随机性参数，默认0.7
             parsed_version_name: 解析后的模型版本名称（可选）
+            use_agent: 是否使用智能体模式
         
         返回:
             生成器，产生流式响应块
@@ -687,100 +676,79 @@ class ChatService(BaseService):
             yield f'data: {json.dumps(error_data, ensure_ascii=False)}\n\n'
             return
         
-        # 检查是否启用了流式传输
+        # 获取版本配置
         version_id = parsed_version_name
         version_config = self.get_version_config(model, version_id)
         
-        streaming_config = version_config.get('streaming_config', False)
-        if not streaming_config:
-            error_data = {'error': '该模型未启用流式传输'}
-            yield f'data: {json.dumps(error_data, ensure_ascii=False)}\n\n'
-            return
-
-        try:
-            from app.models.model_manager import ModelManager
-            stream = ModelManager.chat(model_name, model, version_config, messages, temperature, stream=True)
-
-            # 直接迭代并返回流式响应
-            for chunk in stream:
-                yield chunk
-
-        except Exception as e:
-            # 捕获所有异常并返回错误信息
-            BaseService.log_error(f'调用模型失败: {str(e)}')
-            response_data = {'error': str(e)}
-            yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
-
-    def _process_streaming_chunk(self, chunk, full_reply):
-        """处理单个流式响应块"""
-        # 检查是否是错误消息格式
-        if isinstance(chunk, str) and chunk.startswith('data: {"error"'):
-            return chunk, full_reply
-        
-        # 尝试解析chunk数据
-        try:
-            # 如果chunk已经是格式化的字符串，直接处理
-            if isinstance(chunk, str) and chunk.startswith('data: '):
-                chunk_str = chunk[6:].strip()
-                chunk_data = json.loads(chunk_str)
+        if use_agent:
+            # 智能体模式
+            try:
+                from app.models.model_manager import ModelManager
+                from app.models.agent_wrapper import AgentWrapper
+                import asyncio
                 
-                if 'chunk' in chunk_data:
-                    actual_chunk = chunk_data['chunk']
-                    full_reply += actual_chunk
-                    return chunk, full_reply  # 直接传递格式化的chunk
-                elif 'error' in chunk_data:
-                    return chunk, full_reply  # 直接传递错误信息
-                else:
-                    # 如果chunk_data中既没有chunk也没有error，直接返回原chunk
-                    return chunk, full_reply
-            else:
-                # 假设chunk是直接的内容块
-                full_reply += chunk
-                response_data = {
-                    'chunk': chunk,
-                    'done': False
-                }
-                formatted_chunk = f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
-                return formatted_chunk, full_reply
-        except Exception as e:
-            BaseService.log_error(f"处理流式响应块失败: {e}")
-            # 尝试作为直接内容处理
-            full_reply += str(chunk)
-            response_data = {
-                'chunk': str(chunk),
-                'done': False
-            }
-            formatted_chunk = f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
-            return formatted_chunk, full_reply
+                # 获取基础模型驱动
+                base_driver = ModelManager.get_model_driver(model_name, model, version_config)
+                
+                # 创建智能体包装器
+                agent_wrapper = AgentWrapper(base_driver)
+                
+                # 初始化智能体
+                asyncio.run(agent_wrapper.initialize())
+                
+                # 调用智能体流式方法
+                # 注意：agent_wrapper.chat_stream 是异步生成器，需要在同步函数中使用 asyncio.run 处理
+                import asyncio
+                
+                async def stream_agent_response():
+                    async for chunk in agent_wrapper.chat_stream(messages, temperature, use_agent=True):
+                        yield chunk
+                
+                # 将异步生成器转换为同步迭代
+                async_gen = stream_agent_response()
+                while True:
+                    try:
+                        chunk = asyncio.run(async_gen.__anext__())
+                        yield chunk
+                    except StopAsyncIteration:
+                        break
+                
+            except Exception as e:
+                # 捕获所有异常并返回错误信息
+                BaseService.log_error(f'调用智能体失败: {str(e)}')
+                response_data = {'error': str(e)}
+                yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
+        else:
+            # 普通模式
+            # 检查是否启用了流式传输
+            streaming_config = version_config.get('streaming_config', False)
+            if not streaming_config:
+                error_data = {'error': '该模型未启用流式传输'}
+                yield f'data: {json.dumps(error_data, ensure_ascii=False)}\n\n'
+                return
+
+            try:
+                from app.models.model_manager import ModelManager
+                stream = ModelManager.chat(model_name, model, version_config, messages, temperature, stream=True)
+
+                # 直接迭代并返回流式响应
+                for chunk in stream:
+                    yield chunk
+
+            except Exception as e:
+                # 捕获所有异常并返回错误信息
+                BaseService.log_error(f'调用模型失败: {str(e)}')
+                response_data = {'error': str(e)}
+                yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
+
+
     
-    def _process_think_tags(self, content):
-        """处理内容中的Think标签，提取思考内容并移除标签"""
-        import re
-        think_pattern = re.compile(r'\s*<think>([\s\S]*?)</think>\s*', re.IGNORECASE)
-        match = think_pattern.match(content)
-        
-        thinking_content = None
-        actual_content = content
-        
-        if match:
-            thinking_content = match.group(1)
-            actual_content = think_pattern.sub('', content).strip()
-        
-        return thinking_content, actual_content
+
     
-    def _process_full_reply(self, full_reply, now, model_display_name):
-        """处理完整回复，分离思考内容和实际内容"""
-        thinking_content, actual_content = self._process_think_tags(full_reply)
-        
-        # 创建AI回复，确保包含完整的模型和版本信息
-        ai_message = self.create_ai_message(now, actual_content, model_display_name)
-        # 添加思考内容到AI消息
-        ai_message['thinking'] = thinking_content
-        
-        return ai_message
+
     
     def handle_streaming_response(self, chat, message_text, user_message, now,
-                                 enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking=False):
+                                 enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking=False, use_agent=False):
         """处理流式响应"""
         def generate():
             try:
@@ -793,13 +761,13 @@ class ChatService(BaseService):
                 # 初始化完整回复
                 full_reply = ""
                 
-                # 使用流式模型回复函数获取响应，传入parsed_version_name
-                for chunk in self.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature):
-                    formatted_chunk, full_reply = self._process_streaming_chunk(chunk, full_reply)
+                # 使用流式模型回复函数获取响应，传入parsed_version_name和use_agent
+                for chunk in self.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
+                    formatted_chunk, full_reply = ResponseFormatter.process_streaming_chunk(chunk, full_reply)
                     yield formatted_chunk
                 
                 # 处理完整回复
-                ai_message = self._process_full_reply(full_reply, now, model_display_name)
+                ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
                 
                 # 更新对话并保存
                 self.update_chat_and_save(chat, message_text, user_message, ai_message, now)
@@ -822,7 +790,7 @@ class ChatService(BaseService):
         return generate
 
     def handle_regular_response(self, chat, message_text, user_message, now,
-                              enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking=False):
+                              enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking=False, use_agent=False):
         """处理普通响应"""
         try:
             # 使用通用验证函数验证模型
@@ -840,8 +808,27 @@ class ChatService(BaseService):
             version_id = parsed_version_name
             version_config = self.get_version_config(model, version_id)
 
-            from app.models.model_manager import ModelManager
-            response = ModelManager.chat(parsed_model_name, model, version_config, messages, temperature)
+            if use_agent:
+                # 使用智能体模式
+                from app.models.model_manager import ModelManager
+                from app.models.agent_wrapper import AgentWrapper
+                import asyncio
+                
+                # 获取基础模型驱动
+                base_driver = ModelManager.get_model_driver(parsed_model_name, model, version_config)
+                
+                # 创建智能体包装器
+                agent_wrapper = AgentWrapper(base_driver)
+                
+                # 初始化智能体
+                asyncio.run(agent_wrapper.initialize())
+                
+                # 调用智能体聊天方法
+                response = asyncio.run(agent_wrapper.chat(messages, temperature, stream=False, use_agent=True))
+            else:
+                # 使用普通模式
+                from app.models.model_manager import ModelManager
+                response = ModelManager.chat(parsed_model_name, model, version_config, messages, temperature)
             
             # 获取模型回复内容 - 处理不同返回格式
             if isinstance(response, dict) and 'content' in response:
@@ -855,7 +842,7 @@ class ChatService(BaseService):
             return {'error': f'调用模型失败: {str(e)}'}, 500
         
         # 使用已有的方法处理完整回复
-        ai_message = self._process_full_reply(ai_reply, now, model_display_name)
+        ai_message = ResponseFormatter.process_full_reply(ai_reply, now, model_display_name)
         
         # 更新对话并保存
         self.update_chat_and_save(chat, message_text, user_message, ai_message, now)
@@ -991,7 +978,20 @@ class ChatService(BaseService):
         rag_enabled = rag_config.get('enabled', False)
         stream = data.get('stream', False)
         deep_thinking = data.get('deepThinking', False)
+        use_agent = data.get('agent', False)
         files = data.get('files', [])
+        
+        # 添加详细日志，显示后端接收的所有参数
+        self.log_info(f"🔧 后端接收参数调试:")
+        self.log_info(f"   message: {message_text[:50]}{'...' if len(message_text) > 50 else ''}")
+        self.log_info(f"   model: {model_name}")
+        self.log_info(f"   modelParams: {user_model_params}")
+        self.log_info(f"   ragConfig: {rag_config}")
+        self.log_info(f"   rag_enabled: {rag_enabled}")
+        self.log_info(f"   stream: {stream}")
+        self.log_info(f"   deepThinking: {deep_thinking}")
+        self.log_info(f"   agent: {use_agent}")
+        self.log_info(f"   files: {len(files)} 个文件")
         
         return {
             'message_text': message_text,
@@ -1001,6 +1001,7 @@ class ChatService(BaseService):
             'rag_config': rag_config,  # 添加完整的ragConfig
             'stream': stream,
             'deep_thinking': deep_thinking,
+            'use_agent': use_agent,
             'files': files
         }
     
@@ -1047,6 +1048,7 @@ class ChatService(BaseService):
         rag_config = parsed_data['rag_config']
         stream = parsed_data['stream']
         deep_thinking = parsed_data['deep_thinking']
+        use_agent = parsed_data['use_agent']
         files = parsed_data['files']
         
         # 查找匹配ID的对话
@@ -1108,11 +1110,11 @@ class ChatService(BaseService):
         if stream:
             # 流式响应处理
             return self.handle_streaming_response(chat, full_message_text, user_message, now,
-                                                enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking)
+                                                enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking, use_agent)
         else:
             # 普通响应处理
             return self.handle_regular_response(chat, full_message_text, user_message, now,
-                                            enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking)
+                                            enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking, use_agent)
     
     def send_message(self, chat_id, data):
         """发送消息（应用层）

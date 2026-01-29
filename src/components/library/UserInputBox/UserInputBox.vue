@@ -425,11 +425,15 @@
                 <i class="fa-solid fa-globe"></i>
               </button>
             </Tooltip>
-            <!-- MCP启动按钮 -->
-            <Tooltip content="MCP工具">
+            <!-- 智能体启动按钮 -->
+            <Tooltip content="智能体">
               <button
-                class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out text-gray-500 dark:text-gray-300 hover:text-primary"
-                @click="handleMcpService"
+                class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out"
+                :class="{
+                    'text-gray-500 dark:text-gray-300 hover:text-primary': !isAgentEnabled,
+                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': isAgentEnabled
+                  }"
+                @click="toggleAgent"
               >
                 <i class="fa-solid fa-gear"></i>
               </button>
@@ -470,15 +474,15 @@
           </div>
           <button
               v-if="!hasActiveStreaming"
-              class="flex items-center justify-center text-white bg-primary hover:bg-blue-600 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 h-8 px-2 text-xs"
+              class="flex items-center justify-center text-black bg-white hover:bg-gray-100 border border-gray-300 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 h-8 px-2 text-xs"
             @click="handleSendMessage"
           >
-            <i class="fa-solid fa-paper-plane mr-1"></i>
             <span>Enter</span>
+            <span class="ml-1">↵</span>
           </button>
           <Tooltip v-else content="终止输出">
             <button
-              class="flex items-center justify-center text-white bg-red-500 hover:bg-red-600 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 h-8 px-2 text-xs"
+              class="flex items-center justify-center text-black bg-white hover:bg-gray-100 border border-gray-300 rounded-lg transition-all duration-300 ease-in-out hover:scale-105 h-8 px-2 text-xs"
               @click="handleCancelStreaming"
             >
               <i class="fa-solid fa-circle-notch fa-spin mr-1"></i>
@@ -520,12 +524,6 @@ import { useSettingsStore } from '../../../store/settingsStore.js';
 import { useUiStore } from '../../../store/uiStore.js';
 import { useVectorStore } from '../../../store/vectorStore.js';
 
-// 定义存储键
-const STORAGE_KEYS = {
-  DEEP_THINKING: 'deepThinkingMode',
-  WEB_SEARCH: 'webSearchEnabled'
-};
-
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
@@ -548,16 +546,17 @@ const showAgentDropdown = ref(false);
 const showParamsPanel = ref(false);
 // 新增状态：检查是否有活动的流式输出
 const hasActiveStreaming = ref(false);
-// 深度思考模式状态 - 从存储加载
-const isDeepThinking = ref(StorageManager.getItem(STORAGE_KEYS.DEEP_THINKING, false));
-// 联网搜索状态 - 从存储加载
-const isWebSearchEnabled = ref(StorageManager.getItem(STORAGE_KEYS.WEB_SEARCH, false));
 // 用户菜单状态
 const showUserMenu = ref(false);
 // 命令行窗口状态
 const showCommandLine = ref(false);
 // RAG模式状态 - 从settingsStore获取
 const _isRagMode = computed(() => uiStore.activePanel === 'rag');
+
+// 从uiStore获取功能按钮状态
+const isDeepThinking = computed(() => uiStore.isDeepThinking);
+const isWebSearchEnabled = computed(() => uiStore.isWebSearchEnabled);
+const isAgentEnabled = computed(() => uiStore.isAgentEnabled);
 
 // 智能体相关状态
 const currentAgent = ref('default');
@@ -588,14 +587,12 @@ const modelParams = computed(() => modelStore.currentModelParams);
 
 // 切换深度思考模式
 const toggleDeepThinking = () => {
-  isDeepThinking.value = !isDeepThinking.value;
-  StorageManager.setItem(STORAGE_KEYS.DEEP_THINKING, isDeepThinking.value);
+  uiStore.toggleDeepThinking();
 };
 
 // 切换联网搜索模式
 const toggleWebSearch = () => {
-  isWebSearchEnabled.value = !isWebSearchEnabled.value;
-  StorageManager.setItem(STORAGE_KEYS.WEB_SEARCH, isWebSearchEnabled.value);
+  uiStore.toggleWebSearch();
 };
 
 // 从store获取当前聊天的模型，优先使用当前对话的模型，否则使用settingsStore中的默认模型
@@ -745,9 +742,10 @@ const handleSendMessage = async () => {
     const modelToUse = currentModel.value;
     const deepThinking = isDeepThinking.value;
     const webSearchEnabled = isWebSearchEnabled.value;
+    const agent = isAgentEnabled.value; // 根据当前状态设置agent字段
     
     // 立即发送消息，不等待Ollama服务检查
-    emit('messageSubmitted', messageToSend, modelToUse, deepThinking, webSearchEnabled);
+    emit('messageSubmitted', messageToSend, modelToUse, deepThinking, webSearchEnabled, agent);
     // 发送消息后立即检查是否有流式输出
     checkForActiveStreaming();
     
@@ -950,6 +948,11 @@ const hideTooltip = (tooltipId) => {
 // 处理MCP工具点击事件
 const handleMcpService = () => {
   uiStore.setActivePanel('mcp');
+};
+
+// 切换智能体状态
+const toggleAgent = () => {
+  uiStore.toggleAgent();
 };
 
 // 切换知识库状态
@@ -1251,5 +1254,21 @@ const getFileIcon = (fileName) => {
 
 .animate-fade-in {
   animation: fadeIn 0.2s ease-in-out;
+}
+
+/* 下拉菜单动画 */
+.dropdown-content {
+  animation: fadeInDown 0.2s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
 }
 </style>

@@ -1,9 +1,9 @@
 # models/base_model.py
 from abc import ABC, abstractmethod
 from langchain_core.language_models import BaseLanguageModel
-from langchain_core.messages import BaseMessage
 from typing import List, Dict, Any, Optional, Generator
-import json
+from app.utils.message_utils import MessageUtils
+from app.utils.stream_utils import StreamUtils
 
 
 class BaseModel(ABC):
@@ -43,7 +43,7 @@ class BaseModel(ABC):
         Returns:
             Dict: 统一格式的回复
         """
-        langchain_messages = self._convert_to_langchain_messages(messages)
+        langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
         self.llm.temperature = temperature
         
         response = self.llm.invoke(langchain_messages)
@@ -59,19 +59,14 @@ class BaseModel(ABC):
         Yields:
             str: 流式响应数据
         """
-        langchain_messages = self._convert_to_langchain_messages(messages)
+        langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
         self.llm.temperature = temperature
         
         for chunk in self.llm.stream(langchain_messages):
             if hasattr(chunk, 'content') and chunk.content:
-                response_data = {
-                    'chunk': chunk.content,
-                    'content_struct': None
-                }
-                yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
+                yield StreamUtils.format_stream_chunk(chunk.content)
         
-        response_data = {'done': True}
-        yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
+        yield StreamUtils.format_stream_done()
 
     def _format_response(self, content: str, content_struct: Optional[Any] = None) -> Dict[str, Any]:
         """统一响应格式"""
@@ -79,24 +74,3 @@ class BaseModel(ABC):
             'content': content,
             'content_struct': content_struct
         }
-
-    def _convert_to_langchain_messages(self, messages: List[Dict[str, str]]) -> List[BaseMessage]:
-        """将内部消息格式转换为langchain消息格式"""
-        from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-        
-        langchain_messages = []
-        for msg in messages:
-            role = msg['role'].lower()
-            content = msg['content']
-            
-            if role == 'system':
-                langchain_messages.append(SystemMessage(content=content))
-            elif role == 'user':
-                langchain_messages.append(HumanMessage(content=content))
-            elif role == 'assistant':
-                langchain_messages.append(AIMessage(content=content))
-            # 其他角色暂时保留为HumanMessage
-            else:
-                langchain_messages.append(HumanMessage(content=content))
-        
-        return langchain_messages

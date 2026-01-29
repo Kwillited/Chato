@@ -186,19 +186,13 @@ class VectorDBService(BaseService):
                     model_kwargs={'device': 'cpu'},
                     encode_kwargs={'normalize_embeddings': True}
                 )
+                self.log_info(f"嵌入模型初始化成功: {model_path}")
+                return True
             else:
-                # 从HuggingFace下载模型
-                self.log_info(f"从HuggingFace下载嵌入模型: {self.embedder_model}")
-                self._embeddings = HuggingFaceEmbeddings(
-                    model_name=self.embedder_model,
-                    model_kwargs={'device': 'cpu'},
-                    encode_kwargs={'normalize_embeddings': True},
-                    cache_folder=self.embedding_models_dir
-                )
-                model_path = self.embedder_model
-            
-            self.log_info(f"嵌入模型初始化成功: {model_path}")
-            return True
+                # 不尝试从HuggingFace下载模型，只记录日志
+                self.log_warning(f"未找到嵌入模型: {self.embedder_model}，跳过下载")
+                self._embeddings = None
+                return False
             
         except ImportError as e:
             self.log_error(f"嵌入模型依赖包未安装: {e}")

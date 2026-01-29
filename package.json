@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "\"C:\\ProgramData\\anaconda3\\python.exe\" backend/webview_main.py",
+    "start:backend": "\"C:\\ProgramData\\anaconda3\\python.exe\" backend/main.py"
   },
   "dependencies": {
     "@idcpj/vue-tree": "^3.2.2",

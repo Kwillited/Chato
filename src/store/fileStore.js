@@ -234,19 +234,10 @@ export const useFileStore = defineStore('file', {
         const result = await apiUtils.wrapApiCall(this, async () => {
           let response;
           
-          try {
-            // 优先尝试使用Tauri的文件系统API
-            const { invoke } = await import('@tauri-apps/api');
-            response = await invoke('create_knowledge_base', {
-              name: knowledgeBaseName
-            });
-          } catch (importError) {
-            // 如果导入失败，回退到使用Python API
-            console.warn('无法使用Tauri invoke，回退到Python API:', importError);
-            response = await apiService.post('/files/folders', {
-              name: knowledgeBaseName
-            });
-          }
+          // 使用Python API创建文件夹
+          response = await apiService.post('/files/folders', {
+            name: knowledgeBaseName
+          });
           
           // 通知事件总线知识库已创建
           eventBus.emit('knowledge-base-created', {
