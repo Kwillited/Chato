@@ -99,10 +99,11 @@ class AgentWrapper:
                 except Exception:
                     logger.info(f"工具 {i+1}: {str(tool)}")
             
-            # 默认系统提示词
-            if system_prompt is None:
-                system_prompt = """你是一个有用的助手，可以调用工具来帮助用户解决问题。
-                当你需要使用工具时，请调用适当的工具。"""
+            # 使用 PromptUtils 构建系统提示词
+            from app.utils.prompt_utils import PromptUtils
+            
+            # 构建系统提示词
+            final_system_prompt = PromptUtils.build_agent_prompt(system_prompt)
             
             logger.info("正在创建智能体...")
             
@@ -116,7 +117,7 @@ class AgentWrapper:
                 self.agent_executor = create_agent(
                     model=self.llm,
                     tools=tools,
-                    system_prompt=system_prompt,
+                    system_prompt=final_system_prompt,
                     debug=verbose
                 )
                 
@@ -133,13 +134,19 @@ class AgentWrapper:
                     
                     logger.info("尝试使用旧的 create_tool_calling_agent API...")
                     
-                    # 创建提示词模板
-                    prompt = ChatPromptTemplate.from_messages([
-                        ("system", system_prompt),
-                        ("placeholder", "{chat_history}"),
-                        ("human", "{input}"),
-                        ("placeholder", "{agent_scratchpad}"),
-                    ])
+                    # 使用 PromptUtils 创建提示词模板
+                    prompt = PromptUtils.get_agent_prompt_template(system_prompt)
+                    
+                    # 如果创建失败，使用默认模板
+                    if not prompt:
+                        logger.warning("创建智能体提示词模板失败，使用默认模板")
+                        from langchain_core.prompts import ChatPromptTemplate
+                        prompt = ChatPromptTemplate.from_messages([
+                            ("system", final_system_prompt),
+                            ("placeholder", "{chat_history}"),
+                            ("human", "{input}"),
+                            ("placeholder", "{agent_scratchpad}"),
+                        ])
                     
                     # 创建智能体
                     agent = create_tool_calling_agent(

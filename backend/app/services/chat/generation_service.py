@@ -1,6 +1,7 @@
 """生成服务 - 负责基于检索到的上下文生成响应"""
 from app.core.config import config_manager
 from app.services.base_service import BaseService
+from app.utils.prompt_utils import PromptUtils
 
 class GenerationService(BaseService):
     """生成服务类 - 封装所有与LLM推理相关的操作"""
@@ -9,32 +10,19 @@ class GenerationService(BaseService):
         """初始化生成服务"""
         pass
     
-    def build_prompt(self, query, context_docs, prompt_template=None):
-        """构建提示模板，将查询和检索到的上下文结合
+    def build_prompt(self, query, context_docs, chat_history=None, prompt_template=None):
+        """构建提示模板，将查询、聊天历史和检索到的上下文结合
         
         Args:
             query: 用户查询
             context_docs: 检索到的上下文文档列表
+            chat_history: 聊天历史记录
             prompt_template: 自定义提示模板，默认为None
             
         Returns:
             str: 构建好的提示
         """
-        if not context_docs:
-            return query
-        
-        # 使用自定义提示模板或默认模板
-        if prompt_template:
-            context = "\n".join([f"参考文档{i+1}：{doc['content'][:200] if isinstance(doc, dict) else doc.page_content[:200]}..." for i, doc in enumerate(context_docs)])
-            return prompt_template.format(context=context, query=query)
-        
-        # 默认提示模板
-        default_template = """你是一个AI助手，使用以下上下文来回答用户问题。如果你不知道答案，就说你不知道。保持回答简洁明了。\n\n{context}\n\n用户问题：{query}"""
-        
-        # 构建上下文，支持dict和object类型
-        context = "\n".join([doc['content'] if isinstance(doc, dict) else doc.page_content for doc in context_docs])
-        
-        return default_template.format(context=context, query=query)
+        return PromptUtils.build_prompt(query, context_docs, chat_history, prompt_template)
     
     def generate_response(self, prompt, llm=None):
         """调用LLM生成响应
@@ -76,12 +64,13 @@ class GenerationService(BaseService):
                 'error': str(e)
             }
     
-    def generate_rag_response(self, query, context_docs, llm=None, prompt_template=None):
+    def generate_rag_response(self, query, context_docs, chat_history=None, llm=None, prompt_template=None):
         """执行完整的RAG生成流程：构建提示 + 生成响应
         
         Args:
             query: 用户查询
             context_docs: 检索到的上下文文档列表
+            chat_history: 聊天历史记录
             llm: LLM实例，用于依赖注入
             prompt_template: 自定义提示模板
             
@@ -90,7 +79,7 @@ class GenerationService(BaseService):
         """
         try:
             # 构建提示
-            prompt = self.build_prompt(query, context_docs, prompt_template)
+            prompt = self.build_prompt(query, context_docs, chat_history, prompt_template)
             
             # 生成响应
             response = self.generate_response(prompt, llm)
@@ -118,3 +107,25 @@ class GenerationService(BaseService):
                 'context_count': len(context_docs),
                 'error': str(e)
             }
+    
+    def build_agent_prompt(self, system_prompt=None):
+        """构建智能体提示词
+        
+        Args:
+            system_prompt: 自定义系统提示词，默认为None
+            
+        Returns:
+            str: 构建好的系统提示词
+        """
+        return PromptUtils.build_agent_prompt(system_prompt)
+    
+    def get_agent_prompt_template(self, system_prompt=None):
+        """获取智能体提示词模板
+        
+        Args:
+            system_prompt: 自定义系统提示词，默认为None
+            
+        Returns:
+            ChatPromptTemplate: 智能体提示词模板
+        """
+        return PromptUtils.get_agent_prompt_template(system_prompt)
