@@ -235,7 +235,7 @@ const toggleThinkingExpanded = () => {
 
 // 计算思考内容的高度类名
 const thinkingContentHeightClass = computed(() => {
-  return isThinkingExpanded.value ? 'max-h-96' : 'max-h-10'
+  return isThinkingExpanded.value ? '' : 'max-h-10'
 })
 </script>
 

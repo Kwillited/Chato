@@ -51,7 +51,7 @@ class AgentWrapper:
     async def initialize(self, 
                         mcp_config: Optional[Dict] = None,
                         system_prompt: Optional[str] = None,
-                        verbose: bool = False) -> None:
+                        verbose: bool = True) -> None:
         """初始化智能体"""
         print("🔧 AgentWrapper.initialize() 被调用")
         
@@ -104,6 +104,7 @@ class AgentWrapper:
             
             # 构建系统提示词
             final_system_prompt = PromptUtils.build_agent_prompt(system_prompt)
+            logger.info(f"系统提示词: {final_system_prompt[:100]}...")
             
             logger.info("正在创建智能体...")
             
@@ -207,18 +208,37 @@ class AgentWrapper:
                     "chat_history": chat_history
                 })
                 
-                logger.info("智能体调用成功")
+                logger.info(f"智能体调用成功，结果类型: {type(result).__name__}")
+                logger.info(f"智能体返回结果: {result}")
                 
-                # 保持与原始模型一致的返回格式
+                # 增强的内容提取逻辑
                 if isinstance(result, dict):
-                    if "output" in result:
-                        return {"content": result["output"], "content_struct": None}
-                    elif "content" in result:
-                        return {"content": result["content"], "content_struct": None}
-                    elif "answer" in result:
-                        return {"content": result["answer"], "content_struct": None}
+                    # 尝试多种可能的字段名
+                    content_fields = ["output", "content", "answer", "response"]
+                    for field in content_fields:
+                        if field in result:
+                            content = result[field]
+                            logger.info(f"从字段 '{field}' 提取内容: {content[:100]}{'...' if len(str(content)) > 100 else ''}")
+                            return {"content": content, "content_struct": None, "raw_result": result}
+                    
+                    # 处理嵌套的消息结构
+                    if "messages" in result:
+                        messages = result["messages"]
+                        if messages and len(messages) > 0:
+                            first_message = messages[0]
+                            if hasattr(first_message, "content"):
+                                content = first_message.content
+                                logger.info(f"从嵌套消息提取内容: {content[:100]}{'...' if len(str(content)) > 100 else ''}")
+                                return {"content": content, "content_struct": None, "raw_result": result}
+                            elif isinstance(first_message, dict) and "content" in first_message:
+                                content = first_message["content"]
+                                logger.info(f"从嵌套消息字典提取内容: {content[:100]}{'...' if len(str(content)) > 100 else ''}")
+                                return {"content": content, "content_struct": None, "raw_result": result}
                 
-                return {"content": str(result), "content_struct": None}
+                # 最后尝试转换为字符串
+                content = str(result)
+                logger.info(f"转换为字符串提取内容: {content[:100]}{'...' if len(content) > 100 else ''}")
+                return {"content": content, "content_struct": None, "raw_result": result}
                     
             except Exception as e:
                 logger.error(f"调用智能体失败: {str(e)}")
@@ -253,7 +273,7 @@ class AgentWrapper:
                 yield chunk
             return
         
-        logger.info("使用智能体模式流式聊天")
+        logger.info("使用智能体模式流式聊天，直接返回原始响应")
         
         try:
             # 提取最新输入和聊天历史
@@ -273,26 +293,51 @@ class AgentWrapper:
                         "chat_history": chat_history
                     }):
                         # 处理流式输出
+                        logger.info(f"智能体流式返回: {chunk}")
+                        
                         if isinstance(chunk, dict):
-                            # 提取内容
-                            if "output" in chunk:
-                                content = chunk["output"]
-                                if content and content != accumulated_content:
-                                    # 计算新内容
-                                    new_content = content[len(accumulated_content):]
-                                    if new_content:
-                                        logger.info(f"智能体回复: {new_content}")
-                                        yield StreamUtils.format_stream_chunk(new_content)
-                                        accumulated_content = content
-                            elif "content" in chunk:
-                                content = chunk["content"]
-                                if content and content != accumulated_content:
-                                    # 计算新内容
-                                    new_content = content[len(accumulated_content):]
-                                    if new_content:
-                                        logger.info(f"智能体回复: {new_content}")
-                                        yield StreamUtils.format_stream_chunk(new_content)
-                                        accumulated_content = content
+                            # 增强的内容提取逻辑
+                            content = ""
+                            
+                            # 尝试多种可能的字段名
+                            content_fields = ["output", "content", "answer", "response"]
+                            for field in content_fields:
+                                if field in chunk:
+                                    content = chunk[field]
+                                    break
+                            
+                            # 处理嵌套的消息结构
+                            if not content and "messages" in chunk:
+                                messages = chunk["messages"]
+                                if messages and len(messages) > 0:
+                                    first_message = messages[0]
+                                    if hasattr(first_message, "content"):
+                                        content = first_message.content
+                                    elif isinstance(first_message, dict) and "content" in first_message:
+                                        content = first_message["content"]
+                            
+                            # 处理 model.messages 嵌套结构（关键修复）
+                            if not content and "model" in chunk:
+                                model_data = chunk["model"]
+                                if isinstance(model_data, dict) and "messages" in model_data:
+                                    messages = model_data["messages"]
+                                    if messages and len(messages) > 0:
+                                        first_message = messages[0]
+                                        if hasattr(first_message, "content"):
+                                            content = first_message.content
+                                            logger.info(f"从 model.messages 提取内容: {content[:100]}...")
+                                        elif isinstance(first_message, dict) and "content" in first_message:
+                                            content = first_message["content"]
+                                            logger.info(f"从 model.messages 字典提取内容: {content[:100]}...")
+                            
+                            if content and content != accumulated_content:
+                                # 计算新内容
+                                new_content = content[len(accumulated_content):]
+                                if new_content:
+                                    logger.info(f"智能体回复: {new_content}")
+                                    # 直接返回带有agent标记的原始响应
+                                    yield StreamUtils.format_stream_chunk(new_content, agent=True)
+                                    accumulated_content = content
                             else:
                                 # 打印其他类型的 chunk 以便调试
                                 logger.debug(f"智能体返回其他类型: {chunk}")
@@ -300,8 +345,8 @@ class AgentWrapper:
                             # 打印非字典类型的 chunk 以便调试
                             logger.debug(f"智能体返回非字典类型: {chunk}")
                     
-                    # 发送完成信号
-                    yield StreamUtils.format_stream_done()
+                    # 发送完成信号，添加agent标记
+                    yield StreamUtils.format_stream_done(agent=True)
                     logger.info("智能体原生流式返回完成")
                     return
                 else:
@@ -324,9 +369,9 @@ class AgentWrapper:
             
             logger.info(f"智能体响应长度: {len(content)}")
             
-            # 使用模拟流式（分块返回）
+            # 使用模拟流式（分块返回），添加agent标记
             logger.info(f"智能体回复: {content}")
-            async for chunk in StreamUtils.simulate_stream(content, chunk_size=3, delay=0.03):
+            async for chunk in StreamUtils.simulate_stream(content, chunk_size=3, delay=0.03, agent=True):
                 yield chunk
             
             logger.info("模拟流式返回完成")

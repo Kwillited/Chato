@@ -696,29 +696,70 @@ class ChatService(BaseService):
                 # 获取temperature参数
                 temperature = model_params.get('temperature', 0.7)
                 
-                # 初始化完整回复
-                full_reply = ""
-                
-                # 使用流式模型回复函数获取响应，传入parsed_version_name和use_agent
-                for chunk in self.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
-                    formatted_chunk, full_reply = ResponseFormatter.process_streaming_chunk(chunk, full_reply)
-                    yield formatted_chunk
-                
-                # 处理完整回复
-                ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
-                
-                # 更新对话并保存
-                self.update_chat_and_save(chat, message_text, user_message, ai_message, now)
-                
-                # 发送最终完成信号
-                final_data = {
-                    'chunk': '',
-                    'done': True,
-                    'chat': chat,
-                    'user_message': user_message,
-                    'ai_message': ai_message
-                }
-                yield f'data: {json.dumps(final_data, ensure_ascii=False)}\n\n'
+                if use_agent:
+                    # 智能体模式：直接返回原始响应
+                    self.log_info("使用智能体模式，直接返回原始响应")
+                    
+                    # 初始化完整回复
+                    full_reply = ""
+                    
+                    # 使用流式模型回复函数获取响应
+                    for chunk in self.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
+                        # 直接返回智能体的原始响应
+                        yield chunk
+                        # 累积完整回复用于后续保存
+                        if isinstance(chunk, str) and chunk.startswith('data: '):
+                            chunk_str = chunk[6:].strip()
+                            try:
+                                chunk_data = json.loads(chunk_str)
+                                if 'chunk' in chunk_data:
+                                    full_reply += chunk_data['chunk']
+                                elif 'content' in chunk_data:
+                                    full_reply += chunk_data['content']
+                            except:
+                                pass
+                    
+                    # 处理完整回复并保存
+                    ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
+                    self.update_chat_and_save(chat, message_text, user_message, ai_message, now)
+                    
+                    # 发送智能体最终完成信号
+                    final_data = {
+                        'chunk': '',
+                        'done': True,
+                        'agent': True,
+                        'chat': chat,
+                        'user_message': user_message,
+                        'ai_message': ai_message
+                    }
+                    yield f'data: {json.dumps(final_data, ensure_ascii=False)}\n\n'
+                else:
+                    # 普通对话模式：保持现有处理逻辑
+                    self.log_info("使用普通对话模式，统一格式化响应")
+                    
+                    # 初始化完整回复
+                    full_reply = ""
+                    
+                    # 使用流式模型回复函数获取响应
+                    for chunk in self.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
+                        formatted_chunk, full_reply = ResponseFormatter.process_streaming_chunk(chunk, full_reply)
+                        yield formatted_chunk
+                    
+                    # 处理完整回复
+                    ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
+                    
+                    # 更新对话并保存
+                    self.update_chat_and_save(chat, message_text, user_message, ai_message, now)
+                    
+                    # 发送最终完成信号
+                    final_data = {
+                        'chunk': '',
+                        'done': True,
+                        'chat': chat,
+                        'user_message': user_message,
+                        'ai_message': ai_message
+                    }
+                    yield f'data: {json.dumps(final_data, ensure_ascii=False)}\n\n'
             except Exception as e:
                 # 捕获所有异常并返回错误信息
                 BaseService.log_error(f'流式处理失败: {str(e)}')
@@ -748,6 +789,8 @@ class ChatService(BaseService):
 
             if use_agent:
                 # 使用智能体模式
+                self.log_info("使用智能体模式，直接返回原始响应")
+                
                 from app.models.model_manager import ModelManager
                 from app.models.agent_wrapper import AgentWrapper
                 import asyncio
@@ -763,8 +806,35 @@ class ChatService(BaseService):
                 
                 # 调用智能体聊天方法
                 response = asyncio.run(agent_wrapper.chat(messages, temperature, stream=False, use_agent=True))
+                
+                # 处理智能体响应
+                ai_reply = ""
+                if isinstance(response, dict):
+                    ai_reply = response.get('content', '') or response.get('output', '') or response.get('answer', '')
+                elif isinstance(response, str):
+                    ai_reply = response
+                else:
+                    ai_reply = str(response)
+                
+                # 使用已有的方法处理完整回复
+                ai_message = ResponseFormatter.process_full_reply(ai_reply, now, model_display_name)
+                
+                # 更新对话并保存
+                self.update_chat_and_save(chat, message_text, user_message, ai_message, now)
+                
+                # 返回智能体响应，添加agent标记
+                return {
+                    'success': True,
+                    'agent': True,
+                    'chat': chat,
+                    'user_message': user_message,
+                    'ai_message': ai_message,
+                    'raw_response': response  # 添加原始响应
+                }, 201
             else:
                 # 使用普通模式
+                self.log_info("使用普通对话模式，统一格式化响应")
+                
                 from app.models.model_manager import ModelManager
                 response = ModelManager.chat(parsed_model_name, model, version_config, messages, temperature)
             
