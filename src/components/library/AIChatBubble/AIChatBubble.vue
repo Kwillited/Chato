@@ -31,7 +31,7 @@
     </div>
     
     <!-- 消息内容气泡 -->
-    <div class="rounded-lg px-5 py-4 overflow-hidden w-full">
+    <div v-if="formattedContent || messageValue.error || messageValue.isTyping" class="rounded-lg px-5 py-4 overflow-hidden w-full">
       <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" :key="updateKey"></div>
       
       <!-- 错误状态显示 -->
@@ -51,7 +51,7 @@
     </div>
     
     <!-- 模型名称、时间戳和操作按钮 -->
-    <div v-if="!messageValue.isTyping" class="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center justify-between px-5">
+    <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error)" class="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center justify-between px-5">
       <span>
         <!-- 模型名称+时间 -->
         {{ messageValue.model || 'Chato' }} - {{ formatTime(messageValue.timestamp || messageValue.time) }}
@@ -112,7 +112,7 @@
       </div>
       
       <!-- 消息内容气泡 -->
-      <div :class="[
+      <div v-if="formattedContent || messageValue.error || messageValue.isTyping" :class="[
         'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
         'w-fit',
         'max-w-full'
@@ -137,7 +137,7 @@
       </div>
       
       <!-- 时间戳和操作按钮 -->
-      <div class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
+      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error)" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
         <span>{{ formatTime(messageValue.timestamp || messageValue.time) }}</span>
         <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Tooltip content="复制消息内容">
@@ -181,8 +181,52 @@ const {
   formatThinkingContent
 } = useChatBubble(props)
 
-// 思考内容展开状态
-const isThinkingExpanded = ref(true)
+// 思考内容展开状态 - 流式渲染时默认展开，历史消息默认折叠
+const isThinkingExpanded = ref(false)
+
+// 初始化时检查思考内容
+const initThinkingExpanded = () => {
+  // 检查消息中的思考内容和状态
+  const message = props.message?.value || props.message || {}
+  // 历史消息默认折叠，流式渲染默认展开
+  if (message.thinking) {
+    // 只有当消息状态是 "streaming" 时才默认展开
+    // 其他所有情况（包括历史消息）都默认折叠
+    if (message.status === 'streaming') {
+      isThinkingExpanded.value = true
+    } else {
+      isThinkingExpanded.value = false
+    }
+  }
+}
+
+// 组件挂载时初始化
+import { watch, onMounted, nextTick } from 'vue'
+
+onMounted(() => {
+  // 使用 nextTick 确保消息数据已经完全加载
+  nextTick(() => {
+    initThinkingExpanded()
+  })
+})
+
+// 监听消息变化，检查思考内容完成标志
+watch(() => props.message, (newMessage) => {
+  // 检查新消息中的思考内容完成标志
+  const message = newMessage?.value || newMessage || {}
+  if (message.thinkingCompleted === true) {
+    isThinkingExpanded.value = false
+  }
+  // 检查新消息状态和思考内容
+  if (message.thinking) {
+    // 只有流式渲染的消息才展开
+    if (message.status === 'streaming') {
+      isThinkingExpanded.value = true
+    } else {
+      isThinkingExpanded.value = false
+    }
+  }
+}, { deep: true })
 
 // 切换思考内容展开/折叠状态
 const toggleThinkingExpanded = () => {

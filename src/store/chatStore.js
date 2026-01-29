@@ -327,6 +327,7 @@ export const useChatStore = defineStore('chat', {
                   id: generateId('msg'),
                   role: 'ai',
                   content: '',
+                  thinking: '',
                   timestamp: Date.now(),
                   status: 'streaming',
                   isTyping: false,
@@ -347,11 +348,49 @@ export const useChatStore = defineStore('chat', {
               
               // 确保内容更新能够触发Vue响应式更新
               if (contentToAdd) {
-                // 使用ref.value直接更新属性，确保任何变化都能触发响应式更新
-                aiMessage.value.content = aiMessage.value.content + contentToAdd;
-                aiMessage.value.lastUpdate = Date.now(); // 更新lastUpdate以触发ChatMessage组件重新渲染
+                // 检查并处理think标签
+                const chunk = contentToAdd;
                 
-                // 由于使用了ref，不需要额外的splice操作来强制更新数组
+                // 检查是否在think标签内
+                if (aiMessage.value._inThinkingTag !== undefined) {
+                  // 已经在think标签内，检查是否结束
+                  const endTagIndex = chunk.indexOf('</think>');
+                  if (endTagIndex !== -1) {
+                    // 找到结束标签，更新思考内容并退出think标签模式
+                    aiMessage.value.thinking = aiMessage.value.thinking + chunk.substring(0, endTagIndex);
+                    // 标记思考内容已完成，用于自动折叠
+                    aiMessage.value.thinkingCompleted = true;
+                    // 更新实际内容（结束标签之后的内容）
+                    const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
+                    if (actualContent) {
+                      aiMessage.value.content = aiMessage.value.content + actualContent;
+                    }
+                    // 退出think标签模式
+                    delete aiMessage.value._inThinkingTag;
+                  } else {
+                    // 未找到结束标签，继续累积思考内容
+                    aiMessage.value.thinking = aiMessage.value.thinking + chunk;
+                  }
+                } else {
+                  // 不在think标签内，检查是否开始think标签
+                  const startTagIndex = chunk.indexOf('<think>');
+                  if (startTagIndex !== -1) {
+                    // 找到开始标签
+                    // 先处理开始标签之前的内容（如果有）
+                    const beforeThink = chunk.substring(0, startTagIndex);
+                    if (beforeThink) {
+                      aiMessage.value.content = aiMessage.value.content + beforeThink;
+                    }
+                    // 开始think标签模式，累积开始标签之后的内容
+                    aiMessage.value._inThinkingTag = true;
+                    aiMessage.value.thinking = chunk.substring(startTagIndex + 7); // 7是<think>的长度
+                  } else {
+                    // 没有think标签，直接更新实际内容
+                    aiMessage.value.content = aiMessage.value.content + chunk;
+                  }
+                }
+                
+                aiMessage.value.lastUpdate = Date.now(); // 更新lastUpdate以触发ChatMessage组件重新渲染
               }
               
               // 检查是否完成
@@ -360,12 +399,20 @@ export const useChatStore = defineStore('chat', {
                 if (aiMessage && aiMessage.value.status === 'streaming') {
                   aiMessage.value.status = 'received';
                   
+                  // 清理临时状态
+                  delete aiMessage.value._inThinkingTag;
+                  
                   // 添加：确保响应式系统能够检测到变化，同时确保model字段存在
                   const updatedMessage = { ...aiMessage.value };
                   updatedMessage.status = 'received';
                   updatedMessage.isTyping = false;
                   // 确保model字段存在，使用data.ai_message.model或fallback到formattedModel
                   updatedMessage.model = data.ai_message?.model || formattedModel;
+                  // 如果后端已经处理了think标签，使用后端的结果
+                  if (data.ai_message && data.ai_message.thinking) {
+                    updatedMessage.thinking = data.ai_message.thinking;
+                    updatedMessage.content = data.ai_message.content;
+                  }
                   aiMessage.value = updatedMessage;
                   
                   // 添加：强制更新currentChat，确保所有组件都能感知到变化

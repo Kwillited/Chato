@@ -62,9 +62,35 @@ class BaseModel(ABC):
         langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
         self.llm.temperature = temperature
         
-        for chunk in self.llm.stream(langchain_messages):
-            if hasattr(chunk, 'content') and chunk.content:
-                yield StreamUtils.format_stream_chunk(chunk.content)
+        try:
+            # 尝试使用同步 stream 方法
+            for chunk in self.llm.stream(langchain_messages):
+                if hasattr(chunk, 'content') and chunk.content:
+                    yield StreamUtils.format_stream_chunk(chunk.content)
+                elif isinstance(chunk, dict) and 'content' in chunk:
+                    yield StreamUtils.format_stream_chunk(chunk['content'])
+                elif isinstance(chunk, str):
+                    yield StreamUtils.format_stream_chunk(chunk)
+        except (AttributeError, TypeError):
+            # 如果 stream 方法不存在或返回非可迭代对象，尝试使用 astream
+            import asyncio
+            async def process_astream():
+                async for chunk in self.llm.astream(langchain_messages):
+                    if hasattr(chunk, 'content') and chunk.content:
+                        yield StreamUtils.format_stream_chunk(chunk.content)
+                    elif isinstance(chunk, dict) and 'content' in chunk:
+                        yield StreamUtils.format_stream_chunk(chunk['content'])
+                    elif isinstance(chunk, str):
+                        yield StreamUtils.format_stream_chunk(chunk)
+            
+            # 转换异步生成器为同步生成器
+            async_gen = process_astream()
+            while True:
+                try:
+                    chunk = asyncio.run(async_gen.__anext__())
+                    yield chunk
+                except StopAsyncIteration:
+                    break
         
         yield StreamUtils.format_stream_done()
 

@@ -270,7 +270,24 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
         try {
           const parsedData = JSON.parse(dataPart);
           console.log('接收到流式数据块:', parsedData); // 添加日志追踪
-          onMessage(parsedData);
+          
+          // 处理不同格式的响应
+          if (parsedData.chunk) {
+            // 标准格式
+            onMessage(parsedData);
+          } else if (parsedData.content) {
+            // LangChain 原始格式
+            onMessage({ chunk: parsedData.content, done: false });
+          } else if (parsedData.done) {
+            // 结束标志
+            onMessage(parsedData);
+          } else if (typeof parsedData === 'string') {
+            // 纯文本格式
+            onMessage({ chunk: parsedData, done: false });
+          } else {
+            // 其他格式，直接传递
+            onMessage(parsedData);
+          }
         } catch (error) {
           console.error('解析SSE消息失败:', error);
           onError?.(error);
