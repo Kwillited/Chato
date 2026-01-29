@@ -3,7 +3,8 @@ from app.services.data_service import DataService
 from app.repositories.setting_repository import SettingRepository
 from app.services.base_service import BaseService
 import json
-import re
+from app.utils.naming_utils import NamingUtils
+from app.utils.logging_utils import LoggingUtils
 
 class SettingService(BaseService):
     """设置服务类，封装所有设置相关的业务逻辑"""
@@ -16,19 +17,6 @@ class SettingService(BaseService):
         """
         self.setting_repo = setting_repo or SettingRepository()
     
-    def camel_to_snake(self, camel_str):
-        """将驼峰命名转换为蛇形命名
-        
-        Args:
-            camel_str: 驼峰命名字符串
-            
-        Returns:
-            蛇形命名字符串
-        """
-        # 转换驼峰命名为蛇形命名
-        snake_str = re.sub(r'(?<!^)(?=[A-Z])', '_', camel_str).lower()
-        return snake_str
-    
     def convert_dict_keys(self, data_dict):
         """将字典的所有键从驼峰命名转换为蛇形命名
         
@@ -38,26 +26,7 @@ class SettingService(BaseService):
         Returns:
             包含蛇形命名键的字典
         """
-        return {
-            self.camel_to_snake(key): value 
-            for key, value in data_dict.items()
-        }
-    
-    def model_to_dict(self, model_obj):
-        """将SQLAlchemy模型安全地转换为字典，移除无法序列化的属性
-        
-        Args:
-            model_obj: SQLAlchemy模型实例
-            
-        Returns:
-            可序列化的字典
-        """
-        # 获取模型字典，排除SQLAlchemy内部状态
-        model_dict = model_obj.__dict__.copy()
-        # 移除无法序列化的_sa_instance_state属性
-        if '_sa_instance_state' in model_dict:
-            del model_dict['_sa_instance_state']
-        return model_dict
+        return NamingUtils.convert_dict_keys(data_dict)
     
     def get_notification_settings(self):
         """获取通知设置"""

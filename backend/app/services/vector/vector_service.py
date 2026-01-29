@@ -5,6 +5,7 @@ from app.repositories.vector_repository import VectorRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.services.vector.vector_store_service import VectorStoreService
 from app.services.chat.generation_service import GenerationService
+from app.utils.vector_utils import VectorUtils
 
 class VectorService(BaseService):
     """向量服务类，封装所有向量相关的操作"""
@@ -91,12 +92,7 @@ class VectorService(BaseService):
             self.log_info(f"✅ 向量检索成功: 找到 {len(results.get('results', []))} 个相关结果")
             
             # 格式化结果
-            formatted_results = []
-            for result in results.get('results', []):
-                formatted_results.append({
-                    'content': result.page_content,
-                    'metadata': result.metadata
-                })
+            formatted_results = VectorUtils.format_vector_results(results.get('results', []))
             
             return {
                 'success': True,
@@ -244,11 +240,11 @@ class VectorService(BaseService):
             
             # 为每个分块添加元数据
             for chunk in split_documents:
-                chunk.metadata.update({
-                    'document_id': document_id,
-                    'file_path': file_path,
-                    'folder_id': folder_id
-                })
+                chunk.metadata.update(VectorUtils.prepare_document_metadata(
+                    document_id=document_id,
+                    file_path=file_path,
+                    folder_id=folder_id
+                ))
             
             # 直接使用vector_store_service的add_documents方法
             success, message = self.vector_store_service.add_documents(split_documents)

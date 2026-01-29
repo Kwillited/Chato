@@ -4,6 +4,8 @@ from typing import List, Dict, Any
 from app.services.base_service import BaseService
 from app.services.data_service import DataService
 from app.services.vector.vector_service import VectorService
+from app.utils.file_searcher import FileSearcher
+from app.utils.file_processor import FileProcessor
 
 class FileService(BaseService):
     """文件服务类，封装所有文件相关的操作"""
@@ -66,95 +68,15 @@ class FileService(BaseService):
         Returns:
             list: 搜索结果
         """
-        try:
-            self.log_info(f"🔍 开始文件搜索: 查询='{query}', 类型='{search_type}', 结果数量={k}")
-            
-            if search_type == 'vector':
-                # 调用向量服务进行向量检索
-                vector_results = self.vector_service.search_vectors(query, k=k)
-                if vector_results['success']:
-                    # 根据向量检索结果获取文件信息
-                    file_results = self._get_files_from_vector_results(vector_results['results'])
-                    return file_results
-                else:
-                    self.log_error(f"❌ 向量检索失败: {vector_results['message']}")
-                    return []
-            else:
-                # 传统内容检索逻辑
-                return self._traditional_search(query, k=k)
-        except Exception as e:
-            self.log_error(f"❌ 文件搜索失败: {str(e)}")
-            return []
+        return FileSearcher.search_files(
+            query=query,
+            search_type=search_type,
+            k=k,
+            vector_service=self.vector_service,
+            data_service=self.data_service
+        )
     
-    def _get_files_from_vector_results(self, vector_results):
-        """根据向量检索结果获取文件信息
-        
-        Args:
-            vector_results: 向量检索结果
-            
-        Returns:
-            list: 文件信息列表
-        """
-        file_results = []
-        for result in vector_results:
-            metadata = result.get('metadata', {})
-            file_path = metadata.get('file_path', '')
-            if file_path:
-                filename = os.path.basename(file_path)
-                file_results.append({
-                    'file': filename,
-                    'path': file_path,
-                    'folder': metadata.get('folder_id', ''),
-                    'content': result.get('content', '')[:200] + '...' if len(result.get('content', '')) > 200 else result.get('content', '')
-                })
-        return file_results
-    
-    def _traditional_search(self, query: str, k=5):
-        """传统内容检索
-        
-        Args:
-            query (str): 查询文本
-            k (int): 返回结果数量
-            
-        Returns:
-            list: 搜索结果
-        """
-        try:
-            # 从数据服务获取所有文档
-            documents = self.data_service.get_documents()
-            
-            results = []
-            query_lower = query.lower()
-            
-            for doc in documents:
-                file_path = doc.get('path', '')
-                if file_path:
-                    try:
-                        # 尝试读取文本文件内容进行搜索
-                        if file_path.lower().endswith(('.txt', '.md', '.csv', '.pdf', '.docx')):
-                            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                                content = f.read()
-                                if query_lower in content.lower():
-                                    results.append({
-                                        'file': doc.get('name', ''),
-                                        'path': file_path,
-                                        'folder': doc.get('folder', '')
-                                    })
-                        # 对于其他类型的文件，只搜索文件名
-                        elif query_lower in doc.get('name', '').lower():
-                            results.append({
-                                'file': doc.get('name', ''),
-                                'path': file_path,
-                                'folder': doc.get('folder', '')
-                            })
-                    except Exception as file_error:
-                        self.log_error(f"❌ 读取文件 {doc.get('name', '')} 时出错: {file_error}")
-            
-            # 返回前k个结果
-            return results[:k]
-        except Exception as e:
-            self.log_error(f"❌ 传统搜索失败: {str(e)}")
-            return []
+
     
     # 文件管理相关方法
     def get_documents(self, folder_id=''):

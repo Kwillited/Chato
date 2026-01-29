@@ -9,6 +9,8 @@ from app.repositories.message_repository import MessageRepository
 from app.services.base_service import BaseService
 from app.utils.data_utils import build_message_list, build_chat_dict
 from app.utils.response_formatter import ResponseFormatter
+from app.utils.file_processor import FileProcessor
+from app.utils.model_utils import ModelUtils
 
 class ChatService(BaseService):
     """对话服务类，封装所有对话相关的业务逻辑"""
@@ -424,35 +426,14 @@ class ChatService(BaseService):
         解析前端发送的模型格式 "Ollama-qwen3:0.6b"
         返回: (模型名称, 版本名称, 模型显示名称)
         """
-        parsed_model_name = model_name
-        parsed_version_name = None
-        
-        # 解析模型名称和版本
-        if model_name and '-' in model_name:
-            parts = model_name.split('-', 1)
-            if len(parts) == 2:
-                parsed_model_name = parts[0]
-                parsed_version_name = parts[1]
-        
-        # 构建模型显示名称
-        model_display_name = parsed_model_name
-        # 添加对None值的处理
-        if parsed_model_name and parsed_version_name:
-            model_display_name = f"{parsed_model_name} - {parsed_version_name}"
-        
-        return parsed_model_name, parsed_version_name, model_display_name
+        return ModelUtils.parse_model_info(model_name)
 
     def validate_model(self, model_name):
         """
         验证模型是否存在且已配置
         返回: (model_object, error_response, error_code)
         """
-        model = DataService.get_model_by_name(model_name)
-        if not model:
-            return None, {'error': '模型不存在'}, 404
-        if not model['configured']:
-            return None, {'error': '模型未配置，无法调用'}, 400
-        return model, None, None
+        return ModelUtils.validate_model(model_name, DataService)
     
 
 
@@ -811,75 +792,6 @@ class ChatService(BaseService):
             'ai_message': ai_message
         }, 201
 
-    def _save_uploaded_file(self, file, temp_dir):
-        """保存上传的文件到临时目录"""
-        import os
-        import base64
-        
-        file_name = file['name']
-        file_content_base64 = file['content']
-        
-        try:
-            # 解码base64内容
-            file_content = base64.b64decode(file_content_base64)
-            
-            # 保存到临时文件
-            file_path = os.path.join(temp_dir, file_name)
-            with open(file_path, 'wb') as f:
-                f.write(file_content)
-            
-            return file_path
-        except Exception as decode_error:
-            BaseService.log_error(f"解码文件 {file_name} 失败: {str(decode_error)}")
-            return None
-    
-    def _process_text_file(self, file_path, file_name):
-        """处理文本类文件"""
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
-    
-    def _process_pdf_file(self, file_path, file_name):
-        """处理PDF文件"""
-        try:
-            from PyPDF2 import PdfReader
-            reader = PdfReader(file_path)
-            content = ""
-            for page in reader.pages:
-                content += page.extract_text() + '\n'
-            return content
-        except ImportError:
-            return f"[PDF文件内容，无法提取，请安装PyPDF2库]"
-    
-    def _process_word_file(self, file_path, file_name):
-        """处理Word文件"""
-        try:
-            from docx import Document
-            doc = Document(file_path)
-            content = ""
-            for para in doc.paragraphs:
-                content += para.text + '\n'
-            return content
-        except ImportError:
-            return f"[Word文件内容，无法提取，请安装python-docx库]"
-    
-    def _extract_file_content(self, file_path, file_name):
-        """根据文件类型提取内容"""
-        import os
-        
-        # 根据文件扩展名选择提取方式
-        file_ext = os.path.splitext(file_name)[1].lower()
-        
-        # 只处理文本类文件
-        if file_ext in ['.txt', '.md', '.json', '.csv', '.py', '.js', '.html', '.css', '.xml', '.yaml', '.yml']:
-            return self._process_text_file(file_path, file_name)
-        elif file_ext in ['.pdf']:
-            return self._process_pdf_file(file_path, file_name)
-        elif file_ext in ['.doc', '.docx']:
-            return self._process_word_file(file_path, file_name)
-        else:
-            # 其他文件类型，只显示文件信息
-            return f"[无法提取该类型文件的内容：{file_name}]"
-    
     def process_uploaded_files(self, files):
         """处理上传的文件，保存到临时目录并提取内容
         
@@ -889,34 +801,7 @@ class ChatService(BaseService):
         返回:
             提取的文件内容列表
         """
-        extracted_contents = []
-        
-        if not files:
-            return extracted_contents
-        
-        try:
-            import os
-            import tempfile
-            import mimetypes
-            
-            # 创建临时目录
-            temp_dir = tempfile.mkdtemp()
-            
-            for file in files:
-                # 检查文件结构
-                if isinstance(file, dict) and 'name' in file and 'content' in file:
-                    # 保存到临时文件
-                    file_path = self._save_uploaded_file(file, temp_dir)
-                    if file_path:
-                        # 提取文件内容
-                        content = self._extract_file_content(file_path, file['name'])
-                        if content:
-                            extracted_contents.append(f"文件 {file['name']} 内容：\n{content}")
-        except Exception as e:
-            # 记录错误但不中断流程
-            BaseService.log_error(f"处理上传文件失败: {str(e)}")
-        
-        return extracted_contents
+        return FileProcessor.process_uploaded_files(files)
     
     def _parse_request_data(self, data):
         """解析请求数据

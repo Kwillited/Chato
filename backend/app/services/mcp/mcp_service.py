@@ -1,6 +1,7 @@
 """MCP工具相关业务逻辑服务"""
 from app.services.settings.setting_service import SettingService
 from app.services.base_service import BaseService
+from app.utils.logging_utils import LoggingUtils
 
 
 class MCPService(BaseService):

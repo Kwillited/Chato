@@ -4,6 +4,9 @@
 from app.services.data_service import DataService
 from app.repositories.model_repository import ModelRepository
 from app.services.base_service import BaseService
+from app.utils.model_converter import ModelConverter
+from app.utils.model_utils import ModelUtils
+from app.utils.logging_utils import LoggingUtils
 
 
 class ModelService(BaseService):
@@ -26,7 +29,7 @@ class ModelService(BaseService):
         Returns:
             过滤后的模型对象
         """
-        return {k: v for k, v in model.items() if k != 'icon_blob'}
+        return ModelConverter.filter_model_fields(model)
 
     def _build_model_dict(self, model_row):
         """从数据库模型行构建模型字典
@@ -37,30 +40,7 @@ class ModelService(BaseService):
         Returns:
             模型字典
         """
-        model_id = model_row.id
-        versions = self.model_repo.get_model_versions(model_id)
-        version_list = []
-        for version in versions:
-            version_list.append({
-                'version_name': version.version_name,
-                'custom_name': version.custom_name,
-                'api_key': version.api_key,
-                'api_base_url': version.api_base_url,
-                'streaming_config': bool(version.streaming_config)
-            })
-        
-        return {
-            'name': model_row.name,
-            'description': model_row.description,
-            'configured': bool(model_row.configured),
-            'enabled': bool(model_row.enabled),
-            'icon_class': model_row.icon_class,
-            'icon_bg': model_row.icon_bg,
-            'icon_color': model_row.icon_color,
-            'icon_url': model_row.icon_url,
-            'icon_blob': model_row.icon_blob,
-            'versions': version_list
-        }
+        return ModelConverter.build_model_dict(model_row, self.model_repo)
 
     def _load_model_from_db(self, model_name):
         """从数据库加载模型
