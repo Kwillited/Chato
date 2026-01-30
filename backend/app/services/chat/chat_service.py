@@ -679,12 +679,6 @@ class ChatService(BaseService):
                 response_data = {'error': str(e)}
                 yield f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
 
-
-    
-
-    
-
-    
     def handle_streaming_response(self, chat, message_text, user_message, now,
                                  enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking=False, use_agent=False):
         """处理流式响应"""
