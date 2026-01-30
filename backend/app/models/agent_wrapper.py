@@ -4,6 +4,7 @@ from functools import wraps
 from app.models.base_model import BaseModel
 from app.utils.message_utils import MessageUtils
 from app.utils.stream_utils import StreamUtils
+from app.utils.mcp.mcp_adapter import mcp_adapter
 from langchain_core.prompts import ChatPromptTemplate
 
 # 导入智能体创建API
@@ -14,11 +15,6 @@ try:
 except ImportError:
     logger.error("无法导入智能体创建API，智能体功能不可用")
     create_agent = None
-
-try:
-    from langchain_mcp_adapters.client import MultiServerMCPClient
-except ImportError:
-    MultiServerMCPClient = None
 
 
 class AgentWrapper:
@@ -36,7 +32,6 @@ class AgentWrapper:
         self.base_model = base_model
         self.llm = base_model.llm
         self.agent_executor = None
-        self.mcp_client = None
         self.is_initialized = False
         print(f"✅ AgentWrapper 初始化完成，base_model: {type(base_model).__name__}")
     
@@ -59,201 +54,59 @@ class AgentWrapper:
             logger.info("智能体已经初始化，跳过初始化过程")
             return
         
-        # 检查 MultiServerMCPClient 是否导入成功
-        if MultiServerMCPClient is None:
-            logger.error("MultiServerMCPClient 导入失败，智能体功能不可用")
+        # 初始化 MCP 适配器
+        logger.info("正在初始化 MCP 适配器...")
+        mcp_initialized = await mcp_adapter.initialize(mcp_config)
+        
+        if not mcp_initialized:
+            logger.error("MCP 适配器初始化失败，智能体功能不可用")
             return
             
-        # 默认MCP配置
-        if mcp_config is None:
-            logger.info("使用默认 MCP 配置")
-            mcp_config = {
-                "filesystem": {
-                "transport": "stdio",
-                "command": "npx",
-                "args": ["-y", "@modelcontextprotocol/server-filesystem"]
-                },
-                "weather": {
-                "transport": "stdio",
-                "command": "npx",
-                "args": ["-y", "@h1deya/mcp-server-weather"]
-                }
-            }
-        else:
-            logger.info("使用自定义 MCP 配置")
+        # 使用 PromptUtils 构建系统提示词
+        from app.utils.prompt_utils import PromptUtils
         
-        logger.info(f"MCP 配置详情: {mcp_config}")
+        # 构建系统提示词
+        final_system_prompt = PromptUtils.build_agent_prompt(system_prompt)
         
+        # 添加工具使用指导
+        tool_usage_guide = mcp_adapter.get_tool_usage_guide()
+        final_system_prompt += tool_usage_guide
+        
+        # 记录实际工具名称
+        tool_info = mcp_adapter.get_tool_info()
+        logger.info(f"检测到的工具：天气工具={tool_info['weather_tool']}, 文件系统工具={tool_info['filesystem_tool']}")
+        
+        logger.info(f"系统提示词长度: {len(final_system_prompt)} 字符")
+        
+        logger.info("正在创建智能体...")
+        logger.info(f"创建参数: model={type(self.llm).__name__}, tools_count={len(mcp_adapter.get_tools())}, verbose={verbose}")
+        
+        # 使用 create_agent API
         try:
-            # 初始化MCP客户端
-            logger.info("正在初始化 MCP 客户端...")
-            logger.debug(f"MCP 客户端配置: {mcp_config}")
-            self.mcp_client = MultiServerMCPClient(mcp_config)
-            logger.info("MCP 客户端初始化成功")
-            
-            # 获取工具
-            logger.info("正在获取 MCP 工具...")
-            tools = await self.mcp_client.get_tools()
-            logger.info(f"成功获取 {len(tools)} 个 MCP 工具")
-            
-            # 记录工具详情
-            logger.info("=== 工具详情 ===")
-            for i, tool in enumerate(tools):
-                try:
-                    tool_name = getattr(tool, 'name', str(tool))
-                    tool_description = getattr(tool, 'description', '无描述')
-                    logger.info(f"工具 {i+1}: {tool_name}")
-                    logger.debug(f"  描述: {tool_description}")
-                    # 尝试获取工具参数信息
-                    if hasattr(tool, 'args'):
-                        logger.debug(f"  参数: {tool.args}")
-                    elif hasattr(tool, 'parameters'):
-                        logger.debug(f"  参数: {tool.parameters}")
-                except Exception as tool_error:
-                    logger.info(f"工具 {i+1}: {str(tool)}")
-                    logger.debug(f"  解析错误: {str(tool_error)}")
-            
-            # 使用 PromptUtils 构建系统提示词
-            from app.utils.prompt_utils import PromptUtils
-            
-            # 构建系统提示词
-            final_system_prompt = PromptUtils.build_agent_prompt(system_prompt)
-            
-            # 动态添加工具使用示例
-            tool_names = []
-            weather_tool_name = None
-            filesystem_tool_name = None
-            
-            # 增强的工具检测逻辑
-            file_tools = []
-            weather_tools = []
-            
-            for i, tool in enumerate(tools):
-                try:
-                    tool_name = getattr(tool, 'name', str(tool))
-                    tool_names.append(tool_name)
-                    tool_desc = getattr(tool, 'description', '')
-                    logger.info(f"工具 {i+1} 详细信息: 名称={tool_name}, 描述={tool_desc}")
-                    
-                    # 检测天气工具
-                    weather_keywords = ['weather', 'forecast', 'temp', 'climate', 'temperature']
-                    if any(keyword in tool_name.lower() for keyword in weather_keywords) or any(keyword in tool_desc.lower() for keyword in weather_keywords):
-                        weather_tools.append(tool_name)
-                        logger.info(f"识别为天气工具: {tool_name}")
-                    
-                    # 检测文件系统工具
-                    fs_keywords = ['file', 'fs', 'directory', 'read', 'list', 'folder', 'path', 'ls', 'dir']
-                    if any(keyword in tool_name.lower() for keyword in fs_keywords) or any(keyword in tool_desc.lower() for keyword in fs_keywords):
-                        file_tools.append(tool_name)
-                        logger.info(f"识别为文件系统工具: {tool_name}")
-                except Exception as e:
-                    logger.error(f"解析工具 {i+1} 信息失败: {str(e)}")
-                    pass
-            
-            # 选择最合适的工具
-            if weather_tools:
-                # 优先选择包含'forecast'的工具
-                forecast_tools = [t for t in weather_tools if 'forecast' in t.lower()]
-                weather_tool_name = forecast_tools[0] if forecast_tools else weather_tools[0]
-                logger.info(f"选择天气工具: {weather_tool_name}")
-            
-            if file_tools:
-                # 优先选择包含'list'或'dir'的工具，用于查看目录
-                list_tools = [t for t in file_tools if 'list' in t.lower() or 'dir' in t.lower() or 'ls' in t.lower()]
-                if list_tools:
-                    filesystem_tool_name = list_tools[0]
-                    logger.info(f"选择文件系统工具（用于列出目录）: {filesystem_tool_name}")
-                else:
-                    # 否则选择第一个文件工具
-                    filesystem_tool_name = file_tools[0]
-                    logger.info(f"选择文件系统工具: {filesystem_tool_name}")
-            
-
-            
-            # 添加工具使用指导（使用LangChain标准格式）
-            if weather_tool_name:
-                final_system_prompt += f"""
-            
-            当用户询问天气、温度、forecast、climate等相关问题时，请使用天气工具：{weather_tool_name}
-            重要提示：
-            1. 请仔细阅读用户的问题，确认用户提到的城市名称
-            2. 对于常见城市，请直接使用以下默认坐标：
-               - 北京：latitude=39.9042, longitude=116.4074
-               - 上海：latitude=31.2304, longitude=121.4737
-               - 广州：latitude=23.1291, longitude=113.2644
-               - 深圳：latitude=22.5431, longitude=114.0579
-            3. 例如：用户问"北京今天天气怎么样？"，使用北京的坐标
-            4. 例如：用户问"上海明天天气"，使用上海的坐标
-            5. 工具执行后，请将结果用自然、友好的语言总结给用户
-            6. 不要要求用户提供坐标，直接使用默认坐标调用工具"""
-            
-            if filesystem_tool_name:
-                final_system_prompt += f"""
-            
-            当用户需要文件操作、读取文件、查看目录、列出文件、查看文件夹、当前目录等操作时，请使用文件系统工具：{filesystem_tool_name}
-            重要提示：
-            1. 当用户提到"读取文件"、"查看目录"、"列出文件"、"当前目录"、"当前文件夹"、"查看有什么文件"等关键词时，必须使用文件系统工具
-            2. 例如：用户问"读取当前目录下的文件"，你应该调用文件系统工具
-            3. 例如：用户问"查看当前文件夹有什么文件"，你应该调用文件系统工具
-            4. 例如：用户问"查看当前目录"，你应该调用文件系统工具
-            5. 工具执行后，请将结果用自然、友好的语言总结给用户"""
+            if create_agent:
+                logger.info("使用 create_agent API 创建智能体...")
+                
+                # 使用 create_agent API
+                logger.debug("开始调用 create_agent API")
+                self.agent_executor = create_agent(
+                    model=self.llm,
+                    tools=mcp_adapter.get_tools(),
+                    system_prompt=final_system_prompt,
+                    debug=verbose
+                )
+                logger.debug("create_agent API 调用完成")
+                
+                logger.info("智能体执行器类型: {type(self.agent_executor).__name__}")
+                logger.info("使用 create_agent API 创建智能体成功")
+                self.is_initialized = True
+                logger.info("智能体初始化完成，状态: 成功")
+                logger.info("=== 智能体初始化完成 ===")
             else:
-                # 如果没有文件系统工具，添加提示
-                final_system_prompt += """
-            
-            注意：当前环境中没有可用的文件系统工具，无法执行文件操作相关任务。"""
-            
-            # 增强的工具使用指导
-            final_system_prompt += f"""
-            
-            工具使用决策流程：
-            1. 首先分析用户问题的核心需求
-            2. 如果用户询问天气、温度、forecast、climate等，使用天气工具
-            3. 如果用户要求读取文件、查看目录、列出文件、查看文件夹内容等，使用文件系统工具
-            4. 严格按照上述规则选择工具，不要混淆使用场景
-            5. 工具执行后，必须将执行结果总结给用户，不要只显示工具调用过程
-            6. 对于"查看当前目录"、"读取当前目录下的文件"等请求，必须使用文件系统工具"""
-
-            
-            # 记录实际工具名称
-            logger.info(f"检测到的工具：天气工具={weather_tool_name}, 文件系统工具={filesystem_tool_name}")
-            
-            logger.info(f"系统提示词长度: {len(final_system_prompt)} 字符")
-            logger.debug(f"系统提示词内容: {final_system_prompt}")
-            
-            logger.info("正在创建智能体...")
-            logger.info(f"创建参数: model={type(self.llm).__name__}, tools_count={len(tools)}, verbose={verbose}")
-            
-            # 使用 create_agent API
-            try:
-                if create_agent:
-                    logger.info("使用 create_agent API 创建智能体...")
-                    
-                    # 使用 create_agent API
-                    logger.debug("开始调用 create_agent API")
-                    self.agent_executor = create_agent(
-                        model=self.llm,
-                        tools=tools,
-                        system_prompt=final_system_prompt,
-                        debug=verbose
-                    )
-                    logger.debug("create_agent API 调用完成")
-                    
-                    logger.info("智能体执行器类型: {type(self.agent_executor).__name__}")
-                    logger.info("使用 create_agent API 创建智能体成功")
-                    self.is_initialized = True
-                    logger.info("智能体初始化完成，状态: 成功")
-                    logger.info("=== 智能体初始化完成 ===")
-                else:
-                    logger.error("create_agent 未导入，智能体功能不可用")
-                    logger.error("智能体初始化完成，状态: 失败")
-                    logger.info("=== 智能体初始化完成 ===")
-            except Exception as e:
-                logger.error(f"使用 create_agent API 初始化智能体失败: {str(e)}")
+                logger.error("create_agent 未导入，智能体功能不可用")
                 logger.error("智能体初始化完成，状态: 失败")
                 logger.info("=== 智能体初始化完成 ===")
         except Exception as e:
-            logger.error(f"初始化智能体失败: {str(e)}")
+            logger.error(f"使用 create_agent API 初始化智能体失败: {str(e)}")
             logger.error("智能体初始化完成，状态: 失败")
             logger.info("=== 智能体初始化完成 ===")
     
