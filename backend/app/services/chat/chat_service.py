@@ -691,15 +691,15 @@ class ChatService(BaseService):
                 temperature = model_params.get('temperature', 0.7)
                 
                 if use_agent:
-                    # 智能体模式：直接返回原始响应
-                    self.log_info("使用智能体模式，直接返回原始响应")
+                    # 智能体模式：使用特殊格式返回
+                    self.log_info("使用智能体模式，返回特殊格式响应")
                     
                     # 初始化完整回复
                     full_reply = ""
                     
                     # 使用流式模型回复函数获取响应
                     for chunk in self.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
-                        # 直接返回智能体的原始响应
+                        # 直接返回智能体的原始响应（已包含agent标记）
                         yield chunk
                         # 累积完整回复用于后续保存
                         if isinstance(chunk, str) and chunk.startswith('data: '):
@@ -719,9 +719,8 @@ class ChatService(BaseService):
                     
                     # 发送智能体最终完成信号
                     final_data = {
-                        'chunk': '',
-                        'done': True,
                         'agent': True,
+                        'done': True,
                         'chat': chat,
                         'user_message': user_message,
                         'ai_message': ai_message
@@ -747,7 +746,6 @@ class ChatService(BaseService):
                     
                     # 发送最终完成信号
                     final_data = {
-                        'chunk': '',
                         'done': True,
                         'chat': chat,
                         'user_message': user_message,

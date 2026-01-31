@@ -6,15 +6,12 @@ from app.utils.message_utils import MessageUtils
 from app.utils.stream_utils import StreamUtils
 from app.utils.mcp.mcp_adapter import mcp_adapter
 from langchain_core.prompts import ChatPromptTemplate
+from langgraph.graph import StateGraph
+from langgraph.runtime import get_runtime
+from langgraph.prebuilt import ToolNode
 
 # 导入智能体创建API
 from app.core.logging_config import logger
-
-try:
-    from langchain.agents import create_agent
-except ImportError:
-    logger.error("无法导入智能体创建API，智能体功能不可用")
-    create_agent = None
 
 
 class AgentWrapper:
@@ -31,9 +28,9 @@ class AgentWrapper:
         
         self.base_model = base_model
         self.llm = base_model.llm
-        self.agent_executor = None
+        self.agent_executor: Optional[Any] = None
         self.is_initialized = False
-        print(f"✅ AgentWrapper 初始化完成，base_model: {type(base_model).__name__}")
+        print(f"✅ AgentWrapper 初始化完成，base_model: {type(self.base_model).__name__}")
     
     async def initialize(self, 
                         mcp_config: Optional[Dict] = None,
@@ -81,32 +78,101 @@ class AgentWrapper:
         logger.info("正在创建智能体...")
         logger.info(f"创建参数: model={type(self.llm).__name__}, tools_count={len(mcp_adapter.get_tools())}, verbose={verbose}")
         
-        # 使用 create_agent API
+        # 使用 LangGraph 创建智能体
         try:
-            if create_agent:
-                logger.info("使用 create_agent API 创建智能体...")
+            from langgraph.graph import END
+            
+            # 定义状态结构
+            class AgentState(Dict):
+                input: str
+                chat_history: List[Dict[str, str]]
+                output: Optional[str] = None
+                tool_calls: Optional[List[Dict]] = None
+                tool_results: Optional[List[Dict]] = None
+            
+            # 获取工具
+            tools = mcp_adapter.get_tools()
+            
+            # 创建工具节点
+            tool_node = ToolNode(tools)
+            
+            # 创建思考节点
+            async def think_node(state: AgentState):
+                """思考节点：分析输入并决定是否使用工具"""
+                from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
                 
-                # 使用 create_agent API
-                logger.debug("开始调用 create_agent API")
-                self.agent_executor = create_agent(
-                    model=self.llm,
-                    tools=mcp_adapter.get_tools(),
-                    system_prompt=final_system_prompt,
-                    debug=verbose
-                )
-                logger.debug("create_agent API 调用完成")
+                # 构建消息
+                messages = [SystemMessage(content=final_system_prompt)]
                 
-                logger.info("智能体执行器类型: {type(self.agent_executor).__name__}")
-                logger.info("使用 create_agent API 创建智能体成功")
-                self.is_initialized = True
-                logger.info("智能体初始化完成，状态: 成功")
-                logger.info("=== 智能体初始化完成 ===")
-            else:
-                logger.error("create_agent 未导入，智能体功能不可用")
-                logger.error("智能体初始化完成，状态: 失败")
-                logger.info("=== 智能体初始化完成 ===")
+                # 添加聊天历史
+                for msg in state.get('chat_history', []):
+                    if msg['role'] == 'user':
+                        messages.append(HumanMessage(content=msg['content']))
+                    elif msg['role'] == 'assistant':
+                        messages.append(AIMessage(content=msg['content']))
+                
+                # 添加当前输入
+                messages.append(HumanMessage(content=state['input']))
+                
+                # 调用 LLM
+                response = await self.llm.ainvoke(messages)
+                
+                # 检查是否有工具调用
+                if hasattr(response, 'tool_calls') and response.tool_calls:
+                    return {
+                        'tool_calls': response.tool_calls,
+                        'output': None
+                    }
+                else:
+                    return {
+                        'output': response.content,
+                        'tool_calls': None
+                    }
+            
+            # 创建响应节点
+            def respond_node(state: AgentState):
+                """响应节点：生成最终回复"""
+                return {
+                    'output': state.get('output', 'I apologize, but I was unable to generate a response.'),
+                    'tool_calls': None
+                }
+            
+            # 创建路由函数
+            def should_use_tool(state: AgentState):
+                """决定是否使用工具"""
+                return 'tools' if state.get('tool_calls') else 'respond'
+            
+            # 创建状态图
+            workflow = StateGraph(AgentState)
+            
+            # 添加节点
+            workflow.add_node('think', think_node)
+            workflow.add_node('tools', tool_node)
+            workflow.add_node('respond', respond_node)
+            
+            # 添加边
+            workflow.set_entry_point('think')
+            workflow.add_conditional_edges(
+                'think',
+                should_use_tool,
+                {
+                    'tools': 'tools',
+                    'respond': 'respond'
+                }
+            )
+            workflow.add_edge('tools', 'think')
+            workflow.add_edge('respond', END)
+            
+            # 编译图
+            self.agent_executor = workflow.compile()
+            self.is_initialized = True
+            
+            logger.info("使用 LangGraph 创建智能体成功")
+            logger.info("智能体初始化完成，状态: 成功")
+            logger.info("=== 智能体初始化完成 ===")
+            
         except Exception as e:
-            logger.error(f"使用 create_agent API 初始化智能体失败: {str(e)}")
+            logger.error(f"使用 LangGraph 初始化智能体失败: {str(e)}")
             logger.error("智能体初始化完成，状态: 失败")
             logger.info("=== 智能体初始化完成 ===")
     
@@ -181,46 +247,11 @@ class AgentWrapper:
                 logger.info(f"智能体调用成功，结果类型: {type(result).__name__}")
                 logger.debug(f"完整返回结果: {result}")
                 
-                # 增强的内容提取逻辑
-                if isinstance(result, dict):
-                    logger.info(f"结果字典键: {list(result.keys())}")
-                    # 尝试多种可能的字段名
-                    content_fields = ["output", "content", "answer", "response"]
-                    for field in content_fields:
-                        if field in result:
-                            content = result[field]
-                            logger.info(f"从字段 '{field}' 提取内容: 长度={len(str(content))} 字符")
-                            logger.debug(f"  内容: {content}")
-                            return {"content": content, "content_struct": None, "raw_result": result}
-                    
-                    # 处理嵌套的消息结构
-                    if "messages" in result:
-                        nested_messages = result["messages"]
-                        logger.info(f"嵌套消息数量: {len(nested_messages)}")
-                        if nested_messages and len(nested_messages) > 0:
-                            first_message = nested_messages[0]
-                            if hasattr(first_message, "content"):
-                                content = first_message.content
-                                logger.info(f"从嵌套消息对象提取内容: 长度={len(str(content))} 字符")
-                                logger.debug(f"  内容: {content}")
-                                return {"content": content, "content_struct": None, "raw_result": result}
-                            elif isinstance(first_message, dict) and "content" in first_message:
-                                content = first_message["content"]
-                                logger.info(f"从嵌套消息字典提取内容: 长度={len(str(content))} 字符")
-                                logger.debug(f"  内容: {content}")
-                                return {"content": content, "content_struct": None, "raw_result": result}
-                    
-                    # 检查是否有工具调用结果
-                    if "tool_calls" in result:
-                        tool_calls = result["tool_calls"]
-                        logger.info(f"工具调用数量: {len(tool_calls)}")
-                        for i, tool_call in enumerate(tool_calls):
-                            logger.debug(f"  工具调用 {i+1}: {tool_call}")
-                
-                # 最后尝试转换为字符串
-                content = str(result)
-                logger.info(f"转换为字符串提取内容: 长度={len(content)} 字符")
+                # 提取内容
+                content = result.get('output', str(result))
+                logger.info(f"智能体回复长度: {len(content)} 字符")
                 logger.debug(f"  内容: {content}")
+                
                 logger.info("=== 聊天处理完成（使用智能体）===")
                 return {"content": content, "content_struct": None, "raw_result": result}
                     
@@ -275,10 +306,6 @@ class AgentWrapper:
                 raise
             return
         
-        # 强制重新初始化智能体，确保使用最新的系统提示词和工具配置
-        logger.info("强制重新初始化智能体...")
-        await self.initialize(force_reinit=True)
-        
         if not self.is_initialized:
             logger.warning("智能体未初始化，使用原始模型流式方法")
             logger.info("=== 流式聊天处理开始（使用原始模型）===")
@@ -328,235 +355,88 @@ class AgentWrapper:
             
             # 尝试使用智能体原生流式方法
             try:
-                # 检查是否有 astream 方法
-                if hasattr(self.agent_executor, 'astream'):
-                    logger.info("使用智能体原生流式方法 astream")
-                    logger.info("=== 智能体原生流式处理开始 ===")
+                logger.info("使用智能体原生流式方法")
+                logger.info("=== 智能体原生流式处理开始 ===")
+                
+                # 累积的内容
+                accumulated_content = ""
+                chunk_count = 0
+                
+                logger.debug(f"调用智能体流式接口: input={enhanced_input[:100]}..., chat_history_count={len(chat_history)}")
+                
+                # 流式调用
+                async for event in self.agent_executor.astream_events({
+                    "input": enhanced_input,
+                    "chat_history": chat_history
+                }, version="v1"):
+                    chunk_count += 1
+                    logger.info(f"接收到流式事件 #{chunk_count}: {event['event']}")
+                    logger.debug(f"  事件详情: {event}")
                     
-                    # 累积的内容
-                    accumulated_content = ""
-                    chunk_count = 0
+                    # 处理工具调用事件
+                    if event['event'] == 'start' and event.get('node') == 'tools':
+                        tool_calls_content = "正在执行工具..."
+                        formatted_chunk = StreamUtils.format_stream_chunk(tool_calls_content, agent=True)
+                        logger.debug(f"  发送工具调用通知: {formatted_chunk}")
+                        yield formatted_chunk
                     
-                    logger.debug(f"调用智能体 astream: input={enhanced_input[:100]}..., chat_history_count={len(chat_history)}")
-                    async for chunk in self.agent_executor.astream({
-                        "input": enhanced_input,
-                        "chat_history": chat_history
-                    }):
-                        chunk_count += 1
-                        logger.info(f"接收到流式 chunk #{chunk_count}")
-                        logger.debug(f"  Chunk 内容: {chunk}")
-                        
-                        if isinstance(chunk, dict):
-                            # 增强的内容提取逻辑
-                            content = ""
-                            
-                            # 检查是否有工具执行结果
-                            if "tool_responses" in chunk:
-                                logger.info("发现工具执行结果 chunk")
-                                # 处理工具执行结果
-                                tool_responses = chunk["tool_responses"]
-                                for tool_response in tool_responses:
-                                    try:
-                                        if isinstance(tool_response, dict):
-                                            if "output" in tool_response:
-                                                tool_content = "工具执行结果: " + tool_response["output"]
-                                            elif "result" in tool_response:
-                                                tool_content = "工具执行结果: " + str(tool_response["result"])
-                                            else:
-                                                tool_content = "工具执行结果: " + str(tool_response)
-                                            logger.info(f"提取工具响应结果: 长度={len(tool_content)} 字符")
-                                            logger.debug(f"  结果: {tool_content[:200]}...")
-                                            formatted_chunk = StreamUtils.format_stream_chunk(tool_content, agent=True)
-                                            logger.debug(f"  发送工具响应结果: {formatted_chunk}")
-                                            yield formatted_chunk
-                                    except Exception as e:
-                                        logger.error(f"处理工具响应失败: {str(e)}")
-                            
-                            # 尝试多种可能的字段名
-                            content_fields = ["output", "content", "answer", "response"]
-                            for field in content_fields:
-                                if field in chunk:
-                                    content = chunk[field]
-                                    logger.info(f"从字段 '{field}' 提取内容: 长度={len(str(content))} 字符")
-                                    break
-                            
-                            # 处理嵌套的消息结构
-                            if not content and "messages" in chunk:
-                                nested_messages = chunk["messages"]
-                                logger.info(f"发现嵌套消息结构，消息数: {len(nested_messages)}")
-                                if nested_messages and len(messages) > 0:
-                                    first_message = nested_messages[0]
-                                    if hasattr(first_message, "content"):
-                                        content = first_message.content
-                                        logger.info(f"从嵌套消息对象提取内容: 长度={len(str(content))} 字符")
-                                    elif isinstance(first_message, dict) and "content" in first_message:
-                                        content = first_message["content"]
-                                        logger.info(f"从嵌套消息字典提取内容: 长度={len(str(content))} 字符")
-                            
-                            # 处理 model.messages 嵌套结构（关键修复）
-                            if not content and "model" in chunk:
-                                model_data = chunk["model"]
-                                if isinstance(model_data, dict) and "messages" in model_data:
-                                    model_messages = model_data["messages"]
-                                    logger.info(f"发现 model.messages 结构，消息数: {len(model_messages)}")
-                                    if model_messages and len(model_messages) > 0:
-                                        first_message = model_messages[0]
-                                        if hasattr(first_message, "content"):
-                                            content = first_message.content
-                                            logger.info(f"从 model.messages 提取内容: {content[:100]}...")
-                                        elif isinstance(first_message, dict) and "content" in first_message:
-                                            content = first_message["content"]
-                                            logger.info(f"从 model.messages 字典提取内容: {content[:100]}...")
-                                    
-                                    # 处理工具调用
-                                    for msg in model_messages:
-                                        if hasattr(msg, "tool_calls") and msg.tool_calls:
-                                            tool_calls_content = "正在执行工具: "
-                                            tool_names = []
-                                            for tool_call in msg.tool_calls:
-                                                # 处理字典类型的tool_call
-                                                if isinstance(tool_call, dict) and "name" in tool_call:
-                                                    tool_names.append(tool_call['name'])
-                                                # 处理对象类型的tool_call
-                                                elif hasattr(tool_call, "name"):
-                                                    tool_names.append(tool_call.name)
-                                            if tool_names:
-                                                tool_calls_content += "，".join(tool_names)
-                                                logger.info(f"提取工具调用: {tool_calls_content}")
-                                                formatted_chunk = StreamUtils.format_stream_chunk(tool_calls_content, agent=True)
-                                                logger.debug(f"  发送工具调用通知: {formatted_chunk}")
-                                                yield formatted_chunk
-                            
-                            # 处理 tools.messages 结构（工具执行结果）
-                            if not content and "tools" in chunk:
-                                tools_data = chunk["tools"]
-                                if isinstance(tools_data, dict) and "messages" in tools_data:
-                                    tool_messages = tools_data["messages"]
-                                    logger.info(f"发现 tools.messages 结构，消息数: {len(tool_messages)}")
-                                    for tool_msg in tool_messages:
-                                        if hasattr(tool_msg, "content"):
-                                            # 处理工具执行结果
-                                            tool_content = "工具执行结果: "
-                                            if isinstance(tool_msg.content, list):
-                                                for item in tool_msg.content:
-                                                    if isinstance(item, dict):
-                                                        if "text" in item:
-                                                            tool_content += item["text"]
-                                                        elif "error" in item:
-                                                            tool_content += f"错误: {item['error']}"
-                                                    else:
-                                                        tool_content += str(item)
-                                            elif isinstance(tool_msg.content, str):
-                                                tool_content += tool_msg.content
-                                            else:
-                                                tool_content += str(tool_msg.content)
-                                            logger.info(f"提取工具执行结果: 长度={len(tool_content)} 字符")
-                                            logger.debug(f"  结果: {tool_content[:200]}...")
-                                            formatted_chunk = StreamUtils.format_stream_chunk(tool_content, agent=True)
-                                            logger.debug(f"  发送工具执行结果: {formatted_chunk}")
-                                            yield formatted_chunk
-                            
-                            # 处理 tool_responses 结构（工具执行结果）
-                            if not content and "tool_responses" in chunk:
-                                tool_responses = chunk["tool_responses"]
-                                logger.info(f"发现 tool_responses 结构，响应数: {len(tool_responses)}")
-                                for tool_response in tool_responses:
-                                    try:
-                                        if isinstance(tool_response, dict):
-                                            # 处理字典类型的工具响应
-                                            if "output" in tool_response:
-                                                tool_content = "工具执行结果: " + tool_response["output"]
-                                            elif "result" in tool_response:
-                                                tool_content = "工具执行结果: " + str(tool_response["result"])
-                                            elif "error" in tool_response:
-                                                tool_content = "工具执行失败: " + str(tool_response["error"])
-                                            else:
-                                                tool_content = "工具执行结果: " + str(tool_response)
-                                            logger.info(f"提取工具响应结果: 长度={len(tool_content)} 字符")
-                                            logger.debug(f"  结果: {tool_content[:200]}...")
-                                            formatted_chunk = StreamUtils.format_stream_chunk(tool_content, agent=True)
-                                            logger.debug(f"  发送工具响应结果: {formatted_chunk}")
-                                            yield formatted_chunk
-                                        else:
-                                            # 处理非字典类型的工具响应
-                                            tool_content = "工具执行结果: " + str(tool_response)
-                                            logger.info(f"提取工具响应结果（非字典）: 长度={len(tool_content)} 字符")
-                                            logger.debug(f"  结果: {tool_content[:200]}...")
-                                            formatted_chunk = StreamUtils.format_stream_chunk(tool_content, agent=True)
-                                            logger.debug(f"  发送工具响应结果: {formatted_chunk}")
-                                            yield formatted_chunk
-                                    except Exception as e:
-                                        logger.error(f"处理工具响应失败: {str(e)}")
-                                        # 即使处理失败也要显示错误信息
-                                        error_content = f"处理工具响应时出错: {str(e)}"
-                                        formatted_chunk = StreamUtils.format_stream_chunk(error_content, agent=True)
-                                        yield formatted_chunk
-                            
-                            if content and content != accumulated_content:
+                    # 处理工具结果事件
+                    elif event['event'] == 'end' and event.get('node') == 'tools':
+                        tool_results = event.get('data', {}).get('output', {})
+                        if tool_results:
+                            tool_content = f"工具执行结果: {tool_results}"
+                            formatted_chunk = StreamUtils.format_stream_chunk(tool_content, agent=True)
+                            logger.debug(f"  发送工具执行结果: {formatted_chunk}")
+                            yield formatted_chunk
+                    
+                    # 处理响应事件
+                    elif event['event'] == 'end' and event.get('node') == 'respond':
+                        output = event.get('data', {}).get('output', {}).get('output', '')
+                        if output:
+                            if output != accumulated_content:
                                 # 计算新内容
-                                new_content = content[len(accumulated_content):]
+                                new_content = output[len(accumulated_content):]
                                 if new_content:
                                     logger.info(f"智能体回复内容: 长度={len(new_content)} 字符")
                                     logger.debug(f"  内容: {new_content}")
-                                    # 直接返回带有agent标记的原始响应
                                     formatted_chunk = StreamUtils.format_stream_chunk(new_content, agent=True)
                                     logger.debug(f"  发送响应 chunk: {formatted_chunk}")
                                     yield formatted_chunk
-                                    accumulated_content = content
-                            else:
-                                # 打印其他类型的 chunk 以便调试
-                                logger.debug(f"智能体返回其他类型 chunk: {chunk}")
-                        else:
-                            # 打印非字典类型的 chunk 以便调试
-                            logger.debug(f"智能体返回非字典类型 chunk: {chunk}")
-                    
-                    # 发送完成信号，添加agent标记
-                    logger.info(f"智能体原生流式处理完成，共接收 {chunk_count} 个 chunk")
-                    done_signal = StreamUtils.format_stream_done(agent=True)
-                    logger.debug(f"发送完成信号: {done_signal}")
-                    yield done_signal
-                    logger.info("=== 智能体原生流式处理完成 ===")
-                    return
-                else:
-                    logger.info("智能体执行器不支持 astream 方法")
+                                    accumulated_content = output
+                
+                logger.info(f"智能体原生流式处理完成，共接收 {chunk_count} 个事件")
+                done_signal = StreamUtils.format_stream_done(agent=True)
+                logger.debug(f"发送完成信号: {done_signal}")
+                yield done_signal
+                logger.info("=== 智能体原生流式处理完成 ===")
+                return
+                
             except Exception as e:
                 logger.error(f"使用智能体原生流式方法失败: {str(e)}")
                 logger.exception("智能体原生流式方法异常详情:")
             
-            # 回退到模拟流式方法
-            logger.info("回退到模拟流式方法")
-            logger.info("=== 模拟流式处理开始 ===")
+            # 智能体原生流式方法失败，直接回退到原始模型
+            logger.warning("智能体原生流式方法失败，回退到原始模型")
             
-            logger.debug("调用同步聊天获取完整结果...")
-            result = await self.chat(messages, temperature, stream=False, use_agent=True)
-            
-            # 提取内容
-            content = ""
-            if isinstance(result, dict):
-                content = result.get('content', '') or result.get('output', '') or result.get('answer', '')
-            elif isinstance(result, str):
-                content = result
-            else:
-                content = str(result)
-            
-            logger.info(f"智能体响应长度: {len(content)} 字符")
-            logger.debug(f"  内容: {content}")
-            
-            # 使用模拟流式（分块返回），添加agent标记
-            logger.info(f"开始模拟流式分块，预计分块数: {len(content) // 3 + 1}")
-            simulate_chunk_count = 0
-            async for chunk in StreamUtils.simulate_stream(content, chunk_size=3, delay=0.03, agent=True):
-                simulate_chunk_count += 1
-                logger.debug(f"模拟流式返回 chunk #{simulate_chunk_count}: {chunk}")
-                yield chunk
-            
-            logger.info(f"模拟流式返回完成，共发送 {simulate_chunk_count} 个 chunk")
-            logger.info("=== 模拟流式处理完成 ===")
-            
+            # 回退到原始模型
+            logger.info("=== 回退到原始模型流式处理 ===")
+            try:
+                fallback_chunk_count = 0
+                async for chunk in self.base_model.chat_stream(messages, temperature):
+                    fallback_chunk_count += 1
+                    logger.debug(f"原始模型回退返回 chunk #{fallback_chunk_count}: {chunk[:100]}...")
+                    yield chunk
+                logger.info(f"原始模型回退完成，共发送 {fallback_chunk_count} 个 chunk")
+            except Exception as fallback_error:
+                logger.error(f"原始模型回退也失败: {fallback_error}")
+            finally:
+                logger.info("=== 流式聊天处理完成 ===")
+                return
+                
         except Exception as e:
             logger.error(f"智能体流式聊天失败: {str(e)}")
             logger.exception("流式聊天异常详情:")
-            logger.warning("回退到原始模型流式方法")
+            logger.warning("回退到原始模型")
             
             # 出错时回退到原始模型
             logger.info("=== 回退到原始模型流式处理 ===")
@@ -568,9 +448,10 @@ class AgentWrapper:
                     yield chunk
                 logger.info(f"原始模型回退完成，共发送 {fallback_chunk_count} 个 chunk")
             except Exception as fallback_error:
-                logger.error(f"原始模型回退也失败: {str(fallback_error)}")
+                logger.error(f"原始模型回退也失败: {fallback_error}")
             finally:
                 logger.info("=== 流式聊天处理完成 ===")
+                return
     
     def __getattr__(self, name):
         """转发其他方法到原始模型"""
