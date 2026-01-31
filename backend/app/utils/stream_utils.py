@@ -8,11 +8,10 @@ class StreamUtils:
     """流式输出工具类"""
     
     @staticmethod
-    def format_stream_chunk(chunk: str, content_struct: Any = None, agent: bool = False) -> str:
+    def format_stream_chunk(chunk: str, agent: bool = False) -> str:
         """格式化流式输出的单个块"""
         response_data = {
-            'chunk': chunk,
-            'content_struct': content_struct
+            'chunk': chunk
         }
         # 添加agent标记
         if agent:

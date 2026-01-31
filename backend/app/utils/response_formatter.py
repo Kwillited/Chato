@@ -80,11 +80,11 @@ class ResponseFormatter:
     @staticmethod
     def process_streaming_chunk(chunk, full_reply):
         """处理单个流式响应块
-        
+
         Args:
             chunk: 流式响应块
             full_reply: 当前累积的完整回复
-            
+
         Returns:
             (formatted_chunk, updated_full_reply): 格式化后的响应块和更新后的完整回复
         """
@@ -126,4 +126,67 @@ class ResponseFormatter:
                 'done': False
             }
             formatted_chunk = f'data: {json.dumps(response_data, ensure_ascii=False)}\n\n'
+            return formatted_chunk, full_reply
+    
+    @staticmethod
+    def process_agent_stream_chunk(chunk, full_reply):
+        """处理智能体事件流响应块
+
+        Args:
+            chunk: 智能体事件流响应块
+            full_reply: 当前累积的完整回复
+
+        Returns:
+            (formatted_chunk, updated_full_reply): 格式化后的响应块和更新后的完整回复
+        """
+        try:
+            # 检查是否已经是SSE格式
+            if isinstance(chunk, str) and chunk.startswith('data: '):
+                chunk_str = chunk[6:].strip()
+                try:
+                    chunk_data = json.loads(chunk_str)
+                    # 检查是否是智能体响应
+                    if chunk_data.get('agent', False):
+                        # 累积完整回复
+                        if 'chunk' in chunk_data:
+                            full_reply += chunk_data['chunk']
+                        elif 'content' in chunk_data:
+                            full_reply += chunk_data['content']
+                    return chunk, full_reply
+                except:
+                    # 如果解析失败，直接返回原chunk
+                    return chunk, full_reply
+            else:
+                # 如果不是SSE格式，包装成SSE格式
+                try:
+                    # 尝试解析chunk，看是否是JSON格式
+                    chunk_data = json.loads(chunk)
+                    # 添加agent标记
+                    chunk_data['agent'] = True
+                    # 包装成SSE格式
+                    formatted_chunk = f'data: {json.dumps(chunk_data, ensure_ascii=False)}\n\n'
+                    # 累积完整回复
+                    if 'chunk' in chunk_data:
+                        full_reply += chunk_data['chunk']
+                    elif 'content' in chunk_data:
+                        full_reply += chunk_data['content']
+                    return formatted_chunk, full_reply
+                except:
+                    # 如果不是JSON格式，直接作为内容包装
+                    content_data = {
+                        'chunk': chunk,
+                        'agent': True
+                    }
+                    formatted_chunk = f'data: {json.dumps(content_data, ensure_ascii=False)}\n\n'
+                    full_reply += chunk
+                    return formatted_chunk, full_reply
+        except Exception as e:
+            BaseService.log_error(f"处理智能体事件流响应块失败: {e}")
+            # 尝试作为直接内容处理
+            full_reply += str(chunk)
+            content_data = {
+                'chunk': str(chunk),
+                'agent': True
+            }
+            formatted_chunk = f'data: {json.dumps(content_data, ensure_ascii=False)}\n\n'
             return formatted_chunk, full_reply
