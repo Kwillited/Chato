@@ -838,18 +838,18 @@ class ChatService(BaseService):
             return ResponseHandler.handle_astream_events_response(chat, full_message_text, user_message, now,
                                                                enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking, use_agent,
                                                                chat_service=self)
-        elif not stream and not use_agent:
-            # 同为false用astream
+        elif not stream and use_agent:
+            # stream为false，use_agent为true用astream
             return ResponseHandler.handle_astream_response(chat, full_message_text, user_message, now,
                                                        enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking, use_agent,
                                                        chat_service=self)
-        elif stream:
-            # stream为true用普通流式
+        elif stream and not use_agent:
+            # stream为true，use_agent为false用普通流式
             return ResponseHandler.handle_streaming_response(chat, full_message_text, user_message, now,
                                                           enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking, use_agent,
                                                           chat_service=self)
-        else:
-            # stream为false用普通响应处理
+        elif not stream and not use_agent:
+            # 同为false用普通响应处理
             return ResponseHandler.handle_regular_response(chat, full_message_text, user_message, now,
                                                       enhanced_question, parsed_model_name, parsed_version_name, model_params, model_display_name, deep_thinking, use_agent,
                                                       chat_service=self)

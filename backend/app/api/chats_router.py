@@ -81,9 +81,9 @@ def send_message(chat_id: str = Path(...), data: SendMessageRequest = Body(...),
     # 从请求数据中获取stream参数
     stream = data.stream
     
-    # 根据stream参数处理响应
-    if stream:
-        # 流式响应返回生成器函数
+    # 根据result类型处理响应
+    if callable(result):
+        # 如果result是一个函数对象，说明是流式响应
         return StreamingResponse(result(), media_type='text/event-stream')
     else:
         # 普通响应返回json和状态码
