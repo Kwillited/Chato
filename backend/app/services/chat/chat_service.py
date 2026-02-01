@@ -628,8 +628,6 @@ class ChatService(BaseService):
                 # 初始化智能体
                 asyncio.run(agent_wrapper.initialize())
                 
-                # 调用智能体流式方法
-                # 注意：agent_wrapper.chat_stream 是异步生成器，需要在同步函数中使用 asyncio.run 处理
                 import asyncio
                 
                 async def stream_agent_response():

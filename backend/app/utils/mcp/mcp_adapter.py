@@ -41,12 +41,17 @@ class MCPAdapter:
                 "filesystem": {
                     "transport": "stdio",
                     "command": "npx",
-                    "args": ["-y", "@modelcontextprotocol/server-filesystem"]
+                    "args": ["-y", "@modelcontextprotocol/server-filesystem", "H:\\ChaTo" ]
                 },
                 "weather": {
                     "transport": "stdio",
                     "command": "npx",
                     "args": ["-y", "@h1deya/mcp-server-weather"]
+                },
+                "12306-mcp": {
+                    "transport": "stdio",
+                    "args": ["-y", "12306-mcp"],
+                    "command": "npx"
                 }
             }
         
@@ -75,44 +80,43 @@ class MCPAdapter:
         
         file_tools = []
         weather_tools = []
+        all_tool_names = []
         
         for i, tool in enumerate(self.tools):
             try:
                 tool_name = getattr(tool, 'name', str(tool))
-                tool_desc = getattr(tool, 'description', '')
-                logger.info(f"工具 {i+1} 详细信息: 名称={tool_name}, 描述={tool_desc}")
+                all_tool_names.append(tool_name)
                 
                 # 检测天气工具
                 weather_keywords = ['weather', 'forecast', 'temp', 'climate', 'temperature']
+                tool_desc = getattr(tool, 'description', '')
                 if any(keyword in tool_name.lower() for keyword in weather_keywords) or any(keyword in tool_desc.lower() for keyword in weather_keywords):
                     weather_tools.append(tool_name)
-                    logger.info(f"识别为天气工具: {tool_name}")
                 
                 # 检测文件系统工具
                 fs_keywords = ['file', 'fs', 'directory', 'read', 'list', 'folder', 'path', 'ls', 'dir']
                 if any(keyword in tool_name.lower() for keyword in fs_keywords) or any(keyword in tool_desc.lower() for keyword in fs_keywords):
                     file_tools.append(tool_name)
-                    logger.info(f"识别为文件系统工具: {tool_name}")
             except Exception as e:
                 logger.error(f"解析工具 {i+1} 信息失败: {str(e)}")
                 pass
+        
+        # 输出简化的工具列表
+        logger.info(f"检测到 {len(all_tool_names)} 个工具: {', '.join(all_tool_names)}")
         
         # 选择最合适的工具
         if weather_tools:
             forecast_tools = [t for t in weather_tools if 'forecast' in t.lower()]
             self.weather_tool_name = forecast_tools[0] if forecast_tools else weather_tools[0]
-            logger.info(f"选择天气工具: {self.weather_tool_name}")
         
         if file_tools:
             list_tools = [t for t in file_tools if 'list' in t.lower() or 'dir' in t.lower() or 'ls' in t.lower()]
             if list_tools:
                 self.filesystem_tool_name = list_tools[0]
-                logger.info(f"选择文件系统工具（用于列出目录）: {self.filesystem_tool_name}")
             else:
                 self.filesystem_tool_name = file_tools[0]
-                logger.info(f"选择文件系统工具: {self.filesystem_tool_name}")
         
-        logger.info(f"检测到的工具：天气工具={self.weather_tool_name}, 文件系统工具={self.filesystem_tool_name}")
+        logger.info(f"检测完成：天气工具={self.weather_tool_name}, 文件系统工具={self.filesystem_tool_name}")
     
     def get_tools(self) -> List[Any]:
         """获取 MCP 工具列表"""

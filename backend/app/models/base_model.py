@@ -1,7 +1,7 @@
 # models/base_model.py
 from abc import ABC, abstractmethod
 from langchain_core.language_models import BaseLanguageModel
-from typing import List, Dict, Any, Optional, Generator
+from typing import List, Dict, Any, Optional, Generator,  AsyncIterator 
 from app.utils.message_utils import MessageUtils
 from app.utils.stream_utils import StreamUtils
 
@@ -49,48 +49,27 @@ class BaseModel(ABC):
         response = self.llm.invoke(langchain_messages)
         return self._format_response(response.content)
 
-    def chat_stream(self, messages: List[Dict[str, str]], temperature: float) -> Generator[str, None, None]:
-        """流式对话 - 返回统一的生成器
-        
-        Args:
-            messages: 消息列表
-            temperature: 温度参数
-            
-        Yields:
-            str: 流式响应数据
-        """
+    async def chat_stream(self, messages: List[Dict[str, str]], temperature: float) -> AsyncIterator[str]:
         langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
         self.llm.temperature = temperature
         
         try:
-            # 尝试使用同步 stream 方法
-            for chunk in self.llm.stream(langchain_messages):
-                if hasattr(chunk, 'content') and chunk.content:
-                    yield StreamUtils.format_stream_chunk(chunk.content)
-                elif isinstance(chunk, dict) and 'content' in chunk:
-                    yield StreamUtils.format_stream_chunk(chunk['content'])
+            # 使用 astream 处理异步流
+            async for chunk in self.llm.astream(langchain_messages):
+                content = None
+                if hasattr(chunk, 'content'):
+                    content = chunk.content
+                elif isinstance(chunk, dict):
+                    content = chunk.get('content')
                 elif isinstance(chunk, str):
-                    yield StreamUtils.format_stream_chunk(chunk)
-        except (AttributeError, TypeError):
-            # 如果 stream 方法不存在或返回非可迭代对象，尝试使用 astream
-            import asyncio
-            async def process_astream():
-                async for chunk in self.llm.astream(langchain_messages):
-                    if hasattr(chunk, 'content') and chunk.content:
-                        yield StreamUtils.format_stream_chunk(chunk.content)
-                    elif isinstance(chunk, dict) and 'content' in chunk:
-                        yield StreamUtils.format_stream_chunk(chunk['content'])
-                    elif isinstance(chunk, str):
-                        yield StreamUtils.format_stream_chunk(chunk)
-            
-            # 转换异步生成器为同步生成器
-            async_gen = process_astream()
-            while True:
-                try:
-                    chunk = asyncio.run(async_gen.__anext__())
-                    yield chunk
-                except StopAsyncIteration:
-                    break
+                    content = chunk
+                
+                if content:
+                    yield StreamUtils.format_stream_chunk(content)
+        except Exception as e:
+            import logging
+            logging.error(f"Streaming error: {e}")
+            yield StreamUtils.format_stream_error(str(e))
         
         yield StreamUtils.format_stream_done()
 
