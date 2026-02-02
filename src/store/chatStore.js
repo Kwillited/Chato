@@ -339,6 +339,57 @@ export const useChatStore = defineStore('chat', {
                 currentChat.messages.push(messageContent);
               }
               
+              // 处理工具开始执行事件
+              if (data.event === 'on_tool_start') {
+                console.log('工具开始执行:', data.name, '参数:', data.data.input);
+                
+                // 确保aiMessage存在
+                if (!aiMessage) {
+                  // 创建AI消息
+                  const messageContent = ref({
+                    id: generateId('msg'),
+                    role: 'ai',
+                    content: '',
+                    thinking: '',
+                    timestamp: Date.now(),
+                    status: 'tool_executing',
+                    isTyping: false,
+                    lastUpdate: Date.now(),
+                    model: formattedModel,
+                    currentTool: data.name,
+                    toolInput: data.data.input
+                  });
+                  
+                  aiMessage = messageContent;
+                  currentChat.messages.push(messageContent);
+                } else {
+                  // 更新AI消息，设置工具执行状态
+                  aiMessage.value.status = 'tool_executing';
+                  aiMessage.value.currentTool = data.name;
+                  aiMessage.value.toolInput = data.data.input;
+                  aiMessage.value.lastUpdate = Date.now();
+                }
+                
+                // 强制更新currentChat
+                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
+                return;
+              }
+              
+              // 处理工具执行完成事件
+              if (data.event === 'on_tool_end') {
+                console.log('工具执行完成:', data.name);
+                
+                // 更新AI消息，将工具执行状态设置为成功
+                if (aiMessage) {
+                  aiMessage.value.status = 'tool_executed';
+                  aiMessage.value.lastUpdate = Date.now();
+                }
+                
+                // 强制更新currentChat
+                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
+                return;
+              }
+              
               // 处理后端返回的流式数据格式
               let contentToAdd = '';
               // 只处理data.chunk字段
@@ -396,15 +447,20 @@ export const useChatStore = defineStore('chat', {
               // 检查是否完成
               if (data.done || data.completed || data.type === 'end') {
                 // 确保消息状态正确
-                if (aiMessage && aiMessage.value.status === 'streaming') {
-                  aiMessage.value.status = 'received';
+                if (aiMessage && (aiMessage.value.status === 'streaming' || aiMessage.value.status === 'tool_executing' || aiMessage.value.status === 'tool_executed')) {
+                  // 根据当前状态设置最终状态
+                  const finalStatus = aiMessage.value.status === 'tool_executing' || aiMessage.value.status === 'tool_executed' 
+                    ? 'tool_executed' 
+                    : 'received';
+                  
+                  aiMessage.value.status = finalStatus;
                   
                   // 清理临时状态
                   delete aiMessage.value._inThinkingTag;
                   
                   // 添加：确保响应式系统能够检测到变化，同时确保model字段存在
                   const updatedMessage = { ...aiMessage.value };
-                  updatedMessage.status = 'received';
+                  updatedMessage.status = finalStatus;
                   updatedMessage.isTyping = false;
                   // 确保model字段存在，使用data.ai_message.model或fallback到formattedModel
                   updatedMessage.model = data.ai_message?.model || formattedModel;

@@ -30,8 +30,42 @@
       </div>
     </div>
     
+    <!-- 工具执行状态 -->
+    <div v-if="(messageValue.status === 'tool_executing' || messageValue.status === 'tool_executed') && messageValue.currentTool" class="relative mb-3">
+      <div :class="[
+        'bg-transparent border border-dashed rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-full',
+        messageValue.status === 'tool_executing' 
+          ? 'border-blue-300 dark:border-blue-600'
+          : 'border-green-300 dark:border-green-600'
+      ]">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-start gap-2 flex-1">
+            <svg v-if="messageValue.status === 'tool_executing'" class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <svg v-else class="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div :class="[
+              'text-xs leading-relaxed transition-all duration-300 ease-in-out overflow-hidden',
+              messageValue.status === 'tool_executing' 
+                ? 'text-blue-500 dark:text-blue-400'
+                : 'text-green-500 dark:text-green-400'
+            ]">
+              <div class="font-medium">
+                {{ messageValue.status === 'tool_executing' ? '执行工具' : '工具执行成功' }}: {{ messageValue.currentTool }}
+              </div>
+              <div v-if="messageValue.toolInput" class="mt-1 text-gray-500 dark:text-gray-400">
+                参数: {{ JSON.stringify(messageValue.toolInput) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <!-- 消息内容气泡 -->
-    <div v-if="formattedContent || messageValue.error || messageValue.isTyping" class="rounded-lg px-5 py-4 overflow-hidden w-full">
+    <div v-if="formattedContent || messageValue.error || messageValue.isTyping || messageValue.status === 'tool_executed'" class="rounded-lg px-5 py-4 overflow-hidden w-full">
       <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" :key="updateKey"></div>
       
       <!-- 错误状态显示 -->
@@ -51,7 +85,7 @@
     </div>
     
     <!-- 模型名称、时间戳和操作按钮 -->
-    <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error)" class="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center justify-between px-5">
+    <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error || messageValue.status === 'tool_executed')" class="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center justify-between px-5">
       <span>
         <!-- 模型名称+时间 -->
         {{ messageValue.model || 'Chato' }} - {{ formatTime(messageValue.timestamp || messageValue.time) }}
@@ -111,8 +145,44 @@
         </div>
       </div>
       
+      <!-- 工具执行状态 -->
+      <div v-if="(messageValue.status === 'tool_executing' || messageValue.status === 'tool_executed') && messageValue.currentTool" class="relative mb-2">
+        <div :class="[
+          'bg-transparent border border-dashed rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out',
+          'w-fit',
+          'max-w-full',
+          messageValue.status === 'tool_executing' 
+            ? 'border-blue-300 dark:border-blue-600'
+            : 'border-green-300 dark:border-green-600'
+        ]">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2 flex-1">
+              <svg v-if="messageValue.status === 'tool_executing'" class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+              </svg>
+              <svg v-else class="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <div :class="[
+                'text-xs leading-relaxed transition-all duration-300 ease-in-out overflow-hidden',
+                messageValue.status === 'tool_executing' 
+                  ? 'text-blue-500 dark:text-blue-400'
+                  : 'text-green-500 dark:text-green-400'
+              ]">
+                <div class="font-medium">
+                  {{ messageValue.status === 'tool_executing' ? '执行工具' : '工具执行成功' }}: {{ messageValue.currentTool }}
+                </div>
+                <div v-if="messageValue.toolInput" class="mt-1 text-gray-500 dark:text-gray-400">
+                  参数: {{ JSON.stringify(messageValue.toolInput) }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- 消息内容气泡 -->
-      <div v-if="formattedContent || messageValue.error || messageValue.isTyping" :class="[
+      <div v-if="formattedContent || messageValue.error || messageValue.isTyping || messageValue.status === 'tool_executed'" :class="[
         messageValue.event === 'on_chat_model_stream' 
           ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-blue-800/30 overflow-hidden'
           : 'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
@@ -144,7 +214,7 @@
       </div>
       
       <!-- 时间戳和操作按钮 -->
-      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error)" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
+      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error || messageValue.status === 'tool_executed')" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
         <span>{{ formatTime(messageValue.timestamp || messageValue.time) }}</span>
         <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Tooltip content="复制消息内容">
