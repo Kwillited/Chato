@@ -74,16 +74,12 @@ def update_chat_pin(chat_id: str = Path(...), data: PinUpdateRequest = Body(...)
 # 发送消息（应用层）
 @router.post('/{chat_id}/messages')
 @handle_exception
-def send_message(chat_id: str = Path(...), data: SendMessageRequest = Body(...), chat_service: ChatService = Depends(get_chat_service)):
-    # 使用服务层处理消息发送，直接传递整个data对象
-    result = chat_service.send_message(chat_id, data.dict())
+async def send_message(chat_id: str = Path(...), data: SendMessageRequest = Body(...), chat_service: ChatService = Depends(get_chat_service)):
+    # 这里的 result 应该是一个异步生成器函数
+    result = await chat_service.send_message(chat_id, data.dict())
     
-    # 从请求数据中获取stream参数
-    stream = data.stream
-    
-    # 根据result类型处理响应
     if callable(result):
-        # 如果result是一个函数对象，说明是流式响应
+        # 传入异步生成器给 StreamingResponse
         return StreamingResponse(result(), media_type='text/event-stream')
     else:
         # 普通响应返回json和状态码
