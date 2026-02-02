@@ -278,6 +278,34 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
           } else if (parsedData.content) {
             // LangChain 原始格式
             onMessage({ chunk: parsedData.content, done: false });
+          } else if (parsedData.event && parsedData.data) {
+            // 事件流格式，如：{"event": "on_chat_model_stream", "data": {"chunk": {"content": "递"}}}
+            if (parsedData.event === 'on_chat_model_end') {
+              // 结束事件，视为结束标志
+              onMessage({ ...parsedData, done: true });
+            } else if (parsedData.event === 'on_chat_model_stream') {
+              // 流事件，提取chunk内容
+              if (parsedData.data.chunk) {
+                // 提取chunk内容
+                const chunkData = parsedData.data.chunk;
+                if (chunkData.content) {
+                  // chunk包含content字段
+                  onMessage({ event: parsedData.event, chunk: chunkData.content, done: false });
+                } else {
+                  // chunk直接是内容
+                  onMessage({ event: parsedData.event, chunk: chunkData, done: false });
+                }
+              } else if (parsedData.data.content) {
+                // data直接包含content字段
+                onMessage({ event: parsedData.event, chunk: parsedData.data.content, done: false });
+              } else {
+                // 其他流事件格式，直接传递
+                onMessage(parsedData);
+              }
+            } else {
+              // 其他事件流格式，直接传递
+              onMessage(parsedData);
+            }
           } else if (parsedData.done) {
             // 结束标志
             onMessage(parsedData);

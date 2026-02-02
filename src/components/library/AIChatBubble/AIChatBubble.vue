@@ -113,10 +113,17 @@
       
       <!-- 消息内容气泡 -->
       <div v-if="formattedContent || messageValue.error || messageValue.isTyping" :class="[
-        'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
+        messageValue.event === 'on_chat_model_stream' 
+          ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-blue-800/30 overflow-hidden'
+          : 'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
         'w-fit',
         'max-w-full'
       ]">
+        <!-- 事件类型标签 -->
+        <div v-if="messageValue.event" class="text-xs text-blue-500 dark:text-blue-400 mb-1 font-medium">
+          {{ getEventLabel(messageValue.event) }}
+        </div>
+        
         <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" :key="updateKey"></div>
         
         <!-- 错误状态显示 -->
@@ -237,6 +244,18 @@ const toggleThinkingExpanded = () => {
 const thinkingContentHeightClass = computed(() => {
   return isThinkingExpanded.value ? '' : 'max-h-10'
 })
+
+// 获取事件类型标签
+const getEventLabel = (event) => {
+  const eventLabels = {
+    'on_chat_model_stream': 'AI 模型流',
+    'on_chat_model_end': 'AI 模型结束',
+    'text': '文本消息',
+    'tool_call': '工具调用',
+    'tool_response': '工具响应'
+  }
+  return eventLabels[event] || event
+}
 </script>
 
 <style scoped>
