@@ -209,6 +209,19 @@ class AgentWrapper:
                     # 打印过滤后的工具开始事件信息
                     logger.info(f"[Agent] 过滤后的工作流事件: {filtered_event}")
                     yield filtered_event
+                elif serialized_event.get('event') == 'on_tool_end':
+                    # 过滤工具结束事件，只保留有用的数据
+                    filtered_event = {
+                        'event': 'on_tool_end',
+                        'name': serialized_event.get('name'),
+                        'data': {
+                            'input': serialized_event.get('data', {}).get('input', {}),
+                            'output': serialized_event.get('data', {}).get('output', {})
+                        }
+                    }
+                    # 打印过滤后的工具结束事件信息
+                    logger.info(f"[Agent] 过滤后的工作流事件: {filtered_event}")
+                    yield filtered_event
                 else:
                     # 其他事件保持原样
                     logger.info(f"[Agent] 工作流事件: {serialized_event}")

@@ -357,12 +357,26 @@ export const useChatStore = defineStore('chat', {
                     lastUpdate: Date.now(),
                     model: formattedModel,
                     currentTool: data.name,
-                    toolInput: data.data.input
+                    toolInput: data.data.input,
+                    toolExecutions: [] // 添加工具执行记录数组
                   });
                   
                   aiMessage = messageContent;
                   currentChat.messages.push(messageContent);
                 } else {
+                  // 添加工具执行记录
+                  if (!aiMessage.value.toolExecutions) {
+                    aiMessage.value.toolExecutions = [];
+                  }
+                  
+                  // 保存当前工具信息到执行记录
+                  aiMessage.value.toolExecutions.push({
+                    name: data.name,
+                    input: data.data.input,
+                    status: 'executing',
+                    timestamp: Date.now()
+                  });
+                  
                   // 更新AI消息，设置工具执行状态
                   aiMessage.value.status = 'tool_executing';
                   aiMessage.value.currentTool = data.name;
@@ -381,7 +395,31 @@ export const useChatStore = defineStore('chat', {
                 
                 // 更新AI消息，将工具执行状态设置为成功
                 if (aiMessage) {
+                  // 更新最新的工具执行记录状态
+                  if (aiMessage.value.toolExecutions && aiMessage.value.toolExecutions.length > 0) {
+                    const lastToolExecution = aiMessage.value.toolExecutions[aiMessage.value.toolExecutions.length - 1];
+                    if (lastToolExecution.name === data.name) {
+                      lastToolExecution.status = 'completed';
+                      lastToolExecution.completedAt = Date.now();
+                    }
+                  }
+                  
                   aiMessage.value.status = 'tool_executed';
+                  aiMessage.value.lastUpdate = Date.now();
+                }
+                
+                // 强制更新currentChat
+                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
+                return;
+              }
+              
+              // 处理智能体流程开始事件
+              if (data.event === 'on_chain_start' && data.name === 'LangGraph') {
+                console.log('智能体流程开始:', data.name);
+                
+                // 更新AI消息，设置为智能体等待状态
+                if (aiMessage) {
+                  aiMessage.value.status = 'agent_waiting';
                   aiMessage.value.lastUpdate = Date.now();
                 }
                 
