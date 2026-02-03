@@ -11,44 +11,28 @@
         <!-- 连接线 - 除了第一个指示器外，其他指示器前都显示 -->
         <div 
           v-if="index > 0"
-          class="w-px h-6 bg-gray-300 dark:bg-gray-600 transition-colors duration-300 mt-1 mb-1"
+          class="w-px h-4 bg-gray-300 dark:bg-gray-600 mt-1 mb-1"
         ></div>
         
         <!-- 指示器 -->
         <div 
-          class="cursor-pointer transition-all duration-300 relative group z-10"
+          class="cursor-pointer relative group z-10"
           :title="`跳转到第 ${index + 1} 次提问`"
           @click="scrollToUserMessage(userMessage)"
         >
           <!-- 主指示器 -->
           <div 
-            class="transition-all duration-300 ease-in-out relative"
+            class="relative"
             :class="{
-              'w-4 h-4 bg-primary rounded-full shadow-lg transform scale-110': index === currentHighlightedMessage,
-              'w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded-full hover:w-4 hover:h-4 hover:bg-primary/70': index !== currentHighlightedMessage
+              'w-3 h-3 bg-black dark:bg-white rounded-full': index === currentHighlightedMessage,
+              'w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full hover:bg-black dark:hover:bg-white': index !== currentHighlightedMessage
             }"
           >
-            <!-- 高亮状态的脉冲效果 -->
-            <div 
-              v-if="index === currentHighlightedMessage"
-              class="absolute inset-0 bg-primary opacity-30 rounded-full animate-ping"
-            ></div>
-            
-            <!-- 中心亮点 -->
-            <div 
-              class="absolute inset-0 flex items-center justify-center"
-              :class="{
-                'opacity-100': index === currentHighlightedMessage,
-                'opacity-0': index !== currentHighlightedMessage
-              }"
-            >
-              <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
-            </div>
           </div>
           
           <!-- 悬停时显示的序号 -->
           <div 
-            class="absolute right-6 top-1/2 transform -translate-y-1/2 bg-primary text-white text-xs font-medium py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+            class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-gray-100 dark:bg-dark-700 text-gray-800 dark:text-gray-200 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap"
           >
             {{ index + 1 }}
           </div>
@@ -252,22 +236,6 @@ defineExpose(exposed);
 </script>
 
 <style scoped>
-/* 脉冲动画定义 */
-@keyframes ping {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.5);
-    opacity: 0.5;
-  }
-}
-
-.animate-ping {
-  animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
   /* 在平板和手机上，调整快捷跳转模块的位置 */
