@@ -947,7 +947,14 @@ const hideTooltip = (tooltipId) => {
 
 // 处理MCP工具点击事件
 const handleMcpService = () => {
-  uiStore.setActivePanel('mcp');
+  if (uiStore.activePanel === 'mcp') {
+    // 如果当前是MCP面板，切换回之前的面板
+    uiStore.setActivePanel(uiStore.previousPanel || 'history');
+  } else {
+    // 如果当前不是MCP面板，保存当前面板并切换到MCP面板
+    uiStore.previousPanel = uiStore.activePanel;
+    uiStore.setActivePanel('mcp');
+  }
 };
 
 // 切换智能体状态
