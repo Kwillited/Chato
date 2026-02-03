@@ -1,6 +1,6 @@
 <template>
-  <div class="space-y-6 max-w-2xl mx-auto">
-    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+  <div class="flex flex-col md:flex-row gap-6 max-w-6xl mx-auto h-full">
+    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-medium">已配置模型</h4>
         <div class="relative w-40">
@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <div class="space-y-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin" id="configuredModelsContainer">
+      <div class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="configuredModelsContainer">
         <template v-if="isLoading">
           <div class="text-center py-6 text-neutral text-sm">加载中...</div>
         </template>
@@ -79,7 +79,7 @@
       </div>
     </div>
 
-    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-medium">可配置模型</h4>
         <div class="relative w-40">
@@ -93,7 +93,7 @@
         </div>
       </div>
 
-      <div class="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin" id="unconfiguredModelsContainer">
+      <div class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="unconfiguredModelsContainer">
         <template v-if="isLoading">
           <div class="text-center py-6 text-neutral text-sm">加载中...</div>
         </template>

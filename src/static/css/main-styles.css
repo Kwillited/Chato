@@ -1,3 +1,9 @@
+/* CSS变量定义 */
+:root {
+  --select-arrow-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  --select-arrow-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
 /* 全局标题深色模式样式 */
 h2, h3 {
   color: inherit;
@@ -887,15 +893,9 @@ input:checked + .toggle-slider:before {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid transparent;
 }
+/* 对话框按钮特定样式 */
 .dialog-buttons .btn-secondary {
-    background-color: transparent;
-    color: #475569;
-  border-color: #e2e8f0;
-}
-.dialog-buttons .btn-secondary:hover {
-    background-color: transparent;
-    border-color: #cbd5e1;
-  transform: translateY(-1px);
+  color: #475569;
 }
 .dialog-buttons .btn-primary,
 .dialog-buttons .btn-danger {
@@ -1159,13 +1159,15 @@ input:checked + .toggle-slider:before {
   transform: translateY(-1px);
 }
 .btn-secondary {
-    background-color: transparent;
-    color: #64748b;
+  background-color: transparent;
+  color: #64748b;
   border-color: #e2e8f0;
+  transition: all 0.2s ease;
 }
+
 .btn-secondary:hover {
-    background-color: transparent;
-    border-color: #cbd5e1;
+  background-color: transparent;
+  border-color: #cbd5e1;
   transform: translateY(-1px);
 }
 .nav-item {
@@ -1400,6 +1402,12 @@ input:checked + .toggle-slider:before {
   line-height: 1.4;
 }
 
+/* CSS变量定义 */
+:root {
+  --select-arrow-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  --select-arrow-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
 /* 统一输入框和选择框样式 */
 .input-field {
   transition: all 0.2s ease;
@@ -1433,10 +1441,10 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
 }
 
-/* 优化选择框样式 */
+/* 统一的选择框样式 */
 select.input-field {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: var(--select-arrow-light);
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
   background-size: 1.5em 1.5em;
@@ -1445,31 +1453,7 @@ select.input-field {
 
 /* 深色模式下的选择框箭头颜色 */
 .dark select.input-field {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-}
-
-/* 优化设置区域的选择框样式 */
-.settings-section select.input-field {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  background-size: 1.5em 1.5em;
-  padding-right: 2.5rem;
-}
-
-/* 深色模式下设置区域的选择框箭头颜色 */
-.dark .settings-section select.input-field {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-}
-
-/* 优化选择框样式 */
-.settings-section select.input-field {
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.5rem center;
-  background-size: 1.5em 1.5em;
-  padding-right: 2.5rem;
+  background-image: var(--select-arrow-dark);
 }
 
 /* 添加表单验证样式 */
@@ -1492,33 +1476,15 @@ select.input-field {
   animation: pulseSuccess 1.5s ease-in-out;
 }
 
-/* 移除textarea焦点时的边框显示 - 使用更具体的选择器确保优先级 */
+/* 统一的textarea样式 - 移除焦点边框 */
 textarea,
-textarea:focus {
-  outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* 深色模式下也移除textarea焦点边框 */
+textarea:focus,
 .dark textarea,
-.dark textarea:focus {
-  outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* 特别针对聊天输入框的样式 */
+.dark textarea:focus,
 #MessageInputArea textarea,
 #MessageInputArea textarea:focus,
 #UserInputBox textarea,
-#UserInputBox textarea:focus {
-  outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* 针对聊天组件中textarea的样式 */
+#UserInputBox textarea:focus,
 .card textarea,
 .card textarea:focus {
   outline: none !important;
