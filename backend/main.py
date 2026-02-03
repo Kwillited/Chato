@@ -76,13 +76,29 @@ app = create_app()
 # 在应用启动前执行初始化
 setup()
 
-# 使用FastAPI的后台任务机制，在应用启动后异步初始化向量系统
+async def init_mcp_adapter():
+    """初始化 MCP 适配器"""
+    try:
+        from app.utils.mcp.mcp_adapter import mcp_adapter
+        await mcp_adapter.initialize()
+        logger.info("MCP 适配器初始化完成")
+        return True
+    except Exception as e:
+        logger.error(f"MCP 适配器初始化失败: {e}")
+        return False
+
+# 使用FastAPI的后台任务机制，在应用启动后异步初始化系统组件
 @app.on_event("startup")
 async def startup_event():
-    """应用启动事件，用于异步初始化向量系统"""
-    logger.info("应用启动，开始异步初始化向量系统")
+    """应用启动事件，用于异步初始化系统组件"""
+    logger.info("应用启动，开始异步初始化系统组件")
     import asyncio
-    asyncio.create_task(init_vector_system())
+    
+    # 并行初始化向量系统和 MCP 适配器
+    await asyncio.gather(
+        init_vector_system(),
+        init_mcp_adapter()
+    )
 
 if __name__ == '__main__':
     # 从配置中获取应用设置

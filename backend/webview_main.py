@@ -99,8 +99,6 @@ def start_backend():
 
 def start_webview():
     """启动PyWebView应用"""
-    # 等待后端服务启动
-    time.sleep(2)
     
     # 从配置中获取应用设置
     port = config_manager.get('app.port', 5000)
@@ -147,6 +145,28 @@ if __name__ == '__main__':
     # 启动后端服务线程
     backend_thread = threading.Thread(target=start_backend, daemon=True)
     backend_thread.start()
+    
+    # 等待后端服务启动完成
+    import time
+    import requests
+    
+    port = config_manager.get('app.port', 5000)
+    backend_url = f"http://127.0.0.1:{port}/api/health"
+    
+    # 尝试连接后端服务，最多等待30秒
+    max_wait_time = 30
+    start_time = time.time()
+    
+    logger.info("等待后端服务启动...")
+    while time.time() - start_time < max_wait_time:
+        try:
+            response = requests.get(backend_url, timeout=1)
+            if response.status_code == 200:
+                logger.info("后端服务已就绪，启动WebView")
+                break
+        except:
+            pass
+        time.sleep(1)
     
     # 启动PyWebView
     start_webview()

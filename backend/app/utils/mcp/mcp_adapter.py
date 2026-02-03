@@ -53,6 +53,11 @@ class MCPAdapter:
     
     async def initialize(self, mcp_config: Optional[Dict] = None) -> bool:
         """初始化 MCP 客户端"""
+        # 避免重复初始化
+        if self.mcp_client is not None:
+            logger.info("MCP 适配器已初始化，跳过重复初始化")
+            return True
+        
         logger.info("=== 开始初始化 MCP 适配器 ===")
         
         if not MCP_AVAILABLE:
@@ -100,45 +105,19 @@ class MCPAdapter:
         """检测可用工具"""
         logger.info("=== 开始检测 MCP 工具 ===")
         
-        file_tools = []
-        weather_tools = []
         all_tool_names = []
         
         for i, tool in enumerate(self.tools):
             try:
                 tool_name = getattr(tool, 'name', str(tool))
                 all_tool_names.append(tool_name)
-                
-                # 检测天气工具
-                weather_keywords = ['weather', 'forecast', 'temp', 'climate', 'temperature']
-                tool_desc = getattr(tool, 'description', '')
-                if any(keyword in tool_name.lower() for keyword in weather_keywords) or any(keyword in tool_desc.lower() for keyword in weather_keywords):
-                    weather_tools.append(tool_name)
-                
-                # 检测文件系统工具
-                fs_keywords = ['file', 'fs', 'directory', 'read', 'list', 'folder', 'path', 'ls', 'dir']
-                if any(keyword in tool_name.lower() for keyword in fs_keywords) or any(keyword in tool_desc.lower() for keyword in fs_keywords):
-                    file_tools.append(tool_name)
             except Exception as e:
                 logger.error(f"解析工具 {i+1} 信息失败: {str(e)}")
                 pass
         
-        # 输出简化的工具列表
+        # 输出工具列表
         logger.info(f"检测到 {len(all_tool_names)} 个工具: {', '.join(all_tool_names)}")
-        
-        # 选择最合适的工具
-        if weather_tools:
-            forecast_tools = [t for t in weather_tools if 'forecast' in t.lower()]
-            self.weather_tool_name = forecast_tools[0] if forecast_tools else weather_tools[0]
-        
-        if file_tools:
-            list_tools = [t for t in file_tools if 'list' in t.lower() or 'dir' in t.lower() or 'ls' in t.lower()]
-            if list_tools:
-                self.filesystem_tool_name = list_tools[0]
-            else:
-                self.filesystem_tool_name = file_tools[0]
-        
-        logger.info(f"检测完成：天气工具={self.weather_tool_name}, 文件系统工具={self.filesystem_tool_name}")
+        logger.info("=== 工具检测完成 ===")
     
     def get_tools(self) -> List[Any]:
         """获取 MCP 工具列表"""
