@@ -70,6 +70,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useUiStore } from '../store/uiStore.js';
+import { useChatStore } from '../store/chatStore.js';
 import LayoutHeader from '../components/layout/LayoutHeader.vue';
 import LeftPanel from '../components/layout/LeftPanel.vue';
 import MainContent from '../components/layout/MainContent.vue';
@@ -93,6 +94,7 @@ const props = defineProps({
 
 // Stores
 const uiStore = useUiStore();
+const chatStore = useChatStore();
 
 // Refs
 const headerRef = ref(null);
@@ -317,6 +319,24 @@ watch(
 // 监听左侧面板可见性变化
 watch(
   () => uiStore.leftNavVisible,
+  () => {
+    // 立即更新标题位置
+    updateTitlePosition();
+  }
+);
+
+// 监听激活内容变化，确保对话切换时标题位置正确
+watch(
+  () => props.activeContent,
+  () => {
+    // 立即更新标题位置
+    updateTitlePosition();
+  }
+);
+
+// 监听对话切换，确保标题位置正确
+watch(
+  () => chatStore.currentChatId,
   () => {
     // 立即更新标题位置
     updateTitlePosition();
