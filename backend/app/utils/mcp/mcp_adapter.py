@@ -1,5 +1,7 @@
 """MCP 适配器工具类"""
 from typing import Dict, List, Optional, Any
+import json
+import os
 from app.core.logging_config import logger
 
 
@@ -26,6 +28,29 @@ class MCPAdapter:
         """检查 MCP 是否可用"""
         return MCP_AVAILABLE and self.mcp_client is not None
     
+    def _get_default_config(self) -> Dict:
+        """获取默认 MCP 配置"""
+        # 自动检测应用根目录
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        
+        return {
+            "filesystem": {
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-filesystem", base_path]
+            },
+            "weather": {
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["-y", "@h1deya/mcp-server-weather"]
+            },
+            "freesearch": {
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["freesearch-mcpserver@latest"]
+            }
+        }
+    
     async def initialize(self, mcp_config: Optional[Dict] = None) -> bool:
         """初始化 MCP 客户端"""
         logger.info("=== 开始初始化 MCP 适配器 ===")
@@ -34,26 +59,23 @@ class MCPAdapter:
             logger.error("MultiServerMCPClient 导入失败，MCP 功能不可用")
             return False
         
-        # 默认 MCP 配置
+        # 读取配置文件
         if mcp_config is None:
-            logger.info("使用默认 MCP 配置")
-            mcp_config = {
-                "filesystem": {
-                    "transport": "stdio",
-                    "command": "npx",
-                    "args": ["-y", "@modelcontextprotocol/server-filesystem", "H:\\ChaTo" ]
-                },
-                "weather": {
-                    "transport": "stdio",
-                    "command": "npx",
-                    "args": ["-y", "@h1deya/mcp-server-weather"]
-                },
-                "12306-mcp": {
-                    "transport": "stdio",
-                    "args": ["-y", "12306-mcp"],
-                    "command": "npx"
-                }
-            }
+            # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
+            config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
+            if os.path.exists(config_path):
+                logger.info(f"从配置文件读取 MCP 配置: {config_path}")
+                try:
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        mcp_config = json.load(f)
+                except Exception as e:
+                    logger.error(f"读取配置文件失败: {str(e)}")
+                    # 使用默认配置作为 fallback
+                    logger.info("使用默认 MCP 配置")
+                    mcp_config = self._get_default_config()
+            else:
+                logger.info("配置文件不存在，使用默认 MCP 配置")
+                mcp_config = self._get_default_config()
         
         try:
             # 初始化 MCP 客户端
@@ -121,47 +143,6 @@ class MCPAdapter:
     def get_tools(self) -> List[Any]:
         """获取 MCP 工具列表"""
         return self.tools
-    
-    def get_tool_usage_guide(self) -> str:
-        """获取工具使用指导"""
-        guide = ""
-        
-        if self.weather_tool_name:
-            guide += f"""
-
-当用户询问天气相关问题时，请使用天气工具：{self.weather_tool_name}
-重要提示：
-1. 确认用户提到的城市名称
-2. 使用默认坐标：
-   - 北京：latitude=39.9042, longitude=116.4074
-   - 上海：latitude=31.2304, longitude=121.4737
-   - 广州：latitude=23.1291, longitude=113.2644
-   - 深圳：latitude=22.5431, longitude=114.0579
-3. 工具执行后，用自然语言总结结果"""
-        
-        if self.filesystem_tool_name:
-            guide += f"""
-
-当用户需要文件操作时，请使用文件系统工具：{self.filesystem_tool_name}
-重要提示：
-1. 检测关键词：查看目录、列出文件、当前目录、文件夹内容等
-2. 工具执行后，用自然语言总结结果"""
-        else:
-            guide += """
-
-注意：当前环境中没有可用的文件系统工具，无法执行文件操作相关任务。"""
-        
-        # 简化的工具使用决策流程
-        guide += f"""
-
-工具使用流程：
-1. 分析用户问题核心需求
-2. 天气相关问题 → 使用天气工具
-3. 文件操作需求 → 使用文件系统工具
-4. 严格按规则选择工具，不要混淆使用场景
-5. 工具执行后，必须总结结果给用户"""
-        
-        return guide
     
     def get_tool_info(self) -> Dict[str, Optional[str]]:
         """获取工具信息"""
