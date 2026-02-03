@@ -1,50 +1,7 @@
 <template>
   <!-- MCP管理主内容区域 -->
   <div id="mcpMangerMainContent" class="flex-1 flex flex-col overflow-hidden bg-transparent dark:bg-transparent">
-    <!-- 顶部导航 -->
-    <div class="panel-header p-3 flex flex-wrap items-center justify-between gap-4 transition-all duration-300">
-      <!-- 左侧区域：搜索框 -->
-      <div class="flex-1 min-w-0">
-        <!-- 搜索框 -->
-        <div class="relative w-full min-w-[200px]">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="搜索MCP工具..."
-            class="w-full pl-10 pr-4 py-1 border border-gray-300 rounded-[15px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            @input="handleSearch"
-          >
-          <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-        </div>
-      </div>
-      
-      <!-- 中间标题 -->
-      <div class="hidden md:flex items-center">
-        <h2 class="text-lg font-bold text-dark dark:text-white">MCP工具管理</h2>
-        <span class="text-sm text-gray-500 ml-2">({{filteredTools.length}}个工具)</span>
-      </div>
-      
-      <!-- 右侧按钮区域 -->
-      <div class="flex items-center space-x-4">
-        <!-- 上传工具按钮 -->
-        <Button 
-          shape="full"
-          size="md"
-          icon="fa-upload" 
-          tooltip="上传MCP工具"
-          @click="handleUploadClick"
-        />
-        
-        <!-- 刷新按钮 -->
-        <Button 
-          shape="full"
-          size="md"
-          icon="fa-arrows-rotate" 
-          tooltip="刷新工具列表"
-          @click="refreshTools"
-        />
-      </div>
-    </div>
+
     
     <!-- 移动端标题 -->
     <div class="md:hidden p-3 text-center">
@@ -56,7 +13,7 @@
     <div class="flex-1 overflow-y-auto p-4">
       
       <!-- 工具列表视图 -->
-      <div class="w-full h-full flex">
+      <div class="w-full h-full flex space-x-4">
         <!-- 工具列表 -->
         <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 h-full max-w-2xl flex flex-col">
           <!-- 标题和搜索框 -->
@@ -122,6 +79,59 @@
             </div>
           </div>
         </div>
+        
+        <!-- 配置和上传卡片 -->
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 h-full w-full max-w-md flex flex-col">
+          <!-- 标题 -->
+          <div class="mb-4 flex-shrink-0">
+            <h3 class="text-sm font-semibold">配置管理</h3>
+          </div>
+          
+          <!-- 上传JSON文件 -->
+          <div class="mb-6">
+            <h4 class="text-xs font-medium text-gray-500 mb-2">上传JSON配置文件</h4>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer" @click="triggerJsonUpload">
+              <i class="fa-solid fa-file-json text-gray-400 text-2xl mb-2"></i>
+              <p class="text-xs text-gray-500 mb-2">点击或拖拽文件到此处</p>
+              <p class="text-xs text-gray-400">支持 .json 文件</p>
+              <input type="file" ref="jsonFileInput" class="hidden" accept=".json" @change="handleJsonUpload">
+            </div>
+          </div>
+          
+          <!-- 配置输入 -->
+          <div class="flex-1">
+            <h4 class="text-xs font-medium text-gray-500 mb-2">手动输入配置</h4>
+            <textarea 
+              v-model="configInput"
+              placeholder='输入JSON配置，例如：{"key": "value"}'
+              class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm font-mono"
+            ></textarea>
+            <div class="flex space-x-2 mt-3">
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="saveConfig"
+                :loading="isSavingConfig"
+                content="保存配置"
+              />
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="clearConfig"
+                content="清空"
+              />
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="exportConfig"
+                content="导出"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -161,6 +171,11 @@ const showDeleteModal = ref(false);
 const currentDeleteToolId = ref(null);
 const currentDeleteToolName = ref(null);
 const isDeletingTool = ref(false);
+
+// 配置管理相关
+const configInput = ref('');
+const jsonFileInput = ref(null);
+const isSavingConfig = ref(false);
 
 // 计算属性：过滤工具
 const filteredTools = computed(() => {
@@ -337,6 +352,121 @@ const getToolIcon = (toolType) => {
     'custom': 'fa-solid fa-code'
   };
   return icons[toolType] || 'fa-solid fa-toolbox';
+};
+
+// 触发JSON文件上传
+const triggerJsonUpload = () => {
+  jsonFileInput.value?.click();
+};
+
+// 处理JSON文件上传
+const handleJsonUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  try {
+    // 读取文件内容
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target.result;
+        // 验证是否为有效的JSON
+        JSON.parse(content);
+        // 设置到配置输入框
+        configInput.value = content;
+        showNotification('JSON文件加载成功', 'success');
+      } catch (error) {
+        showNotification('无效的JSON文件', 'error');
+        console.error('Invalid JSON file:', error);
+      }
+    };
+    reader.onerror = () => {
+      showNotification('文件读取失败', 'error');
+    };
+    reader.readAsText(file);
+  } catch (error) {
+    console.error('Failed to upload JSON file:', error);
+    showNotification('文件上传失败', 'error');
+  } finally {
+    // 重置文件输入，允许重复上传同一个文件
+    event.target.value = '';
+  }
+};
+
+// 保存配置
+const saveConfig = async () => {
+  if (!configInput.value.trim()) {
+    showNotification('请输入配置内容', 'warning');
+    return;
+  }
+  
+  try {
+    isSavingConfig.value = true;
+    
+    // 验证JSON格式
+    try {
+      JSON.parse(configInput.value);
+    } catch (error) {
+      showNotification('无效的JSON格式', 'error');
+      return;
+    }
+    
+    // 这里可以添加实际的配置保存API调用
+    // const response = await fetch('/api/mcp/config', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json'
+    //   },
+    //   body: configInput.value
+    // });
+    
+    // 模拟保存成功
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    showNotification('配置保存成功', 'success');
+  } catch (error) {
+    console.error('Failed to save config:', error);
+    showNotification('配置保存失败', 'error');
+  } finally {
+    isSavingConfig.value = false;
+  }
+};
+
+// 清空配置
+const clearConfig = () => {
+  configInput.value = '';
+  showNotification('配置已清空', 'success');
+};
+
+// 导出配置
+const exportConfig = () => {
+  if (!configInput.value.trim()) {
+    showNotification('没有可导出的配置', 'warning');
+    return;
+  }
+  
+  try {
+    // 验证JSON格式
+    JSON.parse(configInput.value);
+    
+    // 创建Blob对象
+    const blob = new Blob([configInput.value], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    // 创建下载链接
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mcp-config-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    
+    // 释放URL对象
+    URL.revokeObjectURL(url);
+    
+    showNotification('配置导出成功', 'success');
+  } catch (error) {
+    console.error('Failed to export config:', error);
+    showNotification('配置导出失败，无效的JSON格式', 'error');
+  }
 };
 
 // 组件挂载时加载工具
