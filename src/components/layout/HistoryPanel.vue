@@ -355,7 +355,7 @@ const handleDeleteAllConfirm = async () => {
   isDeletingAll.value = true;
   
   try {
-    await chatStore.clearAllChats();
+    await chatStore.deleteAllChats();
     showNotification('所有对话已删除', 'success');
     showDeleteAllModal.value = false;
     

@@ -839,7 +839,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 清空所有对话（调用API）
-    async clearAllChats() {
+    async deleteAllChats() {
       try {
         // 调用API删除所有对话
         await apiService.chat.deleteAllChats();
