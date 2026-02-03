@@ -34,3 +34,10 @@ def get_mcp_tools():
     mcp_service = MCPService()
     return mcp_service.get_mcp_tools()
 
+# 获取MCP服务器列表
+@router.get('/servers')
+@handle_exception
+def get_mcp_servers():
+    mcp_service = MCPService()
+    return mcp_service.get_mcp_servers()
+

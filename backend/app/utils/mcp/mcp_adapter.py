@@ -39,11 +39,6 @@ class MCPAdapter:
                 "command": "npx",
                 "args": ["-y", "@modelcontextprotocol/server-filesystem", base_path]
             },
-            "weather": {
-                "transport": "stdio",
-                "command": "npx",
-                "args": ["-y", "@h1deya/mcp-server-weather"]
-            },
             "freesearch": {
                 "transport": "stdio",
                 "command": "npx",

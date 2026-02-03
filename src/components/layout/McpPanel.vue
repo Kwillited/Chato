@@ -10,13 +10,13 @@
     </div>
 
     <!-- 搜索框 -->
-    <SearchBar v-model="searchQuery" placeholder="搜索工具..." />
+    <SearchBar v-model="searchQuery" placeholder="搜索服务器..." />
 
     <div class="overflow-y-auto overflow-x-hidden flex-grow scrollbar-thin">
       <div class="p-2 space-y-4">
-        <!-- 工具分类标题 -->
+        <!-- 服务器分类标题 -->
         <div class="tool-category">
-          <h3 class="text-xs font-medium text-gray-500 mb-2 px-2">已上传工具</h3>
+          <h3 class="text-xs font-medium text-gray-500 mb-2 px-2">MCP 服务器</h3>
           
           <!-- 加载状态 -->
           <div v-if="isLoading" class="text-center p-4">
@@ -100,22 +100,22 @@ onMounted(() => {
   loadMcpTools();
 });
 
-// 加载MCP工具
+// 加载MCP服务器
 const loadMcpTools = async () => {
   try {
     isLoading.value = true;
-    console.log('Loading MCP tools...');
-    // 调用API获取MCP工具列表
-    const response = await fetch('/api/mcp/tools');
+    console.log('Loading MCP servers...');
+    // 调用API获取MCP服务器列表
+    const response = await fetch('/api/mcp/servers');
     if (!response.ok) {
-      throw new Error('Failed to fetch MCP tools');
+      throw new Error('Failed to fetch MCP servers');
     }
     const data = await response.json();
     tools.value = data || [];
-    console.log('MCP tools loaded:', data);
+    console.log('MCP servers loaded:', data);
   } catch (error) {
-    console.error('Failed to load MCP tools:', error);
-    showNotification('加载MCP工具失败', 'error');
+    console.error('Failed to load MCP servers:', error);
+    showNotification('加载MCP服务器失败', 'error');
   } finally {
     isLoading.value = false;
   }

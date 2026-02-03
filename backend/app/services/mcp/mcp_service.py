@@ -49,3 +49,20 @@ class MCPService(BaseService):
             except Exception as e:
                 self.logger.error(f"解析工具信息失败: {e}")
         return tool_list
+
+    def get_mcp_servers(self):
+        """获取MCP服务器列表"""
+        # 从MCP配置中获取服务器列表
+        from app.utils.mcp.mcp_adapter import mcp_adapter
+        # 获取默认配置中的服务器
+        default_config = mcp_adapter._get_default_config()
+        servers = []
+        for i, (server_name, server_config) in enumerate(default_config.items()):
+            server_info = {
+                "id": i + 1,
+                "name": server_name,
+                "description": f"{server_name.capitalize()} MCP Server",
+                "type": server_name
+            }
+            servers.append(server_info)
+        return servers
