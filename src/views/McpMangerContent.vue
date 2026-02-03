@@ -66,9 +66,9 @@
       </div>
       
       <!-- 下方左右卡片 -->
-      <div class="flex space-x-4">
+      <div class="flex flex-wrap space-x-4 gap-4">
         <!-- 工具列表卡片（左侧） -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 flex flex-col">
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 min-w-[300px] flex flex-col">
           <!-- 标题和搜索框 -->
           <div class="mb-4 flex-shrink-0 flex items-center space-x-4">
             <h3 class="text-sm font-semibold">MCP 工具列表</h3>
@@ -136,7 +136,7 @@
         </div>
         
         <!-- 工具详情卡片（右侧） -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 flex flex-col">
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 min-w-[300px] flex flex-col">
           <!-- 标题 -->
           <div class="mb-4 flex-shrink-0">
             <h3 class="text-sm font-semibold">工具详情</h3>
