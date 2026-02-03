@@ -284,20 +284,38 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
               // 结束事件，视为结束标志
               onMessage({ ...parsedData, done: true });
             } else if (parsedData.event === 'on_chat_model_stream') {
-              // 流事件，提取chunk内容
+              // 流事件，提取chunk内容，保留node和step信息
               if (parsedData.data.chunk) {
                 // 提取chunk内容
                 const chunkData = parsedData.data.chunk;
                 if (chunkData.content) {
                   // chunk包含content字段
-                  onMessage({ event: parsedData.event, chunk: chunkData.content, done: false });
+                  onMessage({ 
+                    event: parsedData.event, 
+                    node: parsedData.node, 
+                    step: parsedData.step, 
+                    chunk: chunkData.content, 
+                    done: false 
+                  });
                 } else {
                   // chunk直接是内容
-                  onMessage({ event: parsedData.event, chunk: chunkData, done: false });
+                  onMessage({ 
+                    event: parsedData.event, 
+                    node: parsedData.node, 
+                    step: parsedData.step, 
+                    chunk: chunkData, 
+                    done: false 
+                  });
                 }
               } else if (parsedData.data.content) {
                 // data直接包含content字段
-                onMessage({ event: parsedData.event, chunk: parsedData.data.content, done: false });
+                onMessage({ 
+                  event: parsedData.event, 
+                  node: parsedData.node, 
+                  step: parsedData.step, 
+                  chunk: parsedData.data.content, 
+                  done: false 
+                });
               } else {
                 // 其他流事件格式，直接传递
                 onMessage(parsedData);

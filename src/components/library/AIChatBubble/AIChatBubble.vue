@@ -30,74 +30,26 @@
       </div>
     </div>
     
-    <!-- 工具执行状态 -->
-    <div v-if="messageValue.toolExecutions && messageValue.toolExecutions.length > 0" class="space-y-3">
-      <div v-for="(tool, index) in messageValue.toolExecutions" :key="index" class="relative">
-        <div :class="[
-          'bg-transparent border border-dashed rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-full',
-          tool.status === 'executing' 
-            ? 'border-blue-300 dark:border-blue-600'
-            : 'border-green-300 dark:border-green-600'
-        ]">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-start gap-2 flex-1">
-              <svg v-if="tool.status === 'executing'" class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-              <svg v-else class="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <div :class="[
-                'text-xs leading-relaxed transition-all duration-300 ease-in-out overflow-hidden',
-                tool.status === 'executing' 
-                  ? 'text-blue-500 dark:text-blue-400'
-                  : 'text-green-500 dark:text-green-400'
-              ]">
-                <div class="font-medium">
-                  {{ tool.status === 'executing' ? '执行工具' : '工具执行成功' }}: {{ tool.name }}
-                </div>
-                <div v-if="tool.input" class="mt-1 text-gray-500 dark:text-gray-400">
-                  参数: {{ JSON.stringify(tool.input) }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- 基于step的工具执行状态会在步骤内部渲染 -->
+    
+    <!-- 兼容旧格式的工具执行状态（当没有steps时显示） -->
+    <div v-if="!messageValue.steps && messageValue.toolExecutions && messageValue.toolExecutions.length > 0" class="space-y-3">
+      <ToolExecutionStatus 
+        v-for="(tool, index) in messageValue.toolExecutions" 
+        :key="index"
+        :tool="tool"
+        containerClass="w-full"
+      />
     </div>
     
-    <!-- 兼容旧格式的工具执行状态 -->
-    <div v-else-if="(messageValue.status === 'tool_executing' || messageValue.status === 'tool_executed') && messageValue.currentTool" class="relative mb-3">
-      <div :class="[
-        'bg-transparent border border-dashed rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-full',
-        messageValue.status === 'tool_executing' 
-          ? 'border-blue-300 dark:border-blue-600'
-          : 'border-green-300 dark:border-green-600'
-      ]">
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex items-start gap-2 flex-1">
-            <svg v-if="messageValue.status === 'tool_executing'" class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-            <svg v-else class="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <div :class="[
-              'text-xs leading-relaxed transition-all duration-300 ease-in-out overflow-hidden',
-              messageValue.status === 'tool_executing' 
-                ? 'text-blue-500 dark:text-blue-400'
-                : 'text-green-500 dark:text-green-400'
-            ]">
-              <div class="font-medium">
-                {{ messageValue.status === 'tool_executing' ? '执行工具' : '工具执行成功' }}: {{ messageValue.currentTool }}
-              </div>
-              <div v-if="messageValue.toolInput" class="mt-1 text-gray-500 dark:text-gray-400">
-                参数: {{ JSON.stringify(messageValue.toolInput) }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- 兼容旧格式的工具执行状态（当没有steps时显示） -->
+    <div v-else-if="!messageValue.steps && (messageValue.status === 'tool_executing' || messageValue.status === 'tool_executed') && messageValue.currentTool" class="relative mb-3">
+      <ToolExecutionStatus 
+        :messageStatus="messageValue.status"
+        :currentTool="messageValue.currentTool"
+        :toolInput="messageValue.toolInput"
+        containerClass="w-full"
+      />
     </div>
     
     <!-- 智能体等待状态 -->
@@ -117,8 +69,49 @@
       </div>
     </div>
     
-    <!-- 消息内容气泡 -->
-    <div v-if="formattedContent || messageValue.error || messageValue.isTyping" class="rounded-lg px-5 py-4 overflow-hidden w-full">
+    <!-- 基于step的消息内容气泡 -->
+    <div v-if="messageValue.steps && messageValue.steps.length > 0" class="space-y-4 mt-3">
+      <div v-for="step in messageValue.steps" :key="step.step" class="rounded-lg px-5 py-4 overflow-hidden w-full">
+        <!-- 步骤标签 -->
+        <div class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
+          步骤 {{ step.step }}: {{ getNodeLabel(step.node) }}
+        </div>
+        
+        <!-- 思考内容 -->
+        <div v-if="step.thinking" class="relative mb-3">
+          <div class="bg-transparent border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-full">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex items-start gap-2 flex-1">
+                <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                <div 
+                  :class="[
+                    'text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic transition-all duration-300 ease-in-out overflow-hidden',
+                    step.thinkingCompleted ? 'max-h-10' : ''
+                  ]"
+                  v-html="step.thinking"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 步骤的工具执行状态 -->
+        <ToolExecutionStatus 
+          v-for="(tool, index) in step.toolExecutions" 
+          :key="index"
+          :tool="tool"
+          :containerClass="`w-full mt-3${index > 0 ? ' mt-2' : ''}`"
+        />
+        
+        <!-- 步骤内容 -->
+        <div v-if="step.content" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="step.content"></div>
+      </div>
+    </div>
+    
+    <!-- 传统消息内容气泡（兼容旧格式） -->
+    <div v-else-if="formattedContent || messageValue.error || messageValue.isTyping" class="rounded-lg px-5 py-4 overflow-hidden w-full mt-3">
       <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" :key="updateKey"></div>
       
       <!-- 错误状态显示 -->
@@ -198,78 +191,26 @@
         </div>
       </div>
       
-      <!-- 工具执行状态 -->
-      <div v-if="messageValue.toolExecutions && messageValue.toolExecutions.length > 0" class="space-y-2">
-        <div v-for="(tool, index) in messageValue.toolExecutions" :key="index" class="relative">
-          <div :class="[
-            'bg-transparent border border-dashed rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out',
-            'w-fit',
-            'max-w-full',
-            tool.status === 'executing' 
-              ? 'border-blue-300 dark:border-blue-600'
-              : 'border-green-300 dark:border-green-600'
-          ]">
-            <div class="flex items-start justify-between gap-2">
-              <div class="flex items-start gap-2 flex-1">
-                <svg v-if="tool.status === 'executing'" class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                <svg v-else class="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <div :class="[
-                  'text-xs leading-relaxed transition-all duration-300 ease-in-out overflow-hidden',
-                  tool.status === 'executing' 
-                    ? 'text-blue-500 dark:text-blue-400'
-                    : 'text-green-500 dark:text-green-400'
-                ]">
-                  <div class="font-medium">
-                    {{ tool.status === 'executing' ? '执行工具' : '工具执行成功' }}: {{ tool.name }}
-                  </div>
-                  <div v-if="tool.input" class="mt-1 text-gray-500 dark:text-gray-400">
-                    参数: {{ JSON.stringify(tool.input) }}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- 基于step的工具执行状态会在步骤内部渲染 -->
+      
+      <!-- 兼容旧格式的工具执行状态（当没有steps时显示） -->
+      <div v-if="!messageValue.steps && messageValue.toolExecutions && messageValue.toolExecutions.length > 0" class="space-y-2">
+        <ToolExecutionStatus 
+          v-for="(tool, index) in messageValue.toolExecutions" 
+          :key="index"
+          :tool="tool"
+          containerClass="w-fit max-w-full"
+        />
       </div>
       
-      <!-- 兼容旧格式的工具执行状态 -->
-      <div v-else-if="(messageValue.status === 'tool_executing' || messageValue.status === 'tool_executed') && messageValue.currentTool" class="relative mb-2">
-        <div :class="[
-          'bg-transparent border border-dashed rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out',
-          'w-fit',
-          'max-w-full',
-          messageValue.status === 'tool_executing' 
-            ? 'border-blue-300 dark:border-blue-600'
-            : 'border-green-300 dark:border-green-600'
-        ]">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-start gap-2 flex-1">
-              <svg v-if="messageValue.status === 'tool_executing'" class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-              <svg v-else class="w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              <div :class="[
-                'text-xs leading-relaxed transition-all duration-300 ease-in-out overflow-hidden',
-                messageValue.status === 'tool_executing' 
-                  ? 'text-blue-500 dark:text-blue-400'
-                  : 'text-green-500 dark:text-green-400'
-              ]">
-                <div class="font-medium">
-                  {{ messageValue.status === 'tool_executing' ? '执行工具' : '工具执行成功' }}: {{ messageValue.currentTool }}
-                </div>
-                <div v-if="messageValue.toolInput" class="mt-1 text-gray-500 dark:text-gray-400">
-                  参数: {{ JSON.stringify(messageValue.toolInput) }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <!-- 兼容旧格式的工具执行状态（当没有steps时显示） -->
+      <div v-else-if="!messageValue.steps && (messageValue.status === 'tool_executing' || messageValue.status === 'tool_executed') && messageValue.currentTool" class="relative mb-2">
+        <ToolExecutionStatus 
+          :messageStatus="messageValue.status"
+          :currentTool="messageValue.currentTool"
+          :toolInput="messageValue.toolInput"
+          containerClass="w-fit max-w-full"
+        />
       </div>
       
       <!-- 智能体等待状态 -->
@@ -294,13 +235,61 @@
         </div>
       </div>
       
-      <!-- 消息内容气泡 -->
-      <div v-if="formattedContent || messageValue.error || messageValue.isTyping" :class="[
+      <!-- 基于step的消息内容气泡 -->
+      <div v-if="messageValue.steps && messageValue.steps.length > 0" class="space-y-3 mt-2">
+        <div v-for="step in messageValue.steps" :key="step.step" :class="[
+          messageValue.event === 'on_chat_model_stream' 
+            ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-blue-800/30 overflow-hidden'
+            : 'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
+          'w-fit',
+          'max-w-full'
+        ]">
+          <!-- 步骤标签 -->
+          <div class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
+            步骤 {{ step.step }}: {{ getNodeLabel(step.node) }}
+          </div>
+          
+          <!-- 思考内容 -->
+          <div v-if="step.thinking" class="relative mb-3">
+            <div class="bg-transparent border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-full">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-start gap-2 flex-1">
+                  <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                  </svg>
+                  <div 
+                    :class="[
+                      'text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic transition-all duration-300 ease-in-out overflow-hidden',
+                      step.thinkingCompleted ? 'max-h-10' : ''
+                    ]"
+                    v-html="step.thinking"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 步骤的工具执行状态 -->
+          <ToolExecutionStatus 
+            v-for="(tool, index) in step.toolExecutions" 
+            :key="index"
+            :tool="tool"
+            :containerClass="`w-fit max-w-full mt-3${index > 0 ? ' mt-2' : ''}`"
+          />
+          
+          <!-- 步骤内容 -->
+          <div v-if="step.content" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="step.content"></div>
+        </div>
+      </div>
+      
+      <!-- 传统消息内容气泡（兼容旧格式） -->
+      <div v-else-if="formattedContent || messageValue.error || messageValue.isTyping" :class="[
         messageValue.event === 'on_chat_model_stream' 
           ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-blue-800/30 overflow-hidden'
           : 'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
         'w-fit',
-        'max-w-full'
+        'max-w-full',
+        'mt-2'
       ]">
         <!-- 事件类型标签 -->
         <div v-if="messageValue.event" class="text-xs text-blue-500 dark:text-blue-400 mb-1 font-medium">
@@ -343,7 +332,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { Tooltip } from '../index.js'
+import { Tooltip, ToolExecutionStatus } from '../index.js'
 import Loading from '../../common/Loading.vue'
 // 导入公共工具函数
 import { formatTime } from '../../../utils/time.js'
@@ -438,6 +427,17 @@ const getEventLabel = (event) => {
     'tool_response': '工具响应'
   }
   return eventLabels[event] || event
+}
+
+// 获取节点类型标签
+const getNodeLabel = (node) => {
+  const nodeLabels = {
+    'think': '思考',
+    'analyze': '分析',
+    'execute_tools': '执行工具',
+    'default': '默认'
+  }
+  return nodeLabels[node] || node
 }
 </script>
 
