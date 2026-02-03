@@ -10,12 +10,65 @@
     </div>
     
     <!-- 工具列表/网格容器 -->
-    <div class="flex-1 overflow-y-auto p-4">
+    <div class="flex-1 overflow-y-auto p-4 space-y-4">
       
-      <!-- 工具列表视图 -->
-      <div class="w-full h-full flex space-x-4">
-        <!-- 工具列表 -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 h-full max-w-2xl flex flex-col">
+      <!-- 配置管理卡片（上面的卡片） -->
+      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex flex-col">
+        <!-- 标题 -->
+        <div class="mb-4 flex-shrink-0">
+          <h3 class="text-sm font-semibold">配置管理</h3>
+        </div>
+        
+        <!-- 上传JSON文件 -->
+        <div class="mb-6">
+          <h4 class="text-xs font-medium text-gray-500 mb-2">上传JSON配置文件</h4>
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer" @click="triggerJsonUpload">
+            <i class="fa-solid fa-file-json text-gray-400 text-2xl mb-2"></i>
+            <p class="text-xs text-gray-500 mb-2">点击或拖拽文件到此处</p>
+            <p class="text-xs text-gray-400">支持 .json 文件</p>
+            <input type="file" ref="jsonFileInput" class="hidden" accept=".json" @change="handleJsonUpload">
+          </div>
+        </div>
+        
+        <!-- 配置输入 -->
+        <div class="flex-1">
+          <h4 class="text-xs font-medium text-gray-500 mb-2">手动输入配置</h4>
+          <textarea 
+            v-model="configInput"
+            placeholder='输入JSON配置，例如：{"key": "value"}'
+            class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm font-mono"
+          ></textarea>
+          <div class="flex space-x-2 mt-3">
+            <Button 
+              shape="rounded"
+              size="sm"
+              class="flex-1"
+              @click="saveConfig"
+              :loading="isSavingConfig"
+              content="保存配置"
+            />
+            <Button 
+              shape="rounded"
+              size="sm"
+              class="flex-1"
+              @click="clearConfig"
+              content="清空"
+            />
+            <Button 
+              shape="rounded"
+              size="sm"
+              class="flex-1"
+              @click="exportConfig"
+              content="导出"
+            />
+          </div>
+        </div>
+      </div>
+      
+      <!-- 下方左右卡片 -->
+      <div class="flex space-x-4">
+        <!-- 工具列表卡片（左侧） -->
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 flex flex-col">
           <!-- 标题和搜索框 -->
           <div class="mb-4 flex-shrink-0 flex items-center space-x-4">
             <h3 class="text-sm font-semibold">MCP 工具列表</h3>
@@ -82,61 +135,8 @@
           </div>
         </div>
         
-        <!-- 配置和上传卡片 -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 h-full w-full max-w-md flex flex-col">
-          <!-- 标题 -->
-          <div class="mb-4 flex-shrink-0">
-            <h3 class="text-sm font-semibold">配置管理</h3>
-          </div>
-          
-          <!-- 上传JSON文件 -->
-          <div class="mb-6">
-            <h4 class="text-xs font-medium text-gray-500 mb-2">上传JSON配置文件</h4>
-            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer" @click="triggerJsonUpload">
-              <i class="fa-solid fa-file-json text-gray-400 text-2xl mb-2"></i>
-              <p class="text-xs text-gray-500 mb-2">点击或拖拽文件到此处</p>
-              <p class="text-xs text-gray-400">支持 .json 文件</p>
-              <input type="file" ref="jsonFileInput" class="hidden" accept=".json" @change="handleJsonUpload">
-            </div>
-          </div>
-          
-          <!-- 配置输入 -->
-          <div class="flex-1">
-            <h4 class="text-xs font-medium text-gray-500 mb-2">手动输入配置</h4>
-            <textarea 
-              v-model="configInput"
-              placeholder='输入JSON配置，例如：{"key": "value"}'
-              class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm font-mono"
-            ></textarea>
-            <div class="flex space-x-2 mt-3">
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="saveConfig"
-                :loading="isSavingConfig"
-                content="保存配置"
-              />
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="clearConfig"
-                content="清空"
-              />
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="exportConfig"
-                content="导出"
-              />
-            </div>
-          </div>
-        </div>
-        
-        <!-- 工具详情卡片 -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 h-full w-full max-w-md flex flex-col">
+        <!-- 工具详情卡片（右侧） -->
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 flex flex-col">
           <!-- 标题 -->
           <div class="mb-4 flex-shrink-0">
             <h3 class="text-sm font-semibold">工具详情</h3>
