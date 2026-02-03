@@ -31,13 +31,13 @@
       </div>
       
       <!-- 面板内容区域 -->
-      <div class="flex-1 overflow-y-auto p-3 space-y-4">
+      <div class="flex-1 p-3">
         <!-- 上下文管理面板 -->
-        <div v-if="activePanel === 'context'" class="h-full flex flex-col space-y-4">
+        <div v-if="activePanel === 'context'" class="flex flex-col">
           <!-- 上下文概述 -->
-          <div class="panel-section flex-[2] flex flex-col">
+          <div class="mb-4">
             <h3 class="text-sm font-semibold text-gray-500 mb-2">上下文概述</h3>
-            <div class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700 p-3 flex-1">
+            <div class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700 p-3">
               <div class="space-y-1">
                 <p class="text-sm text-gray-600 dark:text-dark-text-secondary">当前会话: {{ chatStore.currentChat?.title || '无' }}</p>
                 <p class="text-sm text-gray-600 dark:text-dark-text-secondary">上下文数量: {{ getContextCount() }}</p>
@@ -50,7 +50,7 @@
           </div>
           
           <!-- 上下文筛选 -->
-          <div class="panel-section flex-[8] flex flex-col">
+          <div class="flex-1 flex flex-col">
             <div class="flex justify-between items-center mb-2">
               <h3 class="text-sm font-semibold text-gray-500">上下文筛选</h3>
               <div class="flex space-x-2">
@@ -71,7 +71,7 @@
               </div>
             </div>
             
-            <div class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700 flex-1 overflow-hidden flex flex-col">
+            <div class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700 h-[calc(100vh-350px)] overflow-hidden flex flex-col">
               <div class="flex-1 overflow-y-auto p-2">
                 <!-- 消息列表 -->
                 <div v-if="chatStore.currentChat && chatStore.currentChat.messages && chatStore.currentChat.messages.length > 0">
@@ -116,7 +116,7 @@
               </div>
               
               <!-- 操作按钮 -->
-              <div class="flex justify-end mt-2 space-x-2 p-2 border-t border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 rounded-b-lg">
+              <div class="flex justify-end space-x-2 p-2 border-t border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 rounded-b-lg">
                 <Button
                   shape="full"
                   size="md"
