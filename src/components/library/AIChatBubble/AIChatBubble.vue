@@ -240,7 +240,7 @@
         <div v-for="step in messageValue.steps" :key="step.step" :class="[
           messageValue.event === 'on_chat_model_stream' 
             ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-blue-800/30 overflow-hidden'
-            : 'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
+            : 'bg-gray-200 dark:bg-dark-500 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
           'w-fit',
           'max-w-full'
         ]">
@@ -286,7 +286,7 @@
       <div v-else-if="formattedContent || messageValue.error || messageValue.isTyping" :class="[
         messageValue.event === 'on_chat_model_stream' 
           ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-blue-800/30 overflow-hidden'
-          : 'bg-white dark:bg-dark-bg-tertiary rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
+          : 'bg-gray-200 dark:bg-dark-500 rounded-2xl rounded-tl-none px-5 py-3 shadow-lg dark:border dark:border-dark-border overflow-hidden',
         'w-fit',
         'max-w-full',
         'mt-2'

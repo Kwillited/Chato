@@ -24,7 +24,7 @@
       <!-- 消息内容气泡 -->
       <div 
         v-if="messageContent || messageValue.error || messageValue.isTyping"
-        class="bg-primary/20 text-gray-800 rounded-lg px-5 py-4 shadow-sm overflow-hidden w-full"
+        class="bg-gray-200 dark:bg-dark-500 text-gray-800 rounded-lg px-5 py-4 shadow-sm overflow-hidden w-full"
       >
         <!-- 文字内容 -->
         <div v-if="messageContent" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" v-memo="[formattedContent, updateKey]"></div>
@@ -91,7 +91,7 @@
       <div 
         v-if="messageContent || messageValue.error || messageValue.isTyping"
         :class="[
-          'bg-primary/20 text-gray-800 rounded-2xl rounded-tr-none px-5 py-3 shadow-lg overflow-hidden',
+          'bg-gray-200 dark:bg-dark-500 text-gray-800 rounded-2xl rounded-tr-none px-5 py-3 shadow-lg overflow-hidden',
           // 始终根据内容自动调整宽度，但不超过max-w-full
           'w-fit',
           // 最大宽度限制

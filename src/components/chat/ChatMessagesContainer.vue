@@ -53,10 +53,16 @@ const handleScrollToUserMessage = (userMessage) => {
     const msgValue = msg?.value || msg;
     return msgValue.timestamp === userMsgValue.timestamp;
   });
-  if (messageIndex !== -1) {
+  if (messageIndex !== -1 && scrollContainer.value) {
     const messageElement = document.getElementById(`message-${messageIndex}`);
     if (messageElement) {
-      messageElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const containerRect = scrollContainer.value.getBoundingClientRect();
+      const messageRect = messageElement.getBoundingClientRect();
+      const scrollPosition = messageRect.top - containerRect.top + scrollContainer.value.scrollTop;
+      scrollContainer.value.scrollTo({ 
+        top: scrollPosition - 20, // 减去20px的偏移，使消息显示在容器顶部下方一点
+        behavior: 'smooth' 
+      });
     }
   }
 };
