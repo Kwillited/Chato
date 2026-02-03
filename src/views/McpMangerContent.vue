@@ -10,65 +10,68 @@
     </div>
     
     <!-- 工具列表/网格容器 -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+    <div class="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       
       <!-- 配置管理卡片（上面的卡片） -->
-      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex flex-col">
+      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex flex-col" style="min-height: 200px;">
         <!-- 标题 -->
         <div class="mb-4 flex-shrink-0">
           <h3 class="text-sm font-semibold">配置管理</h3>
         </div>
         
-        <!-- 上传JSON文件 -->
-        <div class="mb-6">
-          <h4 class="text-xs font-medium text-gray-500 mb-2">上传JSON配置文件</h4>
-          <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer" @click="triggerJsonUpload">
-            <i class="fa-solid fa-file-json text-gray-400 text-2xl mb-2"></i>
-            <p class="text-xs text-gray-500 mb-2">点击或拖拽文件到此处</p>
-            <p class="text-xs text-gray-400">支持 .json 文件</p>
-            <input type="file" ref="jsonFileInput" class="hidden" accept=".json" @change="handleJsonUpload">
+        <!-- 响应式布局容器 -->
+        <div class="flex flex-col md:flex-row gap-4 flex-1">
+          <!-- 上传JSON文件（左侧） -->
+          <div class="flex-1 flex flex-col">
+            <h4 class="text-xs font-medium text-gray-500 mb-2">上传JSON配置文件</h4>
+            <div class="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer flex flex-col items-center justify-center" @click="triggerJsonUpload">
+              <i class="fa-solid fa-file-json text-gray-400 text-2xl mb-2"></i>
+              <p class="text-xs text-gray-500 mb-2">点击或拖拽文件到此处</p>
+              <p class="text-xs text-gray-400">支持 .json 文件</p>
+              <input type="file" ref="jsonFileInput" class="hidden" accept=".json" @change="handleJsonUpload">
+            </div>
           </div>
-        </div>
-        
-        <!-- 配置输入 -->
-        <div class="flex-1">
-          <h4 class="text-xs font-medium text-gray-500 mb-2">手动输入配置</h4>
-          <textarea 
-            v-model="configInput"
-            placeholder='输入JSON配置，例如：{"key": "value"}'
-            class="w-full h-40 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm font-mono"
-          ></textarea>
-          <div class="flex space-x-2 mt-3">
-            <Button 
-              shape="rounded"
-              size="sm"
-              class="flex-1"
-              @click="saveConfig"
-              :loading="isSavingConfig"
-              content="保存配置"
-            />
-            <Button 
-              shape="rounded"
-              size="sm"
-              class="flex-1"
-              @click="clearConfig"
-              content="清空"
-            />
-            <Button 
-              shape="rounded"
-              size="sm"
-              class="flex-1"
-              @click="exportConfig"
-              content="导出"
-            />
+          
+          <!-- 配置输入（右侧） -->
+          <div class="flex-1 flex flex-col">
+            <h4 class="text-xs font-medium text-gray-500 mb-2">手动输入配置</h4>
+            <textarea 
+              v-model="configInput"
+              placeholder='输入JSON配置，例如：{"key": "value"}'
+              class="w-full h-40 p-3 rounded-lg focus:outline-none text-sm font-mono config-textarea"
+            ></textarea>
+            <div class="flex space-x-2 mt-3">
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="saveConfig"
+                :loading="isSavingConfig"
+                content="保存配置"
+              />
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="clearConfig"
+                content="清空"
+              />
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="exportConfig"
+                content="导出"
+              />
+            </div>
           </div>
         </div>
       </div>
       
       <!-- 下方左右卡片 -->
-      <div class="flex flex-wrap space-x-4 gap-4">
+      <div class="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
         <!-- 工具列表卡片（左侧） -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 min-w-[300px] flex flex-col">
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col overflow-hidden">
           <!-- 标题和搜索框 -->
           <div class="mb-4 flex-shrink-0 flex items-center space-x-4">
             <h3 class="text-sm font-semibold">MCP 工具列表</h3>
@@ -83,7 +86,7 @@
               <i class="fa-solid fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
             </div>
           </div>
-          <div class="space-y-2 overflow-y-auto overflow-x-hidden flex-1">
+          <div class="space-y-2 overflow-y-auto flex-1">
             <div v-for="tool in filteredTools" :key="tool.id" 
                  class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow p-3 cursor-pointer flex items-center justify-between relative"
                  @click="selectTool(tool)">
@@ -121,14 +124,14 @@
             </div>
             
             <!-- 空状态 -->
-            <div v-if="filteredTools.length === 0 && !isLoading" class="flex flex-col items-center justify-center h-64 text-gray-500">
+            <div v-if="filteredTools.length === 0 && !isLoading" class="flex flex-col items-center justify-center h-full text-gray-500">
               <i class="fa-solid fa-toolbox text-4xl mb-4"></i>
               <p>暂无MCP工具</p>
               <p class="text-sm mt-2">点击上传按钮添加新的MCP工具</p>
             </div>
             
             <!-- 加载状态 -->
-            <div v-if="isLoading" class="flex flex-col items-center justify-center h-64 text-gray-500">
+            <div v-if="isLoading" class="flex flex-col items-center justify-center h-full text-gray-500">
               <div class="w-10 h-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
               <p>加载中...</p>
             </div>
@@ -136,7 +139,7 @@
         </div>
         
         <!-- 工具详情卡片（右侧） -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 w-full flex-1 min-w-[300px] flex flex-col">
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col overflow-hidden">
           <!-- 标题 -->
           <div class="mb-4 flex-shrink-0">
             <h3 class="text-sm font-semibold">工具详情</h3>
@@ -149,7 +152,7 @@
           </div>
           
           <!-- 工具详情内容 -->
-          <div v-else class="flex-1 space-y-4">
+          <div v-else class="flex-1 space-y-4 overflow-y-auto">
             <!-- 工具基本信息 -->
             <div>
               <h4 class="text-xs font-medium text-gray-500 mb-2">基本信息</h4>
@@ -605,5 +608,17 @@ onMounted(() => {
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.7);
+}
+
+/* 配置输入textarea样式 */
+.config-textarea {
+  border: 2px solid #6B7280 !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.config-textarea:focus {
+  border-color: #4F46E5 !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
 }
 </style>
