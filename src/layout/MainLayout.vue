@@ -73,7 +73,7 @@ import { useUiStore } from '../store/uiStore.js';
 import LayoutHeader from '../components/layout/LayoutHeader.vue';
 import LeftPanel from '../components/layout/LeftPanel.vue';
 import MainContent from '../components/layout/MainContent.vue';
-import RightPanel from '../components/panel/RightPanel.vue';
+import RightPanel from '../components/layout/RightPanel.vue';
 
 // Props
 const props = defineProps({

@@ -20,7 +20,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useUiStore } from '../../store/uiStore.js';
-import PanelContent from '../panel/PanelContent.vue';
+import PanelContent from './PanelContent.vue';
 
 // Stores
 const uiStore = useUiStore();
