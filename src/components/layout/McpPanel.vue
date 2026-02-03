@@ -1,13 +1,6 @@
 <template>
   <div id="mcpPanel" class="h-full flex flex-col">
-    <!-- 上传区域 -->
-    <div class="p-3">
-      <label class="upload-button cursor-pointer block w-full text-center px-4 py-3 border border-dashed border-gray-300 rounded-lg hover:border-primary hover:bg-primary/5 transition-all duration-300 text-sm">
-        <i class="fa-solid fa-upload mr-2"></i>
-        上传MCP工具
-        <input type="file" accept=".py,.json" class="hidden" @change="handleFileUpload" />
-      </label>
-    </div>
+  
 
     <!-- 搜索框 -->
     <SearchBar v-model="searchQuery" placeholder="搜索服务器..." />
@@ -25,7 +18,7 @@
           </div>
           <!-- 过滤后的工具列表 -->
           <div v-else-if="filteredTools.length > 0">
-            <div v-for="tool in filteredTools" :key="tool.id" class="tool-item p-3 rounded-lg bg-white border border-gray-100 dark:bg-dark-700 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 relative">
+            <div v-for="tool in filteredTools" :key="tool.id" class="tool-item p-3 rounded-lg bg-white border border-gray-100 dark:bg-dark-700 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 relative" @click="handleToolClick(tool)">
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
                   <div class="flex items-center space-x-3">
@@ -76,6 +69,10 @@ import { showNotification } from '../../utils/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
 import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
+import { useUiStore } from '../../store/uiStore.js';
+
+// 状态管理
+const uiStore = useUiStore();
 
 // 确认删除模态框状态
 const showDeleteModal = ref(false);
@@ -230,6 +227,13 @@ const getToolIcon = (toolType) => {
     'custom': 'fa-solid fa-code'
   };
   return icons[toolType] || 'fa-solid fa-toolbox';
+};
+
+// 处理工具点击事件
+const handleToolClick = (tool) => {
+  // 切换到MCP管理视图
+  uiStore.setActiveContent('mcpManagement');
+  console.log('切换到MCP管理视图，工具:', tool.name);
 };
 </script>
 

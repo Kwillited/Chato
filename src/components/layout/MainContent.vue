@@ -4,6 +4,7 @@
     <ChatContent v-if="activeContent === 'chat'" />
     <SettingsContent v-if="activeContent === 'settings'" />
     <FileMangerContent v-if="activeContent === 'ragManagement' || activeContent === 'fileManager'" />
+    <McpMangerContent v-if="activeContent === 'mcpManagement'" />
     <ContextVisualizationContent v-if="activeContent === 'contextVisualization'" />
     <HomeContent v-if="activeContent === 'sendMessage' || activeContent === 'home'" />
     <AISettingsContent v-if="activeContent === 'aiSettings'" />
@@ -15,6 +16,7 @@ import { ref } from 'vue';
 import ChatContent from '../../views/ChatContent.vue';
 import SettingsContent from '../../views/SettingsContent.vue';
 import FileMangerContent from '../../views/FileMangerContent.vue';
+import McpMangerContent from '../../views/McpMangerContent.vue';
 import { ContextVisualizationContent } from '../library';
 import HomeContent from '../../views/HomeContent.vue';
 import AISettingsContent from '../../views/AISettingsContent.vue';
