@@ -15,7 +15,7 @@
     <!-- 搜索框 -->
     <SearchBar v-model="searchQuery" placeholder="搜索对话..." />
 
-    <div ref="scrollContainer" class="overflow-y-auto h-[calc(100%-100px)] scrollbar-thin transition-colors duration-300 ease-in-out" @scroll="handleScroll">
+    <div ref="scrollContainer" class="overflow-y-auto flex-1 scrollbar-thin transition-colors duration-300 ease-in-out">
       <div id="chatHistory" class="p-2 space-y-3 transition-all duration-300 ease-in-out">
         <!-- 加载状态：使用骨架屏提升体验 -->
         <div v-if="chatStore.isLoading && chatHistory.length === 0" class="transition-opacity duration-300">
