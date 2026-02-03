@@ -1,6 +1,6 @@
 <template>
   <!-- 聊天快捷跳转模块 -->
-  <div class="fixed top-1/2 transform -translate-y-1/2 flex flex-col items-center z-10" :style="indicatorPosition">
+  <div class="fixed flex flex-col items-center z-10" :style="indicatorPosition">
     <div class="flex flex-col items-center">
       <!-- 遍历所有用户消息 -->
       <div 
@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useSettingsStore } from '../../../store/settingsStore.js';
 import { useUiStore } from '../../../store/uiStore.js';
 
@@ -117,7 +117,8 @@ const updateCurrentHighlightedMessage = () => {
     const msgValue = message?.value || message;
     if (messageElement && msgValue.role === 'user') {
       const rect = messageElement.getBoundingClientRect();
-      const messageTop = rect.top + window.pageYOffset;
+      const containerRect = props.scrollContainer.getBoundingClientRect();
+      const messageTop = rect.top - containerRect.top + props.scrollContainer.scrollTop;
       const messageBottom = messageTop + rect.height;
       
       // 检查消息是否在视口内
@@ -162,8 +163,13 @@ watch(() => props.chatMessages, () => {
   }, 100);
 }, { deep: true });
 
-// 计算指示器位置：根据右侧面板的宽度和可见性动态调整
-const indicatorPosition = computed(() => {
+// 位置状态
+const indicatorStyle = ref({});
+
+// 计算滚动容器的垂直中心点并更新位置
+const updateIndicatorPosition = () => {
+  if (!props.scrollContainer) return;
+  
   const baseRight = 20; // 基础right值
   let rightPanelWidth = 0;
   
@@ -174,10 +180,67 @@ const indicatorPosition = computed(() => {
     rightPanelWidth = parseInt(widthStr, 10) || 0;
   }
   
-  // 计算最终的right值：基础right值 + 右侧面板宽度
-  return {
-    right: `${baseRight + rightPanelWidth}px`
+  // 计算滚动容器的垂直中心点
+  const rect = props.scrollContainer.getBoundingClientRect();
+  const centerY = rect.top + rect.height / 2;
+  
+  // 更新位置样式
+  indicatorStyle.value = {
+    right: `${baseRight + rightPanelWidth}px`,
+    top: `${centerY}px`,
+    transform: 'translateY(-50%)'
   };
+};
+
+// 监听滚动容器大小变化
+let resizeTimeout = null;
+let resizeObserver = null;
+
+const handleResize = () => {
+  // 立即更新位置（无延迟），确保响应迅速
+  updateIndicatorPosition();
+  
+  // 但对高亮消息更新添加防抖，避免频繁计算
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+  }
+  resizeTimeout = setTimeout(() => {
+    updateCurrentHighlightedMessage();
+  }, 50); // 减少防抖延迟到50ms
+};
+
+// 组件挂载后初始化
+onMounted(() => {
+  // 初始更新位置和高亮消息
+  updateIndicatorPosition();
+  updateCurrentHighlightedMessage();
+  
+  // 添加窗口大小变化监听
+  window.addEventListener('resize', handleResize);
+  
+  // 添加滚动容器大小变化监听
+  if (props.scrollContainer) {
+    resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(props.scrollContainer);
+  }
+});
+
+// 组件卸载时清理
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize);
+  if (resizeTimeout) {
+    clearTimeout(resizeTimeout);
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
+
+// 计算指示器位置：根据右侧面板的宽度和可见性动态调整
+const indicatorPosition = computed(() => {
+  // 确保位置始终是最新的
+  updateIndicatorPosition();
+  return indicatorStyle.value;
 });
 
 // 暴露方法给父组件
