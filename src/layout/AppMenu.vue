@@ -1,7 +1,7 @@
 <template>
   <div 
     id="appMenuBar" 
-    class="z-50 relative top-0 left-0 right-0 h-8 flex items-center px-4 bg-[#F8FAFC] dark:bg-dark-primary transition-all duration-300" 
+    class="z-50 relative top-0 left-0 right-0 h-8 flex items-center px-4 bg-light dark:bg-dark-primary transition-all duration-300" 
     style="-webkit-app-region: drag;"
   >
     <!-- 菜单栏项目 -->

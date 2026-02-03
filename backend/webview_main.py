@@ -106,26 +106,6 @@ def start_webview():
     # 构建前端URL，使用127.0.0.1而不是0.0.0.0
     frontend_url = f"http://127.0.0.1:{port}"
     
-    # 窗口状态跟踪
-    is_maximized = False
-    
-    # 定义窗口控制API
-    class Api:
-        def minimize_window(self):
-            window.minimize()
-        
-        def maximize_window(self):
-            nonlocal is_maximized
-            if is_maximized:
-                window.restore()
-                is_maximized = False
-            else:
-                window.maximize()
-                is_maximized = True
-        
-        def close_window(self):
-            window.destroy()
-    
     # 创建webview窗口
     window = webview.create_window(
         "Chato",
@@ -135,7 +115,6 @@ def start_webview():
         resizable=True,
         fullscreen=False,
         min_size=(600, 400),
-        js_api=Api()
     )
     
     # 启动webview主循环

@@ -1,5 +1,5 @@
 <template>
-  <div class="panel-header p-3 flex items-center justify-between border-b border-gray-200 dark:border-dark-700 transition-all duration-300 relative z-50">
+  <div class="panel-header p-3 flex items-center justify-between transition-all duration-300 relative z-50">
     <!-- 左侧：隐藏左侧面板按钮和新增会话按钮 -->
     <div class="flex space-x-2">
       <!-- 隐藏左侧面板按钮和新增会话按钮 - 只在非设置页面显示 -->

@@ -1,5 +1,5 @@
 <template>
-  <div id="mainContent" ref="mainContent" class="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC] dark:bg-dark-primary" :class="{'transition-all duration-300': !isInitialLoading}">
+  <div id="mainContent" ref="mainContent" class="flex-1 flex flex-col overflow-hidden bg-light dark:bg-dark-primary" :class="{'transition-all duration-300': !isInitialLoading}">
     <!-- 根据activeContent动态切换内容组件 -->
     <ChatContent v-if="activeContent === 'chat'" />
     <SettingsContent v-if="activeContent === 'settings'" />
