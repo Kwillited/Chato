@@ -32,7 +32,9 @@
           </div>
           <div class="space-y-2 overflow-y-auto overflow-x-hidden flex-1">
             <div v-for="tool in filteredTools" :key="tool.id" 
-                 class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow p-3 cursor-pointer flex items-center justify-between relative">
+                 class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow p-3 cursor-pointer flex items-center justify-between relative"
+                 @click="selectTool(tool)">
+                 <div class="absolute inset-0 rounded-lg" :class="{'ring-2 ring-primary ring-opacity-50': selectedTool && selectedTool.id === tool.id}"></div>
               <!-- 左侧：工具图标和信息 -->
               <div class="flex items-center space-x-3">
                 <!-- 工具图标 -->
@@ -132,6 +134,70 @@
             </div>
           </div>
         </div>
+        
+        <!-- 工具详情卡片 -->
+        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 h-full w-full max-w-md flex flex-col">
+          <!-- 标题 -->
+          <div class="mb-4 flex-shrink-0">
+            <h3 class="text-sm font-semibold">工具详情</h3>
+          </div>
+          
+          <!-- 未选择工具状态 -->
+          <div v-if="!selectedTool" class="flex-1 flex flex-col items-center justify-center text-gray-400">
+            <i class="fa-solid fa-info-circle text-2xl mb-2"></i>
+            <p class="text-xs">请从左侧列表选择一个工具查看详情</p>
+          </div>
+          
+          <!-- 工具详情内容 -->
+          <div v-else class="flex-1 space-y-4">
+            <!-- 工具基本信息 -->
+            <div>
+              <h4 class="text-xs font-medium text-gray-500 mb-2">基本信息</h4>
+              <div class="bg-gray-50 dark:bg-dark-800 rounded-lg p-3">
+                <div class="flex items-center space-x-3 mb-3">
+                  <div :class="getToolIconClass(selectedTool.type)" class="w-10 h-10 rounded-full flex items-center justify-center">
+                    <i :class="getToolIcon(selectedTool.type)"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium">{{ selectedTool.name }}</p>
+                    <p class="text-xs text-gray-500">{{ selectedTool.type || 'custom' }}</p>
+                  </div>
+                </div>
+                <div class="text-xs text-gray-600 dark:text-gray-400">
+                  <p class="mb-1">{{ selectedTool.description || '暂无描述' }}</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 工具配置信息 -->
+            <div>
+              <h4 class="text-xs font-medium text-gray-500 mb-2">配置信息</h4>
+              <div class="bg-gray-50 dark:bg-dark-800 rounded-lg p-3">
+                <pre class="text-xs font-mono whitespace-pre-wrap text-gray-600 dark:text-gray-400">
+                  {{ JSON.stringify(selectedTool.config || {}, null, 2) }}
+                </pre>
+              </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="flex space-x-2">
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="editTool"
+                content="编辑工具"
+              />
+              <Button 
+                shape="rounded"
+                size="sm"
+                class="flex-1"
+                @click="duplicateTool"
+                content="复制工具"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -176,6 +242,9 @@ const isDeletingTool = ref(false);
 const configInput = ref('');
 const jsonFileInput = ref(null);
 const isSavingConfig = ref(false);
+
+// 工具详情相关
+const selectedTool = ref(null);
 
 // 计算属性：过滤工具
 const filteredTools = computed(() => {
@@ -466,6 +535,47 @@ const exportConfig = () => {
   } catch (error) {
     console.error('Failed to export config:', error);
     showNotification('配置导出失败，无效的JSON格式', 'error');
+  }
+};
+
+// 选择工具
+const selectTool = (tool) => {
+  selectedTool.value = tool;
+  console.log('Selected tool:', tool.name);
+};
+
+// 编辑工具
+const editTool = () => {
+  if (!selectedTool.value) return;
+  
+  // 这里可以添加编辑工具的逻辑，例如打开编辑模态框
+  showNotification('编辑工具功能开发中', 'info');
+  console.log('Edit tool:', selectedTool.value.name);
+};
+
+// 复制工具
+const duplicateTool = async () => {
+  if (!selectedTool.value) return;
+  
+  try {
+    // 创建工具的副本
+    const duplicatedTool = {
+      ...selectedTool.value,
+      id: Date.now(), // 生成新ID
+      name: `${selectedTool.value.name} (副本)`,
+      config: JSON.parse(JSON.stringify(selectedTool.value.config || {})) // 深拷贝配置
+    };
+    
+    // 添加到工具列表
+    tools.value.push(duplicatedTool);
+    
+    // 选择新复制的工具
+    selectedTool.value = duplicatedTool;
+    
+    showNotification('工具复制成功', 'success');
+  } catch (error) {
+    console.error('Failed to duplicate tool:', error);
+    showNotification('工具复制失败', 'error');
   }
 };
 
