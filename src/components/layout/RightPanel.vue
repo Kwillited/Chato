@@ -55,15 +55,17 @@
               <h3 class="text-sm font-semibold text-gray-500">上下文筛选</h3>
               <div class="flex space-x-2">
                 <Button
-                  shape="full"
-                  size="sm"
+                  shape="rounded"
+                  size="md"
+                  variant="secondary"
                   icon="fa-check-square"
                   tooltip="全选"
                   @click="selectAllMessages"
                 />
                 <Button
-                  shape="full"
-                  size="sm"
+                  shape="rounded"
+                  size="md"
+                  variant="secondary"
                   icon="fa-square"
                   tooltip="取消全选"
                   @click="clearAllSelections"
@@ -118,15 +120,17 @@
               <!-- 操作按钮 -->
               <div class="flex justify-end space-x-2 p-2 border-t border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 rounded-b-lg">
                 <Button
-                  shape="full"
+                  shape="rounded"
                   size="md"
+                  variant="secondary"
                   :icon="uiStore.activeView === 'chat' ? 'fa-sitemap' : 'fa-comments'"
                   :tooltip="`切换到${uiStore.activeView === 'chat' ? '上下文工程可视化' : '对话'}视图`"
                   @click="toggleView"
                 />
                 <Button
-                  shape="full"
+                  shape="rounded"
                   size="md"
+                  variant="secondary"
                   icon="fa-check"
                   tooltip="应用调整"
                   @click="applyContextChanges"
