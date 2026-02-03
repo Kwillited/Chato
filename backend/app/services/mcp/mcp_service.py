@@ -2,6 +2,7 @@
 from app.services.settings.setting_service import SettingService
 from app.services.base_service import BaseService
 from app.utils.logging_utils import LoggingUtils
+from app.utils.mcp.mcp_adapter import mcp_adapter
 
 
 class MCPService(BaseService):
@@ -30,3 +31,21 @@ class MCPService(BaseService):
     def save_notification_settings(self, data):
         """保存通知设置"""
         return self.setting_service.save_notification_settings(data)
+
+    def get_mcp_tools(self):
+        """获取MCP工具列表"""
+        tools = mcp_adapter.get_tools()
+        # 转换工具格式，提取必要的信息
+        tool_list = []
+        for i, tool in enumerate(tools):
+            try:
+                tool_info = {
+                    "id": i + 1,
+                    "name": getattr(tool, 'name', f"Tool {i + 1}"),
+                    "description": getattr(tool, 'description', "No description available"),
+                    "type": "custom"
+                }
+                tool_list.append(tool_info)
+            except Exception as e:
+                self.logger.error(f"解析工具信息失败: {e}")
+        return tool_list

@@ -12,14 +12,19 @@
     <!-- 搜索框 -->
     <SearchBar v-model="searchQuery" placeholder="搜索工具..." />
 
-    <div class="overflow-y-auto h-[calc(100%-165px)] scrollbar-thin">
+    <div class="overflow-y-auto overflow-x-hidden flex-grow scrollbar-thin">
       <div class="p-2 space-y-4">
         <!-- 工具分类标题 -->
         <div class="tool-category">
           <h3 class="text-xs font-medium text-gray-500 mb-2 px-2">已上传工具</h3>
           
+          <!-- 加载状态 -->
+          <div v-if="isLoading" class="text-center p-4">
+            <i class="fa-solid fa-spinner fa-spin mr-2"></i>
+            加载工具中...
+          </div>
           <!-- 过滤后的工具列表 -->
-          <div v-if="filteredTools.length > 0">
+          <div v-else-if="filteredTools.length > 0">
             <div v-for="tool in filteredTools" :key="tool.id" class="tool-item p-3 rounded-lg bg-white border border-gray-100 dark:bg-dark-700 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 relative">
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
@@ -79,11 +84,9 @@ const currentDeleteToolName = ref(null);
 const isDeletingTool = ref(false);
 
 // 工具列表数据
-const tools = ref([
-  { id: 1, name: '天气查询', description: '查询指定城市的天气信息', type: 'weather' },
-  { id: 2, name: '多模型集成', description: '不同AI模型的统一调用', type: 'multiModel' },
-  { id: 3, name: '文件处理', description: '文档分析和转换工具', type: 'fileProcessor' }
-]);
+const tools = ref([]);
+// 加载状态
+const isLoading = ref(false);
 
 // 使用搜索组合式函数
 const { searchQuery, filteredTools } = useSearch({
@@ -93,21 +96,28 @@ const { searchQuery, filteredTools } = useSearch({
 
 // 组件挂载时的初始化
 onMounted(() => {
-  // 可以在这里加载MCP工具配置或状态
+  // 加载MCP工具
   loadMcpTools();
 });
 
 // 加载MCP工具
 const loadMcpTools = async () => {
   try {
-    // 这里可以添加实际的API调用来获取可用的MCP工具列表
+    isLoading.value = true;
     console.log('Loading MCP tools...');
-    // 模拟加载过程
-    // const response = await apiService.getMcpTools();
-    // tools.value = response.data || [];
+    // 调用API获取MCP工具列表
+    const response = await fetch('/api/mcp/tools');
+    if (!response.ok) {
+      throw new Error('Failed to fetch MCP tools');
+    }
+    const data = await response.json();
+    tools.value = data || [];
+    console.log('MCP tools loaded:', data);
   } catch (error) {
     console.error('Failed to load MCP tools:', error);
     showNotification('加载MCP工具失败', 'error');
+  } finally {
+    isLoading.value = false;
   }
 }
 
