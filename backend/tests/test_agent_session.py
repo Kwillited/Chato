@@ -118,7 +118,7 @@ def test_agent_session():
             'agent_node': 'think',
             'agent_step': 0,
             'agent_metadata': json.dumps({
-                'step': 0,
+                'agent_step': 0,
                 'node': 'think',
                 'thought': '我需要查询天气信息'
             })

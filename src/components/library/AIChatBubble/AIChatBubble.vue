@@ -71,13 +71,13 @@
     
     <!-- 基于step的消息内容气泡 -->
     <div v-if="messageValue.steps && messageValue.steps.length > 0" class="space-y-4 mt-3">
-      <template v-for="step in messageValue.steps" :key="step.step">
+      <template v-for="step in messageValue.steps" :key="step.agent_step">
         <!-- 检查是否只有工具执行信息，没有其他内容 -->
         <template v-if="(step.toolExecutions && step.toolExecutions.length > 0) || parseToolExecutions(step.content).length > 0 && !extractNonToolContent(step.content)">
           <!-- 只有工具执行信息时，直接显示工具执行状态，不包含在气泡中 -->
           <!-- 步骤标签 -->
           <div class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
-            步骤 {{ step.step }}: {{ getNodeLabel(step.node) }}
+            步骤 {{ step.agent_step }}: {{ getNodeLabel(step.node) }}
           </div>
           
           <!-- 思考内容 -->
@@ -121,7 +121,7 @@
           <div class="rounded-lg px-5 py-4 overflow-hidden w-full">
             <!-- 步骤标签 -->
             <div class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
-              步骤 {{ step.step }}: {{ getNodeLabel(step.node) }}
+              步骤 {{ step.agent_step }}: {{ getNodeLabel(step.node) }}
             </div>
             
             <!-- 思考内容 -->
@@ -294,13 +294,13 @@
       
       <!-- 基于step的消息内容气泡 -->
       <div v-if="messageValue.steps && messageValue.steps.length > 0" class="space-y-3 mt-2">
-        <template v-for="step in messageValue.steps" :key="step.step">
+        <template v-for="step in messageValue.steps" :key="step.agent_step">
           <!-- 检查是否只有工具执行信息，没有其他内容 -->
           <template v-if="(step.toolExecutions && step.toolExecutions.length > 0) || parseToolExecutions(step.content).length > 0 && !extractNonToolContent(step.content)">
             <!-- 只有工具执行信息时，直接显示工具执行状态，不包含在气泡中 -->
             <!-- 步骤标签 -->
             <div class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
-              步骤 {{ step.step }}: {{ getNodeLabel(step.node) }}
+              步骤 {{ step.agent_step }}: {{ getNodeLabel(step.node) }}
             </div>
             
             <!-- 思考内容 -->
@@ -350,7 +350,7 @@
             ]">
               <!-- 步骤标签 -->
               <div class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
-                步骤 {{ step.step }}: {{ getNodeLabel(step.node) }}
+                步骤 {{ step.agent_step }}: {{ getNodeLabel(step.node) }}
               </div>
               
               <!-- 思考内容 -->

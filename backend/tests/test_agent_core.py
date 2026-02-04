@@ -128,7 +128,7 @@ def test_agent_core():
             agent_session_id=str(uuid.uuid4()),
             agent_node="think",
             agent_step=0,
-            agent_metadata=json.dumps({"step": 0, "node": "think"})
+            agent_metadata=json.dumps({"agent_step": 0, "node": "think"})
         )
         
         print(f"✅ 创建智能体消息Pydantic模型成功")

@@ -134,9 +134,6 @@ class AgentResponseStrategy(ResponseStrategy):
                     if isinstance(chunk, dict):
                         print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
                         chunk['agent'] = True
-                        # 保留 agent_step 和 tool_index 字段，移除多余的 step 字段
-                        if 'step' in chunk:
-                            del chunk['step']
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                         
                         # 获取节点信息
@@ -150,7 +147,7 @@ class AgentResponseStrategy(ResponseStrategy):
                         # 记录步骤信息
                         step_info = {
                             "node": node,
-                            "step": step,
+                            "agent_step": step,
                             "event": chunk.get('event'),
                             "timestamp": now
                         }
@@ -223,7 +220,7 @@ class AgentResponseStrategy(ResponseStrategy):
                                     "role": "assistant",
                                     "content": content,
                                     "node": node,
-                                    "step": step
+                                    "agent_step": step
                                 })
                         elif chunk.get('event') == 'on_tool_call_stream':
                             # 存储工具调用计划
@@ -240,11 +237,11 @@ class AgentResponseStrategy(ResponseStrategy):
                                     # 更新智能体状态中的消息
                                     agent_state["messages"].append({
                                         "role": "assistant",
-                                        "content": f"计划调用工具: {tool_name}",
-                                        "node": node,
-                                        "step": step,
-                                        "tool_name": tool_name,
-                                        "tool_args": tool_args
+                                    "content": f"计划调用工具: {tool_name}",
+                                    "node": node,
+                                    "agent_step": step,
+                                    "tool_name": tool_name,
+                                    "tool_args": tool_args
                                     })
                         elif chunk.get('event') == 'on_tool_start':
                             # 存储工具开始执行的信息
@@ -280,7 +277,7 @@ class AgentResponseStrategy(ResponseStrategy):
                                 "role": "tool",
                                 "content": f"开始执行工具: {tool_name}",
                                 "node": node,
-                                "step": step,
+                                "agent_step": step,
                                 "tool_name": tool_name,
                                 "tool_index": tool_index,
                                 "tool_input": tool_input
@@ -310,7 +307,7 @@ class AgentResponseStrategy(ResponseStrategy):
                                 "role": "tool",
                                 "content": f"工具执行完成: {tool_name}",
                                 "node": node,
-                                "step": step,
+                                "agent_step": step,
                                 "tool_name": tool_name,
                                 "tool_index": tool_index,
                                 "tool_output": tool_output

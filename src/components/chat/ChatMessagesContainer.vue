@@ -160,10 +160,10 @@ const groupedMessages = computed(() => {
         console.log('处理智能体消息step:', stepIndex, '内容:', msgValue.content);
         
         // 查找或创建step
-        let step = steps.find(s => s.step === stepIndex);
+        let step = steps.find(s => s.agent_step === stepIndex);
         if (!step) {
           step = {
-            step: stepIndex,
+            agent_step: stepIndex,
             node: msgValue.agent_node || 'default',
             content: '',
             thinking: '',
@@ -184,8 +184,8 @@ const groupedMessages = computed(() => {
         }
       });
       
-      // 按step排序
-      steps.sort((a, b) => a.step - b.step);
+      // 按agent_step排序
+      steps.sort((a, b) => a.agent_step - b.agent_step);
       console.log('构建完成的steps:', steps);
       
       return {

@@ -73,12 +73,12 @@
     <div v-if="messageValue.steps && messageValue.steps.length > 0 || messageValue.message_type === 'agent'" class="space-y-4 mt-3">
       <div 
         v-for="step in messageValue.steps" 
-        :key="step.step" 
+        :key="step.agent_step" 
         class="rounded-lg px-5 py-4 overflow-hidden w-full"
       >
         <!-- 步骤标签 -->
         <div class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
-          步骤 {{ step.step }}: {{ getNodeLabel(step.node) }}
+          步骤 {{ step.agent_step }}: {{ getNodeLabel(step.node) }}
         </div>
         
         <!-- 思考内容 -->
