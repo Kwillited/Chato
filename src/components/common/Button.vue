@@ -52,17 +52,17 @@ import { Tooltip } from '../library/index.js';
 
 // 定义组件属性
 const props = defineProps({
-  // 按钮类型：primary, secondary
+  // 按钮类型：primary, secondary, dark
   variant: {
     type: String,
     default: 'secondary',
-    validator: (value) => ['primary', 'secondary'].includes(value)
+    validator: (value) => ['primary', 'secondary', 'dark'].includes(value)
   },
-  // 按钮大小：sm, md, lg
+  // 按钮大小：sm, md, lg, icon
   size: {
     type: String,
     default: 'md',
-    validator: (value) => ['sm', 'md', 'lg'].includes(value)
+    validator: (value) => ['sm', 'md', 'lg', 'icon'].includes(value)
   },
   // 按钮形状：rounded, full, square
   shape: {
@@ -126,6 +126,12 @@ const variantClasses = computed(() => {
       'bg-transparent text-neutral border border-transparent',
       'hover:bg-gray-100 dark:hover:bg-dark-700',
       'dark:text-gray-300'
+    ],
+    dark: [
+      'bg-gray-800 text-white border border-gray-800',
+      'hover:bg-gray-700 hover:border-gray-700',
+      'dark:bg-gray-700 dark:text-white dark:border-gray-700',
+      'dark:hover:bg-gray-600 dark:hover:border-gray-600'
     ]
   };
   return variants[props.variant] || variants.secondary;
@@ -136,18 +142,20 @@ const sizeClasses = computed(() => {
   const sizes = {
     sm: [
       'text-xs px-2 py-1',
-      'w-6 h-6 p-0',
       'i:text-xs'
     ],
     md: [
       'text-sm px-3 py-1.5',
-      'w-8 h-8 p-1.5',
       'i:text-sm'
     ],
     lg: [
       'text-base px-4 py-2',
-      'w-10 h-10 p-2',
       'i:text-base'
+    ],
+    icon: [
+      'text-sm p-1.5',
+      'w-8 h-8',
+      'i:text-sm'
     ]
   };
   return sizes[props.size] || sizes.md;

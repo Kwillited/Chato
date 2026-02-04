@@ -33,8 +33,9 @@
                 </div>
                 <Button 
                   shape="full"
-                  size="md"
-                  class="text-neutral-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors"
+                  size="icon"
+                  variant="secondary"
+                  class="text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                   @click.stop="handleDeleteTool(tool.id)"
                   icon="fa-trash"
                   tooltip="删除此工具"
@@ -42,8 +43,18 @@
               </div>
             </div>
           </div>
-          <div v-else class="text-center p-4 text-xs text-gray-400">
-            没有找到匹配的工具
+          <div v-else class="text-center p-4">
+            <p class="text-xs text-gray-400 mb-3">没有找到匹配的工具</p>
+            <Button 
+              size="sm"
+              variant="dark"
+              class="px-4 py-1.5"
+              @click="enterMcpManagement"
+              tooltip="进入MCP管理页面"
+              icon="fa-tools"
+            >
+              进入MCP管理
+            </Button>
           </div>
         </div>
       </div>
@@ -234,6 +245,13 @@ const handleToolClick = (tool) => {
   // 切换到MCP管理视图
   uiStore.setActiveContent('mcpManagement');
   console.log('切换到MCP管理视图，工具:', tool.name);
+};
+
+// 进入MCP管理页面
+const enterMcpManagement = () => {
+  // 直接切换到MCP管理视图
+  uiStore.setActiveContent('mcpManagement');
+  console.log('直接进入MCP管理视图');
 };
 </script>
 
