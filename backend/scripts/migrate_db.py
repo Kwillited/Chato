@@ -92,7 +92,7 @@ def migrate_database():
         columns = {col['name'] for col in inspector.get_columns(vector_table_name)}
         required_columns = {
             'id', 'retrieval_mode', 'top_k', 'score_threshold', 'vector_db_path',
-            'embedder_model', 'vector_db_type', 'chunk_size', 'chunk_overlap'
+            'embedder_model', 'chunk_size', 'chunk_overlap'
         }
         missing_columns = required_columns - columns
         if missing_columns:

@@ -42,20 +42,7 @@
             </div>
           </div>
 
-          <div class="setting-item p-3 rounded-lg">
-            <div>
-              <div class="font-medium text-sm">向量数据库类型</div>
-              <div class="text-xs text-neutral mt-0.5">使用的向量数据库类型</div>
 
-              <select
-                v-model="vectorStore.config.storage.type"
-                class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                @change="updateVectorConfig"
-              >
-                <option value="chroma">Chroma (默认)</option>
-              </select>
-            </div>
-          </div>
         </div>
       </div>
 

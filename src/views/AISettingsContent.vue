@@ -435,20 +435,7 @@
             </div>
           </div>
           
-          <!-- 向量数据库类型卡片 -->
-          <div class="card p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800">
-            <!-- 标题和描述 -->
-            <div class="mb-3">
-              <div class="font-medium text-sm text-gray-900 dark:text-white">向量数据库类型</div>
-              <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">使用的向量数据库类型</div>
-            </div>
-            <!-- 内容区域 -->
-            <div class="relative">
-              <select class="w-full text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-blue-600 dark:focus:ring-blue-400 bg-white dark:bg-dark-700 border border-gray-200 dark:border-dark-600 rounded-lg text-gray-900 dark:text-white" v-model="vectorStore.config.storage.type" @change="vectorStore.updateStorageConfig(vectorStore.config.storage)">
-                <option value="chroma">Chroma (默认)</option>
-              </select>
-            </div>
-          </div>
+
           
           <!-- 文档检索模式卡片 -->
           <div class="card p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800">

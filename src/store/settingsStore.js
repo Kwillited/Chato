@@ -25,7 +25,6 @@ const STORAGE_KEYS = {
  * @property {number} scoreThreshold - 检索相关性阈值
  * @property {string} embedderModel - Embedder模型
  * @property {string} vectorDbPath - 向量数据库路径
- * @property {string} vectorDbType - 向量数据库类型
  * @property {string} knowledgeBasePath - 知识库存储路径
  */
 

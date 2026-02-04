@@ -116,7 +116,6 @@ class VectorSetting(Base):
     score_threshold = Column(Float, default=0.7)
     vector_db_path = Column(String, default="")
     embedder_model = Column(String, default="qwen3-embedding-0.6b")
-    vector_db_type = Column(String, default="chroma")
     chunk_size = Column(Integer, default=1000)
     chunk_overlap = Column(Integer, default=200)
 

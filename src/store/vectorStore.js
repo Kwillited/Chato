@@ -23,7 +23,6 @@ export const useVectorStore = defineStore('vector', {
       },
       // 向量存储配置
       storage: {
-        type: 'chroma',
         path: '',
         knowledgeBasePath: ''
       },

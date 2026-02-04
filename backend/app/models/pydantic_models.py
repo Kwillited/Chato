@@ -127,7 +127,6 @@ class RAGConfig(BaseModel):
     selectedKnowledgeBases: List[str] = Field(default_factory=list)
     topK: int = 3
     vectorDbPath: str = ""
-    vectorDbType: str = "chroma"
     embedderModel: str = "qwen3-embedding-0.6b"
 
 

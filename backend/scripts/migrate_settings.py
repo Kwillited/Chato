@@ -59,7 +59,6 @@ def create_new_tables(conn):
             score_threshold REAL DEFAULT 0.7,
             vector_db_path TEXT DEFAULT '',
             embedder_model TEXT DEFAULT 'qwen3-embedding-0.6b',
-            vector_db_type TEXT DEFAULT 'chroma',
             chunk_size INTEGER DEFAULT 1000,
             chunk_overlap INTEGER DEFAULT 200
         )
@@ -114,15 +113,14 @@ def migrate_vector_settings(conn, vector_settings):
     cursor.execute('''
         INSERT INTO vector_settings (
             retrieval_mode, top_k, score_threshold, vector_db_path, 
-            embedder_model, vector_db_type, chunk_size, chunk_overlap
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            embedder_model, chunk_size, chunk_overlap
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
         vector_settings.get('retrieval_mode', 'vector'),
         vector_settings.get('top_k', 3),
         vector_settings.get('score_threshold', 0.7),
         vector_settings.get('vector_db_path', ''),
         vector_settings.get('embedder_model', 'qwen3-embedding-0.6b'),
-        vector_settings.get('vector_db_type', 'chroma'),
         vector_settings.get('chunk_size', 1000),
         vector_settings.get('chunk_overlap', 200)
     ))

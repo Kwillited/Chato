@@ -14,7 +14,6 @@ DEFAULT_CONFIG = {
         'score_threshold': 0.7,
         'vector_db_path': '',  # 将在初始化时设置为用户数据目录中的路径
         'embedder_model': 'qwen3-embedding-0.6b',
-        'vector_db_type': 'chroma',
         'chunk_size': 1000,
         'chunk_overlap': 200
     },

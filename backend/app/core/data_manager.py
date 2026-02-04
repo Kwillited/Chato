@@ -467,7 +467,6 @@ def load_settings_from_db():
                 'score_threshold': vector_setting.score_threshold,
                 'vector_db_path': vector_setting.vector_db_path,
                 'embedder_model': vector_setting.embedder_model,
-                'vector_db_type': vector_setting.vector_db_type,
                 'chunk_size': vector_setting.chunk_size,
                 'chunk_overlap': vector_setting.chunk_overlap
             }

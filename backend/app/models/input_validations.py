@@ -56,7 +56,6 @@ class RAGConfigRequest(BaseModel):
     top_k: int = Field(..., ge=1, le=100, description="返回结果数量")
     score_threshold: float = Field(..., ge=0, le=1, description="相似度分数阈值")
     embedder_model: str = Field(..., description="嵌入模型名称")
-    vector_db_type: str = Field(..., regex="^(chroma|faiss|pinecone)$", description="向量数据库类型")
 
 class ModelConfigRequest(BaseModel):
     """模型配置请求模型"""
