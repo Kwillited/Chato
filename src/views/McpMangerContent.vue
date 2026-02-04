@@ -13,57 +13,73 @@
     <div class="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       
       <!-- 配置管理卡片（上面的卡片） -->
-      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex flex-col" style="min-height: 200px;">
+      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex flex-col">
         <!-- 标题 -->
-        <div class="mb-4 flex-shrink-0">
-          <h3 class="text-sm font-semibold">配置管理</h3>
-        </div>
+        <h3 class="text-sm font-semibold mb-4">配置管理</h3>
         
         <!-- 响应式布局容器 -->
         <div class="flex flex-col md:flex-row gap-4 flex-1">
           <!-- 上传JSON文件（左侧） -->
           <div class="flex-1 flex flex-col">
-            <h4 class="text-xs font-medium text-gray-500 mb-2">上传JSON配置文件</h4>
-            <div class="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer flex flex-col items-center justify-center" @click="triggerJsonUpload">
+            <h4 class="text-xs font-medium text-gray-500 mb-2 flex items-center justify-between h-8">
+              上传JSON配置文件
+              <div class="flex space-x-1 opacity-0">
+                <div class="w-16 h-6"></div>
+                <div class="w-16 h-6"></div>
+                <div class="w-16 h-6"></div>
+              </div>
+            </h4>
+            <div 
+              class="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer flex flex-col items-center justify-center"
+              @click="triggerJsonUpload"
+            >
               <i class="fa-solid fa-file-json text-gray-400 text-2xl mb-2"></i>
               <p class="text-xs text-gray-500 mb-2">点击或拖拽文件到此处</p>
               <p class="text-xs text-gray-400">支持 .json 文件</p>
-              <input type="file" ref="jsonFileInput" class="hidden" accept=".json" @change="handleJsonUpload">
+              <input 
+                type="file" 
+                ref="jsonFileInput" 
+                class="hidden" 
+                accept=".json" 
+                @change="handleJsonUpload"
+              >
             </div>
           </div>
           
           <!-- 配置输入（右侧） -->
           <div class="flex-1 flex flex-col">
-            <h4 class="text-xs font-medium text-gray-500 mb-2">手动输入配置</h4>
+            <h4 class="text-xs font-medium text-gray-500 mb-2 flex items-center justify-between h-8">
+              手动输入配置
+              <div class="flex space-x-1">
+                <Button 
+                  shape="rounded"
+                  size="xs"
+                  class="flex-1 whitespace-nowrap"
+                  @click="saveConfig"
+                  :loading="isSavingConfig"
+                  content="保存"
+                />
+                <Button 
+                  shape="rounded"
+                  size="xs"
+                  class="flex-1 whitespace-nowrap"
+                  @click="clearConfig"
+                  content="清空"
+                />
+                <Button 
+                  shape="rounded"
+                  size="xs"
+                  class="flex-1 whitespace-nowrap"
+                  @click="exportConfig"
+                  content="导出"
+                />
+              </div>
+            </h4>
             <textarea 
               v-model="configInput"
               placeholder='输入JSON配置，例如：{"key": "value"}'
-              class="w-full h-40 p-3 rounded-lg focus:outline-none text-sm font-mono config-textarea"
+              class="w-full flex-1 p-3 rounded-lg focus:outline-none text-sm font-mono config-textarea"
             ></textarea>
-            <div class="flex space-x-2 mt-3">
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="saveConfig"
-                :loading="isSavingConfig"
-                content="保存配置"
-              />
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="clearConfig"
-                content="清空"
-              />
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="exportConfig"
-                content="导出"
-              />
-            </div>
           </div>
         </div>
       </div>
