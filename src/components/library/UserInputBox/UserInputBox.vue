@@ -141,179 +141,341 @@
         <!-- 可上滑展开的参数设置区域 -->
         <transition name="slide-up">
           <div v-if="showParamsPanel" class="border-b border-gray-200 overflow-hidden transition-all duration-300 ease-in-out">
-            <div class="px-3 py-3 grid grid-cols-4 gap-3">
-              <!-- 温度参数设置 -->
-              <div class="px-2">
-                <div class="flex justify-between items-center mb-1">
-                  <div class="flex items-center gap-1">
-                    <label class="text-xs font-medium text-gray-700 dark:text-gray-300">温度</label>
-                    <button
-                      class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                      @mouseover="showTooltip('temperature', $event)"
-                      @mouseleave="hideTooltip('temperature')"
-                    >
-                      <i class="fa-solid fa-circle-question"></i>
-                    </button>
-                    <!-- 悬停提示弹窗 -->
-                    <div
-                      v-if="activeTooltip === 'temperature'"
-                      class="absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs transition-opacity duration-200"
-                      :style="tooltipStyle"
-                    >
-                      <div class="font-medium mb-1 dark:text-white">温度参数说明</div>
-                      <p class="text-gray-700 dark:text-gray-300">控制生成结果的随机性，较低的值产生更确定的结果，较高的值产生更多样的结果。</p>
-                      <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-2</div>
+            <div class="px-3 py-3 flex items-center gap-3">
+              <!-- 左换页按钮 -->
+              <button
+                class="flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+                @click="prevPage"
+                :disabled="currentPage === 0"
+                :class="{ 'opacity-50 cursor-not-allowed': currentPage === 0 }"
+              >
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              
+              <!-- 参数设置区域 -->
+              <div class="flex-1 grid grid-cols-4 gap-3">
+                <!-- 第一页参数 -->
+                <template v-if="currentPage === 0">
+                  <!-- 温度参数设置 -->
+                  <div class="px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <div class="flex items-center gap-1">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">温度</label>
+                        <button
+                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
+                          @mouseover="showTooltip('temperature', $event)"
+                          @mouseleave="hideTooltip('temperature')"
+                        >
+                          <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                        <!-- 悬停提示弹窗 -->
+                        <div
+                          v-if="activeTooltip === 'temperature'"
+                          class="absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs transition-opacity duration-200"
+                          :style="tooltipStyle"
+                        >
+                          <div class="font-medium mb-1 dark:text-white">温度参数说明</div>
+                          <p class="text-gray-700 dark:text-gray-300">控制生成结果的随机性，较低的值产生更确定的结果，较高的值产生更多样的结果。</p>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-2</div>
+                        </div>
+                      </div>
+                      <span
+                        class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full"
+                        id="temperatureValue"
+                      >{{ modelParams.temperature }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="0.1"
+                      :value="modelParams.temperature"
+                      class="slider w-full"
+                      id="temperatureSlider"
+                      @input="handleTemperatureChange"
+                    />
+                    <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
+                      <span>0</span>
+                      <span>2</span>
                     </div>
                   </div>
-                  <span
-                    class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full"
-                    id="temperatureValue"
-                  >{{ modelParams.temperature }}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="2"
-                  step="0.1"
-                  :value="modelParams.temperature"
-                  class="slider w-full"
-                  id="temperatureSlider"
-                  @input="handleTemperatureChange"
-                />
-                <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
-                  <span>0</span>
-                  <span>2</span>
-                </div>
-              </div>
 
-              <!-- Top-p参数设置 -->
-              <div class="px-2">
-                <div class="flex justify-between items-center mb-1">
-                  <div class="flex items-center gap-1">
-                    <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Top-p</label>
-                    <button
-                      class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                      @mouseover="showTooltip('topP', $event)"
-                      @mouseleave="hideTooltip('topP')"
-                    >
-                      <i class="fa-solid fa-circle-question"></i>
-                    </button>
-                    <!-- 悬停提示弹窗 -->
-                    <div
-                      v-if="activeTooltip === 'topP'"
-                      class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
-                      :style="tooltipStyle"
-                    >
-                      <div class="font-medium mb-1 dark:text-white">Top-p参数说明</div>
-                      <p class="text-gray-700 dark:text-gray-300">控制词汇多样性，只有累积概率超过此阈值的词才会被考虑。</p>
-                      <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-1</div>
+                  <!-- Top-p参数设置 -->
+                  <div class="px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <div class="flex items-center gap-1">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Top-p</label>
+                        <button
+                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
+                          @mouseover="showTooltip('topP', $event)"
+                          @mouseleave="hideTooltip('topP')"
+                        >
+                          <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                        <!-- 悬停提示弹窗 -->
+                        <div
+                          v-if="activeTooltip === 'topP'"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          :style="tooltipStyle"
+                        >
+                          <div class="font-medium mb-1 dark:text-white">Top-p参数说明</div>
+                          <p class="text-gray-700 dark:text-gray-300">控制词汇多样性，只有累积概率超过此阈值的词才会被考虑。</p>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-1</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="topPValue">{{
+                        modelParams.top_p
+                      }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      :value="modelParams.top_p"
+                      class="slider w-full"
+                      id="topPSlider"
+                      @input="handleTopPChange"
+                    />
+                    <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
+                      <span>0</span>
+                      <span>1</span>
                     </div>
                   </div>
-                  <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="topPValue">{{
-                    modelParams.top_p
-                  }}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  :value="modelParams.top_p"
-                  class="slider w-full"
-                  id="topPSlider"
-                  @input="handleTopPChange"
-                />
-                <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
-                  <span>0</span>
-                  <span>1</span>
-                </div>
-              </div>
 
-              <!-- Top-k参数设置 -->
-              <div class="px-2">
-                <div class="flex justify-between items-center mb-1">
-                  <div class="flex items-center gap-1">
-                    <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Top-k</label>
-                    <button
-                      class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                      @mouseover="showTooltip('topK', $event)"
-                      @mouseleave="hideTooltip('topK')"
-                    >
-                      <i class="fa-solid fa-circle-question"></i>
-                    </button>
-                    <!-- 悬停提示弹窗 -->
-                    <div
-                      v-if="activeTooltip === 'topK'"
-                      class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
-                      :style="tooltipStyle"
-                    >
-                      <div class="font-medium mb-1 dark:text-white">Top-k参数说明</div>
-                      <p class="text-gray-700 dark:text-gray-300">限制每一步考虑的最高概率词汇数量，较小的值会产生更连贯的结果。</p>
-                      <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-100</div>
+                  <!-- Top-k参数设置 -->
+                  <div class="px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <div class="flex items-center gap-1">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Top-k</label>
+                        <button
+                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
+                          @mouseover="showTooltip('topK', $event)"
+                          @mouseleave="hideTooltip('topK')"
+                        >
+                          <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                        <!-- 悬停提示弹窗 -->
+                        <div
+                          v-if="activeTooltip === 'topK'"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          :style="tooltipStyle"
+                        >
+                          <div class="font-medium mb-1 dark:text-white">Top-k参数说明</div>
+                          <p class="text-gray-700 dark:text-gray-300">限制每一步考虑的最高概率词汇数量，较小的值会产生更连贯的结果。</p>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-100</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="topKValue">{{
+                        modelParams.top_k
+                      }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      step="1"
+                      :value="modelParams.top_k"
+                      class="slider w-full"
+                      id="topKSlider"
+                      @input="handleTopKChange"
+                    />
+                    <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
+                      <span>0</span>
+                      <span>100</span>
                     </div>
                   </div>
-                  <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="topKValue">{{
-                    modelParams.top_k
-                  }}</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="1"
-                  :value="modelParams.top_k"
-                  class="slider w-full"
-                  id="topKSlider"
-                  @input="handleTopKChange"
-                />
-                <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
-                  <span>0</span>
-                  <span>100</span>
-                </div>
-              </div>
 
-              <!-- 最大长度参数设置 -->
-              <div class="px-2">
-                <div class="flex justify-between items-center mb-1">
-                  <div class="flex items-center gap-1">
-                    <label class="text-xs font-medium text-gray-700 dark:text-gray-300">长度</label>
-                    <button
-                      class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                      @mouseover="showTooltip('maxLength', $event)"
-                      @mouseleave="hideTooltip('maxLength')"
-                    >
-                      <i class="fa-solid fa-circle-question"></i>
-                    </button>
-                    <!-- 悬停提示弹窗 -->
-                    <div
-                      v-if="activeTooltip === 'maxLength'"
-                      class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
-                      :style="tooltipStyle"
-                    >
-                      <div class="font-medium mb-1 dark:text-white">最大长度参数说明</div>
-                      <p class="text-gray-700 dark:text-gray-300">控制生成内容的最大长度，较大的值可以生成更长的回复，但可能会导致生成时间延长。</p>
-                      <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 512-8192</div>
+                  <!-- 最大长度参数设置 -->
+                  <div class="px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <div class="flex items-center gap-1">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">长度</label>
+                        <button
+                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
+                          @mouseover="showTooltip('maxLength', $event)"
+                          @mouseleave="hideTooltip('maxLength')"
+                        >
+                          <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                        <!-- 悬停提示弹窗 -->
+                        <div
+                          v-if="activeTooltip === 'maxLength'"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          :style="tooltipStyle"
+                        >
+                          <div class="font-medium mb-1 dark:text-white">最大长度参数说明</div>
+                          <p class="text-gray-700 dark:text-gray-300">控制生成内容的最大长度，较大的值可以生成更长的回复，但可能会导致生成时间延长。</p>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 512-8192</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="maxLengthValue">{{
+                        modelParams.max_tokens
+                      }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="512"
+                      max="8192"
+                      step="512"
+                      :value="modelParams.max_tokens"
+                      class="slider w-full"
+                      id="maxLengthSlider"
+                      @input="handleMaxLengthChange"
+                    />
+                    <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
+                      <span>512</span>
+                      <span>8192</span>
                     </div>
                   </div>
-                  <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="maxLengthValue">{{
-                    modelParams.max_tokens
-                  }}</span>
-                </div>
-                <input
-                  type="range"
-                  min="512"
-                  max="8192"
-                  step="512"
-                  :value="modelParams.max_tokens"
-                  class="slider w-full"
-                  id="maxLengthSlider"
-                  @input="handleMaxLengthChange"
-                />
-                <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
-                  <span>512</span>
-                  <span>8192</span>
-                </div>
+                </template>
+                
+                <!-- 第二页参数 -->
+                <template v-else-if="currentPage === 1">
+                  <!-- 检索相关性阈值设置 -->
+                  <div class="px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <div class="flex items-center gap-1">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">相关性阈值</label>
+                        <button
+                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
+                          @mouseover="showTooltip('threshold', $event)"
+                          @mouseleave="hideTooltip('threshold')"
+                        >
+                          <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                        <!-- 悬停提示弹窗 -->
+                        <div
+                          v-if="activeTooltip === 'threshold'"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          :style="tooltipStyle"
+                        >
+                          <div class="font-medium mb-1 dark:text-white">检索相关性阈值说明</div>
+                          <p class="text-gray-700 dark:text-gray-300">控制文档相关性的最低分数要求，较高的值会返回更相关但可能更少的文档。</p>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-1</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="thresholdValue">{{
+                        vectorStore.config.retrieval.threshold
+                      }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      :value="vectorStore.config.retrieval.threshold"
+                      class="slider w-full"
+                      id="thresholdSlider"
+                      @input="handleThresholdChange"
+                    />
+                    <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
+                      <span>0</span>
+                      <span>1</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 检索文档数量设置 -->
+                  <div class="px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <div class="flex items-center gap-1">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">检索文档数</label>
+                        <button
+                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
+                          @mouseover="showTooltip('topK', $event)"
+                          @mouseleave="hideTooltip('topK')"
+                        >
+                          <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                        <!-- 悬停提示弹窗 -->
+                        <div
+                          v-if="activeTooltip === 'topK'"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          :style="tooltipStyle"
+                        >
+                          <div class="font-medium mb-1 dark:text-white">检索文档数量说明</div>
+                          <p class="text-gray-700 dark:text-gray-300">控制每次查询返回的文档数量，较多的文档可以提供更全面的信息，但可能会增加处理时间。</p>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 1-20</div>
+                        </div>
+                      </div>
+                      <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="retrievalTopKValue">{{
+                        vectorStore.config.retrieval.topK
+                      }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="20"
+                      step="1"
+                      :value="vectorStore.config.retrieval.topK"
+                      class="slider w-full"
+                      id="retrievalTopKSlider"
+                      @input="handleRetrievalTopKChange"
+                    />
+                    <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
+                      <span>1</span>
+                      <span>20</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 文档检索模式设置 -->
+                  <div class="px-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <div class="flex items-center gap-1">
+                        <label class="text-xs font-medium text-gray-700 dark:text-gray-300">检索模式</label>
+                        <button
+                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
+                          @mouseover="showTooltip('retrievalMode', $event)"
+                          @mouseleave="hideTooltip('retrievalMode')"
+                        >
+                          <i class="fa-solid fa-circle-question"></i>
+                        </button>
+                        <!-- 悬停提示弹窗 -->
+                        <div
+                          v-if="activeTooltip === 'retrievalMode'"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          :style="tooltipStyle"
+                        >
+                          <div class="font-medium mb-1 dark:text-white">检索模式说明</div>
+                          <p class="text-gray-700 dark:text-gray-300">设置知识库的文档检索方式，不同的检索方式会影响检索结果的准确性和速度。</p>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">选项: 向量检索、关键词检索、混合检索</div>
+                        </div>
+                      </div>
+                      <span class="text-[10px] font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="retrievalModeValue">{{
+                        getRetrievalModeDisplay(vectorStore.config.retrieval.mode)
+                      }}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="1"
+                      :value="getRetrievalModeValue(vectorStore.config.retrieval.mode)"
+                      class="slider w-full"
+                      id="retrievalModeSlider"
+                      @input="handleRetrievalModeSliderChange"
+                    />
+                    <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
+                      <span>向量</span>
+                      <span>关键词</span>
+                      <span>混合</span>
+                    </div>
+                  </div>
+                  
+                  <!-- 空占位 -->
+                  <div class="px-2"></div>
+                </template>
               </div>
+              
+              <!-- 右换页按钮 -->
+              <button
+                class="flex items-center justify-center w-8 h-8 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors"
+                @click="nextPage"
+                :disabled="currentPage === 1"
+                :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
+              >
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
             </div>
           </div>
         </transition>
@@ -550,8 +712,23 @@ const hasActiveStreaming = ref(false);
 const showUserMenu = ref(false);
 // 命令行窗口状态
 const showCommandLine = ref(false);
+// 分页状态
+const currentPage = ref(0);
 // RAG模式状态 - 从settingsStore获取
 const _isRagMode = computed(() => uiStore.activePanel === 'rag');
+
+// 分页方法
+const prevPage = () => {
+  if (currentPage.value > 0) {
+    currentPage.value--;
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value < 1) {
+    currentPage.value++;
+  }
+};
 
 // 从uiStore获取功能按钮状态
 const isDeepThinking = computed(() => uiStore.isDeepThinking);
@@ -902,6 +1079,56 @@ const handleTopKChange = (event) => {
 // 处理最大长度参数变化
 const handleMaxLengthChange = (event) => {
   modelStore.updateModelParams({ max_tokens: parseInt(event.target.value) });
+};
+
+// 处理检索相关性阈值变化
+const handleThresholdChange = (event) => {
+  vectorStore.updateRetrievalConfig({ threshold: parseFloat(event.target.value) });
+};
+
+// 处理检索文档数量变化
+const handleRetrievalTopKChange = (event) => {
+  vectorStore.updateRetrievalConfig({ topK: parseInt(event.target.value) });
+};
+
+// 处理检索模式变化
+const handleRetrievalModeSliderChange = (event) => {
+  const modeValue = parseInt(event.target.value);
+  let mode;
+  switch (modeValue) {
+    case 0:
+      mode = 'vector';
+      break;
+    case 1:
+      mode = 'keyword';
+      break;
+    case 2:
+      mode = 'hybrid';
+      break;
+    default:
+      mode = 'vector';
+  }
+  vectorStore.updateRetrievalConfig({ mode });
+};
+
+// 获取检索模式的滑块值
+const getRetrievalModeValue = (mode) => {
+  const modeMap = {
+    vector: 0,
+    keyword: 1,
+    hybrid: 2
+  };
+  return modeMap[mode] || 0;
+};
+
+// 获取检索模式的显示文本
+const getRetrievalModeDisplay = (mode) => {
+  const modeMap = {
+    vector: '向量检索',
+    keyword: '关键词检索',
+    hybrid: '混合检索'
+  };
+  return modeMap[mode] || mode;
 };
 
 // 显示提示信息
