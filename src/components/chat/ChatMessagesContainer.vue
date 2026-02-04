@@ -179,6 +179,9 @@ const groupedMessages = computed(() => {
         if (msgValue.thinking) {
           step.thinking = msgValue.thinking;
         }
+        if (msgValue.toolExecutions && Array.isArray(msgValue.toolExecutions)) {
+          step.toolExecutions = msgValue.toolExecutions;
+        }
       });
       
       // 按step排序
