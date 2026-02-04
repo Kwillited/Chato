@@ -13,11 +13,6 @@
       <ModelsSettings />
     </div>
 
-    <!-- 通知设置部分 -->
-    <div class="settings-section hidden h-full overflow-y-auto p-6 scrollbar-hidden" id="notifications-section">
-      <NotificationsSettings />
-    </div>
-
     <!-- 关于页面部分 -->
     <div class="settings-section hidden h-full overflow-y-auto p-6 scrollbar-hidden" id="about-section">
       <AboutSettings />
@@ -37,7 +32,6 @@ import { onMounted, watch } from 'vue';
 import { useUiStore } from '../store/uiStore.js';
 import GeneralSettings from '../components/settings/GeneralSettings.vue';
 import ModelsSettings from '../components/settings/ModelsSettings.vue';
-import NotificationsSettings from '../components/settings/NotificationsSettings.vue';
 import AboutSettings from '../components/settings/AboutSettings.vue';
 import RAGSettings from '../components/settings/RAGSettings.vue';
 

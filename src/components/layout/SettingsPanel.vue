@@ -24,13 +24,6 @@
           @click="handleSectionClick"
         />
         <SettingNavItem 
-          id="notifications" 
-          :activeSection="uiStore.activeSection"
-          label="通知设置" 
-          iconClass="fa-regular fa-bell"
-          @click="handleSectionClick"
-        />
-        <SettingNavItem 
           id="about" 
           :activeSection="uiStore.activeSection"
           label="关于" 

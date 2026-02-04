@@ -435,8 +435,6 @@
             </div>
           </div>
           
-
-          
           <!-- 文档检索模式卡片 -->
           <div class="card p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 dark:border-dark-700 rounded-xl bg-white dark:bg-dark-800">
             <!-- 标题和描述 -->

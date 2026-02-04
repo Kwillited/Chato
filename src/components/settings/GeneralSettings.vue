@@ -59,6 +59,13 @@
           >
             样式设置
           </button>
+          <button
+            class="px-6 py-3 text-sm font-medium border-b-2 transition-colors"
+            :class="activeTab === 'notification' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+            @click="activeTab = 'notification'"
+          >
+            通知设置
+          </button>
         </div>
       </div>
       
@@ -139,6 +146,56 @@
           />
         </div>
       </div>
+      
+      <!-- 通知设置选项卡内容 -->
+      <div v-show="activeTab === 'notification'" class="p-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 新消息通知卡片 -->
+          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+            <SettingItem
+              type="toggle"
+              title="新消息通知"
+              description="当收到AI回复时通知"
+              v-model="settingsStore.notificationsConfig.newMessage"
+              @change="settingsStore.saveSettings"
+            />
+          </div>
+          
+          <!-- 声音提示卡片 -->
+          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+            <SettingItem
+              type="toggle"
+              title="声音提示"
+              description="新消息通知时播放提示音"
+              v-model="settingsStore.notificationsConfig.sound"
+              @change="settingsStore.saveSettings"
+            />
+          </div>
+          
+          <!-- 系统通知卡片 -->
+          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+            <SettingItem
+              type="toggle"
+              title="系统通知"
+              description="显示应用更新等系统通知"
+              v-model="settingsStore.notificationsConfig.system"
+              @change="settingsStore.saveSettings"
+            />
+          </div>
+          
+          <!-- 通知显示时间卡片 -->
+          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+            <SettingItem
+              type="select"
+              title="通知显示时间"
+              description="控制通知在屏幕上停留的时间"
+              v-model="settingsStore.notificationsConfig.displayTime"
+              :options="displayTimeOptions"
+              @change="settingsStore.saveSettings"
+            />
+          </div>
+        </div>
+      </div>
     </div>
     
     <!-- 确认删除所有对话模态框 -->
@@ -193,6 +250,13 @@ const viewModeValue = computed({
     settingsStore.systemSettings.viewMode = value;
   }
 });
+
+// 通知显示时间选项
+const displayTimeOptions = [
+  { value: '2秒', label: '2秒' },
+  { value: '5秒', label: '5秒' },
+  { value: '10秒', label: '10秒' }
+];
 
 // 计算属性：所有可用的模型版本
 const allModelVersions = computed(() => {
