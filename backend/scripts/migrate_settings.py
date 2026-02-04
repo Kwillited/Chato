@@ -35,7 +35,7 @@ def check_new_tables(conn):
     """检查新的设置表是否存在"""
     cursor = conn.cursor()
     
-    tables = ['vector_settings', 'mcp_settings', 'notification_settings', 'app_settings']
+    tables = ['vector_settings', 'notification_settings', 'app_settings']
     missing_tables = []
     
     for table in tables:
@@ -65,16 +65,7 @@ def create_new_tables(conn):
         )
     ''')
     
-    # 创建MCP设置表
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS mcp_settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            enabled BOOLEAN DEFAULT FALSE,
-            server_address TEXT DEFAULT '',
-            server_port INTEGER DEFAULT 8080,
-            timeout INTEGER DEFAULT 30
-        )
-    ''')
+
     
     # 创建通知设置表
     cursor.execute('''
@@ -140,32 +131,7 @@ def migrate_vector_settings(conn, vector_settings):
     print("向量设置迁移成功")
     return True
 
-# 迁移MCP设置
-def migrate_mcp_settings(conn, mcp_settings):
-    """迁移MCP设置"""
-    cursor = conn.cursor()
-    
-    # 检查是否已有数据
-    cursor.execute("SELECT COUNT(*) FROM mcp_settings")
-    if cursor.fetchone()[0] > 0:
-        print("MCP设置表已有数据，跳过迁移")
-        return False
-    
-    # 插入MCP设置
-    cursor.execute('''
-        INSERT INTO mcp_settings (
-            enabled, server_address, server_port, timeout
-        ) VALUES (?, ?, ?, ?)
-    ''', (
-        mcp_settings.get('enabled', False),
-        mcp_settings.get('server_address', ''),
-        mcp_settings.get('server_port', 8080),
-        mcp_settings.get('timeout', 30)
-    ))
-    
-    conn.commit()
-    print("MCP设置迁移成功")
-    return True
+
 
 # 迁移通知设置
 def migrate_notification_settings(conn, notification_settings):
@@ -269,8 +235,7 @@ def main():
         if 'vector' in settings_dict:
             migrate_vector_settings(conn, settings_dict['vector'])
         
-        if 'mcp' in settings_dict:
-            migrate_mcp_settings(conn, settings_dict['mcp'])
+
         
         if 'notification' in settings_dict:
             migrate_notification_settings(conn, settings_dict['notification'])

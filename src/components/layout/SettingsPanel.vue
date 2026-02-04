@@ -24,13 +24,6 @@
           @click="handleSectionClick"
         />
         <SettingNavItem 
-          id="mcp" 
-          :activeSection="uiStore.activeSection"
-          label="MCP服务" 
-          iconClass="fa-solid fa-server"
-          @click="handleSectionClick"
-        />
-        <SettingNavItem 
           id="notifications" 
           :activeSection="uiStore.activeSection"
           label="通知设置" 

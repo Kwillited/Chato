@@ -153,7 +153,7 @@ const getSettingsTitle = () => {
     notifications: '通知设置',
     about: '关于页面',
     rag: '知识库配置',
-    mcp: 'MCP服务设置',
+
   };
   return sectionTitles[activeSection] || '设置';
 };

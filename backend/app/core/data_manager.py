@@ -472,15 +472,7 @@ def load_settings_from_db():
                 'chunk_overlap': vector_setting.chunk_overlap
             }
         
-        # 加载MCP设置
-        mcp_setting = setting_repo.get_mcp_setting()
-        if mcp_setting:
-            db['settings']['mcp'] = {
-                'enabled': mcp_setting.enabled,
-                'server_address': mcp_setting.server_address,
-                'server_port': mcp_setting.server_port,
-                'timeout': mcp_setting.timeout
-            }
+
         
         # 加载通知设置
         notification_setting = setting_repo.get_notification_setting()
@@ -548,10 +540,7 @@ def save_settings_to_db(conn=None):
             vector_data = db['settings']['vector']
             setting_repo.create_or_update_vector_setting(vector_data)
         
-        # 保存MCP设置
-        if 'mcp' in db['settings']:
-            mcp_data = db['settings']['mcp']
-            setting_repo.create_or_update_mcp_setting(mcp_data)
+
         
         # 保存通知设置
         if 'notification' in db['settings']:

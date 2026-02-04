@@ -7,7 +7,7 @@ import os
 from sqlalchemy import inspect, text
 from app.core.database import engine, Base
 from app.models.models import (
-    Model, ModelVersion, Chat, Message, VectorSetting, MCPSetting,
+    Model, ModelVersion, Chat, Message, VectorSetting,
     NotificationSetting, AppSetting, SystemSetting, Folder, Document, DocumentChunk
 )
 
@@ -99,17 +99,7 @@ def migrate_database():
             print(f"   ⚠️  VectorSetting表缺少列: {missing_columns}")
         else:
             print("   ✅ VectorSetting表结构完整")
-    
-    # 检查MCPSetting表
-    mcp_table_name = "mcp_settings"
-    if mcp_table_name in inspector.get_table_names():
-        columns = {col['name'] for col in inspector.get_columns(mcp_table_name)}
-        required_columns = {'id', 'enabled', 'server_address', 'server_port', 'timeout'}
-        missing_columns = required_columns - columns
-        if missing_columns:
-            print(f"   ⚠️  MCPSetting表缺少列: {missing_columns}")
-        else:
-            print("   ✅ MCPSetting表结构完整")
+
     
     # 检查NotificationSetting表
     notification_table_name = "notification_settings"

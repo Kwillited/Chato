@@ -28,10 +28,7 @@
       <RAGSettings />
     </div>
 
-    <!-- MCP服务设置部分 -->
-    <div class="settings-section hidden h-full overflow-y-auto p-6 scrollbar-hidden" id="mcp-section">
-      <McpSettings />
-    </div>
+
   </div>
 </template>
 
@@ -43,7 +40,6 @@ import ModelsSettings from '../components/settings/ModelsSettings.vue';
 import NotificationsSettings from '../components/settings/NotificationsSettings.vue';
 import AboutSettings from '../components/settings/AboutSettings.vue';
 import RAGSettings from '../components/settings/RAGSettings.vue';
-import McpSettings from '../components/settings/McpSettings.vue';
 
 // 初始化store
 const uiStore = useUiStore();

@@ -1,6 +1,6 @@
 """设置数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.models import VectorSetting, MCPSetting, NotificationSetting, AppSetting, SystemSetting
+from app.models.models import VectorSetting, NotificationSetting, AppSetting, SystemSetting
 
 class SettingRepository(BaseRepository):
     """设置数据访问类，处理设置相关的数据访问"""
@@ -21,24 +21,6 @@ class SettingRepository(BaseRepository):
         else:
             # 创建新设置
             new_setting = VectorSetting(**vector_data)
-            return self.add(new_setting)
-    
-    # MCP Setting Methods
-    def get_mcp_setting(self):
-        """获取MCP设置"""
-        return self.db.query(MCPSetting).first()
-    
-    def create_or_update_mcp_setting(self, mcp_data):
-        """创建或更新MCP设置"""
-        existing_setting = self.get_mcp_setting()
-        if existing_setting:
-            # 更新现有设置
-            for key, value in mcp_data.items():
-                setattr(existing_setting, key, value)
-            return self.update(existing_setting)
-        else:
-            # 创建新设置
-            new_setting = MCPSetting(**mcp_data)
             return self.add(new_setting)
     
     # Notification Setting Methods

@@ -63,40 +63,8 @@ class SettingService(BaseService):
             'sound': notification_setting.sound,
             'system': notification_setting.system,
             'displayTime': notification_setting.display_time
-        }
-    
-    def get_mcp_settings(self):
-        """获取MCP设置"""
-        mcp_setting = self.setting_repo.get_mcp_setting()
-        if mcp_setting:
-            return {
-                'enabled': mcp_setting.enabled,
-                'server_address': mcp_setting.server_address,
-                'server_port': mcp_setting.server_port,
-                'timeout': mcp_setting.timeout
-            }
-        else:
-            # 返回默认值
-            return {
-                'enabled': False,
-                'server_address': '',
-                'server_port': 8080,
-                'timeout': 30
-            }
-    
-    def save_mcp_settings(self, data):
-        """保存MCP设置"""
-        # 将驼峰命名转换为蛇形命名
-        snake_data = self.convert_dict_keys(data)
-        # 使用Repository保存设置到数据库
-        mcp_setting = self.setting_repo.create_or_update_mcp_setting(snake_data)
-        return {
-            'enabled': mcp_setting.enabled,
-            'server_address': mcp_setting.server_address,
-            'server_port': mcp_setting.server_port,
-            'timeout': mcp_setting.timeout
-        }
-    
+        }    
+
     def get_system_setting(self):
         """获取系统设置"""
         system_setting = self.setting_repo.get_system_setting()
@@ -169,11 +137,9 @@ class SettingService(BaseService):
         """获取所有设置"""
         # 从各个专用表中获取所有设置
         notification = self.get_notification_settings()
-        mcp = self.get_mcp_settings()
         system = self.get_system_setting()
         
         return {
             'notification': notification,
-            'mcp': mcp,
             'system': system
         }

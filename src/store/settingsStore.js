@@ -55,14 +55,6 @@ const STORAGE_KEYS = {
 
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
-    // MCP相关设置
-    mcpConfig: {
-      enabled: false,
-      serverAddress: '',
-      serverPort: 8080,
-      timeout: 30,
-    },
-
     // 通知相关设置
     notificationsConfig: {
       enabled: true,
@@ -112,9 +104,6 @@ export const useSettingsStore = defineStore('settings', {
     // 获取当前系统设置
     currentSystemSettings: (state) => state.systemSettings,
 
-    // 获取当前MCP配置
-    currentMcpConfig: (state) => state.mcpConfig,
-
     // 获取当前通知配置
     currentNotificationsConfig: (state) => state.notificationsConfig,
 
@@ -158,18 +147,6 @@ export const useSettingsStore = defineStore('settings', {
     // 获取默认模型
     getDefaultModel() {
       return this.systemSettings.defaultModel;
-    },
-
-    // 切换MCP功能
-    toggleMcp(enabled) {
-      this.mcpConfig.enabled = enabled;
-      this.saveSettings();
-    },
-
-    // 更新MCP配置
-    updateMcpConfig(config) {
-      this.mcpConfig = { ...this.mcpConfig, ...config };
-      this.saveSettings();
     },
 
     // 更新通知配置
@@ -220,13 +197,6 @@ export const useSettingsStore = defineStore('settings', {
 
     // 重置设置为默认值
     resetSettings() {
-      this.mcpConfig = {
-        enabled: false,
-        serverAddress: '',
-        serverPort: 8080,
-        timeout: 30,
-      };
-
       this.notificationsConfig = {
         enabled: true,
         newMessage: true,
@@ -271,16 +241,7 @@ export const useSettingsStore = defineStore('settings', {
         const notificationSettings = await apiService.get('/settings/notification');
         this.notificationsConfig = notificationSettings;
         
-        // 加载MCP设置
-        const mcpSettings = await apiService.get('/mcp');
-        if (mcpSettings) {
-          this.mcpConfig = {
-            enabled: mcpSettings.enabled,
-            serverAddress: mcpSettings.server_address,
-            serverPort: mcpSettings.server_port,
-            timeout: mcpSettings.timeout
-          };
-        }
+
         
         // 加载系统设置
         const systemSettings = await apiService.get('/settings/system');
@@ -370,10 +331,6 @@ export const useSettingsStore = defineStore('settings', {
 
     // 合并保存的设置
     mergeSavedSettings(savedSettings) {
-      if (savedSettings.mcpConfig && typeof savedSettings.mcpConfig === 'object') {
-        this.mcpConfig = mergeSettings(this.mcpConfig, savedSettings.mcpConfig);
-      }
-
       if (savedSettings.notificationsConfig && typeof savedSettings.notificationsConfig === 'object') {
         this.notificationsConfig = mergeSettings(this.notificationsConfig, savedSettings.notificationsConfig);
       }
@@ -400,14 +357,7 @@ export const useSettingsStore = defineStore('settings', {
         // 使用现有的apiService来调用后端API
         await apiService.post('/settings/notification', this.notificationsConfig);
         
-        // 保存MCP设置，转换字段名
-        const mcpSettingsToSave = {
-          enabled: this.mcpConfig.enabled,
-          server_address: this.mcpConfig.serverAddress,
-          server_port: this.mcpConfig.serverPort,
-          timeout: this.mcpConfig.timeout
-        };
-        await apiService.post('/mcp', mcpSettingsToSave);
+
         
         // 保存系统设置，转换字段名以匹配后端模型
         const systemSettingsToSave = {
@@ -429,7 +379,6 @@ export const useSettingsStore = defineStore('settings', {
     async _saveSettingsCore() {
       try {
         const settingsToSave = {
-          mcpConfig: this.mcpConfig,
           notificationsConfig: this.notificationsConfig,
           systemSettings: this.systemSettings,
           timestamp: Date.now(),

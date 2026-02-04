@@ -132,7 +132,7 @@ export const EVENT_TYPES = {
   BACK_TO_CHAT: 'back-to-chat',
   SYSTEM_SETTINGS_CLICK: 'system-settings-click',
   RAG_TOOL_CLICKED: 'rag-tool-clicked',
-  MCP_SERVICE_CLICKED: 'mcp-service-clicked',
+
 
   // 设置相关事件
   SETTINGS_SECTION_CHANGE: 'settings-section-change',

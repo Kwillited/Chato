@@ -16,22 +16,6 @@ class MCPService(BaseService):
         """
         self.setting_service = setting_service or SettingService()
 
-    def get_mcp_settings(self):
-        """获取MCP设置"""
-        return self.setting_service.get_mcp_settings()
-
-    def save_mcp_settings(self, data):
-        """保存MCP设置"""
-        return self.setting_service.save_mcp_settings(data)
-
-    def get_notification_settings(self):
-        """获取通知设置"""
-        return self.setting_service.get_notification_settings()
-
-    def save_notification_settings(self, data):
-        """保存通知设置"""
-        return self.setting_service.save_notification_settings(data)
-
     def get_mcp_tools(self):
         """获取MCP工具列表"""
         tools = mcp_adapter.get_tools()

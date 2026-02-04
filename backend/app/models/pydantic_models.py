@@ -210,14 +210,6 @@ class NotificationSettings(BaseModel):
     displayTime: str = "5秒"
 
 
-class MCPSettings(BaseModel):
-    """MCP设置模型"""
-    enabled: bool = False
-    server_address: str = ""
-    server_port: int = 8080
-    timeout: int = 30
-
-
 class BasicSettings(BaseModel):
     """基本设置模型"""
     theme: str = "light"

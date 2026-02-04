@@ -120,16 +120,6 @@ class VectorSetting(Base):
     chunk_size = Column(Integer, default=1000)
     chunk_overlap = Column(Integer, default=200)
 
-class MCPSetting(Base):
-    """MCP设置表"""
-    __tablename__ = "mcp_settings"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    enabled = Column(Boolean, default=False)
-    server_address = Column(String, default="")
-    server_port = Column(Integer, default=8080)
-    timeout = Column(Integer, default=30)
-
 class NotificationSetting(Base):
     """通知设置表"""
     __tablename__ = "notification_settings"
