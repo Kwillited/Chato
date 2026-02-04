@@ -4,11 +4,13 @@ from app.repositories.model_repository import ModelRepository
 from app.repositories.chat_repository import ChatRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.setting_repository import SettingRepository
+from app.repositories.agent_session_repository import AgentSessionRepository
 
 __all__ = [
     'BaseRepository',
     'ModelRepository',
     'ChatRepository',
     'MessageRepository',
-    'SettingRepository'
+    'SettingRepository',
+    'AgentSessionRepository'
 ]

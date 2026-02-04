@@ -260,6 +260,12 @@ def build_message_list(messages):
             msg_created_at = msg.created_at
             model = msg.model
             files = msg.files
+            # 智能体相关字段
+            message_type = msg.message_type
+            agent_session_id = msg.agent_session_id
+            agent_node = msg.agent_node
+            agent_step = msg.agent_step
+            agent_metadata = msg.agent_metadata
         # 处理元组
         else:
             msg_id = msg[0]
@@ -269,6 +275,12 @@ def build_message_list(messages):
             msg_created_at = msg[5] if len(msg) > 5 else datetime.now().isoformat()
             model = msg[6] if len(msg) > 6 else None
             files = msg[7] if len(msg) > 7 else None
+            # 智能体相关字段（元组格式）
+            message_type = msg[8] if len(msg) > 8 else 'normal'
+            agent_session_id = msg[9] if len(msg) > 9 else None
+            agent_node = msg[10] if len(msg) > 10 else ''
+            agent_step = msg[11] if len(msg) > 11 else 0
+            agent_metadata = msg[12] if len(msg) > 12 else ''
         
         # 解析files字段（JSON字符串转列表）
         files_list = []
@@ -278,7 +290,7 @@ def build_message_list(messages):
             except json.JSONDecodeError:
                 files_list = []
         
-        message_list.append({
+        message_dict = {
             'id': msg_id,
             'role': role,
             'content': content,
@@ -286,7 +298,16 @@ def build_message_list(messages):
             'createdAt': msg_created_at,
             'model': model,
             'files': files_list
-        })
+        }
+        
+        # 添加智能体相关字段
+        message_dict['message_type'] = message_type
+        message_dict['agent_session_id'] = agent_session_id
+        message_dict['agent_node'] = agent_node
+        message_dict['agent_step'] = agent_step
+        message_dict['agent_metadata'] = agent_metadata
+        
+        message_list.append(message_dict)
     return message_list
 
 

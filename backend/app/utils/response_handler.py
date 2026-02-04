@@ -104,21 +104,176 @@ class AgentResponseStrategy(ResponseStrategy):
             try:
                 messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
                 temperature = model_params.get('temperature', 0.7)
-                full_reply = ""
+                
+                # 创建智能体会话
+                agent_session = chat_service.create_agent_session(chat['id'], graph_state={}, current_node="")
+                agent_session_id = agent_session['id'] if agent_session else None
+                print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
+                
+                # 累积每个节点的响应
+                node_content = {}
+                node_metadata = {}
+                current_node = None
+                current_step = 0
+                responses = []
+                
+                # 智能体状态信息
+                agent_state = {
+                    "messages": [],
+                    "loop_count": 0,
+                    "current_node": "",
+                    "steps": []
+                }
                 
                 # ！！！关键：改用 async for
+                print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
                 async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
                     if isinstance(chunk, dict):
+                        print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}")
                         chunk['agent'] = True
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
-                        full_reply += chunk.get('chunk', chunk.get('content', ''))
+                        
+                        # 获取节点信息
+                        node = chunk.get('node', 'unknown')
+                        step = chunk.get('step', 0)
+                        
+                        # 更新智能体状态
+                        agent_state["current_node"] = node
+                        agent_state["loop_count"] = step
+                        
+                        # 记录步骤信息
+                        step_info = {
+                            "node": node,
+                            "step": step,
+                            "event": chunk.get('event'),
+                            "timestamp": now
+                        }
+                        agent_state["steps"].append(step_info)
+                        
+                        # 如果节点改变，保存当前节点的响应并开始新节点
+                        if node != current_node:
+                            # 保存当前节点的响应（如果有内容）
+                            if current_node and current_node in node_content and node_content[current_node].strip():
+                                content = node_content[current_node]
+                                metadata = node_metadata.get(current_node, {})
+                                print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, step={current_step}, content={content[:50]}...")
+                                ai_message = ResponseFormatter.process_full_reply(content, now, model_display_name)
+                                # 添加智能体消息相关字段
+                                ai_message['message_type'] = 'agent'
+                                ai_message['agent_session_id'] = agent_session_id
+                                ai_message['agent_node'] = current_node
+                                ai_message['agent_step'] = current_step
+                                ai_message['agent_metadata'] = json.dumps(metadata)
+                                print(f"[AgentResponseStrategy] 准备保存智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
+                                
+                                # 保存消息
+                                chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
+                                responses.append(ai_message)
+                                print(f"[AgentResponseStrategy] 智能体消息保存完成: message_id={ai_message['id']}, node={current_node}")
+                            
+                            # 开始新节点
+                            current_node = node
+                            current_step = step
+                            node_content[node] = ''
+                            node_metadata[node] = {}
+                            
+                            # 更新智能体会话状态
+                            if agent_session_id:
+                                print(f"[AgentResponseStrategy] 更新智能体会话状态: session_id={agent_session_id}, node={current_node}, step={current_step}")
+                                chat_service.update_agent_session(
+                                    session_id=agent_session_id,
+                                    current_node=current_node,
+                                    step_count=current_step,
+                                    graph_state=agent_state
+                                )
+                        
+                        # 累积当前节点的内容
+                        if chunk.get('event') == 'on_chat_model_stream':
+                            content = chunk.get('data', {}).get('chunk', {}).get('content', '')
+                            if content:
+                                if node not in node_content:
+                                    node_content[node] = ''
+                                node_content[node] += content
+                                # 更新智能体状态中的消息
+                                agent_state["messages"].append({
+                                    "role": "assistant",
+                                    "content": content,
+                                    "node": node,
+                                    "step": step
+                                })
+                        elif chunk.get('event') == 'on_tool_start':
+                            # 存储工具开始执行的信息
+                            tool_name = chunk.get('name', 'unknown')
+                            tool_input = chunk.get('data', {}).get('input', {})
+                            if node not in node_content:
+                                node_content[node] = ''
+                            node_content[node] += f"\n[工具执行开始] 工具: {tool_name}, 输入: {str(tool_input)}"
+                            if node not in node_metadata:
+                                node_metadata[node] = {}
+                            node_metadata[node]['tool_start'] = {'name': tool_name, 'input': tool_input}
+                            # 更新智能体状态中的消息
+                            agent_state["messages"].append({
+                                "role": "tool",
+                                "content": f"开始执行工具: {tool_name}",
+                                "node": node,
+                                "step": step,
+                                "tool_name": tool_name,
+                                "tool_input": tool_input
+                            })
+                        elif chunk.get('event') == 'on_tool_end':
+                            # 存储工具执行结果
+                            tool_name = chunk.get('name', 'unknown')
+                            tool_output = chunk.get('data', {}).get('output', {})
+                            if node not in node_content:
+                                node_content[node] = ''
+                            node_content[node] += f"\n[工具执行完成] 工具: {tool_name}, 输出: {str(tool_output)}"
+                            if node not in node_metadata:
+                                node_metadata[node] = {}
+                            node_metadata[node]['tool_output'] = {'name': tool_name, 'output': tool_output}
+                            # 更新智能体状态中的消息
+                            agent_state["messages"].append({
+                                "role": "tool",
+                                "content": f"工具执行完成: {tool_name}",
+                                "node": node,
+                                "step": step,
+                                "tool_name": tool_name,
+                                "tool_output": tool_output
+                            })
                     else:
+                        print(f"[AgentResponseStrategy] 接收到非字典响应: {str(chunk)[:50]}...")
                         yield f"data: {json.dumps({'chunk': str(chunk), 'agent': True}, ensure_ascii=False)}\n\n"
-                        full_reply += str(chunk)
                 
-                ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
-                chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
-                yield f'data: {json.dumps({"agent": True, "done": True, "ai_message": ai_message}, ensure_ascii=False)}\n\n'
+                # 保存最后一个节点的响应
+                if current_node and current_node in node_content and node_content[current_node].strip():
+                    content = node_content[current_node]
+                    metadata = node_metadata.get(current_node, {})
+                    print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, step={current_step}, content={content[:50]}...")
+                    ai_message = ResponseFormatter.process_full_reply(content, now, model_display_name)
+                    # 添加智能体消息相关字段
+                    ai_message['message_type'] = 'agent'
+                    ai_message['agent_session_id'] = agent_session_id
+                    ai_message['agent_node'] = current_node
+                    ai_message['agent_step'] = current_step
+                    ai_message['agent_metadata'] = json.dumps(metadata)
+                    print(f"[AgentResponseStrategy] 准备保存智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
+                    
+                    # 保存消息
+                    chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
+                    responses.append(ai_message)
+                    print(f"[AgentResponseStrategy] 智能体消息保存完成: message_id={ai_message['id']}, node={current_node}")
+                    
+                    # 更新智能体会话状态
+                    if agent_session_id:
+                        print(f"[AgentResponseStrategy] 更新智能体会话状态: session_id={agent_session_id}, node={current_node}, step={current_step}")
+                        chat_service.update_agent_session(
+                            session_id=agent_session_id,
+                            current_node=current_node,
+                            step_count=current_step,
+                            graph_state=agent_state
+                        )
+                
+                # 发送完成信号
+                yield f'data: {json.dumps({"agent": True, "done": True, "saved_messages": responses}, ensure_ascii=False)}\n\n'
             except Exception as e:
                 yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
         return generate
@@ -245,7 +400,11 @@ class ResponseHandler:
                                enhanced_question, parsed_model_name, parsed_version_name, 
                                model_params, model_display_name, deep_thinking=False, use_agent=False,
                                chat_service=None):
-        strategy = AStreamResponseStrategy()
+        if use_agent:
+            # 使用 AgentResponseStrategy 处理智能体响应
+            strategy = AgentResponseStrategy()
+        else:
+            strategy = AStreamResponseStrategy()
         context = ResponseStrategyContext(strategy)
         return await context.handle_response(chat, message_text, user_message, now, 
                                       enhanced_question, parsed_model_name, parsed_version_name, 
@@ -257,7 +416,11 @@ class ResponseHandler:
                                       enhanced_question, parsed_model_name, parsed_version_name, 
                                       model_params, model_display_name, deep_thinking=False, use_agent=False,
                                       chat_service=None):
-        strategy = AStreamEventsResponseStrategy()
+        if use_agent:
+            # 使用 AgentResponseStrategy 处理智能体响应
+            strategy = AgentResponseStrategy()
+        else:
+            strategy = AStreamEventsResponseStrategy()
         context = ResponseStrategyContext(strategy)
         return await context.handle_response(chat, message_text, user_message, now, 
                                       enhanced_question, parsed_model_name, parsed_version_name, 

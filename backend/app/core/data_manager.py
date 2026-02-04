@@ -9,14 +9,16 @@ from app.utils.data_utils import build_message_list
 db = {
     'chats': [],  # 存储所有对话
     'models': [],  # 存储所有模型信息，后续从SQLite加载
-    'settings': {}
+    'settings': {},
+    'agent_sessions': []  # 存储所有智能体会话
 }
 
 # 脏标记，用于跟踪哪些数据需要保存
 dirty_flags = {
     'chats': False,
     'models': False,
-    'settings': False
+    'settings': False,
+    'agent_sessions': False
 }
 
 # 自动保存定时器
@@ -669,12 +671,20 @@ def save_chats_to_db(conn=None):
                 model = msg.get('model', None)
                 files = msg.get('files', [])
                 
+                # 智能体消息相关字段
+                message_type = msg.get('message_type', 'normal')
+                agent_session_id = msg.get('agent_session_id')
+                agent_node = msg.get('agent_node')
+                agent_step = msg.get('agent_step')
+                agent_metadata = msg.get('agent_metadata')
+                
                 # 将files列表转换为JSON字符串
                 files_json = json.dumps(files)
                 
                 # 创建或更新消息
                 message_repo.create_or_update_message(
-                    msg_id, chat_id, role, content, thinking, msg_created_at, model, files_json
+                    msg_id, chat_id, role, content, thinking, msg_created_at, model, files_json,
+                    message_type, agent_session_id, agent_node, agent_step, agent_metadata
                 )
         
         from app.core.logging_config import logger
@@ -717,6 +727,11 @@ def save_data():
             saved_types.append('settings')
             dirty_flags['settings'] = False
         
+        if dirty_flags['agent_sessions']:
+            save_agent_sessions_to_db()
+            saved_types.append('agent_sessions')
+            dirty_flags['agent_sessions'] = False
+        
         # 不需要提交事务，Repository层会处理
         
         from app.core.logging_config import logger
@@ -728,6 +743,63 @@ def save_data():
     except Exception as e:
         from app.core.logging_config import logger
         logger.error(f"保存数据时出错: {str(e)}")
+
+# 将智能体会话数据保存到SQLite数据库
+
+def save_agent_sessions_to_db(conn=None):
+    """将智能体会话数据保存到SQLite数据库"""
+    try:
+        # 使用Repository层保存智能体会话数据
+        from app.repositories.agent_session_repository import AgentSessionRepository
+        from app.core.database import get_db
+        
+        # 获取数据库会话
+        db_session = next(get_db())
+        agent_session_repo = AgentSessionRepository(db_session)
+        
+        # 获取SQLite中所有智能体会话ID
+        all_sessions = agent_session_repo.get_all_sessions()
+        sqlite_session_ids = {session.id for session in all_sessions}
+        
+        # 获取内存中所有智能体会话ID
+        memory_session_ids = {session['id'] for session in db['agent_sessions']}
+        
+        # 找出需要删除的智能体会话ID
+        session_ids_to_delete = sqlite_session_ids - memory_session_ids
+        
+        # 删除不再存在于内存中的智能体会话
+        if session_ids_to_delete:
+            from app.core.logging_config import logger
+            logger.info(f"删除不存在于内存的智能体会话: {len(session_ids_to_delete)} 个")
+            for session_id in session_ids_to_delete:
+                agent_session_repo.delete_session(session_id)
+        
+        # 保存所有智能体会话
+        for session in db['agent_sessions']:
+            # 将graph_state转换为JSON字符串
+            graph_state = session.get('graph_state')
+            if graph_state is not None and isinstance(graph_state, dict):
+                import json
+                graph_state = json.dumps(graph_state)
+            
+            # 创建或更新智能体会话
+            agent_session_repo.create_or_update_session(
+                session_id=session['id'],
+                chat_id=session['chat_id'],
+                created_at=session['created_at'],
+                updated_at=session['updated_at'],
+                graph_state=graph_state,
+                current_node=session.get('current_node', ''),
+                step_count=session.get('step_count', 0)
+            )
+        
+        from app.core.logging_config import logger
+        logger.info("智能体会话数据已保存到SQLite数据库")
+    except Exception as e:
+        from app.core.logging_config import logger
+        logger.error(f"保存智能体会话数据到SQLite失败: {str(e)}")
+        raise
+
 
 # 将模型数据保存到SQLite数据库
 

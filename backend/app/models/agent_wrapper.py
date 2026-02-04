@@ -178,6 +178,7 @@ class AgentWrapper:
                 if kind == "on_chat_model_stream":
                     chunk = event.get('data', {}).get('chunk')
                     if chunk and chunk.content:
+                        print(f"[AgentWrapper] 生成模型输出流: node={node}, step={step}, content={chunk.content[:50]}...")
                         yield {
                             'event': 'on_chat_model_stream',
                             'node': node,   # 节点名：think 或 analyze
@@ -187,6 +188,7 @@ class AgentWrapper:
                     
                     # 捕获工具调用片段
                     if chunk and hasattr(chunk, 'tool_call_chunks') and chunk.tool_call_chunks:
+                        print(f"[AgentWrapper] 生成工具调用流: node={node}, step={step}, tool_calls={chunk.tool_call_chunks}")
                         yield {
                             'event': 'on_tool_call_stream',
                             'node': node,
@@ -199,6 +201,7 @@ class AgentWrapper:
                     yield {
                         'event': 'on_tool_start',
                         'name': event.get('name'),
+                        'node': node,   # 添加节点信息
                         'step': step,
                         'data': {'input': event.get('data', {}).get('input', {})}
                     }
@@ -206,6 +209,7 @@ class AgentWrapper:
                     yield {
                         'event': 'on_tool_end',
                         'name': event.get('name'),
+                        'node': node,   # 添加节点信息
                         'step': step,
                         'data': {'output': event.get('data', {}).get('output', {})}
                     }

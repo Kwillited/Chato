@@ -140,3 +140,55 @@ class DataService(BaseService):
     def save_data():
         """保存数据"""
         save_data()
+    
+    # 智能体会话相关方法
+    @staticmethod
+    def get_agent_sessions():
+        """获取所有智能体会话"""
+        return db['agent_sessions']
+    
+    @staticmethod
+    def get_agent_session_by_id(session_id):
+        """根据ID获取智能体会话"""
+        return next((s for s in db['agent_sessions'] if s['id'] == session_id), None)
+    
+    @staticmethod
+    def add_agent_session(session):
+        """添加智能体会话"""
+        db['agent_sessions'].insert(0, session)
+        DataService.set_dirty_flag('agent_sessions')
+    
+    @staticmethod
+    def update_agent_session(session_id, updated_session):
+        """更新智能体会话"""
+        session = DataService.get_agent_session_by_id(session_id)
+        if session:
+            session.update(updated_session)
+            DataService.set_dirty_flag('agent_sessions')
+    
+    @staticmethod
+    def remove_agent_session(session_id):
+        """移除智能体会话"""
+        session_index = next((i for i, s in enumerate(db['agent_sessions']) if s['id'] == session_id), None)
+        if session_index is not None:
+            db['agent_sessions'].pop(session_index)
+            DataService.set_dirty_flag('agent_sessions')
+    
+    @staticmethod
+    def clear_agent_sessions():
+        """清空智能体会话"""
+        db['agent_sessions'] = []
+        DataService.set_dirty_flag('agent_sessions')
+    
+    @staticmethod
+    def get_agent_sessions_by_chat_id(chat_id):
+        """根据对话ID获取智能体会话"""
+        return [s for s in db['agent_sessions'] if s['chat_id'] == chat_id]
+    
+    @staticmethod
+    def get_latest_agent_session(chat_id):
+        """获取对话的最新智能体会话"""
+        sessions = DataService.get_agent_sessions_by_chat_id(chat_id)
+        if sessions:
+            return sorted(sessions, key=lambda x: x['created_at'], reverse=True)[0]
+        return None
