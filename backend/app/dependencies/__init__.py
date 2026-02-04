@@ -82,10 +82,6 @@ def get_vector_store_service():
     """获取向量存储服务实例"""
     return VectorStoreService()
 
-
-
-
-
 def get_document_service():
     """获取文档服务实例"""
     return DocumentService()

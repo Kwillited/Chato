@@ -42,8 +42,8 @@
 
 <script setup>
 import { computed } from 'vue'
-import AIChatBubble from '../library/AIChatBubble/AIChatBubble.vue'
-import UserChatBubble from '../library/UserChatBubble/UserChatBubble.vue'
+import AIChatBubble from '../library/chat/AIChatBubble.vue'
+import UserChatBubble from '../library/chat/UserChatBubble.vue'
 
 const props = defineProps({
   message: {

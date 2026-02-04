@@ -23,6 +23,11 @@ class Message(MessageBase):
     id: str
     createdAt: str
     files: Optional[List[dict]] = Field(default_factory=list)
+    message_type: str = "normal"
+    agent_session_id: Optional[str] = None
+    agent_node: str = ""
+    agent_step: int = 0
+    agent_metadata: Optional[str] = ""
     
     class Config:
         from_attributes = True

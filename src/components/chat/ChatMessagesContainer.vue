@@ -77,11 +77,12 @@ const groupedMessages = computed(() => {
     const msgValue = message?.value || message;
     console.log('处理消息:', msgValue);
     
-    // 检查是否是智能体消息（有agent_session_id）
-    if (msgValue.role === 'ai' && msgValue.agent_session_id) {
+    // 检查是否是智能体消息（使用message_type字段）
+    if (msgValue.message_type === 'agent') {
       console.log('发现智能体消息，session_id:', msgValue.agent_session_id);
       // 如果当前没有智能体分组，或者当前分组的session_id不同，创建新的智能体分组
-      if (!currentAgentGroup || currentAgentGroup.agent_session_id !== msgValue.agent_session_id) {
+      const sessionId = msgValue.agent_session_id;
+      if (!currentAgentGroup || currentAgentGroup.agent_session_id !== sessionId) {
         // 完成当前智能体分组（如果有）
         if (currentAgentGroup) {
           // 按step排序消息
@@ -95,10 +96,10 @@ const groupedMessages = computed(() => {
         
         // 创建新的智能体分组
         currentAgentGroup = {
-          id: `agent-group-${msgValue.agent_session_id}`,
+          id: `agent-group-${sessionId}`,
           isAgentGroup: true,
-          agent_session_id: msgValue.agent_session_id,
-          role: 'ai',
+          agent_session_id: sessionId,
+          role: msgValue.role,
           model: msgValue.model,
           timestamp: msgValue.timestamp,
           messages: [message],
