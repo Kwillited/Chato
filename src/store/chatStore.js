@@ -346,60 +346,63 @@ export const useChatStore = defineStore('chat', {
                 // 确保aiMessage存在
                 if (!aiMessage) {
                   // 创建AI消息
-                  const messageContent = ref({
-                    id: generateId('msg'),
-                    role: 'ai',
-                    content: '',
-                    thinking: '',
-                    timestamp: Date.now(),
-                    status: 'tool_executing',
-                    isTyping: false,
-                    lastUpdate: Date.now(),
-                    model: formattedModel,
-                    currentTool: data.name,
-                    toolInput: data.data.input,
-                    toolExecutions: [], // 添加工具执行记录数组
-                    steps: [] // 初始化steps数组
-                  });
+                const messageContent = ref({
+                  id: generateId('msg'),
+                  role: 'ai',
+                  content: '',
+                  thinking: '',
+                  timestamp: Date.now(),
+                  status: 'tool_executing',
+                  isTyping: false,
+                  lastUpdate: Date.now(),
+                  model: formattedModel,
+                  currentTool: data.name,
+                  toolInput: data.data.input,
+                  toolExecutions: [], // 添加工具执行记录数组
+                  ...(agent && { steps: [] }) // 只有智能体消息才初始化steps数组
+                });
                   
                   aiMessage = messageContent;
                   currentChat.messages.push(messageContent);
                 }
                 
-                // 初始化steps数组（如果不存在）
-                if (!aiMessage.value.steps) {
-                  aiMessage.value.steps = [];
-                }
-                
-                // 获取当前step
-                let step = data.step || 0;
-                
-                // 查找或创建对应step的对象
-                let stepObj = aiMessage.value.steps.find(s => s.step === step);
-                if (!stepObj) {
-                  stepObj = {
-                    step: step,
-                    node: 'execute_tools',
-                    content: '',
-                    thinking: '',
-                    toolExecutions: []
+                // 只有智能体消息才使用steps数组
+                if (agent) {
+                  // 初始化steps数组（如果不存在）
+                  if (!aiMessage.value.steps) {
+                    aiMessage.value.steps = [];
+                  }
+                  
+                  // 获取当前step
+                  let step = data.step || 0;
+                  
+                  // 查找或创建对应step的对象
+                  let stepObj = aiMessage.value.steps.find(s => s.step === step);
+                  if (!stepObj) {
+                    stepObj = {
+                      step: step,
+                      node: 'execute_tools',
+                      content: '',
+                      thinking: '',
+                      toolExecutions: []
+                    };
+                    aiMessage.value.steps.push(stepObj);
+                  }
+                  
+                  // 初始化step的toolExecutions数组
+                  if (!stepObj.toolExecutions) {
+                    stepObj.toolExecutions = [];
+                  }
+                  
+                  // 保存当前工具信息到执行记录
+                  const toolExecution = {
+                    name: data.name,
+                    input: data.data.input,
+                    status: 'executing',
+                    timestamp: Date.now()
                   };
-                  aiMessage.value.steps.push(stepObj);
+                  stepObj.toolExecutions.push(toolExecution);
                 }
-                
-                // 初始化step的toolExecutions数组
-                if (!stepObj.toolExecutions) {
-                  stepObj.toolExecutions = [];
-                }
-                
-                // 保存当前工具信息到执行记录
-                const toolExecution = {
-                  name: data.name,
-                  input: data.data.input,
-                  status: 'executing',
-                  timestamp: Date.now()
-                };
-                stepObj.toolExecutions.push(toolExecution);
                 
                 // 同时更新全局toolExecutions（兼容旧格式）
                 if (!aiMessage.value.toolExecutions) {
@@ -424,6 +427,8 @@ export const useChatStore = defineStore('chat', {
                 
                 // 更新AI消息，将工具执行状态设置为成功
                 if (aiMessage) {
+                  // 只有智能体消息才更新steps数组
+                if (agent) {
                   // 获取当前step
                   let step = data.step || 0;
                   
@@ -439,6 +444,7 @@ export const useChatStore = defineStore('chat', {
                       }
                     }
                   }
+                }
                   
                   // 更新全局toolExecutions中的工具执行记录状态（兼容旧格式）
                   if (aiMessage.value.toolExecutions && aiMessage.value.toolExecutions.length > 0) {
@@ -488,62 +494,88 @@ export const useChatStore = defineStore('chat', {
                 // 检查并处理think标签
                 const chunk = contentToAdd;
                 
-                // 初始化steps数组（如果不存在）
-                if (!aiMessage.value.steps) {
-                  aiMessage.value.steps = [];
-                }
-                
-                // 查找或创建对应step的对象
-                let stepObj = aiMessage.value.steps.find(s => s.step === step);
-                if (!stepObj) {
-                  stepObj = {
-                    step: step,
-                    node: node,
-                    content: '',
-                    thinking: ''
-                  };
-                  aiMessage.value.steps.push(stepObj);
-                }
-                
-                // 更新step对象的node（确保最新）
-                stepObj.node = node;
-                
-                // 检查是否在think标签内
-                if (stepObj._inThinkingTag !== undefined) {
-                  // 已经在think标签内，检查是否结束
-                  const endTagIndex = chunk.indexOf('</think>');
-                  if (endTagIndex !== -1) {
-                    // 找到结束标签，更新思考内容并退出think标签模式
-                    stepObj.thinking = stepObj.thinking + chunk.substring(0, endTagIndex);
-                    // 标记思考内容已完成，用于自动折叠
-                    stepObj.thinkingCompleted = true;
-                    // 更新实际内容（结束标签之后的内容）
-                    const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
-                    if (actualContent) {
-                      stepObj.content = stepObj.content + actualContent;
+                // 只有智能体消息才使用steps数组
+                if (agent) {
+                  // 初始化steps数组（如果不存在）
+                  if (!aiMessage.value.steps) {
+                    aiMessage.value.steps = [];
+                  }
+                  
+                  // 查找或创建对应step的对象
+                  let stepObj = aiMessage.value.steps.find(s => s.step === step);
+                  if (!stepObj) {
+                    stepObj = {
+                      step: step,
+                      node: node,
+                      content: '',
+                      thinking: ''
+                    };
+                    aiMessage.value.steps.push(stepObj);
+                  }
+                  
+                  // 更新step对象的node（确保最新）
+                  stepObj.node = node;
+                  
+                  // 检查是否在think标签内
+                  if (stepObj._inThinkingTag !== undefined) {
+                    // 已经在think标签内，检查是否结束
+                    const endTagIndex = chunk.indexOf('</think>');
+                    if (endTagIndex !== -1) {
+                      // 找到结束标签，更新思考内容并退出think标签模式
+                      stepObj.thinking = stepObj.thinking + chunk.substring(0, endTagIndex);
+                      // 标记思考内容已完成，用于自动折叠
+                      stepObj.thinkingCompleted = true;
+                      // 更新实际内容（结束标签之后的内容）
+                      const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
+                      if (actualContent) {
+                        stepObj.content = stepObj.content + actualContent;
+                      }
+                      // 退出think标签模式
+                      delete stepObj._inThinkingTag;
+                    } else {
+                      // 未找到结束标签，继续累积思考内容
+                      stepObj.thinking = stepObj.thinking + chunk;
                     }
-                    // 退出think标签模式
-                    delete stepObj._inThinkingTag;
                   } else {
-                    // 未找到结束标签，继续累积思考内容
-                    stepObj.thinking = stepObj.thinking + chunk;
+                    // 不在think标签内，检查是否开始think标签
+                    const startTagIndex = chunk.indexOf('<think>');
+                    if (startTagIndex !== -1) {
+                      // 找到开始标签
+                      // 先处理开始标签之前的内容（如果有）
+                      const beforeThink = chunk.substring(0, startTagIndex);
+                      if (beforeThink) {
+                        stepObj.content = stepObj.content + beforeThink;
+                      }
+                      // 开始think标签模式，累积开始标签之后的内容
+                      stepObj._inThinkingTag = true;
+                      stepObj.thinking = chunk.substring(startTagIndex + 7); // 7是<think>的长度
+                    } else {
+                      // 没有think标签，直接更新实际内容
+                      stepObj.content = stepObj.content + chunk;
+                    }
                   }
                 } else {
-                  // 不在think标签内，检查是否开始think标签
+                  // 普通对话，直接更新内容
+                  // 检查并处理think标签
                   const startTagIndex = chunk.indexOf('<think>');
                   if (startTagIndex !== -1) {
-                    // 找到开始标签
-                    // 先处理开始标签之前的内容（如果有）
-                    const beforeThink = chunk.substring(0, startTagIndex);
-                    if (beforeThink) {
-                      stepObj.content = stepObj.content + beforeThink;
+                    // 找到开始标签，检查是否有结束标签
+                    const endTagIndex = chunk.indexOf('</think>');
+                    if (endTagIndex !== -1) {
+                      // 完整的think标签，更新思考内容
+                      aiMessage.value.thinking = chunk.substring(startTagIndex + 7, endTagIndex);
+                      // 更新实际内容（结束标签之后的内容）
+                      const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
+                      if (actualContent) {
+                        aiMessage.value.content = aiMessage.value.content + actualContent;
+                      }
+                    } else {
+                      // 只有开始标签，更新思考内容
+                      aiMessage.value.thinking = chunk.substring(startTagIndex + 7);
                     }
-                    // 开始think标签模式，累积开始标签之后的内容
-                    stepObj._inThinkingTag = true;
-                    stepObj.thinking = chunk.substring(startTagIndex + 7); // 7是<think>的长度
                   } else {
                     // 没有think标签，直接更新实际内容
-                    stepObj.content = stepObj.content + chunk;
+                    aiMessage.value.content = aiMessage.value.content + chunk;
                   }
                 }
                 
@@ -942,6 +974,8 @@ export const useChatStore = defineStore('chat', {
             messageTimestamp = baseTime + (messageIndex * 1000); // 每条消息间隔1秒
           }
           
+          console.log('处理消息数据:', messageData);
+          
           return {
             ...messageData,
             // 确保timestamp字段存在
@@ -953,7 +987,12 @@ export const useChatStore = defineStore('chat', {
             // 确保model字段存在，使用正确的默认值，避免硬编码GPT4
             model: messageData.model || chat.model || settingsStore.systemSettings.defaultModel || 'Chato',
             // 确保files字段存在（默认为空数组）
-            files: Array.isArray(messageData.files) ? messageData.files : []
+            files: Array.isArray(messageData.files) ? messageData.files : [],
+            // 确保智能体相关字段存在
+            agent_session_id: messageData.agent_session_id || messageData.agent_session,
+            agent_node: messageData.agent_node || messageData.node,
+            agent_step: messageData.agent_step || messageData.step || 0,
+            agent_metadata: messageData.agent_metadata || messageData.metadata
           };
         });
 
@@ -968,6 +1007,8 @@ export const useChatStore = defineStore('chat', {
           metadata: chat.metadata || {},
         };
       });
+      
+      console.log('确保数据一致性完成:', this.chats);
     },
 
     // 导出对话历史
