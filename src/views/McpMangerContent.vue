@@ -9,7 +9,6 @@
       <span class="text-sm text-gray-500">({{filteredTools.length}}个工具)</span>
     </div>
     
-    <!-- 工具列表/网格容器 -->
     <div class="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       
       <!-- 配置管理卡片（上面的卡片） -->
@@ -32,9 +31,14 @@
             <div 
               class="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer flex flex-col items-center justify-center"
               @click="triggerJsonUpload"
+              @dragover.prevent="handleDragOver"
+              @dragenter.prevent="handleDragEnter"
+              @dragleave.prevent="handleDragLeave"
+              @drop.prevent="handleDrop"
+              :class="{ 'border-primary bg-primary-50 dark:bg-primary-900/20': isDragging }"
             >
               <i class="fa-solid fa-file-json text-gray-400 text-2xl mb-2"></i>
-              <p class="text-xs text-gray-500 mb-2">点击或拖拽文件到此处</p>
+              <p class="text-xs text-gray-500 mb-2">{{ isDragging ? '释放文件以上传' : '点击或拖拽文件到此处' }}</p>
               <p class="text-xs text-gray-400">支持 .json 文件</p>
               <input 
                 type="file" 
@@ -76,10 +80,10 @@
               </div>
             </h4>
             <textarea 
-              v-model="configInput"
-              placeholder='输入JSON配置，例如：{"key": "value"}'
-              class="w-full flex-1 p-3 rounded-lg focus:outline-none text-sm font-mono config-textarea"
-            ></textarea>
+    v-model="configInput"
+    :placeholder="configInput ? '' : '输入JSON配置，例如：{key: value}'"
+    class="w-full flex-1 p-3 rounded-lg focus:outline-none text-sm font-mono config-textarea"
+  ></textarea>
           </div>
         </div>
       </div>
@@ -261,6 +265,7 @@ const isDeletingTool = ref(false);
 const configInput = ref('');
 const jsonFileInput = ref(null);
 const isSavingConfig = ref(false);
+const isDragging = ref(false);
 
 // 工具详情相关
 const selectedTool = ref(null);
@@ -447,6 +452,70 @@ const triggerJsonUpload = () => {
   jsonFileInput.value?.click();
 };
 
+// 拖拽相关方法
+const handleDragOver = (event) => {
+  event.preventDefault();
+  isDragging.value = true;
+};
+
+const handleDragEnter = (event) => {
+  event.preventDefault();
+  isDragging.value = true;
+};
+
+const handleDragLeave = (event) => {
+  event.preventDefault();
+  isDragging.value = false;
+};
+
+const handleDrop = (event) => {
+  event.preventDefault();
+  isDragging.value = false;
+  
+  const files = event.dataTransfer.files;
+  if (files && files.length > 0) {
+    const file = files[0];
+    if (file.name.toLowerCase().endsWith('.json')) {
+      // 处理拖拽的JSON文件
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target.result;
+          
+          // 检查内容是否为空
+          if (!content || !content.trim()) {
+            showNotification('JSON文件为空', 'error');
+            return;
+          }
+          
+          // 验证是否为有效的JSON
+          JSON.parse(content);
+          // 设置到配置输入框
+          configInput.value = content;
+          showNotification('JSON文件加载成功', 'success');
+        } catch (error) {
+          let errorMessage = '无效的JSON文件';
+          if (error instanceof SyntaxError) {
+            if (error.message.includes('Unexpected end of JSON input')) {
+              errorMessage = 'JSON文件不完整或为空';
+            } else if (error.message.includes('Unexpected token')) {
+              errorMessage = 'JSON格式错误：' + error.message;
+            }
+          }
+          showNotification(errorMessage, 'error');
+          console.error('Invalid JSON file:', error);
+        }
+      };
+      reader.onerror = () => {
+        showNotification('文件读取失败', 'error');
+      };
+      reader.readAsText(file);
+    } else {
+      showNotification('请上传JSON文件', 'error');
+    }
+  }
+};
+
 // 处理JSON文件上传
 const handleJsonUpload = async (event) => {
   const file = event.target.files[0];
@@ -458,13 +527,28 @@ const handleJsonUpload = async (event) => {
     reader.onload = (e) => {
       try {
         const content = e.target.result;
+        
+        // 检查内容是否为空
+        if (!content || !content.trim()) {
+          showNotification('JSON文件为空', 'error');
+          return;
+        }
+        
         // 验证是否为有效的JSON
         JSON.parse(content);
         // 设置到配置输入框
         configInput.value = content;
         showNotification('JSON文件加载成功', 'success');
       } catch (error) {
-        showNotification('无效的JSON文件', 'error');
+        let errorMessage = '无效的JSON文件';
+        if (error instanceof SyntaxError) {
+          if (error.message.includes('Unexpected end of JSON input')) {
+            errorMessage = 'JSON文件不完整或为空';
+          } else if (error.message.includes('Unexpected token')) {
+            errorMessage = 'JSON格式错误：' + error.message;
+          }
+        }
+        showNotification(errorMessage, 'error');
         console.error('Invalid JSON file:', error);
       }
     };
@@ -483,47 +567,64 @@ const handleJsonUpload = async (event) => {
 
 // 保存配置
 const saveConfig = async () => {
-  if (!configInput.value.trim()) {
-    showNotification('请输入配置内容', 'warning');
-    return;
-  }
-  
   try {
     isSavingConfig.value = true;
     
-    // 验证JSON格式
-    try {
-      JSON.parse(configInput.value);
-    } catch (error) {
-      showNotification('无效的JSON格式', 'error');
-      return;
+    // 检查配置是否为空
+    const isEmptyConfig = !configInput.value.trim();
+    
+    // 如果配置不为空，验证JSON格式
+    if (!isEmptyConfig) {
+      try {
+        JSON.parse(configInput.value);
+      } catch (error) {
+        showNotification('无效的JSON格式', 'error');
+        return;
+      }
     }
     
-    // 这里可以添加实际的配置保存API调用
-    // const response = await fetch('/api/mcp/config', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json'
-    //   },
-    //   body: configInput.value
-    // });
+    // 调用实际的配置保存API
+    // 如果配置为空，发送空对象
+    const requestBody = isEmptyConfig ? '{}' : configInput.value;
     
-    // 模拟保存成功
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const response = await fetch('/api/mcp/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: requestBody
+    });
     
-    showNotification('配置保存成功', 'success');
+    if (!response.ok) {
+      // 尝试获取错误详情
+      let errorMessage = '配置保存失败';
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMessage = `配置保存失败: ${JSON.stringify(errorData.detail)}`;
+        }
+      } catch (e) {
+        // 如果无法解析错误响应，使用默认错误信息
+      }
+      throw new Error(errorMessage);
+    }
+    
+    const result = await response.json();
+    showNotification(result.message || (isEmptyConfig ? '配置已清空' : '配置保存成功'), 'success');
+    console.log('Saved config:', result.config);
   } catch (error) {
     console.error('Failed to save config:', error);
-    showNotification('配置保存失败', 'error');
+    showNotification(error.message || '配置保存失败', 'error');
   } finally {
     isSavingConfig.value = false;
   }
 };
 
 // 清空配置
-const clearConfig = () => {
+const clearConfig = async () => {
   configInput.value = '';
-  showNotification('配置已清空', 'success');
+  // 自动保存空配置，以清空后端配置文件
+  await saveConfig();
 };
 
 // 导出配置
@@ -598,10 +699,34 @@ const duplicateTool = async () => {
   }
 };
 
-// 组件挂载时加载工具
+// 从后端获取当前的MCP配置
+const fetchCurrentConfig = async () => {
+  try {
+    // 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
+    // 由于前端无法直接读取本地文件，我们需要通过API获取
+    // 注意：这里假设后端已经提供了获取配置文件的API
+    // 如果没有，我们可以在后端添加一个API端点
+    
+    // 暂时使用直接读取文件的方式
+    // 注意：这种方式只在开发环境中有效，生产环境中需要通过API获取
+    const response = await fetch('/api/mcp/config');
+    if (response.ok) {
+      const config = await response.json();
+      configInput.value = JSON.stringify(config, null, 2);
+    } else {
+      // 如果API调用失败，尝试从后端的默认配置中获取
+      console.log('获取配置失败，使用默认值');
+    }
+  } catch (error) {
+    console.error('获取配置失败:', error);
+  }
+};
+
+// 组件挂载时加载工具和配置
 onMounted(() => {
   console.log('McpMangerContent组件挂载');
   refreshTools();
+  fetchCurrentConfig();
 });
 </script>
 
