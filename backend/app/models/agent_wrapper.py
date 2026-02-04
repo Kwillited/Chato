@@ -1,6 +1,8 @@
 import asyncio
 import json
-from typing import Dict, Any, List, Optional, AsyncIterator
+from typing import Dict, Any, List, Optional, AsyncIterator, TypedDict, Annotated
+import operator
+
 from langchain_core.messages import (
     BaseMessage, HumanMessage, AIMessage, SystemMessage, ToolMessage
 )
@@ -9,18 +11,17 @@ from app.models.base_model import BaseModel
 from app.utils.mcp.mcp_adapter import mcp_adapter
 from app.core.logging_config import logger
 
-# --- 序列化辅助函数 ---
-def serialize_message(message):
-    if hasattr(message, 'dict'): return message.dict()
-    if hasattr(message, '__dict__'): return message.__dict__
-    return str(message)
+# --- 定义智能体状态 ---
+class AgentState(TypedDict):
+    # messages 允许通过 operator.add 自动累加历史
+    messages: Annotated[List[BaseMessage], operator.add]
+    # 循环计数
+    loop_count: int
 
-class AgentWrapper:
+class AgentWrapper:  # <--- 这里改回了 AgentWrapper，修复导入错误
     def __init__(self, base_model: BaseModel):
         self.base_model = base_model
-        # 基础 LLM（用于思考节点，不带工具，保证 100% 出流）
         self.llm = base_model.llm
-        # 绑定工具后的 LLM（用于决策节点）
         self.llm_with_tools = None
         self.graph = None
         self.is_initialized = False
@@ -32,113 +33,102 @@ class AgentWrapper:
         tools = mcp_adapter.get_tools()
         self.tools_cache = tools
         
-        # 预绑定工具
+        # 绑定工具：通用智能体需要工具定义来做推理和决策
         self.llm_with_tools = self.llm.bind_tools(tools) if tools else self.llm
         self.graph = self._build_graph()
         self.is_initialized = True
 
-    # --- 图节点逻辑 ---
-
-    async def _think_node(self, state: Dict):
-        """
-        [节点 1] 思考节点：
-        不加载工具定义，强制模型以纯文本形式输出观察结果和行动计划。
-        """
-        logger.info("[Agent] 进入思考阶段...")
+    # --- 节点 1: 推理节点 (Reasoning) ---
+    async def _reasoning_node(self, state: AgentState):
+        """核心节点：负责思考、规划并决定下一步行动"""
+        logger.info(f"[Agent] 正在进行第 {state['loop_count']+1} 轮推理...")
         
-        # 注入临时指令，诱导模型进行思考而非直接回答
-        # 注意：这些临时指令不会被存入 state["messages"] 历史，避免干扰后续对话
-        thinking_prompt = state["messages"] + [
-            HumanMessage(content=(
-                "[系统指令：请根据当前对话历史和已获得的工具结果，简要说明你接下来的计划。"
-                "如果是准备调用工具，请说明原因。如果是准备总结回答，请说明你已拿到足够信息。"
-                "请以'【思考】：'开头。这一步禁止尝试调用任何工具。]"
-            ))
-        ]
-        
-        # 使用不带工具的原始 LLM，确保它必须通过文本说话
-        ai_msg = await self.llm.ainvoke(thinking_prompt)
-        
-        return {
-            "messages": state["messages"] + [ai_msg]
-        }
-
-    async def _analyze_node(self, state: Dict):
-        """
-        [节点 2] 决策节点：
-        携带思考后的上下文，正式决定执行工具调用还是给出最终回答。
-        """
-        logger.info("[Agent] 进入决策阶段...")
-        # 使用带工具绑定的模型
-        ai_msg = await self.llm_with_tools.ainvoke(state["messages"])
-        return {
-            "messages": state["messages"] + [ai_msg],
-            "loop_count": state.get("loop_count", 0)
-        }
-
-    async def _execute_tools_node(self, state: Dict):
-        """[节点 3] 工具执行节点"""
-        last_msg = state["messages"][-1]
-        tool_calls = getattr(last_msg, 'tool_calls', [])
-        new_messages = []
-        tools_map = {t.name: t for t in self.tools_cache} if self.tools_cache else {}
-        
-        for tc in tool_calls:
-            t_name, t_args, t_id = tc['name'], tc['args'], tc['id']
-            try:
-                if t_name in tools_map:
-                    result = await tools_map[t_name].ainvoke(t_args)
-                    res_str = json.dumps(result, ensure_ascii=False) if not isinstance(result, str) else result
-                else:
-                    res_str = f"Error: Tool {t_name} not found"
-            except Exception as e:
-                res_str = f"Error: {str(e)}"
-            
-            new_messages.append(ToolMessage(content=res_str, tool_call_id=t_id))
-        
-        return {
-            "messages": state["messages"] + new_messages,
-            "loop_count": state.get("loop_count", 0) + 1 # 计数增加
-        }
-
-    def _build_graph(self):
-        """
-        构建循环工作流：
-        Start -> Think -> Analyze --(if tools)--> Execute -> Think ...
-                                --(no tools)--> End
-        """
-        def should_continue(state: Dict):
-            last_msg = state["messages"][-1]
-            # 如果 Analyze 节点检测到需要工具调用且未超过循环上限
-            if getattr(last_msg, 'tool_calls', []) and state.get("loop_count", 0) < 5:
-                return "execute_tools"
-            return END
-
-        builder = StateGraph(dict)
-        
-        builder.add_node("think", self._think_node)
-        builder.add_node("analyze", self._analyze_node)
-        builder.add_node("execute_tools", self._execute_tools_node)
-        
-        builder.set_entry_point("think")
-        builder.add_edge("think", "analyze")
-        
-        builder.add_conditional_edges(
-            "analyze",
-            should_continue,
-            {
-                "execute_tools": "execute_tools",
-                END: END
-            }
+        system_prompt = (
+            "你是一个拥有强大自主能力的通用智能体。请按以下流程思考：\n"
+            "1. 分析用户意图和当前状态。\n"
+            "2. 如果信息不足，决定调用什么工具，并在 <thought> 标签中说明理由。\n"
+            "3. 如果信息足够，直接给出最终回答。\n"
+            "请始终先在 <thought> 标签内进行内心独白，再输出结果或调用工具。"
         )
         
-        # 执行完工具后再次回到 think 节点，让模型分析工具执行结果
-        builder.add_edge("execute_tools", "think")
+        msgs = state["messages"]
+        # 确保系统提示词存在
+        if not any(isinstance(m, SystemMessage) for m in msgs):
+            msgs = [SystemMessage(content=system_prompt)] + msgs
+
+        # 一次性调用：获取 [思考 + 工具调用] 或 [思考 + 最终回答]
+        response = await self.llm_with_tools.ainvoke(msgs)
+        
+        return {
+            "messages": [response],
+            "loop_count": state["loop_count"]
+        }
+
+    # --- 节点 2: 执行节点 (Action) ---
+    async def _execute_tools_node(self, state: AgentState):
+        """执行工具调用"""
+        last_msg = state["messages"][-1]
+        tool_calls = getattr(last_msg, 'tool_calls', [])
+        tools_map = {t.name: t for t in self.tools_cache} if self.tools_cache else {}
+        
+        # 存储工具调用索引和名称的映射
+        self.tool_call_map = {}
+        for i, tc in enumerate(tool_calls):
+            tool_name = tc.get('name', '')
+            if tool_name:
+                self.tool_call_map[tool_name] = i
+        
+        tasks = []
+        for i, tc in enumerate(tool_calls):
+            # 为每个工具调用添加索引
+            tasks.append(self._run_single_tool(tc, tools_map, tool_index=i))
+        
+        results = await asyncio.gather(*tasks)
+        
+        return {
+            "messages": results,
+            "loop_count": state["loop_count"] + 1
+        }
+
+    async def _run_single_tool(self, tool_call, tools_map, tool_index=0):
+        t_name, t_args, t_id = tool_call['name'], tool_call['args'], tool_call['id']
+        try:
+            if t_name in tools_map:
+                result = await tools_map[t_name].ainvoke(t_args)
+                res_str = self._format_tool_result(result)
+            else:
+                res_str = f"错误: 未找到工具 {t_name}"
+        except Exception as e:
+            res_str = f"执行出错: {str(e)}"
+        
+        tool_message = ToolMessage(content=res_str, tool_call_id=t_id)
+        # 为 ToolMessage 添加工具索引
+        tool_message.tool_index = tool_index
+        return tool_message
+
+    # --- 构建图 ---
+    def _build_graph(self):
+        def should_continue(state: AgentState):
+            last_msg = state["messages"][-1]
+            # 如果模型输出了工具调用，且循环次数未超限
+            if getattr(last_msg, 'tool_calls', []) and state["loop_count"] < 10:
+                return "execute"
+            return END
+
+        builder = StateGraph(AgentState)
+        builder.add_node("reasoning", self._reasoning_node)
+        builder.add_node("execute", self._execute_tools_node)
+        
+        builder.set_entry_point("reasoning")
+        builder.add_conditional_edges("reasoning", should_continue, {
+            "execute": "execute",
+            END: END
+        })
+        builder.add_edge("execute", "reasoning")
         
         return builder.compile()
 
     # --- 核心流式方法 ---
-
     async def chat_stream(
         self, 
         messages: List[Dict[str, str]], 
@@ -151,7 +141,7 @@ class AgentWrapper:
 
         prepared_messages = self._prepare_messages(messages)
         
-        # 1. 基础对话模式（不开启 Agent）
+        # 1. 基础模式
         if not use_agent:
             async for event in self.llm.astream_events(prepared_messages, version="v2"):
                 if event.get('event') == "on_chat_model_stream":
@@ -166,60 +156,78 @@ class AgentWrapper:
             "loop_count": 0
         }
         
+        # 节点执行步骤计数和当前节点跟踪
+        agent_step = 0
+        current_node = None
+        
         try:
             async for event in self.graph.astream_events(initial_state, version="v2"):
                 kind = event.get('event')
                 metadata = event.get('metadata', {})
-                # 获取当前事件发生的节点和步数，用于前端区分多次循环
                 node = metadata.get('langgraph_node', '')
-                step = metadata.get('langgraph_step', 0)
+                
+                # 当节点变化时增加步骤计数
+                if node != current_node and node:
+                    agent_step += 1
+                    current_node = node
 
-                # 处理模型输出流
                 if kind == "on_chat_model_stream":
                     chunk = event.get('data', {}).get('chunk')
                     if chunk and chunk.content:
-                        print(f"[AgentWrapper] 生成模型输出流: node={node}, step={step}, content={chunk.content[:50]}...")
+                        # 重点：此处输出包含 <thought> 标签，前端可根据此标签渲染 UI
                         yield {
                             'event': 'on_chat_model_stream',
-                            'node': node,   # 节点名：think 或 analyze
-                            'step': step,   # 步骤计数
-                            'data': {'chunk': {'content': chunk.content}}
+                            'node': node,
+                            'agent_step': agent_step,
+                            'data': {'content': chunk.content}
                         }
                     
-                    # 捕获工具调用片段
                     if chunk and hasattr(chunk, 'tool_call_chunks') and chunk.tool_call_chunks:
-                        print(f"[AgentWrapper] 生成工具调用流: node={node}, step={step}, tool_calls={chunk.tool_call_chunks}")
                         yield {
                             'event': 'on_tool_call_stream',
                             'node': node,
-                            'step': step,
+                            'agent_step': agent_step,
                             'data': {'tool_calls': chunk.tool_call_chunks}
                         }
 
-                # 处理工具执行状态
                 elif kind == "on_tool_start":
+                    tool_name = event.get('name', '')
+                    # 从工具调用映射中获取正确的 tool_index
+                    tool_index = 0
+                    if hasattr(self, 'tool_call_map') and tool_name in self.tool_call_map:
+                        tool_index = self.tool_call_map[tool_name]
                     yield {
                         'event': 'on_tool_start',
-                        'name': event.get('name'),
-                        'node': node,   # 添加节点信息
-                        'step': step,
+                        'node': node,
+                        'agent_step': agent_step,
+                        'tool_index': tool_index,
+                        'name': tool_name,
                         'data': {'input': event.get('data', {}).get('input', {})}
                     }
                 elif kind == "on_tool_end":
+                    tool_name = event.get('name', '')
+                    # 从工具调用映射中获取正确的 tool_index
+                    tool_index = 0
+                    if hasattr(self, 'tool_call_map') and tool_name in self.tool_call_map:
+                        tool_index = self.tool_call_map[tool_name]
                     yield {
                         'event': 'on_tool_end',
-                        'name': event.get('name'),
-                        'node': node,   # 添加节点信息
-                        'step': step,
+                        'node': node,
+                        'agent_step': agent_step,
+                        'tool_index': tool_index,
+                        'name': tool_name,
                         'data': {'output': event.get('data', {}).get('output', {})}
                     }
 
         except Exception as e:
             logger.error(f"[Agent] Stream Error: {str(e)}")
-            yield {"event": "on_node_error", "data": {"error": str(e)}}
+            yield {"event": "on_error", "data": str(e)}
+
+    def _format_tool_result(self, result: Any) -> str:
+        if isinstance(result, str): return result
+        return json.dumps(result, ensure_ascii=False)
 
     def _prepare_messages(self, messages: List[Dict[str, str]]) -> List[BaseMessage]:
-        """将原始字典消息转换为 LangChain 对象"""
         formatted = []
         for msg in messages:
             role, content = msg.get('role', 'user'), msg.get('content', '')

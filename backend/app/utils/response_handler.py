@@ -125,17 +125,23 @@ class AgentResponseStrategy(ResponseStrategy):
                     "steps": []
                 }
                 
+                # 工具执行信息存储，按 tool_index 有序
+                node_tool_info = {}
+                
                 # ！！！关键：改用 async for
                 print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
                 async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
                     if isinstance(chunk, dict):
-                        print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}")
+                        print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
                         chunk['agent'] = True
+                        # 保留 agent_step 和 tool_index 字段，移除多余的 step 字段
+                        if 'step' in chunk:
+                            del chunk['step']
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                         
                         # 获取节点信息
                         node = chunk.get('node', 'unknown')
-                        step = chunk.get('step', 0)
+                        step = chunk.get('agent_step', 0)  # 使用 agent_step 字段
                         
                         # 更新智能体状态
                         agent_state["current_node"] = node
@@ -150,13 +156,18 @@ class AgentResponseStrategy(ResponseStrategy):
                         }
                         agent_state["steps"].append(step_info)
                         
-                        # 如果节点改变，保存当前节点的响应并开始新节点
-                        if node != current_node:
-                            # 保存当前节点的响应（如果有内容）
-                            if current_node and current_node in node_content and node_content[current_node].strip():
-                                content = node_content[current_node]
+                        # 当节点变化时保存前一个节点的消息
+                        if current_node and node != current_node:
+                            # 确保推理节点被保存，即使内容为空
+                            if current_node == 'reasoning' or (current_node in node_content and node_content[current_node].strip()):
+                                # 如果推理节点内容为空，生成默认内容
+                                if current_node == 'reasoning' and (current_node not in node_content or not node_content[current_node].strip()):
+                                    content = "[推理节点] 生成工具调用计划"
+                                else:
+                                    content = node_content.get(current_node, "")
+                                
                                 metadata = node_metadata.get(current_node, {})
-                                print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, step={current_step}, content={content[:50]}...")
+                                print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, content={content[:50]}...")
                                 ai_message = ResponseFormatter.process_full_reply(content, now, model_display_name)
                                 # 添加智能体消息相关字段
                                 ai_message['message_type'] = 'agent'
@@ -170,30 +181,43 @@ class AgentResponseStrategy(ResponseStrategy):
                                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                                 responses.append(ai_message)
                                 print(f"[AgentResponseStrategy] 智能体消息保存完成: message_id={ai_message['id']}, node={current_node}")
-                            
-                            # 开始新节点
-                            current_node = node
-                            current_step = step
+                                
+                                # 清空已保存节点的内容
+                                if current_node in node_content:
+                                    del node_content[current_node]
+                                if current_node in node_metadata:
+                                    del node_metadata[current_node]
+                        
+                        # 确保节点内容字典存在
+                        if node not in node_content:
                             node_content[node] = ''
+                        if node not in node_metadata:
                             node_metadata[node] = {}
-                            
-                            # 更新智能体会话状态
-                            if agent_session_id:
-                                print(f"[AgentResponseStrategy] 更新智能体会话状态: session_id={agent_session_id}, node={current_node}, step={current_step}")
-                                chat_service.update_agent_session(
-                                    session_id=agent_session_id,
-                                    current_node=current_node,
-                                    step_count=current_step,
-                                    graph_state=agent_state
-                                )
+                        
+                        # 更新当前节点信息
+                        current_node = node
+                        current_step = step  # 使用从事件中获取的 agent_step
+                        
+                        # 更新智能体会话状态
+                        if agent_session_id:
+                            print(f"[AgentResponseStrategy] 更新智能体会话状态: session_id={agent_session_id}, node={current_node}, step={current_step}")
+                            chat_service.update_agent_session(
+                                session_id=agent_session_id,
+                                current_node=current_node,
+                                step_count=current_step,
+                                graph_state=agent_state
+                            )
                         
                         # 累积当前节点的内容
                         if chunk.get('event') == 'on_chat_model_stream':
-                            content = chunk.get('data', {}).get('chunk', {}).get('content', '')
+                            # 修复内容提取逻辑，适配 agent_wrapper.py 的响应格式
+                            content = chunk.get('data', {}).get('content', '')
+                            print(f"[AgentResponseStrategy] 提取到内容: {content[:50]}...")
                             if content:
                                 if node not in node_content:
                                     node_content[node] = ''
                                 node_content[node] += content
+                                print(f"[AgentResponseStrategy] 累积节点内容: node={node}, length={len(node_content[node])}")
                                 # 更新智能体状态中的消息
                                 agent_state["messages"].append({
                                     "role": "assistant",
@@ -201,16 +225,56 @@ class AgentResponseStrategy(ResponseStrategy):
                                     "node": node,
                                     "step": step
                                 })
+                        elif chunk.get('event') == 'on_tool_call_stream':
+                            # 存储工具调用计划
+                            tool_calls = chunk.get('data', {}).get('tool_calls', [])
+                            if tool_calls:
+                                for tool_call in tool_calls:
+                                    tool_name = tool_call.get('name', 'unknown')
+                                    tool_args = tool_call.get('args', {})
+                                    if node not in node_content:
+                                        node_content[node] = ''
+                                    # 添加工具调用计划到节点内容
+                                    node_content[node] += f"\n[工具调用计划] 工具: {tool_name}, 参数: {str(tool_args)}"
+                                    print(f"[AgentResponseStrategy] 累积工具调用计划: node={node}, tool={tool_name}")
+                                    # 更新智能体状态中的消息
+                                    agent_state["messages"].append({
+                                        "role": "assistant",
+                                        "content": f"计划调用工具: {tool_name}",
+                                        "node": node,
+                                        "step": step,
+                                        "tool_name": tool_name,
+                                        "tool_args": tool_args
+                                    })
                         elif chunk.get('event') == 'on_tool_start':
                             # 存储工具开始执行的信息
                             tool_name = chunk.get('name', 'unknown')
+                            tool_index = chunk.get('tool_index', 0)
                             tool_input = chunk.get('data', {}).get('input', {})
+                            
+                            # 确保节点工具信息存储存在
+                            if node not in node_tool_info:
+                                node_tool_info[node] = {}
+                            
+                            # 按 tool_index 存储工具开始信息
+                            node_tool_info[node][tool_index] = {
+                                'name': tool_name,
+                                'input': tool_input,
+                                'status': 'started',
+                                'output': None
+                            }
+                            
+                            # 累积节点内容（临时，最终会按顺序重新生成）
                             if node not in node_content:
                                 node_content[node] = ''
-                            node_content[node] += f"\n[工具执行开始] 工具: {tool_name}, 输入: {str(tool_input)}"
+                            node_content[node] += f"\n[工具 {tool_index} 开始] 工具: {tool_name}, 输入: {str(tool_input)}"
+                            
                             if node not in node_metadata:
                                 node_metadata[node] = {}
-                            node_metadata[node]['tool_start'] = {'name': tool_name, 'input': tool_input}
+                            if 'tools' not in node_metadata[node]:
+                                node_metadata[node]['tools'] = {}
+                            node_metadata[node]['tools'][tool_index] = {'name': tool_name, 'input': tool_input}
+                            
                             # 更新智能体状态中的消息
                             agent_state["messages"].append({
                                 "role": "tool",
@@ -218,18 +282,29 @@ class AgentResponseStrategy(ResponseStrategy):
                                 "node": node,
                                 "step": step,
                                 "tool_name": tool_name,
+                                "tool_index": tool_index,
                                 "tool_input": tool_input
                             })
                         elif chunk.get('event') == 'on_tool_end':
                             # 存储工具执行结果
                             tool_name = chunk.get('name', 'unknown')
+                            tool_index = chunk.get('tool_index', 0)
                             tool_output = chunk.get('data', {}).get('output', {})
+                            
+                            # 更新工具执行状态
+                            if node in node_tool_info and tool_index in node_tool_info[node]:
+                                node_tool_info[node][tool_index]['status'] = 'completed'
+                                node_tool_info[node][tool_index]['output'] = tool_output
+                            
+                            # 累积节点内容（临时，最终会按顺序重新生成）
                             if node not in node_content:
                                 node_content[node] = ''
-                            node_content[node] += f"\n[工具执行完成] 工具: {tool_name}, 输出: {str(tool_output)}"
-                            if node not in node_metadata:
-                                node_metadata[node] = {}
-                            node_metadata[node]['tool_output'] = {'name': tool_name, 'output': tool_output}
+                            node_content[node] += f"\n[工具 {tool_index} 完成] 工具: {tool_name}, 输出: {str(tool_output)}"
+                            
+                            if node in node_metadata and 'tools' in node_metadata[node] and tool_index in node_metadata[node]['tools']:
+                                node_metadata[node]['tools'][tool_index]['output'] = tool_output
+                                node_metadata[node]['tools'][tool_index]['status'] = 'completed'
+                            
                             # 更新智能体状态中的消息
                             agent_state["messages"].append({
                                 "role": "tool",
@@ -237,17 +312,44 @@ class AgentResponseStrategy(ResponseStrategy):
                                 "node": node,
                                 "step": step,
                                 "tool_name": tool_name,
+                                "tool_index": tool_index,
                                 "tool_output": tool_output
                             })
                     else:
                         print(f"[AgentResponseStrategy] 接收到非字典响应: {str(chunk)[:50]}...")
                         yield f"data: {json.dumps({'chunk': str(chunk), 'agent': True}, ensure_ascii=False)}\n\n"
                 
-                # 保存最后一个节点的响应
-                if current_node and current_node in node_content and node_content[current_node].strip():
-                    content = node_content[current_node]
+                # 保存当前节点的响应
+                print(f"[AgentResponseStrategy] 开始保存当前节点的响应")
+                # 确保推理节点被保存，即使内容为空
+                if current_node and (current_node == 'reasoning' or (current_node in node_content and node_content[current_node].strip())):
+                    # 如果推理节点内容为空，生成默认内容
+                    if current_node == 'reasoning' and (current_node not in node_content or not node_content[current_node].strip()):
+                        content = "[推理节点] 生成工具调用计划"
+                    else:
+                        content = node_content.get(current_node, "")
+                    
+                    # 如果有工具执行信息，按顺序添加
+                    if current_node in node_tool_info:
+                        # 按 tool_index 排序
+                        sorted_tools = sorted(node_tool_info[current_node].items(), key=lambda x: x[0])
+                        if sorted_tools:
+                            # 清空临时内容，重新按顺序生成
+                            content = ""
+                            for tool_index, tool_info in sorted_tools:
+                                tool_name = tool_info['name']
+                                tool_input = tool_info['input']
+                                tool_output = tool_info.get('output', None)
+                                
+                                # 添加工具开始信息
+                                content += f"\n[工具 {tool_index} 开始] 工具: {tool_name}, 输入: {str(tool_input)}"
+                                
+                                # 添加工具结束信息
+                                if tool_output is not None:
+                                    content += f"\n[工具 {tool_index} 完成] 工具: {tool_name}, 输出: {str(tool_output)}"
+                    
                     metadata = node_metadata.get(current_node, {})
-                    print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, step={current_step}, content={content[:50]}...")
+                    print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, content={content[:50]}...")
                     ai_message = ResponseFormatter.process_full_reply(content, now, model_display_name)
                     # 添加智能体消息相关字段
                     ai_message['message_type'] = 'agent'
