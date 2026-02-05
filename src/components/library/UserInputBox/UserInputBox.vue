@@ -1314,11 +1314,11 @@ onUnmounted(() => {
 });
 
 // 处理文件拖放
-const handleDrop = (e) => {
+const handleDrop = (files) => {
   dragCounter.value = 0;
   isDragOver.value = false;
-  if (e.dataTransfer.files.length > 0) {
-    handleFileUpload(e.dataTransfer.files);
+  if (files && files.length > 0) {
+    handleFileUpload(files);
   }
 };
 
