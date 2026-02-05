@@ -79,8 +79,9 @@ setup()
 async def init_mcp_adapter():
     """初始化 MCP 适配器"""
     try:
-        from app.utils.mcp.mcp_adapter import mcp_adapter
-        await mcp_adapter.initialize()
+        from app.services.mcp.mcp_adapter_service import MCPAdapterService
+        mcp_adapter_service = MCPAdapterService()
+        await mcp_adapter_service.initialize()
         logger.info("MCP 适配器初始化完成")
         return True
     except Exception as e:

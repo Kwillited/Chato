@@ -1,24 +1,25 @@
 """MCP工具相关业务逻辑服务"""
 from app.services.settings.setting_service import SettingService
 from app.services.base_service import BaseService
-from app.utils.logging_utils import LoggingUtils
-from app.utils.mcp.mcp_adapter import mcp_adapter
+from app.services.mcp.mcp_adapter_service import MCPAdapterService
 
 
 class MCPService(BaseService):
     """MCP服务类，封装所有MCP相关的业务逻辑"""
 
-    def __init__(self, setting_service=None):
+    def __init__(self, setting_service=None, mcp_adapter_service=None):
         """初始化MCP服务
         
         Args:
             setting_service: 设置服务实例，用于依赖注入
+            mcp_adapter_service: MCP适配器服务实例，用于依赖注入
         """
         self.setting_service = setting_service or SettingService()
+        self.mcp_adapter_service = mcp_adapter_service or MCPAdapterService()
 
     def get_mcp_tools(self):
         """获取MCP工具列表"""
-        tools = mcp_adapter.get_tools()
+        tools = self.mcp_adapter_service.get_tools()
         # 转换工具格式，提取必要的信息
         tool_list = []
         for i, tool in enumerate(tools):
@@ -37,9 +38,8 @@ class MCPService(BaseService):
     def get_mcp_servers(self):
         """获取MCP服务器列表"""
         # 从MCP配置中获取服务器列表
-        from app.utils.mcp.mcp_adapter import mcp_adapter
         # 获取默认配置中的服务器
-        default_config = mcp_adapter._get_default_config()
+        default_config = self.mcp_adapter_service.get_default_config()
         servers = []
         for i, (server_name, server_config) in enumerate(default_config.items()):
             server_info = {
