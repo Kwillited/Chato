@@ -4,7 +4,7 @@ from functools import wraps
 # 使用提取的工具类
 from app.utils.logging_utils import LoggingUtils
 from app.utils.exception_handler import ExceptionHandler
-from app.utils.input_validator import InputValidator
+from app.utils import ValidationUtils
 from app.utils.model_utils import ModelUtils
 
 class BaseService:
@@ -70,4 +70,8 @@ class BaseService:
         返回:
             tuple: (是否验证通过, 错误信息)
         """
-        return InputValidator.validate_input(data, required_fields)
+        try:
+            ValidationUtils.validate_input(data, required_fields)
+            return True, None
+        except ValueError as e:
+            return False, str(e)
