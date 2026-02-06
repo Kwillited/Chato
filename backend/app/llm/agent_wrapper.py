@@ -79,7 +79,7 @@ class AgentWrapper:
     async def chat_stream(
         self, 
         messages: List[Dict[str, str]], 
-        temperature: float = 0.7, 
+        model_params: Dict[str, Any], 
         use_agent: bool = True
     ) -> AsyncIterator[Dict[str, Any]]:
         """
@@ -87,7 +87,7 @@ class AgentWrapper:
         
         Args:
             messages: 消息列表
-            temperature: 温度参数
+            model_params: 模型参数字典
             use_agent: 是否使用智能体模式
         
         Yields:
@@ -95,6 +95,18 @@ class AgentWrapper:
         """
         if not self.is_initialized:
             await self.initialize()
+
+        # 设置模型参数
+        if hasattr(self.llm, 'temperature'):
+            self.llm.temperature = model_params.get('temperature', 0.7)
+        if hasattr(self.llm, 'max_tokens'):
+            self.llm.max_tokens = model_params.get('max_tokens', 2000)
+        if hasattr(self.llm, 'top_p'):
+            self.llm.top_p = model_params.get('top_p', 1.0)
+        if hasattr(self.llm, 'top_k'):
+            self.llm.top_k = model_params.get('top_k', 50)
+        if hasattr(self.llm, 'frequency_penalty'):
+            self.llm.frequency_penalty = model_params.get('frequency_penalty', 0.0)
 
         prepared_messages = self._prepare_messages(messages)
         

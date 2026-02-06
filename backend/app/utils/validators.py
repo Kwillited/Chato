@@ -12,8 +12,6 @@ class ValidationUtils:
     PHONE_PATTERN = r'^1[3-9]\d{9}$'
     UUID_PATTERN = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     
-
-    
     @staticmethod
     def validate_input(data, required_fields):
         """

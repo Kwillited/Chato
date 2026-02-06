@@ -620,7 +620,7 @@ class ChatService(BaseService):
         
         return messages
     
-    async def chat_with_model_stream(self, model_name, messages, parsed_version_name, temperature=0.7, use_agent=False):
+    async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False):
             """
             重构后的异步流式模型回复函数
             """
@@ -651,7 +651,7 @@ class ChatService(BaseService):
                     # ！！！核心改进 2：直接异步遍历生成器
                     # 不要再手动去写 while __anext__，那是 asyncio.run 的死穴
                     print(f"[chat_with_model_stream] 开始接收智能体流式响应")
-                    async for chunk in agent_wrapper.chat_stream(messages, temperature, use_agent=True):
+                    async for chunk in agent_wrapper.chat_stream(messages, model_params, use_agent=True):
                         # 这里的 chunk 已经是 AgentWrapper 处理好的 dict 或 str
                         print(f"[chat_with_model_stream] 接收到智能体响应块: {type(chunk).__name__}, content={str(chunk)[:100]}...")
                         yield chunk
@@ -670,7 +670,7 @@ class ChatService(BaseService):
                     from app.llm.managers.model_manager import ModelManager
                     # ！！！核心改进 3：假设 ModelManager 支持异步流 (astream)
                     # 如果 ModelManager.chat 是同步的，建议也改为异步版本
-                    stream = ModelManager.chat(model_name, model, version_config, messages, temperature, stream=True)
+                    stream = ModelManager.chat(model_name, model, version_config, messages, model_params, stream=True)
 
                     # 如果 stream 是同步迭代器
                     if hasattr(stream, '__next__'):
@@ -1082,6 +1082,7 @@ class ChatService(BaseService):
             'temperature': 0.7,
             'max_tokens': 2000,
             'top_p': 1,
+            'top_k': 50,
             'frequency_penalty': 0
         }
         # 合并用户自定义参数

@@ -33,14 +33,13 @@ class RegularResponseStrategy(ResponseStrategy):
                 return error_response, error_code
 
             messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-            temperature = model_params.get('temperature', 0.7)
             version_config = chat_service.get_version_config(model, parsed_version_name)
 
             chat_service.log_info("使用普通对话模式")
             
             from app.llm.managers.model_manager import ModelManager
             # 即使是非流式调用，在异步链中也建议封装为异步执行
-            response = ModelManager.chat(parsed_model_name, model, version_config, messages, temperature)
+            response = ModelManager.chat(parsed_model_name, model, version_config, messages, model_params)
         
             if isinstance(response, dict) and 'content' in response:
                 ai_reply = response['content']
@@ -73,11 +72,10 @@ class StreamingResponseStrategy(ResponseStrategy):
         async def generate():
             try:
                 messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-                temperature = model_params.get('temperature', 0.7)
                 full_reply = ""
                 
                 # ！！！关键：改用 async for 遍历异步生成器
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
+                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
                     formatted_chunk, full_reply = ResponseFormatter.process_streaming_chunk(chunk, full_reply)
                     yield formatted_chunk
                 
@@ -103,7 +101,6 @@ class AgentResponseStrategy(ResponseStrategy):
         async def generate():
             try:
                 messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-                temperature = model_params.get('temperature', 0.7)
                 
                 # 创建智能体会话
                 agent_session = chat_service.create_agent_session(chat['id'], graph_state={}, current_node="")
@@ -130,7 +127,7 @@ class AgentResponseStrategy(ResponseStrategy):
                 
                 # ！！！关键：改用 async for
                 print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
+                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
                     if isinstance(chunk, dict):
                         print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
                         chunk['agent'] = True
@@ -389,10 +386,9 @@ class AStreamResponseStrategy(ResponseStrategy):
         async def generate():
             try:
                 messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-                temperature = model_params.get('temperature', 0.7)
                 full_reply = ""
                 
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
+                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
                     if isinstance(chunk, dict):
                         chunk['astream'] = True
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
@@ -421,10 +417,10 @@ class AStreamEventsResponseStrategy(ResponseStrategy):
             full_reply = ""
             try:
                 messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-                temperature = model_params.get('temperature', 0.7)
+                full_reply = ""
                 
                 # ！！！关键：async for
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, temperature, use_agent):
+                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
                     if isinstance(chunk, str) and chunk.startswith('data: '):
                         yield chunk
                     else:

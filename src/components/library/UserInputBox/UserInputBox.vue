@@ -161,13 +161,7 @@
                     <div class="flex justify-between items-center mb-1">
                       <div class="flex items-center gap-1">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">温度</label>
-                        <button
-                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                          @mouseover="showTooltip('temperature', $event)"
-                          @mouseleave="hideTooltip('temperature')"
-                        >
-                          <i class="fa-solid fa-circle-question"></i>
-                        </button>
+
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'temperature'"
@@ -205,13 +199,7 @@
                     <div class="flex justify-between items-center mb-1">
                       <div class="flex items-center gap-1">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Top-p</label>
-                        <button
-                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                          @mouseover="showTooltip('topP', $event)"
-                          @mouseleave="hideTooltip('topP')"
-                        >
-                          <i class="fa-solid fa-circle-question"></i>
-                        </button>
+
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'topP'"
@@ -248,13 +236,7 @@
                     <div class="flex justify-between items-center mb-1">
                       <div class="flex items-center gap-1">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">Top-k</label>
-                        <button
-                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                          @mouseover="showTooltip('topK', $event)"
-                          @mouseleave="hideTooltip('topK')"
-                        >
-                          <i class="fa-solid fa-circle-question"></i>
-                        </button>
+
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'topK'"
@@ -291,13 +273,7 @@
                     <div class="flex justify-between items-center mb-1">
                       <div class="flex items-center gap-1">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">长度</label>
-                        <button
-                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                          @mouseover="showTooltip('maxLength', $event)"
-                          @mouseleave="hideTooltip('maxLength')"
-                        >
-                          <i class="fa-solid fa-circle-question"></i>
-                        </button>
+
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'maxLength'"
@@ -337,13 +313,7 @@
                     <div class="flex justify-between items-center mb-1">
                       <div class="flex items-center gap-1">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">相关性阈值</label>
-                        <button
-                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                          @mouseover="showTooltip('threshold', $event)"
-                          @mouseleave="hideTooltip('threshold')"
-                        >
-                          <i class="fa-solid fa-circle-question"></i>
-                        </button>
+
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'threshold'"
@@ -380,13 +350,7 @@
                     <div class="flex justify-between items-center mb-1">
                       <div class="flex items-center gap-1">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">检索文档数</label>
-                        <button
-                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                          @mouseover="showTooltip('topK', $event)"
-                          @mouseleave="hideTooltip('topK')"
-                        >
-                          <i class="fa-solid fa-circle-question"></i>
-                        </button>
+
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'topK'"
@@ -423,13 +387,7 @@
                     <div class="flex justify-between items-center mb-1">
                       <div class="flex items-center gap-1">
                         <label class="text-xs font-medium text-gray-700 dark:text-gray-300">检索模式</label>
-                        <button
-                          class="text-xs text-neutral dark:text-gray-400 cursor-help p-1 relative"
-                          @mouseover="showTooltip('retrievalMode', $event)"
-                          @mouseleave="hideTooltip('retrievalMode')"
-                        >
-                          <i class="fa-solid fa-circle-question"></i>
-                        </button>
+
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'retrievalMode'"

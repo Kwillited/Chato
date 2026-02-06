@@ -30,11 +30,11 @@ class ModelManager:
     
     @classmethod
     def chat(cls, model_name: str, model_config: Dict[str, Any], version_config: Dict[str, Any], 
-             messages: List[Dict[str, str]], temperature: float, stream: bool = False) -> Any:
+             messages: List[Dict[str, str]], model_params: Dict[str, Any], stream: bool = False) -> Any:
         """统一的聊天接口"""
         driver = cls.get_model_driver(model_name, model_config, version_config)
         
         if stream:
-            return driver.chat_stream(messages, temperature)
+            return driver.chat_stream(messages, model_params)
         else:
-            return driver.chat(messages, temperature, stream)
+            return driver.chat(messages, model_params, stream)

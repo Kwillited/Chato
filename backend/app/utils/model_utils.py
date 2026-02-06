@@ -81,6 +81,7 @@ class ModelUtils:
             'temperature': 0.7,
             'max_tokens': 2000,
             'top_p': 1,
+            'top_k': 50,
             'frequency_penalty': 0
         }
         
