@@ -1,6 +1,6 @@
 """文档数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.models import Document
+from app.models.database.models import Document
 
 class DocumentRepository(BaseRepository):
     """文档数据访问类，处理文档相关的数据访问"""

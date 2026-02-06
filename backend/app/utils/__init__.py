@@ -6,6 +6,9 @@ from .validators import ValidationUtils
 # 统一错误处理工具
 from .error_handler import ErrorHandler, handle_errors, handle_api_errors, handle_db_errors, handle_vector_errors
 
+# 统一文件工具
+from .file_utils import FileUtils
+
 # 数据处理工具
 from .data_utils import (
     generate_unique_id,
@@ -31,6 +34,9 @@ __all__ = [
     'handle_api_errors',
     'handle_db_errors',
     'handle_vector_errors',
+    
+    # 统一文件工具
+    'FileUtils',
     
     # data_utils
     'generate_unique_id',

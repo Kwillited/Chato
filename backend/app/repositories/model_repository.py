@@ -1,7 +1,7 @@
 """模型数据访问类"""
 from sqlalchemy import or_
 from app.repositories.base_repository import BaseRepository
-from app.models.models import Model, ModelVersion
+from app.models.database.models import Model, ModelVersion
 
 class ModelRepository(BaseRepository):
     """模型数据访问类，处理模型相关的数据访问"""

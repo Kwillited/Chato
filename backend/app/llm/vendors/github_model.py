@@ -1,5 +1,5 @@
-# app/models/vendors/github_model.py
-from app.models.base_model import BaseModel
+# app/llm/vendors/github_model.py
+from app.llm.base.base_model import BaseModel
 
 
 class GitHubModel(BaseModel):

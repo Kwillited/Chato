@@ -1,6 +1,6 @@
 """文档分块数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.models import DocumentChunk
+from app.models.database.models import DocumentChunk
 
 class DocumentChunkRepository(BaseRepository):
     """文档分块数据访问类，处理文档分块相关的数据访问"""

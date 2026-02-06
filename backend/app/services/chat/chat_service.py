@@ -10,7 +10,7 @@ from app.repositories.agent_session_repository import AgentSessionRepository
 from app.services.base_service import BaseService
 from app.utils.data_utils import build_message_list, build_chat_dict
 from app.utils.response_formatter import ResponseFormatter
-from app.utils.file_processor import FileProcessor
+from app.utils import FileUtils
 from app.utils.model_utils import ModelUtils
 
 class ChatService(BaseService):
@@ -636,8 +636,8 @@ class ChatService(BaseService):
             if use_agent:
                 # --- 智能体模式：全异步处理 ---
                 try:
-                    from app.models.model_manager import ModelManager
-                    from app.models.agent_wrapper import AgentWrapper
+                    from app.llm.managers.model_manager import ModelManager
+                    from app.llm.agent_wrapper import AgentWrapper
                     
                     # 获取基础模型驱动
                     base_driver = ModelManager.get_model_driver(model_name, model, version_config)
@@ -667,7 +667,7 @@ class ChatService(BaseService):
                     return
 
                 try:
-                    from app.models.model_manager import ModelManager
+                    from app.llm.managers.model_manager import ModelManager
                     # ！！！核心改进 3：假设 ModelManager 支持异步流 (astream)
                     # 如果 ModelManager.chat 是同步的，建议也改为异步版本
                     stream = ModelManager.chat(model_name, model, version_config, messages, temperature, stream=True)
@@ -694,7 +694,7 @@ class ChatService(BaseService):
         返回:
             提取的文件内容列表
         """
-        return FileProcessor.process_uploaded_files(files)
+        return FileUtils.process_uploaded_files(files)
     
     def create_agent_session(self, chat_id, graph_state=None, current_node="", step_count=0):
         """创建新的智能体会话

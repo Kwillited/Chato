@@ -1,6 +1,6 @@
 """设置数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.models import VectorSetting, NotificationSetting, AppSetting, SystemSetting
+from app.models.database.models import SystemSetting, NotificationSetting, AppSetting
 
 class SettingRepository(BaseRepository):
     """设置数据访问类，处理设置相关的数据访问"""

@@ -2,9 +2,9 @@
 from fastapi import APIRouter, Body, Path, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from app.services.chat.chat_service import ChatService  # 导入对话服务类
-from app.utils.decorators import handle_exception
+from app.utils.error_handler import handle_api_errors
 from app.dependencies import get_chat_service
-from app.models.pydantic_models import (
+from app.models.schemas.pydantic_models import (
     ChatListResponse, ChatCreate, ChatResponse, ChatCreateResponse,
     PinUpdateRequest, PinUpdateResponse, DeleteChatResponse,
     SuccessResponse, SendMessageRequest
@@ -15,14 +15,14 @@ router = APIRouter(prefix='/api/chats')
 
 # 获取所有对话
 @router.get('', response_model=ChatListResponse)
-@handle_exception
+@handle_api_errors()
 def get_chats(chat_service: ChatService = Depends(get_chat_service)):
     chats = chat_service.get_chats()
     return ChatListResponse(chats=chats)
 
 # 创建新对话
 @router.post('', status_code=201, response_model=ChatCreateResponse)
-@handle_exception
+@handle_api_errors()
 def create_chat(data: ChatCreate = Body(...), chat_service: ChatService = Depends(get_chat_service)):
     title = data.title
     new_chat = chat_service.create_chat(title)
@@ -30,7 +30,7 @@ def create_chat(data: ChatCreate = Body(...), chat_service: ChatService = Depend
 
 # 获取单个对话记录（按ID）
 @router.get('/{chat_id}', response_model=ChatResponse)
-@handle_exception
+@handle_api_errors()
 def get_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_chat_service)):
     # 使用服务层获取对话
     chat = chat_service.get_chat(chat_id)
@@ -41,7 +41,7 @@ def get_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_c
 
 # 删除所有对话记录
 @router.delete('/delete-all', response_model=SuccessResponse)
-@handle_exception
+@handle_api_errors()
 def delete_all_chats(chat_service: ChatService = Depends(get_chat_service)):
     # 使用服务层删除所有对话
     chat_service.delete_all_chats()
@@ -49,7 +49,7 @@ def delete_all_chats(chat_service: ChatService = Depends(get_chat_service)):
 
 # 删除单个对话记录（按ID）
 @router.delete('/{chat_id}', response_model=DeleteChatResponse)
-@handle_exception
+@handle_api_errors()
 def delete_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_chat_service)):
     # 使用服务层删除对话
     success = chat_service.delete_chat(chat_id)
@@ -60,7 +60,7 @@ def delete_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(ge
 
 # 更新对话置顶状态
 @router.patch('/{chat_id}/pin', response_model=PinUpdateResponse)
-@handle_exception
+@handle_api_errors()
 def update_chat_pin(chat_id: str = Path(...), data: PinUpdateRequest = Body(...), chat_service: ChatService = Depends(get_chat_service)):
     pinned = data.pinned
     
@@ -73,7 +73,7 @@ def update_chat_pin(chat_id: str = Path(...), data: PinUpdateRequest = Body(...)
 
 # 发送消息（应用层）
 @router.post('/{chat_id}/messages')
-@handle_exception
+@handle_api_errors()
 async def send_message(chat_id: str = Path(...), data: SendMessageRequest = Body(...), chat_service: ChatService = Depends(get_chat_service)):
     # 这里的 result 应该是一个异步生成器函数
     result = await chat_service.send_message(chat_id, data.dict())

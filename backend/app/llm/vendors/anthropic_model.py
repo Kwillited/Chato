@@ -1,5 +1,5 @@
-# app/models/anthropic_model.py
-from app.models.base_model import BaseModel
+# app/llm/vendors/anthropic_model.py
+from app.llm.base.base_model import BaseModel
 
 class AnthropicModel(BaseModel):
     """Anthropic模型驱动 (使用langchain)"""

@@ -38,6 +38,12 @@ class ErrorHandler:
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
+                    # 检查是否为 HTTPException
+                    from fastapi import HTTPException
+                    if isinstance(e, HTTPException):
+                        # HTTPException 直接重新抛出，由 FastAPI 处理
+                        raise e
+                    
                     if log_error:
                         # 获取日志记录器方法
                         log_method = getattr(logger, log_level, logger.error)
@@ -54,7 +60,7 @@ class ErrorHandler:
     
     # 特定场景的错误处理装饰器
     @staticmethod
-    def handle_api_errors(default_return: Any = None, re_raise: bool = False):
+    def handle_api_errors(default_return: Any = None, re_raise: bool = True):
         """
         API错误处理装饰器，专为API接口设计
         

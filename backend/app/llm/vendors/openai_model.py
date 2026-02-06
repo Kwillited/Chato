@@ -1,5 +1,5 @@
-# app/models/openai_model.py
-from app.models.base_model import BaseModel
+# app/llm/vendors/openai_model.py
+from app.llm.base.base_model import BaseModel
 
 class OpenAIModel(BaseModel):
     """OpenAI模型驱动 (使用langchain)"""

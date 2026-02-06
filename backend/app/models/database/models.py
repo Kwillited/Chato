@@ -106,6 +106,7 @@ class Message(Base):
 
 
 
+
 class VectorSetting(Base):
     """向量设置表"""
     __tablename__ = "vector_settings"

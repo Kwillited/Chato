@@ -5,7 +5,7 @@ import os
 
 # 导入模型服务层
 from app.services.model.model_service import ModelService
-from app.utils.decorators import handle_exception
+from app.utils.error_handler import handle_api_errors as handle_exception
 from app.dependencies import get_model_service
 
 # 创建模型API路由（前缀统一为 /api/models）
@@ -15,14 +15,14 @@ router = APIRouter(prefix='/api/models')
 
 # 获取所有模型供应商以及模型版本
 @router.get('')
-@handle_exception
+@handle_exception()
 def get_models(model_service: ModelService = Depends(get_model_service)):
     models = model_service.get_all_models()
     return {'models': models}
 
 # 获取模型供应商图标
 @router.get('/icons/{filename}')
-@handle_exception
+@handle_exception()
 def get_model_icon(filename: str = Path(...), model_service: ModelService = Depends(get_model_service)):
     """
     提供模型供应商图标文件下载功能
@@ -37,7 +37,7 @@ def get_model_icon(filename: str = Path(...), model_service: ModelService = Depe
 
 # 配置特定模型（按名称）
 @router.post('/{model_name}')
-@handle_exception
+@handle_exception()
 def configure_model(model_name: str = Path(...), data: dict = Body(...), model_service: ModelService = Depends(get_model_service)):
     success, message, model = model_service.configure_model(model_name, data)
     
@@ -56,7 +56,7 @@ def configure_model(model_name: str = Path(...), data: dict = Body(...), model_s
 
 # 删除特定模型配置（按名称）
 @router.delete('/{model_name}')
-@handle_exception
+@handle_exception()
 def delete_model(model_name: str = Path(...), model_service: ModelService = Depends(get_model_service)):
     success, message = model_service.delete_model(model_name)
     
@@ -67,7 +67,7 @@ def delete_model(model_name: str = Path(...), model_service: ModelService = Depe
 
 # 更新模型启用状态
 @router.post('/{model_name}/enabled')
-@handle_exception
+@handle_exception()
 def update_model_enabled(model_name: str = Path(...), data: dict = Body(...), model_service: ModelService = Depends(get_model_service)):
     enabled = data.get('enabled', True)
     success, message = model_service.update_model_enabled(model_name, enabled)
@@ -82,7 +82,7 @@ def update_model_enabled(model_name: str = Path(...), data: dict = Body(...), mo
 
 # 删除特定模型的特定版本
 @router.delete('/{model_name}/versions/{version_name}')
-@handle_exception
+@handle_exception()
 def delete_version(model_name: str = Path(...), version_name: str = Path(...), model_service: ModelService = Depends(get_model_service)):
     success, message, model = model_service.delete_version(model_name, version_name)
     

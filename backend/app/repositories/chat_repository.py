@@ -1,7 +1,7 @@
 """对话数据访问类"""
 from sqlalchemy import desc
 from app.repositories.base_repository import BaseRepository
-from app.models.models import Chat, Message
+from app.models.database.models import Chat, Message
 
 class ChatRepository(BaseRepository):
     """对话数据访问类，处理对话相关的数据访问"""

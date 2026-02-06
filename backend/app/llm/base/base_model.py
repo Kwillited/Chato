@@ -1,4 +1,4 @@
-# models/base_model.py
+# llm/base/base_model.py
 from abc import ABC, abstractmethod
 from langchain_core.language_models import BaseLanguageModel
 from typing import List, Dict, Any, Optional, Generator,  AsyncIterator 

@@ -4,8 +4,7 @@ from typing import List, Dict, Any
 from app.services.base_service import BaseService
 from app.services.data_service import DataService
 from app.services.vector.vector_service import VectorService
-from app.utils.file_searcher import FileSearcher
-from app.utils.file_processor import FileProcessor
+from app.utils import FileUtils
 
 class FileService(BaseService):
     """文件服务类，封装所有文件相关的操作"""
@@ -68,7 +67,7 @@ class FileService(BaseService):
         Returns:
             list: 搜索结果
         """
-        return FileSearcher.search_files(
+        return FileUtils.search_files(
             query=query,
             search_type=search_type,
             k=k,

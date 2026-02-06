@@ -1,5 +1,5 @@
-# app/models/google_ai_model.py
-from app.models.base_model import BaseModel
+# app/llm/vendors/google_ai_model.py
+from app.llm.base.base_model import BaseModel
 
 class GoogleAIModel(BaseModel):
     """Google AI模型驱动 (使用langchain)"""

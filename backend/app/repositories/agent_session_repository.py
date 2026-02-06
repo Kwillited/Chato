@@ -1,7 +1,7 @@
 """智能体会话数据访问类"""
 from sqlalchemy import desc
 from app.repositories.base_repository import BaseRepository
-from app.models.models import AgentSession
+from app.models.database.models import AgentSession
 
 class AgentSessionRepository(BaseRepository):
     """智能体会话数据访问类，处理智能体会话相关的数据访问"""

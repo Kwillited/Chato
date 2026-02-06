@@ -1,5 +1,5 @@
-# app/models/ollama_model.py
-from app.models.base_model import BaseModel
+# app/llm/vendors/ollama_model.py
+from app.llm.base.base_model import BaseModel
 
 
 class OllamaModel(BaseModel):

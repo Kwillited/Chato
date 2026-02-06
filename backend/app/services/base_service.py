@@ -3,7 +3,7 @@ from functools import wraps
 
 # 使用提取的工具类
 from app.utils.logging_utils import LoggingUtils
-from app.utils.exception_handler import ExceptionHandler
+from app.utils.error_handler import ErrorHandler
 from app.utils import ValidationUtils
 from app.utils.model_utils import ModelUtils
 
@@ -56,7 +56,7 @@ class BaseService:
         返回:
             tuple: (错误响应字典, 状态码)
         """
-        return ExceptionHandler.handle_exception(exception, message)
+        return ErrorHandler.handle_exception(exception, message)
     
     @staticmethod
     def validate_input(data, required_fields):

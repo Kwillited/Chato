@@ -1,5 +1,5 @@
-# app/models/model_manager.py
-from app.models.base_model import BaseModel
+# app/llm/managers/model_manager.py
+from app.llm.base.base_model import BaseModel
 from typing import Dict, Any, Generator, List, Optional
 
 class ModelManager:
@@ -9,7 +9,7 @@ class ModelManager:
     def _get_model_drivers(cls):
         """延迟加载模型驱动映射表"""
         if cls._model_drivers is None:
-            from app.models.vendors import OllamaModel, OpenAIModel, AnthropicModel, GoogleAIModel, GitHubModel
+            from app.llm.vendors import OllamaModel, OpenAIModel, AnthropicModel, GoogleAIModel, GitHubModel
             cls._model_drivers = {
                 'Ollama': OllamaModel,
                 'GitHubModel': GitHubModel,

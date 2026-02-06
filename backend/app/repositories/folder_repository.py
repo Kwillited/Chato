@@ -1,6 +1,6 @@
 """文件夹数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.models import Folder
+from app.models.database.models import Folder
 
 class FolderRepository(BaseRepository):
     """文件夹数据访问类，处理文件夹相关的数据访问"""

@@ -7,7 +7,7 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=1000, description="搜索查询文本")
     k: int = Field(5, ge=1, le=100, description="返回结果数量")
     score_threshold: Optional[float] = Field(None, ge=0, le=1, description="相似度分数阈值")
-    search_type: str = Field("similarity", regex="^(similarity|mmr|similarity_score_threshold)$", description="搜索类型")
+    search_type: str = Field("similarity", pattern="^(similarity|mmr|similarity_score_threshold)$", description="搜索类型")
     fetch_k: int = Field(20, ge=1, le=200, description="用于MMR搜索的候选文档数量")
     filter: Optional[Dict[str, Any]] = Field(None, description="元数据过滤器")
 
@@ -52,7 +52,7 @@ class DeleteKnowledgeBaseRequest(BaseModel):
 class RAGConfigRequest(BaseModel):
     """RAG配置请求模型"""
     enabled: bool = Field(..., description="是否启用RAG")
-    retrieval_mode: str = Field(..., regex="^(vector|hybrid|keyword)$", description="检索模式")
+    retrieval_mode: str = Field(..., pattern="^(vector|hybrid|keyword)$", description="检索模式")
     top_k: int = Field(..., ge=1, le=100, description="返回结果数量")
     score_threshold: float = Field(..., ge=0, le=1, description="相似度分数阈值")
     embedder_model: str = Field(..., description="嵌入模型名称")

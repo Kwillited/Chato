@@ -1,6 +1,6 @@
 """消息数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.models import Message
+from app.models.database.models import Message
 
 class MessageRepository(BaseRepository):
     """消息数据访问类，处理消息相关的数据访问"""

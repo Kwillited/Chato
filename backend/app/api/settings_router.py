@@ -3,9 +3,9 @@ from fastapi import APIRouter, Body, Depends
 
 # 导入相关服务类
 from app.services.settings.setting_service import SettingService
-from app.utils.decorators import handle_exception
+from app.utils.error_handler import handle_api_errors as handle_exception
 from app.dependencies import get_setting_service
-from app.models.pydantic_models import (
+from app.models.schemas.pydantic_models import (
     NotificationSettings, BasicSettings, SystemSettings, SettingResponse
 )
 
@@ -14,14 +14,14 @@ router = APIRouter(prefix='/api/settings')
 
 # 获取通知设置
 @router.get('/notification', response_model=NotificationSettings)
-@handle_exception
+@handle_exception()
 def get_notification_settings(setting_service: SettingService = Depends(get_setting_service)):
     """获取通知设置"""
     return setting_service.get_notification_settings()
 
 # 保存通知设置
 @router.post('/notification', response_model=SettingResponse)
-@handle_exception
+@handle_exception()
 def save_notification_settings(data: NotificationSettings = Body(...), setting_service: SettingService = Depends(get_setting_service)):
     """保存通知设置"""
     settings = setting_service.save_notification_settings(data.dict())
@@ -34,14 +34,14 @@ def save_notification_settings(data: NotificationSettings = Body(...), setting_s
 
 # 获取基本设置
 @router.get('/basic', response_model=BasicSettings)
-@handle_exception
+@handle_exception()
 def get_basic_settings(setting_service: SettingService = Depends(get_setting_service)):
     """获取基本设置"""
     return setting_service.get_basic_settings()
 
 # 保存基本设置
 @router.post('/basic', response_model=SettingResponse)
-@handle_exception
+@handle_exception()
 def save_basic_settings(data: BasicSettings = Body(...), setting_service: SettingService = Depends(get_setting_service)):
     """保存基本设置"""
     settings = setting_service.save_basic_settings(data.dict())
@@ -52,14 +52,14 @@ def save_basic_settings(data: BasicSettings = Body(...), setting_service: Settin
 
 # 获取系统设置
 @router.get('/system', response_model=SystemSettings)
-@handle_exception
+@handle_exception()
 def get_system_settings(setting_service: SettingService = Depends(get_setting_service)):
     """获取系统设置"""
     return setting_service.get_system_setting()
 
 # 保存系统设置
 @router.post('/system', response_model=SettingResponse)
-@handle_exception
+@handle_exception()
 def save_system_settings(data: SystemSettings = Body(...), setting_service: SettingService = Depends(get_setting_service)):
     """保存系统设置"""
     settings = setting_service.save_system_setting(data.dict())

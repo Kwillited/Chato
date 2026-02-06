@@ -1,6 +1,7 @@
 """统一验证工具模块，提供所有验证功能"""
 import os
 import re
+from app.utils.file_utils import FileUtils
 
 
 class ValidationUtils:
@@ -11,12 +12,7 @@ class ValidationUtils:
     PHONE_PATTERN = r'^1[3-9]\d{9}$'
     UUID_PATTERN = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     
-    # 文本文件扩展名
-    TEXT_EXTENSIONS = ['.txt', '.md', '.json', '.csv', '.py', '.js', '.html', '.css', '.xml', '.yaml', '.yml']
-    # 文档文件扩展名
-    DOC_EXTENSIONS = ['.doc', '.docx']
-    # PDF文件扩展名
-    PDF_EXTENSIONS = ['.pdf']
+
     
     @staticmethod
     def validate_input(data, required_fields):
@@ -256,33 +252,40 @@ class ValidationUtils:
         return directory_path
     
     @staticmethod
-    def validate_file_extension(filename, allowed_extensions, param_name='文件'):
+    def validate_file_extension(file_name, allowed_extensions, param_name='文件'):
         """
         验证文件扩展名
         
-        Args:
-            filename: 文件名
+        参数:
+            file_name: 文件名
             allowed_extensions: 允许的扩展名列表，例如 ['.txt', '.pdf']
             param_name: 参数名称（用于错误消息）
             
-        Returns:
+        返回:
             str: 验证后的文件名
             
-        Raises:
+        异常:
             ValueError: 扩展名不允许时抛出
         """
-        if not filename:
-            raise ValueError(f'{param_name}名称不能为空')
+        return FileUtils.validate_file_extension(file_name, allowed_extensions, param_name)
+    
+    @staticmethod
+    def validate_file_type(file_name, allowed_extensions, param_name='文件'):
+        """
+        验证文件类型
         
-        if not allowed_extensions:
-            return filename
-        
-        ext = os.path.splitext(filename)[1].lower()
-        if ext not in allowed_extensions:
-            allowed_str = ', '.join(allowed_extensions)
-            raise ValueError(f'{param_name}类型不允许。允许的类型: {allowed_str}')
-        
-        return filename
+        参数:
+            file_name: 文件名
+            allowed_extensions: 允许的扩展名列表，例如 ['.txt', '.pdf']
+            param_name: 参数名称（用于错误消息）
+            
+        返回:
+            str: 验证后的文件名
+            
+        异常:
+            ValueError: 类型不允许时抛出
+        """
+        return FileUtils.validate_file_type(file_name, allowed_extensions, param_name)
     
     @staticmethod
     def validate_array_parameter(param_name, param_value, min_items=0, max_items=None, item_type=None):
@@ -390,54 +393,4 @@ class ValidationUtils:
         
         return param_value
     
-    @staticmethod
-    def get_file_extension(file_name):
-        """
-        获取文件扩展名
-        
-        Args:
-            file_name: 文件名
-            
-        Returns:
-            str: 文件扩展名（小写）
-        """
-        return os.path.splitext(file_name)[1].lower()
-    
-    @staticmethod
-    def is_text_file(file_name):
-        """
-        判断是否为文本文件
-        
-        Args:
-            file_name: 文件名
-            
-        Returns:
-            bool: 是否为文本文件
-        """
-        return ValidationUtils.get_file_extension(file_name) in ValidationUtils.TEXT_EXTENSIONS
-    
-    @staticmethod
-    def is_pdf_file(file_name):
-        """
-        判断是否为PDF文件
-        
-        Args:
-            file_name: 文件名
-            
-        Returns:
-            bool: 是否为PDF文件
-        """
-        return ValidationUtils.get_file_extension(file_name) in ValidationUtils.PDF_EXTENSIONS
-    
-    @staticmethod
-    def is_word_file(file_name):
-        """
-        判断是否为Word文件
-        
-        Args:
-            file_name: 文件名
-            
-        Returns:
-            bool: 是否为Word文件
-        """
-        return ValidationUtils.get_file_extension(file_name) in ValidationUtils.DOC_EXTENSIONS
+

@@ -37,7 +37,7 @@ class GenerationService(BaseService):
         try:
             # 如果没有提供LLM，使用默认配置
             if not llm:
-                from app.models.model_manager import ModelManager
+                from app.llm.managers.model_manager import ModelManager
                 llm = ModelManager.get_default_llm()
             
             # 调用LLM生成响应

@@ -2,7 +2,7 @@
 from typing import Dict, List, Optional, Any
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.models.mcp_models import MCPConfig, MCPTool, MCPServer
+from app.models.database.mcp_models import MCPConfig, MCPTool, MCPServer
 import json
 
 

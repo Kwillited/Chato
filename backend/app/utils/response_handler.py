@@ -38,7 +38,7 @@ class RegularResponseStrategy(ResponseStrategy):
 
             chat_service.log_info("使用普通对话模式")
             
-            from app.models.model_manager import ModelManager
+            from app.llm.managers.model_manager import ModelManager
             # 即使是非流式调用，在异步链中也建议封装为异步执行
             response = ModelManager.chat(parsed_model_name, model, version_config, messages, temperature)
         

@@ -3,28 +3,28 @@ from fastapi import APIRouter, Body, Depends
 
 # 导入服务类
 from app.services.mcp.mcp_service import MCPService
-from app.utils.decorators import handle_exception
+from app.utils.error_handler import handle_api_errors as handle_exception
 
 # 创建MCP API路由（前缀统一为 /api/mcp）
 router = APIRouter(prefix='/api/mcp')
 
 # 获取MCP工具列表
 @router.get('/tools')
-@handle_exception
+@handle_exception()
 def get_mcp_tools():
     mcp_service = MCPService()
     return mcp_service.get_mcp_tools()
 
 # 获取MCP服务器列表
 @router.get('/servers')
-@handle_exception
+@handle_exception()
 def get_mcp_servers():
     mcp_service = MCPService()
     return mcp_service.get_mcp_servers()
 
 # 获取MCP配置文件
 @router.get('/config')
-@handle_exception
+@handle_exception()
 def get_mcp_config():
     import json
     import os
@@ -48,7 +48,7 @@ def get_mcp_config():
 
 # 保存MCP配置文件
 @router.post('/config')
-@handle_exception
+@handle_exception()
 def save_mcp_config(config: dict = Body(...)):
     import json
     import os

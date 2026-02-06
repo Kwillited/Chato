@@ -326,6 +326,7 @@ class ErrorResponse(BaseModel):
     error: str
     
 
+
 class SuccessResponse(BaseModel):
     """成功响应模型"""
     success: bool
