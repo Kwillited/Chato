@@ -1,10 +1,9 @@
 # llm/base/base_model.py
 from abc import ABC, abstractmethod
 from langchain_core.language_models import BaseLanguageModel
-from typing import List, Dict, Any, Optional, Generator,  AsyncIterator 
+from typing import List, Dict, Any, Optional, AsyncIterator 
 from app.utils.message_utils import MessageUtils
 from app.utils.stream_utils import StreamUtils
-
 
 class BaseModel(ABC):
     def __init__(self, model_config: Dict[str, Any], version_config: Dict[str, Any]):
@@ -14,14 +13,7 @@ class BaseModel(ABC):
         self._initialize_llm()
 
     def _get_selected_version(self, default_version: str) -> str:
-        """获取选中的模型版本，支持多种配置字段
-        
-        Args:
-            default_version: 默认版本名称
-            
-        Returns:
-            str: 选中的版本名称
-        """
+        """获取选中的模型版本，支持多种配置字段"""
         return self.version_config.get('name') or \
                self.version_config.get('version_name') or \
                self.version_config.get('custom_name') or \
@@ -29,42 +21,64 @@ class BaseModel(ABC):
 
     @abstractmethod
     def _initialize_llm(self) -> None:
-        """初始化langchain的LLM实例"""
+        """初始化 LangChain 的 LLM 实例（由子类实现）"""
         pass
 
-    def chat(self, messages: List[Dict[str, str]], model_params: Dict[str, Any], stream: bool = False) -> Dict[str, Any]:
-        """非流式对话 - 返回统一的回复格式
-        
-        Args:
-            messages: 消息列表
-            model_params: 模型参数字典
-            stream: 是否流式返回
-            
-        Returns:
-            Dict: 统一格式的回复
+    def _prepare_call_kwargs(self, model_params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        from app.utils.logging_utils import LoggingUtils
-        LoggingUtils.log_info(f"🔧 LLM参数传递: Received model params: {model_params}")
+        预处理调用参数的钩子函数。
+        默认直接返回原始参数。子类（如 Ollama）可以重写此方法以符合其 API 要求。
         
-        langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
-        
-        # 直接将参数传递给 invoke 方法
-        response = self.llm.invoke(langchain_messages, **model_params)
-        LoggingUtils.log_info("🔧 LLM调用: Model invoked successfully")
-        return self._format_response(response.content)
+        例如在 Ollama 中重写为：return {"options": {...}}
+        """
+        return model_params
 
-    async def chat_stream(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> AsyncIterator[str]:
+    def chat(self, messages: List[Dict[str, str]], model_params: Dict[str, Any], stream: bool = False) -> Dict[str, Any]:
+        """非流式对话 - 返回统一的回复格式"""
         from app.utils.logging_utils import LoggingUtils
-        LoggingUtils.log_info(f"🔧 LLM参数传递: Received stream model params: {model_params}")
-        
-        langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
-        
-        LoggingUtils.log_info("🔧 LLM调用: Starting stream invocation")
+        LoggingUtils.log_info(f"🔧 LLM参数传递: Original params: {model_params}")
         
         try:
-            # 直接将参数传递给 astream 方法
-            async for chunk in self.llm.astream(langchain_messages, **model_params):
+            # 1. 消息格式转换
+            langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
+            
+            # 2. 调用钩子处理参数（如适配 Ollama 的 options）
+            call_kwargs = self._prepare_call_kwargs(model_params)
+            LoggingUtils.log_info(f"🔧 LLM调用: Invoking with processed kwargs: {list(call_kwargs.keys())}")
+            
+            # 3. 调用模型
+            if not self.llm:
+                raise RuntimeError("LLM instance is not initialized")
+                
+            response = self.llm.invoke(langchain_messages, **call_kwargs)
+            
+            LoggingUtils.log_info("🔧 LLM调用: Model invoked successfully")
+            return self._format_response(response.content)
+            
+        except Exception as e:
+            LoggingUtils.log_error(f"🔧 LLM错误: Chat error: {e}")
+            return self._format_response(f"Error: {str(e)}")
+
+    async def chat_stream(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> AsyncIterator[str]:
+        """流式对话"""
+        from app.utils.logging_utils import LoggingUtils
+        LoggingUtils.log_info(f"🔧 LLM参数传递: Original stream params: {model_params}")
+        
+        try:
+            # 1. 消息格式转换
+            langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
+            
+            # 2. 调用钩子处理参数
+            call_kwargs = self._prepare_call_kwargs(model_params)
+            LoggingUtils.log_info(f"🔧 LLM调用: Starting stream with processed kwargs: {list(call_kwargs.keys())}")
+            
+            if not self.llm:
+                raise RuntimeError("LLM instance is not initialized")
+
+            # 3. 异步流式调用
+            async for chunk in self.llm.astream(langchain_messages, **call_kwargs):
                 content = None
+                # 兼容不同厂商返回的 chunk 格式
                 if hasattr(chunk, 'content'):
                     content = chunk.content
                 elif isinstance(chunk, dict):
@@ -74,6 +88,7 @@ class BaseModel(ABC):
                 
                 if content:
                     yield StreamUtils.format_stream_chunk(content)
+                    
         except Exception as e:
             LoggingUtils.log_error(f"🔧 LLM错误: Streaming error: {e}")
             yield StreamUtils.format_stream_error(str(e))
