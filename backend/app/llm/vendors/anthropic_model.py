@@ -1,4 +1,5 @@
 # app/llm/vendors/anthropic_model.py
+from typing import Dict, Any
 from app.llm.base.base_model import BaseModel
 
 class AnthropicModel(BaseModel):
@@ -19,3 +20,14 @@ class AnthropicModel(BaseModel):
             api_key=api_key,
             timeout=180
         )
+    
+    def _prepare_call_kwargs(self, model_params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        预处理调用参数，移除Anthropic API不支持的参数
+        """
+        # Anthropic API不支持top_k参数
+        filtered_params = {}
+        for key, value in model_params.items():
+            if key != 'top_k':
+                filtered_params[key] = value
+        return filtered_params

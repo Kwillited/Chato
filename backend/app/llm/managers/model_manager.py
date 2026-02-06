@@ -9,13 +9,14 @@ class ModelManager:
     def _get_model_drivers(cls):
         """延迟加载模型驱动映射表"""
         if cls._model_drivers is None:
-            from app.llm.vendors import OllamaModel, OpenAIModel, AnthropicModel, GoogleAIModel, GitHubModel
+            from app.llm.vendors import OllamaModel, OpenAIModel, AnthropicModel, GoogleAIModel, GitHubModel, DeepSeekModel
             cls._model_drivers = {
                 'Ollama': OllamaModel,
                 'GitHubModel': GitHubModel,
                 'OpenAI': OpenAIModel,        
                 'Anthropic': AnthropicModel,   
-                'GoogleAI': GoogleAIModel      
+                'GoogleAI': GoogleAIModel,     
+                'DeepSeek': DeepSeekModel      
             }
         return cls._model_drivers
     
