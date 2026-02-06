@@ -19,6 +19,5 @@ class OpenAIModel(BaseModel):
             model=selected_version,
             api_key=api_key,
             base_url=base_url,
-            temperature=0.7,
             timeout=180
         )

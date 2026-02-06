@@ -17,6 +17,5 @@ class GoogleAIModel(BaseModel):
         self.llm = ChatGoogleGenerativeAI(
             model=selected_version,
             api_key=api_key,
-            temperature=0.7,
             timeout=180
         )

@@ -208,7 +208,7 @@
                         >
                           <div class="font-medium mb-1 dark:text-white">Top-p参数说明</div>
                           <p class="text-gray-700 dark:text-gray-300">控制词汇多样性，只有累积概率超过此阈值的词才会被考虑。</p>
-                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-1</div>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0.1-1</div>
                         </div>
                       </div>
                       <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="topPValue">{{
@@ -217,7 +217,7 @@
                     </div>
                     <input
                       type="range"
-                      min="0"
+                      min="0.1"
                       max="1"
                       step="0.05"
                       :value="modelParams.top_p"
@@ -226,7 +226,7 @@
                       @input="handleTopPChange"
                     />
                     <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
-                      <span>0</span>
+                      <span>0.1</span>
                       <span>1</span>
                     </div>
                   </div>
@@ -245,7 +245,7 @@
                         >
                           <div class="font-medium mb-1 dark:text-white">Top-k参数说明</div>
                           <p class="text-gray-700 dark:text-gray-300">限制每一步考虑的最高概率词汇数量，较小的值会产生更连贯的结果。</p>
-                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 0-100</div>
+                          <div class="mt-2 text-xs text-gray-500 dark:text-gray-400">范围: 1-100</div>
                         </div>
                       </div>
                       <span class="text-xs font-medium text-blue-500 dark:text-blue-400 px-2 py-0.5 bg-blue-500/10 dark:bg-blue-400/10 rounded-full" id="topKValue">{{
@@ -254,7 +254,7 @@
                     </div>
                     <input
                       type="range"
-                      min="0"
+                      min="1"
                       max="100"
                       step="1"
                       :value="modelParams.top_k"
@@ -263,7 +263,7 @@
                       @input="handleTopKChange"
                     />
                     <div class="flex justify-between text-xs text-neutral dark:text-gray-400 mt-1">
-                      <span>0</span>
+                      <span>1</span>
                       <span>100</span>
                     </div>
                   </div>

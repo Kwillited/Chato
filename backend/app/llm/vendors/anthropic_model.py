@@ -17,6 +17,5 @@ class AnthropicModel(BaseModel):
         self.llm = ChatAnthropic(
             model=selected_version,
             api_key=api_key,
-            temperature=0.7,
             timeout=180
         )

@@ -48,25 +48,8 @@ class BaseModel(ABC):
         
         langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
         
-        # 设置模型参数
-        if hasattr(self.llm, 'temperature'):
-            self.llm.temperature = model_params.get('temperature', 0.7)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set temperature to: {self.llm.temperature}")
-        if hasattr(self.llm, 'max_tokens'):
-            self.llm.max_tokens = model_params.get('max_tokens', 2000)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set max_tokens to: {self.llm.max_tokens}")
-        if hasattr(self.llm, 'top_p'):
-            self.llm.top_p = model_params.get('top_p', 1.0)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set top_p to: {self.llm.top_p}")
-        if hasattr(self.llm, 'top_k'):
-            self.llm.top_k = model_params.get('top_k', 50)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set top_k to: {self.llm.top_k}")
-        if hasattr(self.llm, 'frequency_penalty'):
-            self.llm.frequency_penalty = model_params.get('frequency_penalty', 0.0)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set frequency_penalty to: {self.llm.frequency_penalty}")
-        
-        # 调用模型
-        response = self.llm.invoke(langchain_messages)
+        # 直接将参数传递给 invoke 方法
+        response = self.llm.invoke(langchain_messages, **model_params)
         LoggingUtils.log_info("🔧 LLM调用: Model invoked successfully")
         return self._format_response(response.content)
 
@@ -76,28 +59,11 @@ class BaseModel(ABC):
         
         langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
         
-        # 设置模型参数
-        if hasattr(self.llm, 'temperature'):
-            self.llm.temperature = model_params.get('temperature', 0.7)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set stream temperature to: {self.llm.temperature}")
-        if hasattr(self.llm, 'max_tokens'):
-            self.llm.max_tokens = model_params.get('max_tokens', 2000)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set stream max_tokens to: {self.llm.max_tokens}")
-        if hasattr(self.llm, 'top_p'):
-            self.llm.top_p = model_params.get('top_p', 1.0)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set stream top_p to: {self.llm.top_p}")
-        if hasattr(self.llm, 'top_k'):
-            self.llm.top_k = model_params.get('top_k', 50)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set stream top_k to: {self.llm.top_k}")
-        if hasattr(self.llm, 'frequency_penalty'):
-            self.llm.frequency_penalty = model_params.get('frequency_penalty', 0.0)
-            LoggingUtils.log_info(f"🔧 LLM参数设置: Set stream frequency_penalty to: {self.llm.frequency_penalty}")
-        
         LoggingUtils.log_info("🔧 LLM调用: Starting stream invocation")
         
         try:
-            # 使用 astream 处理异步流
-            async for chunk in self.llm.astream(langchain_messages):
+            # 直接将参数传递给 astream 方法
+            async for chunk in self.llm.astream(langchain_messages, **model_params):
                 content = None
                 if hasattr(chunk, 'content'):
                     content = chunk.content

@@ -20,6 +20,5 @@ class GitHubModel(BaseModel):
             model=selected_version,
             api_key=api_key,
             base_url=base_url,
-            temperature=0.7,  # 默认温度，会在调用时被覆盖
             timeout=180  # 超时设置
         )

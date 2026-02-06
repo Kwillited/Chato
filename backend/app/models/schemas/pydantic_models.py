@@ -108,9 +108,9 @@ class DeleteChatResponse(BaseModel):
 
 class ModelParam(BaseModel):
     """模型参数模型"""
-    temperature: Optional[float] = Field(default=0.7, ge=0.0, le=1.0)
+    temperature: Optional[float] = Field(default=0.7, ge=0.0, le=2.0)
     max_tokens: Optional[int] = Field(default=4096, ge=1)
-    top_p: Optional[float] = Field(default=1.0, ge=0.0, le=1.0)
+    top_p: Optional[float] = Field(default=1.0, ge=0.1, le=1.0)
     top_k: Optional[int] = Field(default=50, ge=1, le=100)
     frequency_penalty: Optional[float] = Field(default=0.0, ge=0.0, le=2.0)
 
