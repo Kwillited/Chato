@@ -56,8 +56,9 @@ def init_db():
     
     # 使用SQLAlchemy的自动创建表功能，不再需要手动执行SQL语句
     # 表结构将由SQLAlchemy的模型定义自动创建
-    from app.core.database import engine
-    from app.models.models import Base
+    from app.core.database import engine, Base
+    from app.models import Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, NotificationSetting, AppSetting, SystemSetting, Folder, Document, DocumentChunk
+    from app.models import MCPConfig, MCPTool, MCPServer
     
     # 创建所有表
     Base.metadata.create_all(bind=engine)
