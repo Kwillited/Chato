@@ -1,5 +1,4 @@
 <template>
-  <!-- 基于step的消息内容气泡 -->
   <div v-if="messageValue.steps && messageValue.steps.length > 0" class="space-y-3 mt-2">
     <div 
       v-for="step in messageValue.steps" 
@@ -31,6 +30,9 @@
         </div>
       </div>
       
+      <!-- 步骤内容 -->
+      <div v-if="step.content" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="step.content"></div>
+      
       <!-- 步骤的工具执行状态 -->
       <ToolExecutionStatus 
         v-for="(tool, index) in step.toolExecutions" 
@@ -39,8 +41,27 @@
         :containerClass="`w-fit max-w-full mt-3${index > 0 ? ' mt-2' : ''}`"
       />
       
-      <!-- 步骤内容 -->
-      <div v-if="step.content" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="step.content"></div>
+      <!-- 工具调用计划 -->
+      <div v-if="step.toolCalls && step.toolCalls.length > 0" class="mt-3">
+        <div class="bg-transparent border border-dashed border-blue-300 dark:border-blue-600 rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-fit max-w-full">
+          <div class="flex items-start gap-2">
+            <svg class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            <div class="flex-1">
+              <div class="text-xs text-blue-500 dark:text-blue-400 font-medium mb-2">
+                工具调用计划
+              </div>
+              <div v-for="(toolCall, index) in step.toolCalls" :key="index" class="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                <div class="font-medium">工具: {{ toolCall.name }}</div>
+                <div v-if="toolCall.args" class="mt-1 text-gray-500 dark:text-gray-400">
+                  参数: {{ toolCall.args }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
   
@@ -51,18 +72,40 @@
       步骤 {{ messageValue.agent_step }}: {{ getNodeLabel(messageValue.node) }}
     </div>
     
-    <!-- 步骤的工具执行状态 -->
-    <ToolExecutionStatus 
-      v-for="(tool, index) in parsedToolExecutions" 
-      :key="index"
-      :tool="tool"
-      :containerClass="`w-fit max-w-full mt-3${index > 0 ? ' mt-2' : ''}`"
-    />
-    
     <!-- 消息内容 -->
-    <div v-if="contentWithoutTools" :class="stepBubbleClasses">
-      <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="contentWithoutTools"></div>
-    </div>
+      <div v-if="contentWithoutTools" :class="stepBubbleClasses">
+        <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="contentWithoutTools"></div>
+      </div>
+      
+      <!-- 步骤的工具执行状态 -->
+      <ToolExecutionStatus 
+        v-for="(tool, index) in parsedToolExecutions" 
+        :key="index"
+        :tool="tool"
+        :containerClass="`w-fit max-w-full mt-3${index > 0 ? ' mt-2' : ''}`"
+      />
+      
+      <!-- 工具调用计划 -->
+      <div v-if="messageValue.toolCalls && messageValue.toolCalls.length > 0" class="mt-3">
+        <div class="bg-transparent border border-dashed border-blue-300 dark:border-blue-600 rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-fit max-w-full">
+          <div class="flex items-start gap-2">
+            <svg class="w-4 h-4 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            <div class="flex-1">
+              <div class="text-xs text-blue-500 dark:text-blue-400 font-medium mb-2">
+                工具调用计划
+              </div>
+              <div v-for="(toolCall, index) in messageValue.toolCalls" :key="index" class="text-xs text-gray-600 dark:text-gray-300 mb-2">
+                <div class="font-medium">工具: {{ toolCall.name }}</div>
+                <div v-if="toolCall.args" class="mt-1 text-gray-500 dark:text-gray-400">
+                  参数: {{ toolCall.args }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
   </div>
 </template>
 

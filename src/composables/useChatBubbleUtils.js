@@ -179,6 +179,7 @@ export function useChatBubbleUtils(props) {
       .replace(/\[工具执行完成\] 工具: [^,]+, 输出: [^\n]+/g, '')
       .replace(/\[工具 \d+ 开始\] 工具: [^,]+, 输入: [^<]+/g, '')
       .replace(/\[工具 \d+ 完成\] 工具: [^,]+, 输出: [^<]+/g, '')
+      .replace(/\[工具调用计划\] 工具: [^,]+, 参数: [^\n]+/g, '')
       .trim()
   }
 

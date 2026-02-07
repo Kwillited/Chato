@@ -478,6 +478,60 @@ export const useChatStore = defineStore('chat', {
                 return;
               }
               
+              // 处理工具调用流事件
+              if (data.event === 'on_tool_call_stream' && data.data && data.data.tool_calls) {
+                console.log('工具调用流事件:', data.data.tool_calls, '步骤:', step);
+                
+                // 检查是否需要创建新的消息对象
+                if (!aiMessages[messageKey]) {
+                  // 更新之前添加的typing消息，替换为实际的AI回复
+                  if (Object.keys(aiMessages).length === 0) {
+                    const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
+                    if (typingMessageIndex !== -1) {
+                      // 移除typing消息
+                      currentChat.messages.splice(typingMessageIndex, 1);
+                    }
+                  }
+                  
+                  // 创建新的AI消息对象
+                  const messageContent = ref({
+                    id: generateId('msg'),
+                    role: 'ai',
+                    content: '',
+                    thinking: '',
+                    timestamp: Date.now(),
+                    status: 'tool_executing',
+                    isTyping: false,
+                    lastUpdate: Date.now(),
+                    model: formattedModel,
+                    agent_step: step,
+                    agent_node: node,
+                    agent: true,
+                    toolCalls: data.data.tool_calls
+                  });
+                  
+                  // 存储消息对象
+                  aiMessages[messageKey] = messageContent;
+                  
+                  // 添加到对话消息列表
+                  currentChat.messages.push(messageContent);
+                }
+                
+                // 获取当前消息对象
+                const currentMessage = aiMessages[messageKey];
+                
+                // 更新AI消息，添加工具调用信息
+                if (currentMessage) {
+                  currentMessage.value.status = 'tool_executing';
+                  currentMessage.value.toolCalls = data.data.tool_calls;
+                  currentMessage.value.lastUpdate = Date.now();
+                }
+                
+                // 强制更新currentChat
+                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
+                return;
+              }
+              
               // 处理后端返回的流式数据格式，支持step标识
               let contentToAdd = '';
               
@@ -990,6 +1044,29 @@ export const useChatStore = defineStore('chat', {
           
           console.log('处理消息数据:', messageData);
           
+          // 解析工具调用计划
+          const parseToolCalls = (content) => {
+            if (!content) return [];
+            
+            const toolCalls = [];
+            // 匹配 [工具调用计划] 工具: create_directory, 参数: {"path": "."} 格式
+            const toolCallRegex = /\[工具调用计划\] 工具: ([^,]+), 参数: ([^\n]+)/g;
+            let match;
+            
+            while ((match = toolCallRegex.exec(content)) !== null) {
+              const [, toolName, args] = match;
+              toolCalls.push({
+                name: toolName.trim(),
+                args: args.trim()
+              });
+            }
+            
+            return toolCalls;
+          };
+          
+          // 解析工具调用计划
+          const toolCalls = parseToolCalls(messageData.content || '');
+          
           return {
             ...messageData,
             // 确保timestamp字段存在
@@ -1006,7 +1083,9 @@ export const useChatStore = defineStore('chat', {
             agent_session_id: messageData.agent_session_id || messageData.agent_session,
             agent_node: messageData.agent_node || messageData.node,
             agent_step: messageData.agent_step || messageData.step || 0,
-            agent_metadata: messageData.agent_metadata || messageData.metadata
+            agent_metadata: messageData.agent_metadata || messageData.metadata,
+            // 添加工具调用计划
+            toolCalls: messageData.toolCalls || toolCalls
           };
         });
 
