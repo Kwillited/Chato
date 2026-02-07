@@ -33,6 +33,7 @@
 import { computed } from 'vue'
 import { Loading } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
+import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
 
 const props = defineProps({
   message: {
@@ -54,6 +55,11 @@ const {
   copyMessageContent
 } = useChatBubble(props)
 
+// 使用聊天气泡工具函数
+const { 
+  getEventLabel
+} = useChatBubbleUtils(props)
+
 // 计算气泡样式类
 const bubbleClasses = computed(() => {
   return [
@@ -65,26 +71,41 @@ const bubbleClasses = computed(() => {
     props.containerClass
   ]
 })
-
-// 获取事件类型标签
-const getEventLabel = (event) => {
-  const eventLabels = {
-    'on_chat_model_stream': 'AI 模型流',
-    'on_chat_model_end': 'AI 模型结束',
-    'text': '文本消息',
-    'tool_call': '工具调用',
-    'tool_response': '工具响应'
-  }
-  return eventLabels[event] || event
-}
 </script>
 
 <style scoped>
 /* 错误提示样式 */
 .chat-error {
-  color: #ef4444;
+  color: var(--error-color);
   font-size: 0.875rem;
   display: flex;
   align-items: center;
+  background-color: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+}
+
+/* 事件标签样式 */
+.event-label {
+  color: #4f46e5;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .event-label {
+    color: #a5b4fc;
+  }
+  
+  .chat-error {
+    background-color: var(--dark-error-bg);
+    border-color: var(--dark-error-border);
+  }
 }
 </style>

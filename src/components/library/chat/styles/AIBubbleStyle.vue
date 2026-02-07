@@ -114,12 +114,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { Tooltip, ToolExecutionStatus } from '../../index.js'
 import NormalAIMessage from '../AIChat/NormalAIMessage.vue'
 import AgentMessage from '../AIChat/AgentMessage.vue'
 import { formatTime } from '../../../../utils/time.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
+import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
 
 const props = defineProps({
   message: {
@@ -138,60 +138,12 @@ const {
   formatThinkingContent
 } = useChatBubble(props)
 
-// 思考内容展开状态 - 流式渲染时默认展开，历史消息默认折叠
-const isThinkingExpanded = ref(false)
-
-// 初始化时检查思考内容
-const initThinkingExpanded = () => {
-  // 检查消息中的思考内容和状态
-  const message = props.message?.value || props.message || {}
-  // 历史消息默认折叠，流式渲染默认展开
-  if (message.thinking) {
-    // 只有当消息状态是 "streaming" 时才默认展开
-    // 其他所有情况（包括历史消息）都默认折叠
-    if (message.status === 'streaming') {
-      isThinkingExpanded.value = true
-    } else {
-      isThinkingExpanded.value = false
-    }
-  }
-}
-
-// 组件挂载时初始化
-onMounted(() => {
-  // 使用 nextTick 确保消息数据已经完全加载
-  nextTick(() => {
-    initThinkingExpanded()
-  })
-})
-
-// 监听消息变化，检查思考内容完成标志
-watch(() => props.message, (newMessage) => {
-  // 检查新消息中的思考内容完成标志
-  const message = newMessage?.value || newMessage || {}
-  if (message.thinkingCompleted === true) {
-    isThinkingExpanded.value = false
-  }
-  // 检查新消息状态和思考内容
-  if (message.thinking) {
-    // 只有流式渲染的消息才展开
-    if (message.status === 'streaming') {
-      isThinkingExpanded.value = true
-    } else {
-      isThinkingExpanded.value = false
-    }
-  }
-}, { deep: true })
-
-// 切换思考内容展开/折叠状态
-const toggleThinkingExpanded = () => {
-  isThinkingExpanded.value = !isThinkingExpanded.value
-}
-
-// 计算思考内容的高度类名
-const thinkingContentHeightClass = computed(() => {
-  return isThinkingExpanded.value ? '' : 'max-h-10'
-})
+// 使用聊天气泡工具函数
+const { 
+  isThinkingExpanded,
+  toggleThinkingExpanded,
+  thinkingContentHeightClass
+} = useChatBubbleUtils(props)
 </script>
 
 <style scoped>
@@ -202,9 +154,92 @@ const thinkingContentHeightClass = computed(() => {
 
 /* 错误提示样式 */
 .chat-error {
-  color: #ef4444;
+  color: var(--error-color);
   font-size: 0.875rem;
   display: flex;
   align-items: center;
+  background-color: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+}
+
+/* AI 聊天气泡样式 */
+.ai-message-bubble {
+  background-color: var(--chat-bubble-ai-bg);
+  border: 1px solid var(--chat-bubble-ai-border);
+  border-radius: var(--chat-bubble-ai-border-radius);
+  box-shadow: var(--chat-bubble-ai-shadow);
+  transition: all 0.3s ease;
+}
+
+.ai-message-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 用户聊天气泡样式 */
+.user-message-bubble {
+  background-color: var(--chat-bubble-user-bg);
+  color: var(--chat-bubble-user-color);
+  border-radius: var(--chat-bubble-user-border-radius);
+  box-shadow: var(--chat-bubble-user-shadow);
+  transition: all 0.3s ease;
+}
+
+.user-message-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(79, 70, 229, 0.3);
+}
+
+/* 思考内容样式 */
+.thinking-content {
+  background-color: var(--thinking-bg);
+  border-left: 4px solid var(--thinking-border);
+  border-radius: var(--thinking-border-radius);
+  padding: var(--thinking-padding);
+  box-shadow: var(--thinking-shadow);
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+/* 工具执行状态样式 */
+.tool-execution-status {
+  background-color: var(--tool-execution-bg);
+  border: 1px solid var(--tool-execution-border);
+  border-radius: var(--tool-execution-border-radius);
+  padding: var(--tool-execution-padding);
+  margin: 8px 0;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .ai-message-bubble {
+    background-color: var(--dark-chat-bubble-ai-bg);
+    border-color: var(--dark-chat-bubble-ai-border);
+    box-shadow: var(--dark-chat-bubble-ai-shadow);
+  }
+  
+  .user-message-bubble {
+    background-color: var(--dark-chat-bubble-user-bg);
+    color: var(--dark-chat-bubble-user-color);
+    box-shadow: var(--dark-chat-bubble-user-shadow);
+  }
+  
+  .thinking-content {
+    background-color: var(--dark-thinking-bg);
+    border-color: var(--dark-thinking-border);
+  }
+  
+  .tool-execution-status {
+    background-color: var(--dark-tool-execution-bg);
+    border-color: var(--dark-tool-execution-border);
+  }
+  
+  .chat-error {
+    background-color: var(--dark-error-bg);
+    border-color: var(--dark-error-border);
+  }
 }
 </style>

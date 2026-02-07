@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional, AsyncIterator
 from langchain_core.messages import (
     BaseMessage, HumanMessage, AIMessage, SystemMessage
 )
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, END
 
 from app.llm.base.base_model import BaseModel
 from app.llm.agent.agent_state import AgentState
@@ -70,7 +70,7 @@ class AgentWrapper:
         builder.set_entry_point("reasoning")
         builder.add_conditional_edges("reasoning", self.agent_nodes.should_continue, {
             "execute": "execute",
-            "END": "END"
+            END: END
         })
         builder.add_edge("execute", "reasoning")
         

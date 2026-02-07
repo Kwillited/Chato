@@ -152,9 +152,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { Tooltip, ToolExecutionStatus, Loading } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
+import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
 import { formatTime } from '../../../../utils/time.js'
 
 const props = defineProps({
@@ -174,71 +174,13 @@ const {
   formatThinkingContent
 } = useChatBubble(props)
 
-// 思考内容展开状态 - 流式渲染时默认展开，历史消息默认折叠
-const isThinkingExpanded = ref(false)
-
-// 初始化时检查思考内容
-const initThinkingExpanded = () => {
-  // 检查消息中的思考内容和状态
-  const message = props.message?.value || props.message || {}
-  // 历史消息默认折叠，流式渲染默认展开
-  if (message.thinking) {
-    // 只有当消息状态是 "streaming" 时才默认展开
-    // 其他所有情况（包括历史消息）都默认折叠
-    if (message.status === 'streaming') {
-      isThinkingExpanded.value = true
-    } else {
-      isThinkingExpanded.value = false
-    }
-  }
-}
-
-// 组件挂载时初始化
-onMounted(() => {
-  // 使用 nextTick 确保消息数据已经完全加载
-  nextTick(() => {
-    initThinkingExpanded()
-  })
-})
-
-// 监听消息变化，检查思考内容完成标志
-watch(() => props.message, (newMessage) => {
-  // 检查新消息中的思考内容完成标志
-  const message = newMessage?.value || newMessage || {}
-  if (message.thinkingCompleted === true) {
-    isThinkingExpanded.value = false
-  }
-  // 检查新消息状态和思考内容
-  if (message.thinking) {
-    // 只有流式渲染的消息才展开
-    if (message.status === 'streaming') {
-      isThinkingExpanded.value = true
-    } else {
-      isThinkingExpanded.value = false
-    }
-  }
-}, { deep: true })
-
-// 切换思考内容展开/折叠状态
-const toggleThinkingExpanded = () => {
-  isThinkingExpanded.value = !isThinkingExpanded.value
-}
-
-// 计算思考内容的高度类名
-const thinkingContentHeightClass = computed(() => {
-  return isThinkingExpanded.value ? '' : 'max-h-10'
-})
-
-// 获取节点类型标签
-const getNodeLabel = (node) => {
-  const nodeLabels = {
-    'think': '思考',
-    'analyze': '分析',
-    'execute_tools': '执行工具',
-    'default': '默认'
-  }
-  return nodeLabels[node] || node
-}
+// 使用聊天气泡工具函数
+const { 
+  isThinkingExpanded,
+  toggleThinkingExpanded,
+  thinkingContentHeightClass,
+  getNodeLabel
+} = useChatBubbleUtils(props)
 </script>
 
 <style scoped>
@@ -249,9 +191,112 @@ const getNodeLabel = (node) => {
 
 /* 错误提示样式 */
 .chat-error {
-  color: #ef4444;
+  color: var(--error-color);
   font-size: 0.875rem;
   display: flex;
   align-items: center;
+  background-color: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 8px;
+}
+
+/* 文档风格聊天气泡样式 */
+.document-bubble {
+  background-color: var(--chat-bubble-ai-bg);
+  border: 1px solid var(--chat-bubble-ai-border);
+  border-radius: 12px;
+  box-shadow: var(--chat-bubble-ai-shadow);
+  transition: all 0.3s ease;
+  padding: 20px;
+}
+
+.document-bubble:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* 步骤标签样式 */
+.step-label {
+  color: #4f46e5;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(79, 70, 229, 0.1);
+}
+
+/* 思考内容样式 */
+.thinking-content {
+  background-color: var(--thinking-bg);
+  border-left: 4px solid var(--thinking-border);
+  border-radius: var(--thinking-border-radius);
+  padding: var(--thinking-padding);
+  box-shadow: var(--thinking-shadow);
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+/* 工具执行状态样式 */
+.tool-execution-status {
+  background-color: var(--tool-execution-bg);
+  border: 1px solid var(--tool-execution-border);
+  border-radius: var(--tool-execution-border-radius);
+  padding: var(--tool-execution-padding);
+  margin: 12px 0;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .document-bubble {
+    background-color: var(--dark-chat-bubble-ai-bg);
+    border-color: var(--dark-chat-bubble-ai-border);
+    box-shadow: var(--dark-chat-bubble-ai-shadow);
+  }
+  
+  .step-label {
+    color: #a5b4fc;
+    border-bottom-color: rgba(165, 180, 252, 0.2);
+  }
+  
+  .thinking-content {
+    background-color: var(--dark-thinking-bg);
+    border-color: var(--dark-thinking-border);
+  }
+  
+  .tool-execution-status {
+    background-color: var(--dark-tool-execution-bg);
+    border-color: var(--dark-tool-execution-border);
+  }
+  
+  .chat-error {
+    background-color: var(--dark-error-bg);
+    border-color: var(--dark-error-border);
+  }
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .document-bubble {
+    padding: 16px;
+  }
+  
+  .step-label {
+    font-size: 0.7rem;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
+  
+  .thinking-content {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .tool-execution-status {
+    padding: 10px;
+  }
 }
 </style>

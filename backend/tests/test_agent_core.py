@@ -9,7 +9,7 @@ import uuid
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.services.chat.chat_service import ChatService
-from app.models.pydantic_models import AgentMessage, AgentSession
+from app.models.schemas.pydantic_models import AgentMessage, AgentSession
 
 
 def test_agent_core():

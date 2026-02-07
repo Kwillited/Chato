@@ -37,8 +37,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import ChatMessage from './ChatMessage.vue';
-import AIChatBubble from '../library/AIChatBubble/AIChatBubble.vue';
-import { ChatJumpIndicator } from '../library/index.js';
+import { AIChatBubble, ChatJumpIndicator } from '../library/index.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 

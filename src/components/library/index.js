@@ -4,7 +4,7 @@
 export { default as AIChatBubble } from './chat/AIChatBubble.vue'
 export { default as UserChatBubble } from './chat/UserChatBubble.vue'
 export { default as UserInputBox } from './UserInputBox/UserInputBox.vue'
-export { default as AIChatDocumentBubble } from './AIChatDocumentBubble/AIChatDocumentBubble.vue'
+// AIChatDocumentBubble 已合并到 AIChatBubble 组件中，通过 chatStyleDocument 属性控制
 export { default as ChatJumpIndicator } from './ChatJumpIndicator/ChatJumpIndicator.vue'
 export { default as Tooltip } from '../common/Tooltip.vue'
 export { default as ContextVisualizationContent } from './ContextVisualization/ContextVisualizationContent.vue'

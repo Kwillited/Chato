@@ -49,6 +49,7 @@
 import { computed } from 'vue'
 import { ToolExecutionStatus } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
+import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
 
 const props = defineProps({
   message: {
@@ -67,6 +68,11 @@ const {
   messageValue
 } = useChatBubble(props)
 
+// 使用聊天气泡工具函数
+const { 
+  getNodeLabel
+} = useChatBubbleUtils(props)
+
 // 计算步骤气泡样式类
 const stepBubbleClasses = computed(() => {
   return [
@@ -78,17 +84,6 @@ const stepBubbleClasses = computed(() => {
     props.containerClass
   ]
 })
-
-// 获取节点类型标签
-const getNodeLabel = (node) => {
-  const nodeLabels = {
-    'think': '思考',
-    'analyze': '分析',
-    'execute_tools': '执行工具',
-    'default': '默认'
-  }
-  return nodeLabels[node] || node
-}
 </script>
 
 <style scoped>
