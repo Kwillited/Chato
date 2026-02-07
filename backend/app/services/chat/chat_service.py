@@ -670,7 +670,7 @@ class ChatService(BaseService):
                     from app.llm.managers.model_manager import ModelManager
                     # ！！！核心改进 3：假设 ModelManager 支持异步流 (astream)
                     # 如果 ModelManager.chat 是同步的，建议也改为异步版本
-                    stream = ModelManager.chat(model_name, model, version_config, messages, model_params, stream=True)
+                    stream = ModelManager.chat(model_name, model, version_config, messages, model_params)
 
                     # 如果 stream 是同步迭代器
                     if hasattr(stream, '__next__'):
@@ -1083,7 +1083,8 @@ class ChatService(BaseService):
             'max_tokens': 2000,
             'top_p': 1,
             'top_k': 50,
-            'frequency_penalty': 0
+            'frequency_penalty': 0,
+            'stream': stream  # 将 stream 参数添加到 model_params 中
         }
         # 合并用户自定义参数
         model_params.update(user_model_params)

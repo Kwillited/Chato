@@ -161,7 +161,12 @@ watch(() => props.visible, (newValue) => {
     modelCustomName.value = '';
     apiKey.value = '';
     apiBaseUrl.value = '';
-    streamingConfig.value = false;
+    // 为不同模型类型设置默认的 streamingConfig 值
+    // GitHubModel、OpenAI、Anthropic、GoogleAI、DeepSeek 等默认启用流式支持
+    // Ollama 默认启用流式支持
+    const modelName = props.modelName || '';
+    const streamEnabledModels = ['GitHubModel', 'OpenAI', 'Anthropic', 'GoogleAI', 'DeepSeek', 'Ollama'];
+    streamingConfig.value = streamEnabledModels.includes(modelName);
     clearErrors();
     
     // 如果是编辑模式，填充表单数据

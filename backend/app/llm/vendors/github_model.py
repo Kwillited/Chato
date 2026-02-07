@@ -36,7 +36,7 @@ class GitHubModel(BaseModel):
             model=selected_version,
             api_key=api_key,
             base_url=base_url,
-            timeout=180  # 超时设置
+            timeout=180,  # 超时设置
         )
     
     def _prepare_call_kwargs(self, model_params: Dict[str, Any]) -> Dict[str, Any]:

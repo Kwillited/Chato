@@ -33,7 +33,7 @@ class BaseModel(ABC):
         """
         return model_params
 
-    def chat(self, messages: List[Dict[str, str]], model_params: Dict[str, Any], stream: bool = False) -> Dict[str, Any]:
+    def chat(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> Dict[str, Any]:
         """非流式对话 - 返回统一的回复格式"""
         from app.utils.logging_utils import LoggingUtils
         LoggingUtils.log_info(f"🔧 LLM参数传递: Original params: {model_params}")

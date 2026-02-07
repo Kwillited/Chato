@@ -252,6 +252,15 @@ export const useChatStore = defineStore('chat', {
         }
       }
       
+      // 对于常见模型类型，如果没有明确的流式支持配置，默认启用流式支持
+      if (!modelStreamingEnabled && formattedModel) {
+        const modelName = formattedModel.split('-')[0];
+        const defaultStreamEnabledModels = ['GitHubModel', 'OpenAI', 'Anthropic', 'GoogleAI', 'DeepSeek', 'Ollama'];
+        if (defaultStreamEnabledModels.includes(modelName)) {
+          modelStreamingEnabled = true;
+        }
+      }
+      
       // 只有当系统设置启用且模型版本支持流式输出时，才使用流式API
       return systemStreamingEnabled && modelStreamingEnabled;
     },
