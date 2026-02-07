@@ -46,3 +46,35 @@ class MessageUtils:
             chat_history = messages[:-1]
             return latest_input, chat_history
         return "", []
+    
+    @staticmethod
+    def filter_think_tags(content: str) -> str:
+        """过滤内容中的think标签
+        
+        Args:
+            content: 原始内容
+            
+        Returns:
+            过滤后的内容
+        """
+        # 定义可能的think标签格式
+        think_tag_pairs = [
+            ('<think>', '</think>'),  # 尖括号格式
+            ('[think]', '[/think]'),  # 方括号格式
+        ]
+        
+        # 对每种标签格式进行过滤
+        for opening_tag, closing_tag in think_tag_pairs:
+            while opening_tag in content:
+                start = content.find(opening_tag)
+                if start != -1:
+                    # 从start + len(opening_tag)的位置开始查找结束标签
+                    end = content.find(closing_tag, start + len(opening_tag))
+                    if end != -1:
+                        # 保留开始标签前的内容和结束标签后的内容
+                        content = content[:start] + content[end + len(closing_tag):]
+                    else:
+                        break
+        
+        # 去除多余的空白字符
+        return content.strip()

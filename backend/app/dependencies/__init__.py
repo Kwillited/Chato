@@ -6,6 +6,7 @@ from app.repositories.chat_repository import ChatRepository
 from app.repositories.message_repository import MessageRepository
 from app.repositories.model_repository import ModelRepository
 from app.repositories.setting_repository import SettingRepository
+from app.repositories.agent_session_repository import AgentSessionRepository
 from app.services.chat.chat_service import ChatService
 from app.services.data_service import DataService
 from app.services.model.model_service import ModelService
@@ -45,13 +46,19 @@ def get_setting_repository(db: Session = Depends(get_db)):
     return SettingRepository(db)
 
 
+def get_agent_session_repository(db: Session = Depends(get_db)):
+    """获取智能体会话仓库实例"""
+    return AgentSessionRepository(db)
+
+
 # 服务依赖
 def get_chat_service(
     chat_repo: ChatRepository = Depends(get_chat_repository),
-    message_repo: MessageRepository = Depends(get_message_repository)
+    message_repo: MessageRepository = Depends(get_message_repository),
+    agent_session_repo: AgentSessionRepository = Depends(get_agent_session_repository)
 ):
     """获取对话服务实例"""
-    return ChatService(chat_repo, message_repo)
+    return ChatService(chat_repo, message_repo, agent_session_repo)
 
 
 def get_model_service(

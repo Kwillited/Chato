@@ -30,6 +30,7 @@ class ChatService(BaseService):
     
     def get_chats(self):
         """获取所有对话"""
+        from app.core.logging_config import logger
         try:
             # 先从内存数据库获取对话
             memory_chats = DataService.get_chats()
@@ -63,13 +64,14 @@ class ChatService(BaseService):
             DataService.get_chats().extend(chat_list)
             return chat_list
         except Exception as e:
-            # 使用BaseService的日志方法
-            BaseService.log_error(f"获取对话列表失败: {str(e)}")
+            # 记录错误日志
+            logger.error(f"获取对话列表失败: {str(e)}")
             # 失败时返回内存数据库中的对话
             return DataService.get_chats()
 
     def create_chat(self, title=None):
         """创建新对话"""
+        from app.core.logging_config import logger
         try:
             chat_id = str(uuid.uuid4())  # 生成唯一对话ID
             now = datetime.now().isoformat()  # 时间戳（ISO格式）
@@ -94,8 +96,8 @@ class ChatService(BaseService):
             
             return new_chat
         except Exception as e:
-            # 使用BaseService的日志方法
-            BaseService.log_error(f"创建对话失败: {str(e)}")
+            # 记录错误日志
+            logger.error(f"创建对话失败: {str(e)}")
             # 尝试从内存中移除（如果已添加）
             try:
                 DataService.remove_chat(chat_id)
@@ -116,13 +118,9 @@ class ChatService(BaseService):
             DataService.add_chat(new_chat)
             return new_chat
 
-    def get_chat(self, chat_id):
-        """获取单个对话记录（按ID）"""
-        # 先尝试从内存获取
-        chat = DataService.get_chat_by_id(chat_id)
-        if chat:
-            return chat
-        
+    def _load_chat_from_db(self, chat_id):
+        """从数据库加载对话并构建对话字典"""
+        from app.core.logging_config import logger
         try:
             # 从数据库获取
             chat_row = self.chat_repo.get_chat_by_id(chat_id)
@@ -144,9 +142,19 @@ class ChatService(BaseService):
                 DataService.get_chats().append(chat)
             return chat
         except Exception as e:
-            # 使用BaseService的日志方法
-            BaseService.log_error(f"获取对话失败: {str(e)}")
+            # 记录错误日志
+            logger.error(f"从数据库加载对话失败: {str(e)}")
             return None
+    
+    def get_chat(self, chat_id):
+        """获取单个对话记录（按ID）"""
+        # 先尝试从内存获取
+        chat = DataService.get_chat_by_id(chat_id)
+        if chat:
+            return chat
+        
+        # 从数据库加载
+        return self._load_chat_from_db(chat_id)
 
     def delete_chat(self, chat_id):
         """删除单个对话记录（按ID）"""
@@ -199,17 +207,10 @@ class ChatService(BaseService):
             # 先从内存获取对话信息
             chat = DataService.get_chat_by_id(chat_id)
             if not chat:
-                # 如果内存中没有，从SQLite加载
-                chat_row = self.chat_repo.get_chat_by_id(chat_id)
-                if not chat_row:
+                # 如果内存中没有，从数据库加载
+                chat = self._load_chat_from_db(chat_id)
+                if not chat:
                     return False
-                # 获取对话的所有消息
-                messages = self.message_repo.get_messages_by_chat_id(chat_id)
-                # 构建对话字典并添加到内存
-                formatted_messages = build_message_list(messages)
-                chat_dict = build_chat_dict(chat_row, formatted_messages)
-                DataService.get_chats().append(chat_dict)
-                chat = chat_dict
             
             # 更新内存中的对话
             updated_at = datetime.now().isoformat()
@@ -256,6 +257,7 @@ class ChatService(BaseService):
             messages = messages[-max_messages:]
         
         # 转换为适合模型输入的格式
+        from app.utils.message_utils import MessageUtils
         formatted_messages = []
         for msg in messages:
             # 确保消息有必要的字段
@@ -266,27 +268,11 @@ class ChatService(BaseService):
                 content = original_content
                 
                 if not deep_thinking:
-                    # 定义可能的think标签格式
-                    think_tag_pairs = [
-                        ('<think>', '</think>'),  # 尖括号格式
-                        ('[think]', '[/think]'),  # 方括号格式
-                    ]
-                    
-                    # 对每种标签格式进行过滤
-                    for opening_tag, closing_tag in think_tag_pairs:
-                        while opening_tag in content:
-                            start = content.find(opening_tag)
-                            if start != -1:
-                                # 从start + len(opening_tag)的位置开始查找结束标签
-                                end = content.find(closing_tag, start + len(opening_tag))
-                                if end != -1:
-                                    # 保留开始标签前的内容和结束标签后的内容
-                                    content = content[:start] + content[end + len(closing_tag):]
-                                else:
-                                    break
-                
-                # 去除多余的空白字符
-                content = content.strip()
+                    # 使用工具类过滤think标签
+                    content = MessageUtils.filter_think_tags(content)
+                else:
+                    # 启用深度思考时，只去除多余的空白字符
+                    content = content.strip()
                 
                 formatted_messages.append({
                     'role': msg['role'],
@@ -305,14 +291,15 @@ class ChatService(BaseService):
             # 从前端传递的rag_config中获取selectedFolders
             selected_folders = rag_config.get('selectedFolders', [])
         
-        self.log_info(f"📌 RAG功能状态: enabled={enabled}")
+        from app.core.logging_config import logger
+        logger.debug(f"RAG功能状态: enabled={enabled}")
         
         if not enabled:
-            self.log_info("❌ RAG功能未启用，返回原始问题")
+            logger.debug("RAG功能未启用，返回原始问题")
             return question
         
         try:
-            self.log_info("✅ RAG功能已启用，开始执行RAG增强")
+            logger.debug("RAG功能已启用，开始执行RAG增强")
             # 直接使用生成服务的build_prompt方法，避免通过LangChainRAGService间接调用
             from app.core.config import config_manager
             from app.services.chat.generation_service import GenerationService
@@ -333,7 +320,7 @@ class ChatService(BaseService):
                 filter = {'folder_id': {'$in': selected_folders}}
             
             # 执行相似性搜索
-            self.log_info(f"🔍 正在搜索相关文档，参数: k={k}, score_threshold={score_threshold}, filter={filter}")
+            logger.debug(f"正在搜索相关文档，参数: k={k}, score_threshold={score_threshold}, filter={filter}")
             vector_results = vector_service.search_vectors(
                 query=question,
                 k=k,
@@ -348,17 +335,16 @@ class ChatService(BaseService):
                     # 添加文档到上下文
                     context_docs.append(result)
             
-            self.log_info(f"✅ 找到 {len(context_docs)} 个相关文档片段")
+            logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
             
             # 使用生成服务的build_prompt方法构建提示
             enhanced_prompt = generation_service.build_prompt(question, context_docs)
-            self.log_info(f"📝 RAG增强提示构建完成，长度: {len(enhanced_prompt)} 字符")
-            self.log_info(f"📋 RAG增强提示内容: {enhanced_prompt}")
+            logger.debug(f"RAG增强提示构建完成，长度: {len(enhanced_prompt)} 字符")
             
             return enhanced_prompt
         except Exception as e:
-            # 使用BaseService的日志方法
-            BaseService.log_error(f"RAG调用失败: {str(e)}")
+            # 使用logger记录错误
+            logger.error(f"RAG调用失败: {str(e)}")
             # 确保即使RAG失败，原始问题也能正常返回
             return question
     
@@ -373,15 +359,16 @@ class ChatService(BaseService):
         Returns:
             dict: 生成增强响应结果
         """
+        from app.core.logging_config import logger
         try:
-            self.log_info(f"🚀 开始生成增强响应: 查询='{query[:50]}{'...' if len(query) > 50 else ''}'")
+            logger.debug(f"开始生成增强响应: 查询='{query[:50]}{'...' if len(query) > 50 else ''}'")
             # 1. 调用向量服务获取相关文档
             from app.services.vector.vector_service import VectorService
             vector_service = VectorService()
             vector_results = vector_service.search_vectors(query, k=k)
             
             if not vector_results['success']:
-                self.log_error(f"❌ 向量检索失败: {vector_results['message']}")
+                logger.error(f"向量检索失败: {vector_results['message']}")
                 return {
                     'success': False,
                     'message': '向量检索失败',
@@ -400,7 +387,7 @@ class ChatService(BaseService):
             )
             
             if rag_result['success']:
-                self.log_info(f"✅ 生成增强响应成功")
+                logger.debug("生成增强响应成功")
                 return {
                     'success': True,
                     'message': '生成增强响应成功',
@@ -408,14 +395,14 @@ class ChatService(BaseService):
                     'context': rag_result['context_docs']
                 }
             else:
-                self.log_error(f"❌ 生成响应失败: {rag_result.get('error', '未知错误')}")
+                logger.error(f"生成响应失败: {rag_result.get('error', '未知错误')}")
                 return {
                     'success': False,
                     'message': f'生成响应失败: {rag_result.get('error', '未知错误')}',
                     'response': '抱歉，我无法生成响应。'
                 }
         except Exception as e:
-            self.log_error(f"❌ 生成增强响应失败: {str(e)}")
+            logger.error(f"生成增强响应失败: {str(e)}")
             return {
                 'success': False,
                 'message': f'生成增强响应失败: {str(e)}',
@@ -444,12 +431,10 @@ class ChatService(BaseService):
         chat_id = chat['id']
         user_msg_id = user_message['id']
         
-        print(f"[update_chat_and_save] 开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
         logger.debug(f"开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
         
         # 先设置脏标记，确保数据会被保存
         DataService.set_dirty_flag('chats', True)
-        print(f"[update_chat_and_save] 设置脏标记: chats=True")
         logger.debug(f"设置脏标记: chats=True")
         
         # 先更新内存中的对话
@@ -459,7 +444,6 @@ class ChatService(BaseService):
         # 更新对话预览（使用消息的前50个字符）
         preview_text = message_text[:50] + (message_text[50:] and '...')
         chat['preview'] = preview_text
-        print(f"[update_chat_and_save] 更新对话预览: chat_id={chat_id}, preview={preview_text}")
         logger.debug(f"更新对话预览: chat_id={chat_id}, preview={preview_text}")
         
         # 自动更新对话标题（如果是首次消息且标题还是默认的"新对话"）
@@ -473,7 +457,6 @@ class ChatService(BaseService):
                 # 使用用户的第一条消息作为标题（截取前30个字符）
                 new_title = message_text[:30] + (message_text[30:] and '...')
                 chat['title'] = new_title
-                print(f"[update_chat_and_save] 自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
                 logger.debug(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
         
         # 保存AI消息到内存（如果存在）
@@ -481,14 +464,12 @@ class ChatService(BaseService):
             ai_msg_id = ai_message['id']
             # 添加AI回复到对话（内存）
             chat['messages'].append(ai_message)
-            print(f"[update_chat_and_save] 添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, message_type={ai_message.get('message_type')}, agent_node={ai_message.get('agent_node')}")
             logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, agent_node={ai_message.get('agent_node')}")
         
         try:
             # 开始事务
             from app.core.database import get_db
             db_session = next(get_db())
-            print(f"[update_chat_and_save] 开始事务: chat_id={chat_id}")
             logger.debug(f"开始事务: chat_id={chat_id}")
             
             # 再保存到SQLite数据库
@@ -496,7 +477,6 @@ class ChatService(BaseService):
             existing_user_message = self.message_repo.get_message_by_id(user_message['id'])
             if not existing_user_message:
                 # 保存用户消息到数据库
-                print(f"[update_chat_and_save] 保存用户消息: chat_id={chat_id}, user_msg_id={user_msg_id}")
                 logger.debug(f"保存用户消息: chat_id={chat_id}, user_msg_id={user_msg_id}")
                 self.message_repo.create_message(
                     message_id=user_message['id'],
@@ -508,10 +488,8 @@ class ChatService(BaseService):
                     model=user_message.get('model'),
                     files=json.dumps(user_message.get('files', []))
                 )
-                print(f"[update_chat_and_save] 用户消息保存成功: chat_id={chat_id}, user_msg_id={user_msg_id}")
                 logger.info(f"用户消息保存成功: chat_id={chat_id}, user_msg_id={user_msg_id}")
             else:
-                print(f"[update_chat_and_save] 用户消息已存在，跳过保存: chat_id={chat_id}, user_msg_id={user_msg_id}")
                 logger.debug(f"用户消息已存在，跳过保存: chat_id={chat_id}, user_msg_id={user_msg_id}")
             
             # 保存AI消息到数据库（如果存在）
@@ -520,7 +498,6 @@ class ChatService(BaseService):
                 # 检查AI消息是否已经存在于数据库中，避免重复保存
                 existing_ai_message = self.message_repo.get_message_by_id(ai_msg_id)
                 if not existing_ai_message:
-                    print(f"[update_chat_and_save] 开始保存AI消息: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
                     logger.info(f"开始保存AI消息: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
                     try:
                         # 智能体消息相关字段
@@ -529,8 +506,6 @@ class ChatService(BaseService):
                         agent_node = ai_message.get('agent_node', '')
                         agent_step = ai_message.get('agent_step', 0)
                         agent_metadata = ai_message.get('agent_metadata', '')
-                        
-                        print(f"[update_chat_and_save] 智能体消息字段: message_type={message_type}, session_id={agent_session_id}, node={agent_node}, step={agent_step}")
                         
                         self.message_repo.create_message(
                             message_id=ai_msg_id,
@@ -547,17 +522,13 @@ class ChatService(BaseService):
                             agent_step=agent_step,
                             agent_metadata=agent_metadata
                         )
-                        print(f"[update_chat_and_save] ✅ AI消息保存成功: chat_id={chat_id}, ai_msg_id={ai_msg_id}, node={agent_node}")
                         logger.info(f"✅ AI消息保存成功: chat_id={chat_id}, ai_msg_id={ai_msg_id}, node={agent_node}")
                     except Exception as e:
-                        print(f"[update_chat_and_save] ❌ AI消息保存失败: chat_id={chat_id}, ai_msg_id={ai_msg_id}, error={str(e)}")
                         logger.error(f"❌ AI消息保存失败: chat_id={chat_id}, ai_msg_id={ai_msg_id}, error={str(e)}")
                 else:
-                    print(f"[update_chat_and_save] ⚠️ AI消息已存在，跳过保存: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
                     logger.info(f"⚠️ AI消息已存在，跳过保存: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
             
             # 更新对话信息到数据库
-            print(f"[update_chat_and_save] 更新对话信息: chat_id={chat_id}, title={new_title}")
             logger.debug(f"更新对话信息: chat_id={chat_id}, title={new_title}")
             self.chat_repo.update_chat(
                 chat_id=chat['id'],
@@ -568,17 +539,13 @@ class ChatService(BaseService):
             )
             
             # 提交事务
-            print(f"[update_chat_and_save] 提交事务: chat_id={chat_id}")
             db_session.commit()
-            print(f"[update_chat_and_save] 事务提交成功: chat_id={chat_id}")
             logger.debug(f"事务提交成功: chat_id={chat_id}")
             
             # 添加直接保存成功日志
             if ai_message:
-                print(f"[update_chat_and_save] 保存成功: chat_id={chat_id}, user_msg_id={user_msg_id}, ai_msg_id={ai_message['id']}, node={ai_message.get('agent_node')}")
                 logger.info(f"Direct save succeeded: chat_id={chat_id}, user_msg_id={user_msg_id}, ai_msg_id={ai_message['id']}, node={ai_message.get('agent_node')}")
             else:
-                print(f"[update_chat_and_save] 保存成功: chat_id={chat_id}, user_msg_id={user_msg_id}")
                 logger.info(f"Direct save succeeded: chat_id={chat_id}, user_msg_id={user_msg_id}")
         except Exception as e:
             # 回滚事务
@@ -986,17 +953,9 @@ class ChatService(BaseService):
         use_agent = data.get('agent', False)
         files = data.get('files', [])
         
-        # 添加详细日志，显示后端接收的所有参数
-        self.log_info(f"🔧 后端接收参数调试:")
-        self.log_info(f"   message: {message_text[:50]}{'...' if len(message_text) > 50 else ''}")
-        self.log_info(f"   model: {model_name}")
-        self.log_info(f"   modelParams: {user_model_params}")
-        self.log_info(f"   ragConfig: {rag_config}")
-        self.log_info(f"   rag_enabled: {rag_enabled}")
-        self.log_info(f"   stream: {stream}")
-        self.log_info(f"   deepThinking: {deep_thinking}")
-        self.log_info(f"   agent: {use_agent}")
-        self.log_info(f"   files: {len(files)} 个文件")
+        # 添加调试日志，显示后端接收的参数
+        from app.core.logging_config import logger
+        logger.debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件")
         
         return {
             'message_text': message_text,
@@ -1036,18 +995,22 @@ class ChatService(BaseService):
         
         return True, None, None
     
-    async def _process_message(self, chat_id, parsed_data):
+    async def _process_message(self, chat, parsed_data, parsed_model_name, parsed_version_name, model_display_name, model):
         """处理消息发送逻辑
         
         参数:
-            chat_id: 对话ID
+            chat: 对话对象
             parsed_data: 解析后的请求参数
+            parsed_model_name: 解析后的模型名称
+            parsed_version_name: 解析后的模型版本
+            model_display_name: 模型显示名称
+            model: 模型配置
         
         返回:
             响应结果
         """
+        from app.core.logging_config import logger
         message_text = parsed_data['message_text']
-        model_name = parsed_data['model_name']
         user_model_params = parsed_data['user_model_params']
         rag_enabled = parsed_data['rag_enabled']
         rag_config = parsed_data['rag_config']
@@ -1055,9 +1018,6 @@ class ChatService(BaseService):
         deep_thinking = parsed_data['deep_thinking']
         use_agent = parsed_data['use_agent']
         files = parsed_data['files']
-        
-        # 查找匹配ID的对话
-        chat = self.get_chat(chat_id)
         
         now = datetime.now().isoformat()
         
@@ -1070,12 +1030,6 @@ class ChatService(BaseService):
             'files': files  # 保存原始文件信息
         }
         chat['messages'].append(user_message)
-        
-        # 使用辅助函数解析模型信息
-        parsed_model_name, parsed_version_name, model_display_name = self.parse_model_info(model_name)
-        
-        # 获取模型配置
-        model = DataService.get_model_by_name(parsed_model_name)
         
         # 获取模型默认参数
         model_params = {
@@ -1098,16 +1052,16 @@ class ChatService(BaseService):
             full_message_text += "\n\n" + "\n\n".join(file_contents)
         
         # 调试RAG调用
-        self.log_info(f"🔧 调试RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
+        logger.debug(f"RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
         
         # 调用RAG系统构造增强提示，传递完整的ragConfig
         if rag_enabled:
-            self.log_info("📞 准备调用get_rag_enhanced_prompt方法")
+            logger.debug("准备调用get_rag_enhanced_prompt方法")
             # 传递完整的ragConfig给RAG增强方法
             enhanced_question = self.get_rag_enhanced_prompt(full_message_text, rag_config)
-            self.log_info(f"📋 RAG增强完成，原始长度: {len(full_message_text)}, 增强后长度: {len(enhanced_question)}")
+            logger.debug(f"RAG增强完成，原始长度: {len(full_message_text)}, 增强后长度: {len(enhanced_question)}")
         else:
-            self.log_info("⏭️  RAG未启用，使用原始问题")
+            logger.debug("RAG未启用，使用原始问题")
             enhanced_question = full_message_text
         
         # 保存用户消息到数据库，即使模型调用失败也要保存
@@ -1154,20 +1108,24 @@ class ChatService(BaseService):
                 chat_id: 对话ID
                 data: 包含所有必要信息的请求数据对象
             """
-            # 解析请求数据 (如果只是纯内存操作，可以不改 async)
+            # 解析请求数据
             parsed_data = self._parse_request_data(data)
             
             # 使用辅助函数解析模型信息
-            parsed_model_name, _, _ = self.parse_model_info(parsed_data['model_name'])
+            parsed_model_name, parsed_version_name, model_display_name = self.parse_model_info(parsed_data['model_name'])
             
             # 获取模型配置
             model = DataService.get_model_by_name(parsed_model_name)
             
-            # 验证请求参数 
-            # (注意：如果 _validate_request 内部有数据库查询且已改为异步，这里也要 await)
+            # 验证请求参数
             is_valid, error_response, error_code = self._validate_request(chat_id, parsed_model_name, model)
             if not is_valid:
                 return error_response, error_code
             
-            # 处理消息发送逻辑 ———— 必须增加 await
-            return await self._process_message(chat_id, parsed_data) # <--- 关键修改
+            # 获取对话对象（避免在 _process_message 中重复获取）
+            chat = self.get_chat(chat_id)
+            if not chat:
+                return {'error': '对话不存在'}, 404
+            
+            # 处理消息发送逻辑
+            return await self._process_message(chat, parsed_data, parsed_model_name, parsed_version_name, model_display_name, model)

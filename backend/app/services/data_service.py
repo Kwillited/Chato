@@ -1,6 +1,7 @@
 """数据服务层 - 封装内存数据管理和脏标记机制"""
-from app.core.data_manager import db, save_data, set_dirty_flag
+from app.core.data_manager import db, save_data
 from app.services.base_service import BaseService
+from app.services.cache_service import cache_manager
 from app.repositories.folder_repository import FolderRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
@@ -134,7 +135,7 @@ class DataService(BaseService):
     @staticmethod
     def set_dirty_flag(data_type, is_dirty=True):
         """设置脏标记"""
-        set_dirty_flag(data_type, is_dirty)
+        cache_manager.set_dirty_flag(data_type, is_dirty)
     
     @staticmethod
     def save_data():
