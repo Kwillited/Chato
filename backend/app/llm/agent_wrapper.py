@@ -66,13 +66,15 @@ class AgentWrapper:
         builder = StateGraph(AgentState)
         builder.add_node("reasoning", self.agent_nodes.reasoning_node)
         builder.add_node("execute", self.agent_nodes.execute_tools_node)
+        builder.add_node("reflect", self.agent_nodes.reflect_node)
         
         builder.set_entry_point("reasoning")
         builder.add_conditional_edges("reasoning", self.agent_nodes.should_continue, {
             "execute": "execute",
             END: END
         })
-        builder.add_edge("execute", "reasoning")
+        builder.add_edge("execute", "reflect")
+        builder.add_edge("reflect", "reasoning")
         
         return builder.compile()
     

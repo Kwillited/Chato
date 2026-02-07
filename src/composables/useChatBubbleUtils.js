@@ -65,11 +65,15 @@ export function useChatBubbleUtils(props) {
     if (!content) return []
     
     const toolExecutions = []
-    const toolStartRegex = /\[工具执行开始\] 工具: ([^,]+), 输入: ([^\n]+)/g
-    const toolEndRegex = /\[工具执行完成\] 工具: ([^,]+), 输出: ([^\n]+)/g
+    // 支持两种格式的工具执行信息
+    const toolStartRegex1 = /\[工具执行开始\] 工具: ([^,]+), 输入: ([^\n]+)/g
+    const toolEndRegex1 = /\[工具执行完成\] 工具: ([^,]+), 输出: ([^\n]+)/g
+    const toolStartRegex2 = /\[工具 \d+ 开始\] 工具: ([^,]+), 输入: ([^\n]+)/g
+    const toolEndRegex2 = /\[工具 \d+ 完成\] 工具: ([^,]+), 输出: ([^\n]+)/g
     
     let match
-    while ((match = toolStartRegex.exec(content)) !== null) {
+    // 处理第一种格式
+    while ((match = toolStartRegex1.exec(content)) !== null) {
       const [, toolName, inputStr] = match
       try {
         // 尝试解析输入参数
@@ -84,7 +88,7 @@ export function useChatBubbleUtils(props) {
       }
     }
     
-    while ((match = toolEndRegex.exec(content)) !== null) {
+    while ((match = toolEndRegex1.exec(content)) !== null) {
       const [, toolName, outputStr] = match
       try {
         // 尝试解析输出结果
@@ -107,6 +111,61 @@ export function useChatBubbleUtils(props) {
       }
     }
     
+    // 处理第二种格式（历史消息格式）
+    while ((match = toolStartRegex2.exec(content)) !== null) {
+      const [, toolName, inputStr] = match
+      try {
+        // 尝试解析输入参数
+        const input = JSON.parse(inputStr.replace(/'/g, '"'))
+        toolExecutions.push({
+          name: toolName.trim(),
+          status: 'executing',
+          input
+        })
+      } catch (e) {
+        console.error('解析工具输入参数失败:', e)
+        // 即使解析失败，也要添加工具执行状态，只是没有输入参数
+        toolExecutions.push({
+          name: toolName.trim(),
+          status: 'executing'
+        })
+      }
+    }
+    
+    while ((match = toolEndRegex2.exec(content)) !== null) {
+      const [, toolName, outputStr] = match
+      try {
+        // 尝试解析输出结果
+        const output = JSON.parse(outputStr.replace(/'/g, '"'))
+        // 查找对应的执行中工具，更新其状态
+        const existingTool = toolExecutions.find(t => t.name === toolName.trim() && t.status === 'executing')
+        if (existingTool) {
+          existingTool.status = 'executed'
+          existingTool.output = output
+        } else {
+          // 如果没有找到对应的执行中工具，创建一个新的
+          toolExecutions.push({
+            name: toolName.trim(),
+            status: 'executed',
+            output
+          })
+        }
+      } catch (e) {
+        console.error('解析工具输出结果失败:', e)
+        // 即使解析失败，也要更新工具执行状态，只是没有输出参数
+        const existingTool = toolExecutions.find(t => t.name === toolName.trim() && t.status === 'executing')
+        if (existingTool) {
+          existingTool.status = 'executed'
+        } else {
+          // 如果没有找到对应的执行中工具，创建一个新的
+          toolExecutions.push({
+            name: toolName.trim(),
+            status: 'executed'
+          })
+        }
+      }
+    }
+    
     return toolExecutions
   }
 
@@ -118,6 +177,8 @@ export function useChatBubbleUtils(props) {
     return content
       .replace(/\[工具执行开始\] 工具: [^,]+, 输入: [^\n]+/g, '')
       .replace(/\[工具执行完成\] 工具: [^,]+, 输出: [^\n]+/g, '')
+      .replace(/\[工具 \d+ 开始\] 工具: [^,]+, 输入: [^<]+/g, '')
+      .replace(/\[工具 \d+ 完成\] 工具: [^,]+, 输出: [^<]+/g, '')
       .trim()
   }
 
@@ -136,9 +197,9 @@ export function useChatBubbleUtils(props) {
   // 获取节点类型标签
   const getNodeLabel = (node) => {
     const nodeLabels = {
-      'think': '思考',
-      'analyze': '分析',
-      'execute_tools': '执行工具',
+      'reasoning': '推理',
+      'execute': '执行',
+      'reflect': '反思',
       'default': '默认'
     }
     return nodeLabels[node] || node

@@ -4,16 +4,8 @@
     <div ref="chatMessagesContainer" class="w-full max-w-4xl mx-auto space-y-6 transition-colors duration-300 ease-in-out">
       <!-- 渲染分组后的消息 -->
       <template v-for="(group, groupIndex) in groupedMessages" :key="group.id">
-        <!-- 如果是智能体消息组，渲染为单个分组气泡 -->
-        <div v-if="group.isAgentGroup" :id="`agent-group-${groupIndex}`" class="space-y-0">
-          <AIChatBubble 
-            :message="group" 
-            :chatStyleDocument="settingsStore.systemSettings.chatStyleDocument"
-          />
-        </div>
-        <!-- 普通消息，单独渲染 -->
+        <!-- 所有消息都单独渲染 -->
         <ChatMessage 
-          v-else 
           v-for="(message, msgIndex) in group.messages" 
           :key="message.timestamp" 
           :message="message" 
@@ -70,59 +62,31 @@ const groupedMessages = computed(() => {
   console.log('原始消息列表:', messages);
   
   const groups = [];
-  let currentAgentGroup = null;
   
   messages.forEach(message => {
     const msgValue = message?.value || message;
     console.log('处理消息:', msgValue);
     
-    // 检查是否是智能体消息（使用message_type字段）
-    if (msgValue.message_type === 'agent') {
-      console.log('发现智能体消息，session_id:', msgValue.agent_session_id);
-      // 如果当前没有智能体分组，或者当前分组的session_id不同，创建新的智能体分组
-      const sessionId = msgValue.agent_session_id;
-      if (!currentAgentGroup || currentAgentGroup.agent_session_id !== sessionId) {
-        // 完成当前智能体分组（如果有）
-        if (currentAgentGroup) {
-          // 按step排序消息
-          currentAgentGroup.messages.sort((a, b) => {
-            const aStep = (a?.value || a).agent_step || 0;
-            const bStep = (b?.value || b).agent_step || 0;
-            return aStep - bStep;
-          });
-          groups.push(currentAgentGroup);
-        }
-        
-        // 创建新的智能体分组
-        currentAgentGroup = {
-          id: `agent-group-${sessionId}`,
-          isAgentGroup: true,
-          agent_session_id: sessionId,
-          role: msgValue.role,
-          model: msgValue.model,
-          timestamp: msgValue.timestamp,
-          messages: [message],
-          steps: []
-        };
-        console.log('创建新的智能体分组:', currentAgentGroup.id);
-      } else {
-        // 添加到当前智能体分组
-        currentAgentGroup.messages.push(message);
-        console.log('添加到智能体分组:', currentAgentGroup.id);
-      }
+    // 检查是否是智能体消息（使用agent字段或agent_step字段）
+    if (msgValue.agent || msgValue.agent_step !== undefined) {
+      console.log('发现智能体消息，step:', msgValue.agent_step);
+      
+      // 为每个智能体消息创建独立的分组
+      const agentGroup = {
+        id: `agent-message-${msgValue.timestamp}-${msgValue.agent_step}`,
+        isAgentGroup: false, // 改为普通分组，每个智能体消息独立显示
+        messages: [message],
+        role: msgValue.role,
+        model: msgValue.model,
+        timestamp: msgValue.timestamp,
+        agent_step: msgValue.agent_step,
+        agent_node: msgValue.agent_node
+      };
+      
+      groups.push(agentGroup);
+      console.log('创建智能体消息分组:', agentGroup.id);
     } else {
       console.log('发现普通消息:', msgValue.role);
-      // 完成当前智能体分组（如果有）
-      if (currentAgentGroup) {
-        // 按step排序消息
-        currentAgentGroup.messages.sort((a, b) => {
-          const aStep = (a?.value || a).agent_step || 0;
-          const bStep = (b?.value || b).agent_step || 0;
-          return aStep - bStep;
-        });
-        groups.push(currentAgentGroup);
-        currentAgentGroup = null;
-      }
       
       // 添加普通消息分组
       groups.push({
@@ -133,70 +97,8 @@ const groupedMessages = computed(() => {
     }
   });
   
-  // 完成最后一个智能体分组（如果有）
-  if (currentAgentGroup) {
-    // 按step排序消息
-    currentAgentGroup.messages.sort((a, b) => {
-      const aStep = (a?.value || a).agent_step || 0;
-      const bStep = (b?.value || b).agent_step || 0;
-      return aStep - bStep;
-    });
-    groups.push(currentAgentGroup);
-  }
-  
-  console.log('初步分组结果:', groups);
-  
-  // 为智能体分组构建steps数组
-  const result = groups.map(group => {
-    if (group.isAgentGroup) {
-      console.log('构建智能体分组steps:', group.id);
-      // 构建steps数组
-      const steps = [];
-      group.messages.forEach(msg => {
-        const msgValue = msg?.value || msg;
-        const stepIndex = msgValue.agent_step || 0;
-        
-        console.log('处理智能体消息step:', stepIndex, '内容:', msgValue.content);
-        
-        // 查找或创建step
-        let step = steps.find(s => s.agent_step === stepIndex);
-        if (!step) {
-          step = {
-            agent_step: stepIndex,
-            node: msgValue.agent_node || 'default',
-            content: '',
-            thinking: '',
-            toolExecutions: []
-          };
-          steps.push(step);
-        }
-        
-        // 更新step内容
-        if (msgValue.content) {
-          step.content = msgValue.content;
-        }
-        if (msgValue.thinking) {
-          step.thinking = msgValue.thinking;
-        }
-        if (msgValue.toolExecutions && Array.isArray(msgValue.toolExecutions)) {
-          step.toolExecutions = msgValue.toolExecutions;
-        }
-      });
-      
-      // 按agent_step排序
-      steps.sort((a, b) => a.agent_step - b.agent_step);
-      console.log('构建完成的steps:', steps);
-      
-      return {
-        ...group,
-        steps
-      };
-    }
-    return group;
-  });
-  
-  console.log('最终分组结果:', result);
-  return result;
+  console.log('最终分组结果:', groups);
+  return groups;
 });
 
 // 处理滚动到指定用户消息
@@ -209,47 +111,25 @@ const handleScrollToUserMessage = (userMessage) => {
   groupedMessages.value.forEach((group, groupIndex) => {
     if (found) return;
     
-    if (group.isAgentGroup) {
-      // 智能体分组，检查其中的消息
-      group.messages.forEach((msg, msgIndex) => {
-        if (found) return;
-        const msgValue = msg?.value || msg;
-        if (msgValue.timestamp === userMsgValue.timestamp) {
-          // 找到消息，滚动到对应的智能体分组
-          const messageElement = document.getElementById(`agent-group-${groupIndex}`);
-          if (messageElement && scrollContainer.value) {
-            const containerRect = scrollContainer.value.getBoundingClientRect();
-            const messageRect = messageElement.getBoundingClientRect();
-            const scrollPosition = messageRect.top - containerRect.top + scrollContainer.value.scrollTop;
-            scrollContainer.value.scrollTo({ 
-              top: scrollPosition - 20, // 减去20px的偏移，使消息显示在容器顶部下方一点
-              behavior: 'smooth' 
-            });
-            found = true;
-          }
+    // 检查分组中的消息
+    group.messages.forEach((msg, msgIndex) => {
+      if (found) return;
+      const msgValue = msg?.value || msg;
+      if (msgValue.timestamp === userMsgValue.timestamp) {
+        // 找到消息，滚动到对应的消息
+        const messageElement = document.getElementById(`message-${groupIndex}-${msgIndex}`);
+        if (messageElement && scrollContainer.value) {
+          const containerRect = scrollContainer.value.getBoundingClientRect();
+          const messageRect = messageElement.getBoundingClientRect();
+          const scrollPosition = messageRect.top - containerRect.top + scrollContainer.value.scrollTop;
+          scrollContainer.value.scrollTo({ 
+            top: scrollPosition - 20, // 减去20px的偏移，使消息显示在容器顶部下方一点
+            behavior: 'smooth' 
+          });
+          found = true;
         }
-      });
-    } else {
-      // 普通消息分组，检查其中的消息
-      group.messages.forEach((msg, msgIndex) => {
-        if (found) return;
-        const msgValue = msg?.value || msg;
-        if (msgValue.timestamp === userMsgValue.timestamp) {
-          // 找到消息，滚动到对应的普通消息
-          const messageElement = document.getElementById(`message-${groupIndex}-${msgIndex}`);
-          if (messageElement && scrollContainer.value) {
-            const containerRect = scrollContainer.value.getBoundingClientRect();
-            const messageRect = messageElement.getBoundingClientRect();
-            const scrollPosition = messageRect.top - containerRect.top + scrollContainer.value.scrollTop;
-            scrollContainer.value.scrollTo({ 
-              top: scrollPosition - 20, // 减去20px的偏移，使消息显示在容器顶部下方一点
-              behavior: 'smooth' 
-            });
-            found = true;
-          }
-        }
-      });
-    }
+      }
+    });
   });
 };
 

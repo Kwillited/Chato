@@ -293,7 +293,7 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
                   onMessage({ 
                     event: parsedData.event, 
                     node: parsedData.node, 
-                    step: parsedData.step, 
+                    agent_step: parsedData.agent_step, 
                     chunk: chunkData.content, 
                     done: false 
                   });
@@ -302,7 +302,7 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
                   onMessage({ 
                     event: parsedData.event, 
                     node: parsedData.node, 
-                    step: parsedData.step, 
+                    agent_step: parsedData.agent_step, 
                     chunk: chunkData, 
                     done: false 
                   });
@@ -312,7 +312,7 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
                 onMessage({ 
                   event: parsedData.event, 
                   node: parsedData.node, 
-                  step: parsedData.step, 
+                  agent_step: parsedData.agent_step, 
                   chunk: parsedData.data.content, 
                   done: false 
                 });

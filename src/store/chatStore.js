@@ -301,7 +301,9 @@ export const useChatStore = defineStore('chat', {
 
     // 发送流式消息
     async sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent, modelParams) {
-      let aiMessage = null;
+      let aiMessages = {}; // 存储不同步骤的消息对象
+      let currentStep = -1;
+      let currentNode = null;
 
       // 立即清空上传文件列表，提供更好的用户体验
       const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
@@ -324,107 +326,74 @@ export const useChatStore = defineStore('chat', {
             (data) => {
               console.log('处理流式消息数据块:', data); // 添加日志追踪
               
-              if (!aiMessage) {
-                // 更新之前添加的typing消息，替换为实际的AI回复
-                const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
-                if (typingMessageIndex !== -1) {
-                  // 移除typing消息
-                  currentChat.messages.splice(typingMessageIndex, 1);
-                }
-                
-                // 创建AI消息，并使用ref包装确保完整响应式
-                const messageContent = ref({
-                  id: generateId('msg'),
-                  role: 'ai',
-                  content: '',
-                  thinking: '',
-                  timestamp: Date.now(),
-                  status: 'streaming',
-                  isTyping: false,
-                  lastUpdate: Date.now(), // 初始化lastUpdate字段
-                  model: formattedModel // 设置模型名称
-                });
-                
-                aiMessage = messageContent;
-                currentChat.messages.push(messageContent);
-              }
+              // 获取当前步骤和节点
+              const step = data.step || data.agent_step || 0;
+              const node = data.node || 'default';
+              const messageKey = `${step}_${node}`;
               
               // 处理工具开始执行事件
               if (data.event === 'on_tool_start') {
-                console.log('工具开始执行:', data.name, '参数:', data.data.input, '步骤:', data.step);
+                console.log('工具开始执行:', data.name, '参数:', data.data.input, '步骤:', step);
                 
-                // 确保aiMessage存在
-                if (!aiMessage) {
-                  // 创建AI消息
-                const messageContent = ref({
-                  id: generateId('msg'),
-                  role: 'ai',
-                  content: '',
-                  thinking: '',
-                  timestamp: Date.now(),
-                  status: 'tool_executing',
-                  isTyping: false,
-                  lastUpdate: Date.now(),
-                  model: formattedModel,
-                  currentTool: data.name,
-                  toolInput: data.data.input,
-                  toolExecutions: [], // 添加工具执行记录数组
-                  ...(agent && { steps: [] }) // 只有智能体消息才初始化steps数组
-                });
+                // 检查是否需要创建新的消息对象
+                if (!aiMessages[messageKey]) {
+                  // 更新之前添加的typing消息，替换为实际的AI回复
+                  if (Object.keys(aiMessages).length === 0) {
+                    const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
+                    if (typingMessageIndex !== -1) {
+                      // 移除typing消息
+                      currentChat.messages.splice(typingMessageIndex, 1);
+                    }
+                  }
                   
-                  aiMessage = messageContent;
+                  // 创建新的AI消息对象
+                  const messageContent = ref({
+                    id: generateId('msg'),
+                    role: 'ai',
+                    content: '',
+                    thinking: '',
+                    timestamp: Date.now(),
+                    status: 'tool_executing',
+                    isTyping: false,
+                    lastUpdate: Date.now(),
+                    model: formattedModel,
+                    currentTool: data.name,
+                    toolInput: data.data.input,
+                    toolExecutions: [], // 添加工具执行记录数组
+                    agent_step: step,
+                    agent_node: node,
+                    agent: true
+                  });
+                  
+                  // 存储消息对象
+                  aiMessages[messageKey] = messageContent;
+                  
+                  // 添加到对话消息列表
                   currentChat.messages.push(messageContent);
                 }
                 
-                // 只有智能体消息才使用steps数组
-                if (agent) {
-                  // 初始化steps数组（如果不存在）
-                  if (!aiMessage.value.steps) {
-                    aiMessage.value.steps = [];
-                  }
-                  
-                  // 获取当前step
-                  let step = data.step || 0;
-                  
-                  // 查找或创建对应step的对象
-                  let stepObj = aiMessage.value.steps.find(s => s.step === step);
-                  if (!stepObj) {
-                    stepObj = {
-                      step: step,
-                      node: 'execute_tools',
-                      content: '',
-                      thinking: '',
-                      toolExecutions: []
-                    };
-                    aiMessage.value.steps.push(stepObj);
-                  }
-                  
-                  // 初始化step的toolExecutions数组
-                  if (!stepObj.toolExecutions) {
-                    stepObj.toolExecutions = [];
-                  }
-                  
-                  // 保存当前工具信息到执行记录
-                  const toolExecution = {
-                    name: data.name,
-                    input: data.data.input,
-                    status: 'executing',
-                    timestamp: Date.now()
-                  };
-                  stepObj.toolExecutions.push(toolExecution);
-                }
+                // 获取当前消息对象
+                const currentMessage = aiMessages[messageKey];
                 
-                // 同时更新全局toolExecutions（兼容旧格式）
-                if (!aiMessage.value.toolExecutions) {
-                  aiMessage.value.toolExecutions = [];
+                // 保存当前工具信息到执行记录
+                const toolExecution = {
+                  name: data.name,
+                  input: data.data.input,
+                  status: 'executing',
+                  timestamp: Date.now()
+                };
+                
+                // 初始化toolExecutions数组（如果不存在）
+                if (!currentMessage.value.toolExecutions) {
+                  currentMessage.value.toolExecutions = [];
                 }
-                aiMessage.value.toolExecutions.push(toolExecution);
+                currentMessage.value.toolExecutions.push(toolExecution);
                 
                 // 更新AI消息，设置工具执行状态
-                aiMessage.value.status = 'tool_executing';
-                aiMessage.value.currentTool = data.name;
-                aiMessage.value.toolInput = data.data.input;
-                aiMessage.value.lastUpdate = Date.now();
+                currentMessage.value.status = 'tool_executing';
+                currentMessage.value.currentTool = data.name;
+                currentMessage.value.toolInput = data.data.input;
+                currentMessage.value.lastUpdate = Date.now();
                 
                 // 强制更新currentChat
                 stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
@@ -433,40 +402,23 @@ export const useChatStore = defineStore('chat', {
               
               // 处理工具执行完成事件
               if (data.event === 'on_tool_end') {
-                console.log('工具执行完成:', data.name, '步骤:', data.step);
+                console.log('工具执行完成:', data.name, '步骤:', step);
                 
-                // 更新AI消息，将工具执行状态设置为成功
-                if (aiMessage) {
-                  // 只有智能体消息才更新steps数组
-                if (agent) {
-                  // 获取当前step
-                  let step = data.step || 0;
-                  
-                  // 查找对应step的对象
-                  if (aiMessage.value.steps) {
-                    let stepObj = aiMessage.value.steps.find(s => s.step === step);
-                    if (stepObj && stepObj.toolExecutions && stepObj.toolExecutions.length > 0) {
-                      // 更新step中的工具执行记录状态
-                      const lastToolExecution = stepObj.toolExecutions[stepObj.toolExecutions.length - 1];
-                      if (lastToolExecution.name === data.name) {
-                        lastToolExecution.status = 'completed';
-                        lastToolExecution.completedAt = Date.now();
-                      }
-                    }
-                  }
-                }
-                  
-                  // 更新全局toolExecutions中的工具执行记录状态（兼容旧格式）
-                  if (aiMessage.value.toolExecutions && aiMessage.value.toolExecutions.length > 0) {
-                    const lastToolExecution = aiMessage.value.toolExecutions[aiMessage.value.toolExecutions.length - 1];
+                // 获取当前消息对象
+                const currentMessage = aiMessages[messageKey];
+                if (currentMessage) {
+                  // 更新工具执行记录状态
+                  if (currentMessage.value.toolExecutions && currentMessage.value.toolExecutions.length > 0) {
+                    const lastToolExecution = currentMessage.value.toolExecutions[currentMessage.value.toolExecutions.length - 1];
                     if (lastToolExecution.name === data.name) {
                       lastToolExecution.status = 'completed';
                       lastToolExecution.completedAt = Date.now();
+                      lastToolExecution.output = data.data.output;
                     }
                   }
                   
-                  aiMessage.value.status = 'tool_executed';
-                  aiMessage.value.lastUpdate = Date.now();
+                  currentMessage.value.status = 'tool_executed';
+                  currentMessage.value.lastUpdate = Date.now();
                 }
                 
                 // 强制更新currentChat
@@ -478,10 +430,47 @@ export const useChatStore = defineStore('chat', {
               if (data.event === 'on_chain_start' && data.name === 'LangGraph') {
                 console.log('智能体流程开始:', data.name);
                 
+                // 获取或创建当前消息对象
+                if (!aiMessages[messageKey]) {
+                  // 更新之前添加的typing消息，替换为实际的AI回复
+                  if (Object.keys(aiMessages).length === 0) {
+                    const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
+                    if (typingMessageIndex !== -1) {
+                      // 移除typing消息
+                      currentChat.messages.splice(typingMessageIndex, 1);
+                    }
+                  }
+                  
+                  // 创建新的AI消息对象
+                  const messageContent = ref({
+                    id: generateId('msg'),
+                    role: 'ai',
+                    content: '',
+                    thinking: '',
+                    timestamp: Date.now(),
+                    status: 'agent_waiting',
+                    isTyping: false,
+                    lastUpdate: Date.now(),
+                    model: formattedModel,
+                    agent_step: step,
+                    agent_node: node,
+                    agent: true
+                  });
+                  
+                  // 存储消息对象
+                  aiMessages[messageKey] = messageContent;
+                  
+                  // 添加到对话消息列表
+                  currentChat.messages.push(messageContent);
+                }
+                
+                // 获取当前消息对象
+                const currentMessage = aiMessages[messageKey];
+                
                 // 更新AI消息，设置为智能体等待状态
-                if (aiMessage) {
-                  aiMessage.value.status = 'agent_waiting';
-                  aiMessage.value.lastUpdate = Date.now();
+                if (currentMessage) {
+                  currentMessage.value.status = 'agent_waiting';
+                  currentMessage.value.lastUpdate = Date.now();
                 }
                 
                 // 强制更新currentChat
@@ -491,8 +480,6 @@ export const useChatStore = defineStore('chat', {
               
               // 处理后端返回的流式数据格式，支持step标识
               let contentToAdd = '';
-              let node = data.node || 'default';
-              let step = data.step || 0;
               
               // 只处理data.chunk字段
               if (data.chunk) {
@@ -501,130 +488,122 @@ export const useChatStore = defineStore('chat', {
               
               // 确保内容更新能够触发Vue响应式更新
               if (contentToAdd) {
+                // 检查是否需要创建新的消息对象
+                if (!aiMessages[messageKey]) {
+                  // 更新之前添加的typing消息，替换为实际的AI回复
+                  if (Object.keys(aiMessages).length === 0) {
+                    const typingMessageIndex = currentChat.messages.findIndex(msg => msg && msg.value && msg.value.isTyping === true);
+                    if (typingMessageIndex !== -1) {
+                      // 移除typing消息
+                      currentChat.messages.splice(typingMessageIndex, 1);
+                    }
+                  }
+                  
+                  // 创建新的AI消息对象
+                  const messageContent = ref({
+                    id: generateId('msg'),
+                    role: 'ai',
+                    content: '',
+                    thinking: '',
+                    timestamp: Date.now(),
+                    status: 'streaming',
+                    isTyping: false,
+                    lastUpdate: Date.now(),
+                    model: formattedModel,
+                    agent_step: step,
+                    agent_node: node,
+                    agent: true
+                  });
+                  
+                  // 存储消息对象
+                  aiMessages[messageKey] = messageContent;
+                  
+                  // 添加到对话消息列表
+                  currentChat.messages.push(messageContent);
+                }
+                
+                // 获取当前消息对象
+                const currentMessage = aiMessages[messageKey];
+                
                 // 检查并处理think标签
                 const chunk = contentToAdd;
                 
-                // 只有智能体消息才使用steps数组
-                if (agent) {
-                  // 初始化steps数组（如果不存在）
-                  if (!aiMessage.value.steps) {
-                    aiMessage.value.steps = [];
-                  }
-                  
-                  // 查找或创建对应step的对象
-                  let stepObj = aiMessage.value.steps.find(s => s.step === step);
-                  if (!stepObj) {
-                    stepObj = {
-                      step: step,
-                      node: node,
-                      content: '',
-                      thinking: ''
-                    };
-                    aiMessage.value.steps.push(stepObj);
-                  }
-                  
-                  // 更新step对象的node（确保最新）
-                  stepObj.node = node;
-                  
-                  // 检查是否在think标签内
-                  if (stepObj._inThinkingTag !== undefined) {
-                    // 已经在think标签内，检查是否结束
-                    const endTagIndex = chunk.indexOf('</think>');
-                    if (endTagIndex !== -1) {
-                      // 找到结束标签，更新思考内容并退出think标签模式
-                      stepObj.thinking = stepObj.thinking + chunk.substring(0, endTagIndex);
-                      // 标记思考内容已完成，用于自动折叠
-                      stepObj.thinkingCompleted = true;
-                      // 更新实际内容（结束标签之后的内容）
-                      const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
-                      if (actualContent) {
-                        stepObj.content = stepObj.content + actualContent;
-                      }
-                      // 退出think标签模式
-                      delete stepObj._inThinkingTag;
-                    } else {
-                      // 未找到结束标签，继续累积思考内容
-                      stepObj.thinking = stepObj.thinking + chunk;
+                // 检查是否在think标签内
+                if (currentMessage.value._inThinkingTag !== undefined) {
+                  // 已经在think标签内，检查是否结束
+                  const endTagIndex = chunk.indexOf('</think>');
+                  if (endTagIndex !== -1) {
+                    // 找到结束标签，更新思考内容并退出think标签模式
+                    currentMessage.value.thinking = currentMessage.value.thinking + chunk.substring(0, endTagIndex);
+                    // 标记思考内容已完成，用于自动折叠
+                    currentMessage.value.thinkingCompleted = true;
+                    // 更新实际内容（结束标签之后的内容）
+                    const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
+                    if (actualContent) {
+                      currentMessage.value.content = currentMessage.value.content + actualContent;
                     }
+                    // 退出think标签模式
+                    delete currentMessage.value._inThinkingTag;
                   } else {
-                    // 不在think标签内，检查是否开始think标签
-                    const startTagIndex = chunk.indexOf('<think>');
-                    if (startTagIndex !== -1) {
-                      // 找到开始标签
-                      // 先处理开始标签之前的内容（如果有）
-                      const beforeThink = chunk.substring(0, startTagIndex);
-                      if (beforeThink) {
-                        stepObj.content = stepObj.content + beforeThink;
-                      }
-                      // 开始think标签模式，累积开始标签之后的内容
-                      stepObj._inThinkingTag = true;
-                      stepObj.thinking = chunk.substring(startTagIndex + 7); // 7是<think>的长度
-                    } else {
-                      // 没有think标签，直接更新实际内容
-                      stepObj.content = stepObj.content + chunk;
-                    }
+                    // 未找到结束标签，继续累积思考内容
+                    currentMessage.value.thinking = currentMessage.value.thinking + chunk;
                   }
                 } else {
-                  // 普通对话，直接更新内容
-                  // 检查并处理think标签
+                  // 不在think标签内，检查是否开始think标签
                   const startTagIndex = chunk.indexOf('<think>');
                   if (startTagIndex !== -1) {
-                    // 找到开始标签，检查是否有结束标签
-                    const endTagIndex = chunk.indexOf('</think>');
-                    if (endTagIndex !== -1) {
-                      // 完整的think标签，更新思考内容
-                      aiMessage.value.thinking = chunk.substring(startTagIndex + 7, endTagIndex);
-                      // 更新实际内容（结束标签之后的内容）
-                      const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
-                      if (actualContent) {
-                        aiMessage.value.content = aiMessage.value.content + actualContent;
-                      }
-                    } else {
-                      // 只有开始标签，更新思考内容
-                      aiMessage.value.thinking = chunk.substring(startTagIndex + 7);
+                    // 找到开始标签
+                    // 先处理开始标签之前的内容（如果有）
+                    const beforeThink = chunk.substring(0, startTagIndex);
+                    if (beforeThink) {
+                      currentMessage.value.content = currentMessage.value.content + beforeThink;
                     }
+                    // 开始think标签模式，累积开始标签之后的内容
+                    currentMessage.value._inThinkingTag = true;
+                    currentMessage.value.thinking = chunk.substring(startTagIndex + 7); // 7是<think>的长度
                   } else {
                     // 没有think标签，直接更新实际内容
-                    aiMessage.value.content = aiMessage.value.content + chunk;
+                    currentMessage.value.content = currentMessage.value.content + chunk;
                   }
                 }
                 
-                aiMessage.value.lastUpdate = Date.now(); // 更新lastUpdate以触发ChatMessage组件重新渲染
+                currentMessage.value.lastUpdate = Date.now(); // 更新lastUpdate以触发ChatMessage组件重新渲染
               }
               
               // 检查是否完成
               if (data.done || data.completed || data.type === 'end') {
-                // 确保消息状态正确
-                if (aiMessage && (aiMessage.value.status === 'streaming' || aiMessage.value.status === 'tool_executing' || aiMessage.value.status === 'tool_executed')) {
-                  // 根据当前状态设置最终状态
-                  const finalStatus = aiMessage.value.status === 'tool_executing' || aiMessage.value.status === 'tool_executed' 
-                    ? 'tool_executed' 
-                    : 'received';
-                  
-                  aiMessage.value.status = finalStatus;
-                  
-                  // 清理临时状态
-                  delete aiMessage.value._inThinkingTag;
-                  
-                  // 添加：确保响应式系统能够检测到变化，同时确保model字段存在
-                  const updatedMessage = { ...aiMessage.value };
-                  updatedMessage.status = finalStatus;
-                  updatedMessage.isTyping = false;
-                  // 确保model字段存在，使用data.ai_message.model或fallback到formattedModel
-                  updatedMessage.model = data.ai_message?.model || formattedModel;
-                  // 如果后端已经处理了think标签，使用后端的结果
-                  if (data.ai_message && data.ai_message.thinking) {
-                    updatedMessage.thinking = data.ai_message.thinking;
-                    updatedMessage.content = data.ai_message.content;
+                // 更新所有消息对象的状态
+                for (const key in aiMessages) {
+                  const message = aiMessages[key];
+                  if (message && (message.value.status === 'streaming' || message.value.status === 'tool_executing' || message.value.status === 'tool_executed')) {
+                    // 根据当前状态设置最终状态
+                    const finalStatus = message.value.status === 'tool_executing' || message.value.status === 'tool_executed' 
+                      ? 'tool_executed' 
+                      : 'received';
+                    
+                    // 清理临时状态
+                    delete message.value._inThinkingTag;
+                    
+                    // 确保响应式系统能够检测到变化，同时确保model字段存在
+                    const updatedMessage = { ...message.value };
+                    updatedMessage.status = finalStatus;
+                    updatedMessage.isTyping = false;
+                    // 确保model字段存在，使用data.ai_message.model或fallback到formattedModel
+                    updatedMessage.model = data.ai_message?.model || formattedModel;
+                    // 如果后端已经处理了think标签，使用后端的结果
+                    if (data.ai_message && data.ai_message.thinking) {
+                      updatedMessage.thinking = data.ai_message.thinking;
+                      updatedMessage.content = data.ai_message.content;
+                    }
+                    message.value = updatedMessage;
                   }
-                  aiMessage.value = updatedMessage;
-                  
-                  // 添加：强制更新currentChat，确保所有组件都能感知到变化
-                  stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
-                  
-                  // 如果用户当前没有查看该对话，设置未读标记并显示通知
-                  this.handleNewMessageNotification(currentChat);
                 }
+                
+                // 强制更新currentChat，确保所有组件都能感知到变化
+                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
+                
+                // 如果用户当前没有查看该对话，设置未读标记并显示通知
+                this.handleNewMessageNotification(currentChat);
               }
               
               currentChat.updatedAt = Date.now();
@@ -633,33 +612,53 @@ export const useChatStore = defineStore('chat', {
             (error) => {
               console.error('流式消息错误:', error);
               errorUtils.setError(this, `流式消息失败: ${error.message || '未知错误'}`);
+              
+              // 创建错误消息
+              const errorMessage = ref({
+                id: generateId('msg'),
+                role: 'ai',
+                content: '',
+                error: `⚠️ 发送失败: ${error.message || '服务器连接错误'}`,
+                timestamp: Date.now(),
+                status: 'error',
+                isTyping: false,
+                agent: true
+              });
+              
+              currentChat.messages.push(errorMessage);
             },
             // 处理完成
                 () => {
                   console.log('流式消息完成');
                   
-                  // 添加：在Promise完成回调中再次确保状态更新和model字段存在
-                  if (aiMessage && aiMessage.value) {
-                    // 创建新对象以确保响应式系统能够检测到变化
-                    const updatedMessage = { ...aiMessage.value };
-                    updatedMessage.status = 'received';
-                    updatedMessage.isTyping = false;
-                    // 确保model字段存在，fallback到formattedModel
-                    updatedMessage.model = updatedMessage.model || formattedModel;
-                    aiMessage.value = updatedMessage;
+                  // 更新所有消息对象的状态
+                  for (const key in aiMessages) {
+                    const message = aiMessages[key];
+                    if (message && message.value) {
+                      // 创建新对象以确保响应式系统能够检测到变化
+                      const updatedMessage = { ...message.value };
+                      updatedMessage.status = 'received';
+                      updatedMessage.isTyping = false;
+                      // 确保model字段存在，fallback到formattedModel
+                      updatedMessage.model = updatedMessage.model || formattedModel;
+                      message.value = updatedMessage;
+                    }
+                  }
                 
                 // 强制更新currentChat
                 stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                 
                 // 如果用户当前没有查看该对话，设置未读标记并显示通知
                 this.handleNewMessageNotification(currentChat);
-              }
             }
           );
           
           // 确保消息状态正确
-          if (aiMessage && aiMessage.status === 'streaming') {
-            aiMessage.status = 'received';
+          for (const key in aiMessages) {
+            const message = aiMessages[key];
+            if (message && message.value && message.value.status === 'streaming') {
+              message.value.status = 'received';
+            }
           }
       } catch (error) {
         console.error('发送流式消息失败:', error);

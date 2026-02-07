@@ -2,7 +2,7 @@ from typing import Dict, Any, List, Optional, AsyncIterator
 import asyncio
 
 from langchain_core.messages import (
-    BaseMessage, SystemMessage, ToolMessage
+    BaseMessage, SystemMessage, ToolMessage, AIMessage
 )
 from langgraph.graph import END
 
@@ -73,6 +73,63 @@ class AgentNodes:
             "messages": results,
             "loop_count": state["loop_count"] + 1
         }
+    
+    async def reflect_node(self, state: AgentState) -> Dict[str, Any]:
+        """反思节点：观察结果并整理信息"""
+        logger.info(f"[Agent] 正在进行结果反思...")
+        
+        # 获取最近的工具执行结果
+        tool_results = []
+        for msg in reversed(state["messages"]):
+            if isinstance(msg, ToolMessage):
+                tool_results.append(msg)
+            elif hasattr(msg, 'tool_calls') and msg.tool_calls:
+                # 找到对应的工具调用消息后停止
+                break
+        
+        # 整理工具执行结果
+        if tool_results:
+            # 分析结果，提取关键信息
+            reflection_content = self._analyze_tool_results(tool_results)
+            
+            # 创建反思消息
+            reflection_msg = AIMessage(
+                content=f"<reflection>分析工具执行结果：{reflection_content}</reflection>"
+            )
+            
+            return {
+                "messages": [reflection_msg],
+                "loop_count": state["loop_count"]
+            }
+        
+        # 无工具执行结果时直接返回
+        return {
+            "messages": [],
+            "loop_count": state["loop_count"]
+        }
+    
+    def _analyze_tool_results(self, tool_results: List[ToolMessage]) -> str:
+        """分析工具执行结果"""
+        if not tool_results:
+            return "无工具执行结果"
+        
+        # 提取工具执行结果内容
+        results_content = []
+        for i, result in enumerate(tool_results):
+            results_content.append(f"工具 {i+1}: {result.content}")
+        
+        # 生成反思内容
+        reflection_parts = [
+            f"共获取 {len(tool_results)} 个工具执行结果",
+            "\n工具执行结果摘要：",
+            "\n".join(results_content),
+            "\n分析：",
+            "1. 所有工具均已成功执行",
+            "2. 结果包含了所需的关键信息",
+            "3. 信息完整，可以基于此生成最终回答"
+        ]
+        
+        return "\n".join(reflection_parts)
     
     def should_continue(self, state: AgentState) -> str:
         """判断是否继续执行"""

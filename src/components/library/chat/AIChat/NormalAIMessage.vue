@@ -1,7 +1,7 @@
 <template>
   <!-- 传统消息内容气泡（兼容旧格式） -->
   <div 
-    v-if="formattedContent || messageValue.error || messageValue.isTyping"
+    v-if="formattedContent || messageValue.error || messageValue.isTyping || messageValue.content || messageValue.text"
     :class="bubbleClasses"
   >
     <!-- 事件类型标签 -->

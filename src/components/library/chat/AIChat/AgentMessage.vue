@@ -25,7 +25,7 @@
                   step.thinkingCompleted ? 'max-h-10' : ''
                 ]"
                 v-html="step.thinking"
-              ></div>
+              />
             </div>
           </div>
         </div>
@@ -41,6 +41,27 @@
       
       <!-- 步骤内容 -->
       <div v-if="step.content" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="step.content"></div>
+    </div>
+  </div>
+  
+  <!-- 处理没有steps但有agent_step的消息 -->
+  <div v-else-if="messageValue.agent_step !== undefined" class="mt-2">
+    <!-- 步骤标签 -->
+    <div v-if="getNodeLabel(messageValue.node)" class="text-xs text-blue-500 dark:text-blue-400 mb-2 font-medium">
+      步骤 {{ messageValue.agent_step }}: {{ getNodeLabel(messageValue.node) }}
+    </div>
+    
+    <!-- 步骤的工具执行状态 -->
+    <ToolExecutionStatus 
+      v-for="(tool, index) in parsedToolExecutions" 
+      :key="index"
+      :tool="tool"
+      :containerClass="`w-fit max-w-full mt-3${index > 0 ? ' mt-2' : ''}`"
+    />
+    
+    <!-- 消息内容 -->
+    <div v-if="contentWithoutTools" :class="stepBubbleClasses">
+      <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="contentWithoutTools"></div>
     </div>
   </div>
 </template>
@@ -65,12 +86,15 @@ const props = defineProps({
 
 // 使用公共聊天气泡逻辑
 const { 
-  messageValue
+  messageValue,
+  formattedContent
 } = useChatBubble(props)
 
 // 使用聊天气泡工具函数
 const { 
-  getNodeLabel
+  getNodeLabel,
+  parseToolExecutions,
+  extractNonToolContent
 } = useChatBubbleUtils(props)
 
 // 计算步骤气泡样式类
@@ -83,6 +107,24 @@ const stepBubbleClasses = computed(() => {
     'max-w-full',
     props.containerClass
   ]
+})
+
+// 解析工具执行信息
+const parsedToolExecutions = computed(() => {
+  // 检查是否已有工具执行记录
+  if (messageValue.value.toolExecutions && messageValue.value.toolExecutions.length > 0) {
+    return messageValue.value.toolExecutions
+  }
+  
+  // 尝试从内容中解析工具执行信息
+  const content = messageValue.value.content || ''
+  return parseToolExecutions(content)
+})
+
+// 移除工具执行信息后的纯内容
+const contentWithoutTools = computed(() => {
+  const content = messageValue.value.content || ''
+  return extractNonToolContent(content)
 })
 </script>
 

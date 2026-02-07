@@ -87,7 +87,7 @@
       
       <!-- Agent消息 -->
       <AgentMessage 
-        v-if="messageValue.steps && messageValue.steps.length > 0 || messageValue.message_type === 'agent'"
+        v-if="messageValue.steps && messageValue.steps.length > 0 || messageValue.message_type === 'agent' || messageValue.agent_step !== undefined"
         :message="message"
       />
       
@@ -99,7 +99,7 @@
       />
       
       <!-- 时间戳和操作按钮 -->
-      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error || messageValue.status === 'tool_executed')" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
+      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error || messageValue.status === 'tool_executed' || messageValue.content || messageValue.text)" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
         <span>{{ formatTime(messageValue.timestamp || messageValue.time) }}</span>
         <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Tooltip content="复制消息内容">
