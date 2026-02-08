@@ -4,11 +4,7 @@ import uuid
 import json
 from datetime import datetime
 from app.services.data_service import DataService
-from app.repositories.chat_repository import ChatRepository
-from app.repositories.message_repository import MessageRepository
-from app.repositories.agent_session_repository import AgentSessionRepository
 from app.services.base_service import BaseService
-from app.utils.data_utils import build_message_list, build_chat_dict
 from app.utils.response_formatter import ResponseFormatter
 from app.utils import FileUtils
 from app.utils.model_utils import ModelUtils
@@ -20,49 +16,20 @@ class ChatService(BaseService):
         """初始化对话服务
         
         Args:
-            chat_repo: 对话仓库实例，用于依赖注入
-            message_repo: 消息仓库实例，用于依赖注入
-            agent_session_repo: 智能体会话仓库实例，用于依赖注入
+            chat_repo: 对话仓库实例（保持兼容性，实际不再使用）
+            message_repo: 消息仓库实例（保持兼容性，实际不再使用）
+            agent_session_repo: 智能体会话仓库实例（保持兼容性，实际不再使用）
         """
-        self.chat_repo = chat_repo or ChatRepository()
-        self.message_repo = message_repo or MessageRepository()
-        self.agent_session_repo = agent_session_repo or AgentSessionRepository()
+        # 保持兼容性，但不再使用这些参数
+        pass
     
     def get_chats(self):
         """获取所有对话"""
         from app.core.logging_config import logger
         try:
-            # 先从内存数据库获取对话
+            # 直接从内存数据库获取对话
             memory_chats = DataService.get_chats()
-            
-            # 如果内存中有对话数据，直接返回
-            if memory_chats:
-                return memory_chats
-            
-            # 内存中没有对话数据，从SQLite数据库加载
-            chats = self.chat_repo.get_all_chats()
-            
-            chat_list = []
-            for chat in chats:
-                # 直接访问对象属性，而不是使用下标访问
-                chat_id = chat.id
-                
-                # 获取对话的所有消息
-                messages = self.message_repo.get_messages_by_chat_id(chat_id)
-                
-                # 使用公共函数构建消息列表
-                formatted_messages = build_message_list(messages)
-                
-                # 使用公共函数构建对话字典
-                chat_dict = build_chat_dict(chat, formatted_messages)
-                
-                # 添加对话到列表
-                chat_list.append(chat_dict)
-            
-            # 更新内存数据库
-            DataService.get_chats().clear()
-            DataService.get_chats().extend(chat_list)
-            return chat_list
+            return memory_chats
         except Exception as e:
             # 记录错误日志
             logger.error(f"获取对话列表失败: {str(e)}")
@@ -88,21 +55,13 @@ class ChatService(BaseService):
                 'messages': []
             }
             
-            # 先更新内存数据库
+            # 保存到内存数据库
             DataService.add_chat(new_chat)
-            
-            # 再保存到SQLite数据库
-            self.chat_repo.create_chat(chat_id, title, '', now, now)
             
             return new_chat
         except Exception as e:
             # 记录错误日志
             logger.error(f"创建对话失败: {str(e)}")
-            # 尝试从内存中移除（如果已添加）
-            try:
-                DataService.remove_chat(chat_id)
-            except:
-                pass
             # 重新创建并只保存到内存
             chat_id = str(uuid.uuid4())
             now = datetime.now().isoformat()
@@ -118,113 +77,48 @@ class ChatService(BaseService):
             DataService.add_chat(new_chat)
             return new_chat
 
-    def _load_chat_from_db(self, chat_id):
-        """从数据库加载对话并构建对话字典"""
-        from app.core.logging_config import logger
-        try:
-            # 从数据库获取
-            chat_row = self.chat_repo.get_chat_by_id(chat_id)
-            if not chat_row:
-                return None
-            
-            # 获取对话的所有消息
-            messages = self.message_repo.get_messages_by_chat_id(chat_id)
-            
-            # 使用公共函数构建消息列表
-            formatted_messages = build_message_list(messages)
-            
-            # 使用公共函数构建对话字典
-            chat = build_chat_dict(chat_row, formatted_messages)
-            
-            # 更新内存数据库
-            existing_chat = DataService.get_chat_by_id(chat_id)
-            if not existing_chat:
-                DataService.get_chats().append(chat)
-            return chat
-        except Exception as e:
-            # 记录错误日志
-            logger.error(f"从数据库加载对话失败: {str(e)}")
-            return None
-    
     def get_chat(self, chat_id):
         """获取单个对话记录（按ID）"""
-        # 先尝试从内存获取
-        chat = DataService.get_chat_by_id(chat_id)
-        if chat:
-            return chat
-        
-        # 从数据库加载
-        return self._load_chat_from_db(chat_id)
+        # 从内存数据库获取
+        return DataService.get_chat_by_id(chat_id)
 
     def delete_chat(self, chat_id):
         """删除单个对话记录（按ID）"""
         try:
-            # 先从内存数据库中删除
+            # 从内存数据库中删除
             DataService.remove_chat(chat_id)
-            
-            # 再从SQLite数据库中删除对话（级联删除消息）
-            self.chat_repo.delete_chat(chat_id)
             
             return True
         except Exception as e:
             # 使用BaseService的日志方法
             BaseService.log_error(f"删除对话失败: {str(e)}")
-            # 尝试重新添加到内存（如果删除SQLite失败）
-            try:
-                # 从SQLite重新加载该对话
-                chat = self.get_chat(chat_id)
-                if chat:
-                    DataService.add_chat(chat)
-            except:
-                pass
             return True
 
     def delete_all_chats(self):
         """删除所有对话记录"""
         try:
-            # 先清空内存中的对话数据
+            # 清空内存中的对话数据
             DataService.clear_chats()
-            
-            # 再从数据库中删除所有对话和消息
-            self.message_repo.delete_all_messages()
-            self.chat_repo.delete_all_chats()
             
             return True
         except Exception as e:
             # 使用BaseService的日志方法
             BaseService.log_error(f"删除所有对话失败: {str(e)}")
-            # 尝试从SQLite重新加载数据（如果删除SQLite失败）
-            try:
-                # 重新加载所有对话到内存
-                self.get_chats()
-            except:
-                pass
             return True
     
     def update_chat_pin(self, chat_id, pinned):
         """更新对话置顶状态"""
         try:
-            # 先从内存获取对话信息
+            # 从内存获取对话信息
             chat = DataService.get_chat_by_id(chat_id)
             if not chat:
-                # 如果内存中没有，从数据库加载
-                chat = self._load_chat_from_db(chat_id)
-                if not chat:
-                    return False
+                return False
             
             # 更新内存中的对话
             updated_at = datetime.now().isoformat()
             chat['pinned'] = bool(pinned)
             chat['updatedAt'] = updated_at
-            
-            # 再更新SQLite数据库
-            self.chat_repo.update_chat(
-                chat_id=chat['id'],
-                title=chat['title'] or '未命名对话',
-                preview=chat.get('preview', ''),
-                updated_at=updated_at,
-                pinned=int(pinned)
-            )
+            DataService.set_dirty_flag('chats', True)
             
             return True
         except Exception as e:
@@ -437,7 +331,7 @@ class ChatService(BaseService):
         DataService.set_dirty_flag('chats', True)
         logger.debug(f"设置脏标记: chats=True")
         
-        # 先更新内存中的对话
+        # 更新内存中的对话
         # 更新对话的更新时间
         chat['updatedAt'] = now
         
@@ -466,99 +360,8 @@ class ChatService(BaseService):
             chat['messages'].append(ai_message)
             logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, agent_node={ai_message.get('agent_node')}")
         
-        try:
-            # 开始事务
-            from app.core.database import get_db
-            db_session = next(get_db())
-            logger.debug(f"开始事务: chat_id={chat_id}")
-            
-            # 再保存到SQLite数据库
-            # 检查用户消息是否已经存在于数据库中，避免重复保存
-            existing_user_message = self.message_repo.get_message_by_id(user_message['id'])
-            if not existing_user_message:
-                # 保存用户消息到数据库
-                logger.debug(f"保存用户消息: chat_id={chat_id}, user_msg_id={user_msg_id}")
-                self.message_repo.create_message(
-                    message_id=user_message['id'],
-                    chat_id=chat['id'],
-                    role=user_message['role'],
-                    actual_content=user_message['content'],
-                    thinking=None,
-                    created_at=user_message['createdAt'],
-                    model=user_message.get('model'),
-                    files=json.dumps(user_message.get('files', []))
-                )
-                logger.info(f"用户消息保存成功: chat_id={chat_id}, user_msg_id={user_msg_id}")
-            else:
-                logger.debug(f"用户消息已存在，跳过保存: chat_id={chat_id}, user_msg_id={user_msg_id}")
-            
-            # 保存AI消息到数据库（如果存在）
-            if ai_message:
-                ai_msg_id = ai_message['id']
-                # 检查AI消息是否已经存在于数据库中，避免重复保存
-                existing_ai_message = self.message_repo.get_message_by_id(ai_msg_id)
-                if not existing_ai_message:
-                    logger.info(f"开始保存AI消息: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
-                    try:
-                        # 智能体消息相关字段
-                        message_type = ai_message.get('message_type', 'normal')
-                        agent_session_id = ai_message.get('agent_session_id')
-                        agent_node = ai_message.get('agent_node', '')
-                        agent_step = ai_message.get('agent_step', 0)
-                        agent_metadata = ai_message.get('agent_metadata', '')
-                        
-                        self.message_repo.create_message(
-                            message_id=ai_msg_id,
-                            chat_id=chat['id'],
-                            role=ai_message['role'],
-                            actual_content=ai_message['content'],
-                            thinking=ai_message.get('thinking'),
-                            created_at=ai_message['createdAt'],
-                            model=ai_message.get('model'),
-                            files=json.dumps(ai_message.get('files', [])),
-                            message_type=message_type,
-                            agent_session_id=agent_session_id,
-                            agent_node=agent_node,
-                            agent_step=agent_step,
-                            agent_metadata=agent_metadata
-                        )
-                        logger.info(f"✅ AI消息保存成功: chat_id={chat_id}, ai_msg_id={ai_msg_id}, node={agent_node}")
-                    except Exception as e:
-                        logger.error(f"❌ AI消息保存失败: chat_id={chat_id}, ai_msg_id={ai_msg_id}, error={str(e)}")
-                else:
-                    logger.info(f"⚠️ AI消息已存在，跳过保存: chat_id={chat_id}, ai_msg_id={ai_msg_id}")
-            
-            # 更新对话信息到数据库
-            logger.debug(f"更新对话信息: chat_id={chat_id}, title={new_title}")
-            self.chat_repo.update_chat(
-                chat_id=chat['id'],
-                title=new_title,
-                preview=preview_text,
-                updated_at=now,
-                pinned=chat.get('pinned', 0)
-            )
-            
-            # 提交事务
-            db_session.commit()
-            logger.debug(f"事务提交成功: chat_id={chat_id}")
-            
-            # 添加直接保存成功日志
-            if ai_message:
-                logger.info(f"Direct save succeeded: chat_id={chat_id}, user_msg_id={user_msg_id}, ai_msg_id={ai_message['id']}, node={ai_message.get('agent_node')}")
-            else:
-                logger.info(f"Direct save succeeded: chat_id={chat_id}, user_msg_id={user_msg_id}")
-        except Exception as e:
-            # 回滚事务
-            logger.error(f"保存对话失败，开始回滚: chat_id={chat_id}, error={str(e)}")
-            from app.core.database import get_db
-            db_session = next(get_db())
-            db_session.rollback()
-            logger.debug(f"事务回滚成功: chat_id={chat_id}")
-            
-            # 使用BaseService的日志方法
-            BaseService.log_error(f"Failed to update chat: {str(e)}")
-            # 脏标记已经设置，自动保存机制会处理剩余工作
-            logger.info(f"Direct save failed, relying on auto-save: chat_id={chat_id}, error={str(e)}")
+        # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
+        logger.info(f"对话更新成功，等待自动保存: chat_id={chat_id}")
 
     def _prepare_messages_for_model(self, chat_id, enhanced_question, deep_thinking=False):
         """
@@ -664,7 +467,8 @@ class ChatService(BaseService):
         return FileUtils.process_uploaded_files(files)
     
     def create_agent_session(self, chat_id, graph_state=None, current_node="", step_count=0):
-        """创建新的智能体会话
+        """
+        创建新的智能体会话
         
         参数:
             chat_id: 对话ID
@@ -676,6 +480,28 @@ class ChatService(BaseService):
             创建的智能体会话
         """
         try:
+            # 导入验证工具类
+            from app.utils.validators import ValidationUtils
+            
+            # 验证对话ID格式
+            ValidationUtils.validate_uuid(chat_id, param_name='对话ID')
+            
+            # 验证当前节点
+            ValidationUtils.validate_string_parameter(
+                '当前节点', current_node, allow_empty=True
+            )
+            
+            # 验证步骤计数
+            ValidationUtils.validate_number(
+                step_count, param_name='步骤计数', min_value=0, allow_zero=True
+            )
+            
+            # 验证图状态
+            if graph_state is not None:
+                ValidationUtils.validate_dict_parameter(
+                    '图状态', graph_state, optional_keys=['messages', 'loop_count', 'current_node']
+                )
+            
             session_id = str(uuid.uuid4())
             now = datetime.now().isoformat()
             
@@ -693,30 +519,17 @@ class ChatService(BaseService):
             # 添加到内存数据库
             DataService.add_agent_session(session_dict)
             
-            # 同时保存到SQLite数据库
-            # 将graph_state转换为JSON字符串
-            import json
-            db_graph_state = graph_state
-            if db_graph_state is not None and isinstance(db_graph_state, dict):
-                db_graph_state = json.dumps(db_graph_state)
-            
-            session = self.agent_session_repo.create_session(
-                session_id=session_id,
-                chat_id=chat_id,
-                created_at=now,
-                updated_at=now,
-                graph_state=db_graph_state,
-                current_node=current_node,
-                step_count=step_count
-            )
-            
             return session_dict
+        except ValueError as e:
+            BaseService.log_error(f"创建智能体会话参数验证失败: {str(e)}")
+            return None
         except Exception as e:
             BaseService.log_error(f"创建智能体会话失败: {str(e)}")
             return None
     
     def get_agent_session(self, session_id):
-        """获取智能体会话
+        """
+        获取智能体会话
         
         参数:
             session_id: 智能体会话ID
@@ -725,45 +538,25 @@ class ChatService(BaseService):
             智能体会话
         """
         try:
-            # 先从内存数据库获取
+            # 导入验证工具类
+            from app.utils.validators import ValidationUtils
+            
+            # 验证会话ID格式
+            ValidationUtils.validate_uuid(session_id, param_name='智能体会话ID')
+            
+            # 从内存数据库获取
             session = DataService.get_agent_session_by_id(session_id)
-            if session:
-                return session
-            
-            # 内存数据库中不存在，从SQLite数据库获取
-            session = self.agent_session_repo.get_session_by_id(session_id)
-            if not session:
-                return None
-            
-            # 转换为字典并添加到内存数据库
-            import json
-            graph_state = session.graph_state
-            if graph_state is not None:
-                try:
-                    graph_state = json.loads(graph_state)
-                except json.JSONDecodeError:
-                    graph_state = None
-            
-            session_dict = {
-                'id': session.id,
-                'chat_id': session.chat_id,
-                'created_at': session.created_at,
-                'updated_at': session.updated_at,
-                'graph_state': graph_state,
-                'current_node': session.current_node,
-                'step_count': session.step_count
-            }
-            
-            # 添加到内存数据库
-            DataService.add_agent_session(session_dict)
-            
-            return session_dict
+            return session
+        except ValueError as e:
+            BaseService.log_error(f"获取智能体会话参数验证失败: {str(e)}")
+            return None
         except Exception as e:
             BaseService.log_error(f"获取智能体会话失败: {str(e)}")
             return None
     
     def update_agent_session(self, session_id, graph_state=None, current_node=None, step_count=None):
-        """更新智能体会话
+        """
+        更新智能体会话
         
         参数:
             session_id: 智能体会话ID
@@ -775,9 +568,33 @@ class ChatService(BaseService):
             更新后的智能体会话
         """
         try:
+            # 导入验证工具类
+            from app.utils.validators import ValidationUtils
+            
+            # 验证会话ID格式
+            ValidationUtils.validate_uuid(session_id, param_name='智能体会话ID')
+            
+            # 验证当前节点（如果提供）
+            if current_node is not None:
+                ValidationUtils.validate_string_parameter(
+                    '当前节点', current_node, allow_empty=True
+                )
+            
+            # 验证步骤计数（如果提供）
+            if step_count is not None:
+                ValidationUtils.validate_number(
+                    step_count, param_name='步骤计数', min_value=0, allow_zero=True
+                )
+            
+            # 验证图状态（如果提供）
+            if graph_state is not None:
+                ValidationUtils.validate_dict_parameter(
+                    '图状态', graph_state, optional_keys=['messages', 'loop_count', 'current_node', 'steps']
+                )
+            
             now = datetime.now().isoformat()
             
-            # 先更新内存数据库
+            # 更新内存数据库
             session = DataService.get_agent_session_by_id(session_id)
             if session:
                 updated_session = session.copy()
@@ -790,40 +607,19 @@ class ChatService(BaseService):
                     updated_session['step_count'] = step_count
                 
                 DataService.update_agent_session(session_id, updated_session)
+                return updated_session
             
-            # 再更新SQLite数据库
-            # 将graph_state转换为JSON字符串
-            import json
-            db_graph_state = graph_state
-            if db_graph_state is not None and isinstance(db_graph_state, dict):
-                db_graph_state = json.dumps(db_graph_state)
-            
-            session = self.agent_session_repo.update_session(
-                session_id=session_id,
-                updated_at=now,
-                graph_state=db_graph_state,
-                current_node=current_node,
-                step_count=step_count
-            )
-            
-            if not session:
-                return None
-            
-            return {
-                'id': session.id,
-                'chat_id': session.chat_id,
-                'created_at': session.created_at,
-                'updated_at': session.updated_at,
-                'graph_state': session.graph_state,
-                'current_node': session.current_node,
-                'step_count': session.step_count
-            }
+            return None
+        except ValueError as e:
+            BaseService.log_error(f"更新智能体会话参数验证失败: {str(e)}")
+            return None
         except Exception as e:
             BaseService.log_error(f"更新智能体会话失败: {str(e)}")
             return None
     
     def delete_agent_session(self, session_id):
-        """删除智能体会话
+        """
+        删除智能体会话
         
         参数:
             session_id: 智能体会话ID
@@ -832,17 +628,26 @@ class ChatService(BaseService):
             是否删除成功
         """
         try:
-            # 先从内存数据库删除
+            # 导入验证工具类
+            from app.utils.validators import ValidationUtils
+            
+            # 验证会话ID格式
+            ValidationUtils.validate_uuid(session_id, param_name='智能体会话ID')
+            
+            # 从内存数据库删除
             DataService.remove_agent_session(session_id)
             
-            # 再从SQLite数据库删除
-            return self.agent_session_repo.delete_session(session_id)
+            return True
+        except ValueError as e:
+            BaseService.log_error(f"删除智能体会话参数验证失败: {str(e)}")
+            return False
         except Exception as e:
             BaseService.log_error(f"删除智能体会话失败: {str(e)}")
             return False
     
     def get_agent_sessions_by_chat_id(self, chat_id):
-        """获取对话的所有智能体会话
+        """
+        获取对话的所有智能体会话
         
         参数:
             chat_id: 对话ID
@@ -851,43 +656,25 @@ class ChatService(BaseService):
             智能体会话列表
         """
         try:
-            # 先从内存数据库获取
+            # 导入验证工具类
+            from app.utils.validators import ValidationUtils
+            
+            # 验证对话ID格式
+            ValidationUtils.validate_uuid(chat_id, param_name='对话ID')
+            
+            # 从内存数据库获取
             sessions = DataService.get_agent_sessions_by_chat_id(chat_id)
-            if sessions:
-                return sessions
-            
-            # 内存数据库中不存在，从SQLite数据库获取
-            sessions = self.agent_session_repo.get_sessions_by_chat_id(chat_id)
-            session_list = []
-            import json
-            for session in sessions:
-                graph_state = session.graph_state
-                if graph_state is not None:
-                    try:
-                        graph_state = json.loads(graph_state)
-                    except json.JSONDecodeError:
-                        graph_state = None
-                
-                session_dict = {
-                    'id': session.id,
-                    'chat_id': session.chat_id,
-                    'created_at': session.created_at,
-                    'updated_at': session.updated_at,
-                    'graph_state': graph_state,
-                    'current_node': session.current_node,
-                    'step_count': session.step_count
-                }
-                session_list.append(session_dict)
-                # 添加到内存数据库
-                DataService.add_agent_session(session_dict)
-            
-            return session_list
+            return sessions
+        except ValueError as e:
+            BaseService.log_error(f"获取对话的智能体会话参数验证失败: {str(e)}")
+            return []
         except Exception as e:
             BaseService.log_error(f"获取对话的智能体会话失败: {str(e)}")
             return []
     
     def get_latest_agent_session(self, chat_id):
-        """获取对话的最新智能体会话
+        """
+        获取对话的最新智能体会话
         
         参数:
             chat_id: 对话ID
@@ -896,39 +683,18 @@ class ChatService(BaseService):
             最新的智能体会话
         """
         try:
-            # 先从内存数据库获取
+            # 导入验证工具类
+            from app.utils.validators import ValidationUtils
+            
+            # 验证对话ID格式
+            ValidationUtils.validate_uuid(chat_id, param_name='对话ID')
+            
+            # 从内存数据库获取
             session = DataService.get_latest_agent_session(chat_id)
-            if session:
-                return session
-            
-            # 内存数据库中不存在，从SQLite数据库获取
-            session = self.agent_session_repo.get_latest_session_by_chat_id(chat_id)
-            if not session:
-                return None
-            
-            # 转换为字典并添加到内存数据库
-            import json
-            graph_state = session.graph_state
-            if graph_state is not None:
-                try:
-                    graph_state = json.loads(graph_state)
-                except json.JSONDecodeError:
-                    graph_state = None
-            
-            session_dict = {
-                'id': session.id,
-                'chat_id': session.chat_id,
-                'created_at': session.created_at,
-                'updated_at': session.updated_at,
-                'graph_state': graph_state,
-                'current_node': session.current_node,
-                'step_count': session.step_count
-            }
-            
-            # 添加到内存数据库
-            DataService.add_agent_session(session_dict)
-            
-            return session_dict
+            return session
+        except ValueError as e:
+            BaseService.log_error(f"获取最新智能体会话参数验证失败: {str(e)}")
+            return None
         except Exception as e:
             BaseService.log_error(f"获取最新智能体会话失败: {str(e)}")
             return None
@@ -970,7 +736,8 @@ class ChatService(BaseService):
         }
     
     def _validate_request(self, chat_id, parsed_model_name, model):
-        """验证请求参数
+        """
+        验证请求参数
         
         参数:
             chat_id: 对话ID
@@ -978,22 +745,32 @@ class ChatService(BaseService):
             model: 模型配置
         
         返回:
-            (is_valid, error_response, error_code)
+            (is_valid, error_response, error_code, chat)
         """
-        # 查找匹配ID的对话
-        chat = self.get_chat(chat_id)
-        if not chat:
-            return False, {'error': '对话不存在'}, 404
-        
-        # 如果没有传递模型，返回错误
-        if not parsed_model_name:
-            return False, {'error': '请指定模型'}, 400
-        
-        # 获取模型配置
-        if not model:
-            return False, {'error': f'模型 {parsed_model_name} 不存在'}, 400
-        
-        return True, None, None
+        try:
+            # 导入验证工具类
+            from app.utils.validators import ValidationUtils
+            
+            # 验证对话ID格式
+            ValidationUtils.validate_uuid(chat_id, param_name='对话ID')
+            
+            # 验证模型名称
+            ValidationUtils.validate_string_parameter(
+                '模型名称', parsed_model_name, min_length=1
+            )
+            
+            # 验证对话是否存在
+            chat = self.get_chat(chat_id)
+            if not chat:
+                return False, {'error': '对话不存在'}, 404, None
+            
+            # 验证模型配置
+            if not model:
+                return False, {'error': f'模型 {parsed_model_name} 不存在'}, 400, None
+            
+            return True, None, None, chat
+        except ValueError as e:
+            return False, {'error': str(e)}, 400, None
     
     async def _process_message(self, chat, parsed_data, parsed_model_name, parsed_version_name, model_display_name, model):
         """处理消息发送逻辑
@@ -1117,15 +894,10 @@ class ChatService(BaseService):
             # 获取模型配置
             model = DataService.get_model_by_name(parsed_model_name)
             
-            # 验证请求参数
-            is_valid, error_response, error_code = self._validate_request(chat_id, parsed_model_name, model)
+            # 验证请求参数并获取对话对象
+            is_valid, error_response, error_code, chat = self._validate_request(chat_id, parsed_model_name, model)
             if not is_valid:
                 return error_response, error_code
-            
-            # 获取对话对象（避免在 _process_message 中重复获取）
-            chat = self.get_chat(chat_id)
-            if not chat:
-                return {'error': '对话不存在'}, 404
             
             # 处理消息发送逻辑
             return await self._process_message(chat, parsed_data, parsed_model_name, parsed_version_name, model_display_name, model)

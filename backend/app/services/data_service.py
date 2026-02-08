@@ -48,6 +48,32 @@ class DataService(BaseService):
         db['chats'] = []
         DataService.set_dirty_flag('chats')
     
+    @staticmethod
+    def update_chat(chat_id, updated_data):
+        """更新对话信息"""
+        chat = DataService.get_chat_by_id(chat_id)
+        if chat:
+            chat.update(updated_data)
+            DataService.set_dirty_flag('chats')
+    
+    @staticmethod
+    def add_message_to_chat(chat_id, message):
+        """添加消息到对话"""
+        chat = DataService.get_chat_by_id(chat_id)
+        if chat:
+            if 'messages' not in chat:
+                chat['messages'] = []
+            chat['messages'].append(message)
+            DataService.set_dirty_flag('chats')
+    
+    @staticmethod
+    def update_chat_pin(chat_id, pinned):
+        """更新对话置顶状态"""
+        chat = DataService.get_chat_by_id(chat_id)
+        if chat:
+            chat['pinned'] = bool(pinned)
+            DataService.set_dirty_flag('chats')
+    
     # 模型相关方法
     @staticmethod
     def get_models():
