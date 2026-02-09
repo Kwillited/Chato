@@ -26,16 +26,24 @@ class OllamaModel(BaseModel):
             'top_p': 'top_p',
             'top_k': 'top_k',
             'frequency_penalty': 'repeat_penalty',
-            'deepThinking': 'reasoning',
         }
         
         ollama_options = {}
+        reasoning = None
+        
         for key, value in model_params.items():
-            if key in mapping:
+            if key == 'deepThinking':
+                reasoning = value
+            elif key in mapping:
                 ollama_options[mapping[key]] = value
             else:
                 ollama_options[key] = value
         
+        # 构建返回字典
+        result = {"options": ollama_options}
+        if reasoning is not None:
+            result["reasoning"] = reasoning
+        
         # 返回一个符合 Ollama astream/invoke 要求的字典
-        # 这样在基类中 **{"options": ...} 就会变成 options=...
-        return {"options": ollama_options}
+        # 这样在基类中 **{"options": ..., "reasoning": ...} 就会变成 options=... reasoning=...
+        return result
