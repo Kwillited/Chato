@@ -13,8 +13,7 @@ class OllamaModel(BaseModel):
         self.llm = ChatOllama(
             model=selected_version,
             base_url=base_url,
-            timeout=180,
-            think_thought=True,
+            timeout=180
         )
 
     def _prepare_call_kwargs(self, model_params: Dict[str, Any]) -> Dict[str, Any]:
@@ -27,6 +26,7 @@ class OllamaModel(BaseModel):
             'top_p': 'top_p',
             'top_k': 'top_k',
             'frequency_penalty': 'repeat_penalty',
+            'deepThinking': 'reasoning',
         }
         
         ollama_options = {}

@@ -9,7 +9,7 @@ import uuid
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.services.chat.chat_service import ChatService
-from app.utils.response_handler import ResponseHandler
+from app.utils.response.handler import ResponseHandler
 
 async def test_agent_message_flow():
     """测试智能体消息完整处理流程"""

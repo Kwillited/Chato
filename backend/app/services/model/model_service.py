@@ -359,8 +359,33 @@ class ModelService(BaseService):
             # 提取模型名称（去掉文件扩展名）
             model_name = filename.replace('.png', '')
             
-            # 查询数据库中的图标
-            result = self.model_repo.get_model_icon(model_name)
+            # 首先尝试从内存缓存获取模型
+            from app.core.data_manager import DataService
+            memory_model = DataService.get_model_by_name(model_name)
+            
+            # 如果内存中有模型，且有图标数据，直接返回
+            if memory_model and memory_model.get('icon_blob'):
+                return True, memory_model['icon_blob'], '从内存缓存获取图标成功'
+            
+            # 尝试不同大小写的模型名称
+            possible_model_names = [
+                model_name,
+                model_name.lower(),
+                model_name.capitalize(),
+                model_name.title()
+            ]
+            
+            # 尝试查询数据库中的图标（处理大小写问题）
+            result = None
+            for name in possible_model_names:
+                try:
+                    result = self.model_repo.get_model_icon(name)
+                    if result and result[0]:
+                        break
+                except Exception as db_error:
+                    # 数据库查询失败，继续尝试其他名称
+                    self.log_error(f"数据库查询图标失败 ({name}): {str(db_error)}")
+                    continue
             
             if result and result[0]:
                 # 从数据库返回图片
@@ -368,13 +393,23 @@ class ModelService(BaseService):
             else:
                 # 从文件系统返回图片（向后兼容）
                 ICONS_DIR = r'C:\Users\admin\AppData\Local\Chato\Chato\icon'
-                icon_path = os.path.join(ICONS_DIR, filename)
-                if os.path.exists(icon_path):
-                    with open(icon_path, 'rb') as f:
-                        icon_data = f.read()
-                    return True, icon_data, '从文件系统获取图标成功'
-                else:
-                    return False, None, '图标文件不存在'
+                
+                # 尝试不同大小写的文件名
+                possible_filenames = [
+                    filename,
+                    filename.lower(),
+                    filename.capitalize(),
+                    filename.title()
+                ]
+                
+                for possible_filename in possible_filenames:
+                    icon_path = os.path.join(ICONS_DIR, possible_filename)
+                    if os.path.exists(icon_path):
+                        with open(icon_path, 'rb') as f:
+                            icon_data = f.read()
+                        return True, icon_data, '从文件系统获取图标成功'
+                
+                return False, None, '图标文件不存在'
         except Exception as e:
             # 使用BaseService的日志方法
             self.log_error(f"获取模型图标失败: {str(e)}")

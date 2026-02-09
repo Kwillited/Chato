@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from app.services.data_service import DataService
 from app.services.base_service import BaseService
-from app.utils.response_formatter import ResponseFormatter
+from app.utils.response.handler import ResponseHandler
 from app.utils import FileUtils
 from app.utils.model_utils import ModelUtils
 
@@ -442,13 +442,20 @@ class ChatService(BaseService):
                     # 如果 ModelManager.chat 是同步的，建议也改为异步版本
                     stream = ModelManager.chat(model_name, model, version_config, messages, model_params)
 
+                    # 开始接收LLM流式响应
+                    print(f"[chat_with_model_stream] 开始接收LLM流式响应")
+                    
                     # 如果 stream 是同步迭代器
                     if hasattr(stream, '__next__'):
                         for chunk in stream:
+                            # 打印接收到的响应块
+                            print(f"[chat_with_model_stream] 接收到LLM响应块: {type(chunk).__name__}, content={str(chunk)[:100]}...")
                             yield chunk
                     # 如果 stream 是异步迭代器 (推荐)
                     else:
                         async for chunk in stream:
+                            # 打印接收到的响应块
+                            print(f"[chat_with_model_stream] 接收到LLM响应块: {type(chunk).__name__}, content={str(chunk)[:100]}...")
                             yield chunk
 
                 except Exception as e:
@@ -832,7 +839,8 @@ class ChatService(BaseService):
             'top_p': 1,
             'top_k': 50,
             'frequency_penalty': 0,
-            'stream': stream  # 将 stream 参数添加到 model_params 中
+            'stream': stream,  # 将 stream 参数添加到 model_params 中
+            'deepThinking': deep_thinking  # 添加深度思考参数
         }
         # 合并用户自定义参数
         model_params.update(user_model_params)
@@ -861,33 +869,21 @@ class ChatService(BaseService):
         # 移除单独保存用户消息的逻辑，改为在模型响应成功后与AI消息一起保存
         
         # 导入响应处理器
-        from app.utils.response_handler import ResponseHandler
+        # ResponseHandler 已在文件顶部导入
         
         # 根据stream和agent的值决定返回类型
-        if stream and use_agent:
-            # 调用异步方法
-            return await ResponseHandler.handle_astream_events_response( # <--- 关键修改
-                chat, full_message_text, user_message, now,
-                enhanced_question, parsed_model_name, parsed_version_name, 
-                model_params, model_display_name, deep_thinking, use_agent,
-                chat_service=self
-            )
-        elif not stream and use_agent:
-            return await ResponseHandler.handle_astream_response( # <--- 关键修改
-                chat, full_message_text, user_message, now,
-                enhanced_question, parsed_model_name, parsed_version_name, 
-                model_params, model_display_name, deep_thinking, use_agent,
-                chat_service=self
-            )
-        elif stream and not use_agent:
-            return await ResponseHandler.handle_streaming_response( # <--- 关键修改
+        if stream:
+            # 所有流式对话（包括智能体的流式模式）都使用 handle_streaming_response
+            # 内部会根据 use_agent 参数选择对应的策略
+            return await ResponseHandler.handle_streaming_response(
                 chat, full_message_text, user_message, now,
                 enhanced_question, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, deep_thinking, use_agent,
                 chat_service=self
             )
         else:
-            return await ResponseHandler.handle_regular_response( # <--- 关键修改
+            # 所有非流式对话都使用 handle_regular_response
+            return await ResponseHandler.handle_regular_response(
                 chat, full_message_text, user_message, now,
                 enhanced_question, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, deep_thinking, use_agent,

@@ -161,7 +161,9 @@ class DataService(BaseService):
     @staticmethod
     def set_dirty_flag(data_type, is_dirty=True):
         """设置脏标记"""
-        cache_manager.set_dirty_flag(data_type, is_dirty)
+        from app.core.data_manager import dirty_flags
+        if data_type in dirty_flags:
+            dirty_flags[data_type] = is_dirty
     
     @staticmethod
     def save_data():

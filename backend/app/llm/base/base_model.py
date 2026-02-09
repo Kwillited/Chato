@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from langchain_core.language_models import BaseLanguageModel
 from typing import List, Dict, Any, Optional, AsyncIterator 
 from app.utils.message_utils import MessageUtils
-from app.utils.stream_utils import StreamUtils
+from app.utils.response.stream import StreamUtils
 
 class BaseModel(ABC):
     def __init__(self, model_config: Dict[str, Any], version_config: Dict[str, Any]):
