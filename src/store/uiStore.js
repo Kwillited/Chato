@@ -274,5 +274,49 @@ export const useUiStore = defineStore('ui', {
     setAgent(value) {
       this.isAgentEnabled = value;
     },
+
+    /**
+     * 切换到设置面板并保存当前状态
+     */
+    navigateToSettings() {
+      // 保存当前状态
+      this.previousContent = this.activeContent;
+      this.previousPanel = this.activePanel;
+      // 切换到设置面板
+      this.activeContent = 'settings';
+      this.activePanel = 'settings';
+    },
+
+    /**
+     * 从设置面板返回，恢复之前的状态
+     */
+    navigateFromSettings() {
+      // 恢复之前的状态
+      this.activeContent = this.previousContent || 'home';
+      if (this.previousPanel) {
+        this.activePanel = this.previousPanel;
+      } else {
+        this.activePanel = 'history';
+      }
+    },
+
+    /**
+     * 处理路由导航时的面板状态管理
+     * @param {string} routePath - 路由路径
+     */
+    handleRouteNavigation(routePath) {
+      if (routePath === '/setting') {
+        this.navigateToSettings();
+      } else if (routePath === '/') {
+        // 检查是否从设置页面返回
+        if (this.activePanel === 'settings') {
+          this.navigateFromSettings();
+        } else {
+          // 正常导航到首页
+          this.activeContent = 'home';
+          // 保持当前面板状态
+        }
+      }
+    },
   },
 });

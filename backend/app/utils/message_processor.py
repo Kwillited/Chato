@@ -1,4 +1,6 @@
-"""回复格式化工具类"""
+"""消息处理器，统一处理消息的输入和输出"""
+from typing import List, Dict, Any
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage
 import json
 import uuid
 import re
@@ -6,9 +8,96 @@ from app.core.logging_config import logger
 from app.services.base_service import BaseService
 
 
-class ResponseFormatter:
-    """回复格式化工具类，用于处理模型响应的格式化"""
+class MessageProcessor:
+    """消息处理器，统一处理消息的输入和输出"""
     
+    # 输入处理方法
+    @staticmethod
+    def convert_to_langchain_messages(messages: List[Dict[str, str]]) -> List[BaseMessage]:
+        """将内部消息格式转换为langchain消息格式
+        
+        Args:
+            messages: 内部消息格式列表
+            
+        Returns:
+            List[BaseMessage]: langchain消息格式列表
+        """
+        langchain_messages = []
+        for msg in messages:
+            role = msg['role'].lower()
+            content = msg['content']
+            
+            if role == 'system':
+                langchain_messages.append(SystemMessage(content=content))
+            elif role == 'user':
+                langchain_messages.append(HumanMessage(content=content))
+            elif role == 'assistant':
+                langchain_messages.append(AIMessage(content=content))
+            else:
+                langchain_messages.append(HumanMessage(content=content))
+        
+        return langchain_messages
+    
+    @staticmethod
+    def extract_latest_input(messages: List[Dict[str, str]]) -> tuple:
+        """从消息列表中提取最新输入和历史消息
+        
+        Args:
+            messages: 消息列表
+            
+        Returns:
+            tuple: (latest_input, chat_history)
+        """
+        if messages and isinstance(messages[-1], dict) and "content" in messages[-1]:
+            latest_input = messages[-1]["content"]
+            chat_history = messages[:-1]
+            return latest_input, chat_history
+        return "", []
+    
+    # Think 标签处理（统一实现）
+    @staticmethod
+    def process_think_tags(content: str) -> tuple:
+        """处理内容中的Think标签，提取思考内容并移除标签
+        
+        Args:
+            content: 包含思考标签的内容
+            
+        Returns:
+            tuple: (thinking_content, actual_content)
+        """
+        # 支持两种标签格式
+        think_patterns = [
+            re.compile(r'\s*<think>([\s\S]*?)</think>\s*', re.IGNORECASE),
+            re.compile(r'\s*\[think\]([\s\S]*?)\[/think\]\s*', re.IGNORECASE)
+        ]
+        
+        thinking_content = None
+        actual_content = content
+        
+        for pattern in think_patterns:
+            match = pattern.match(content)
+            if match:
+                thinking_content = match.group(1)
+                actual_content = pattern.sub('', content).strip()
+                break
+        
+        return thinking_content, actual_content
+    
+    @staticmethod
+    def filter_think_tags(content: str) -> str:
+        """过滤内容中的think标签
+        
+        Args:
+            content: 原始内容
+            
+        Returns:
+            过滤后的内容
+        """
+        # 使用统一的process_think_tags方法
+        _, filtered_content = MessageProcessor.process_think_tags(content)
+        return filtered_content
+    
+    # 输出处理方法
     @staticmethod
     def create_ai_message(now, content, model_display_name, files=None):
         """创建标准格式的AI回复消息
@@ -35,28 +124,6 @@ class ResponseFormatter:
         return ai_message
     
     @staticmethod
-    def process_think_tags(content):
-        """处理内容中的Think标签，提取思考内容并移除标签
-        
-        Args:
-            content: 包含思考标签的内容
-            
-        Returns:
-            (thinking_content, actual_content): 思考内容和实际内容
-        """
-        think_pattern = re.compile(r'\s*<think>([\s\S]*?)</think>\s*', re.IGNORECASE)
-        match = think_pattern.match(content)
-        
-        thinking_content = None
-        actual_content = content
-        
-        if match:
-            thinking_content = match.group(1)
-            actual_content = think_pattern.sub('', content).strip()
-        
-        return thinking_content, actual_content
-    
-    @staticmethod
     def process_full_reply(full_reply, now, model_display_name):
         """处理完整回复，分离思考内容和实际内容
         
@@ -68,10 +135,10 @@ class ResponseFormatter:
         Returns:
             标准格式的AI回复消息
         """
-        thinking_content, actual_content = ResponseFormatter.process_think_tags(full_reply)
+        thinking_content, actual_content = MessageProcessor.process_think_tags(full_reply)
         
         # 创建AI回复，确保包含完整的模型和版本信息
-        ai_message = ResponseFormatter.create_ai_message(now, actual_content, model_display_name)
+        ai_message = MessageProcessor.create_ai_message(now, actual_content, model_display_name)
         # 添加思考内容到AI消息
         ai_message['thinking'] = thinking_content
         

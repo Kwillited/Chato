@@ -3,7 +3,7 @@ import json
 import asyncio
 from typing import Dict, Any, Generator, Callable
 
-from app.utils.response_formatter import ResponseFormatter
+from app.utils.message_processor import MessageProcessor
 from app.services.base_service import BaseService
 
 
@@ -49,7 +49,7 @@ class RegularResponseStrategy(ResponseStrategy):
             BaseService.log_error(f'调用模型失败: {str(e)}')
             return {'error': f'调用模型失败: {str(e)}'}, 500
 
-        ai_message = ResponseFormatter.process_full_reply(ai_reply, now, model_display_name)
+        ai_message = MessageProcessor.process_full_reply(ai_reply, now, model_display_name)
         chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
         
         return {
@@ -76,10 +76,10 @@ class StreamingResponseStrategy(ResponseStrategy):
                 
                 # ！！！关键：改用 async for 遍历异步生成器
                 async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
-                    formatted_chunk, full_reply = ResponseFormatter.process_streaming_chunk(chunk, full_reply)
+                    formatted_chunk, full_reply = MessageProcessor.process_streaming_chunk(chunk, full_reply)
                     yield formatted_chunk
                 
-                ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
+                ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                 
                 final_data = {'done': True, 'chat': chat, 'ai_message': ai_message}
@@ -162,7 +162,7 @@ class AgentResponseStrategy(ResponseStrategy):
                                 
                                 metadata = node_metadata.get(current_node, {})
                                 print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, content={content[:50]}...")
-                                ai_message = ResponseFormatter.process_full_reply(content, now, model_display_name)
+                                ai_message = MessageProcessor.process_full_reply(content, now, model_display_name)
                                 # 添加智能体消息相关字段
                                 ai_message['message_type'] = 'agent'
                                 ai_message['agent_session_id'] = agent_session_id
@@ -344,7 +344,7 @@ class AgentResponseStrategy(ResponseStrategy):
                     
                     metadata = node_metadata.get(current_node, {})
                     print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, content={content[:50]}...")
-                    ai_message = ResponseFormatter.process_full_reply(content, now, model_display_name)
+                    ai_message = MessageProcessor.process_full_reply(content, now, model_display_name)
                     # 添加智能体消息相关字段
                     ai_message['message_type'] = 'agent'
                     ai_message['agent_session_id'] = agent_session_id
@@ -397,7 +397,7 @@ class AStreamResponseStrategy(ResponseStrategy):
                         yield f"data: {json.dumps({'chunk': str(chunk), 'astream': True}, ensure_ascii=False)}\n\n"
                         full_reply += str(chunk)
                 
-                ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
+                ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                 yield f'data: {json.dumps({"astream": True, "done": True, "ai_message": ai_message}, ensure_ascii=False)}\n\n'
             except Exception as e:
@@ -431,7 +431,7 @@ class AStreamEventsResponseStrategy(ResponseStrategy):
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                         full_reply += chunk.get('chunk', chunk.get('content', ''))
 
-                ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
+                ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                 yield f"data: {json.dumps({'astream_events': True, 'done': True, 'ai_message': ai_message}, ensure_ascii=False)}\n\n"
             except Exception as e:

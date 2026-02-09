@@ -6,6 +6,17 @@ const routes = [
     path: '/',
     name: 'Home',
     component: App
+  },
+  {
+    path: '/chat/:uuid',
+    name: 'Chat',
+    component: App,
+    props: true
+  },
+  {
+    path: '/setting',
+    name: 'Setting',
+    component: App
   }
 ];
 

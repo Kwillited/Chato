@@ -33,6 +33,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useChatStore } from '../store/chatStore.js';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { useUiStore } from '../store/uiStore.js';
@@ -47,6 +48,9 @@ import { UserInputBox } from '../components/library';
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
+
+// 初始化路由
+const router = useRouter();
 
 // 引用子组件
 const chatMessagesContainerRef = ref(null);
@@ -128,11 +132,21 @@ watch(
 // 监听当前对话变化，安全滚动到底部
 watch(
   () => chatStore.currentChatId,
-  (newChatId) => {
-    // 检查如果消息为空，切换到发送消息视图
-    if (newChatId && chatStore.currentChatMessages.length === 0) {
-      uiStore.setActiveContent('home');
-      return;
+  async (newChatId) => {
+    console.log('当前对话ID变化:', newChatId);
+    if (newChatId) {
+      // 等待一个微任务，确保chatStore.chats数组已经更新
+      await nextTick();
+      console.log('当前对话:', chatStore.currentChat);
+      console.log('当前对话消息:', chatStore.currentChatMessages.length, '条');
+      
+      // 检查如果消息为空，切换到发送消息视图
+      // 但是，只有当对话确实存在且消息为空时才切换
+      if (chatStore.currentChat && chatStore.currentChatMessages.length === 0) {
+        console.log('消息为空，跳转到首页');
+        router.push('/home');
+        return;
+      }
     }
     
     nextTick(() => {
@@ -145,8 +159,10 @@ watch(
 watch(
   () => chatStore.currentChatMessages.length,
   (newLength) => {
-    if (newLength === 0 && chatStore.currentChatId) {
-      uiStore.setActiveContent('home');
+    console.log('当前对话消息长度变化:', newLength);
+    if (newLength === 0 && chatStore.currentChatId && chatStore.currentChat) {
+      console.log('消息为空，跳转到首页');
+      router.push('/home');
     }
   }
 );
@@ -170,7 +186,7 @@ onMounted(() => {
 
   // 检查如果消息为空，切换到发送消息视图
   if (chatStore.currentChatMessages.length === 0) {
-    uiStore.setActiveContent('home');
+    router.push('/home');
     return;
   }
 

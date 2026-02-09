@@ -147,16 +147,19 @@ export const useChatStore = defineStore('chat', {
         
         this.uploadedFiles = [];
         
-        // 为了确保未读状态正确清除，我们可以在每个对话对象上添加一个显式的未读标记
-        // 遍历所有对话，将当前选中的对话未读标记设置为false
+        // 清除未读状态
         this.chats = this.chats.map(c => ({
           ...c,
           hasUnreadMessage: c.id !== chatId && (c.hasUnreadMessage || false)
         }));
         
-        // 可以在这里添加加载对话历史的逻辑
+        // 切换到聊天视图
+        uiStore.setActiveContent('chat');
+        
         console.log('选择对话:', chatId);
+        return true;
       }
+      return false;
     },
 
     // 验证消息参数
@@ -995,8 +998,8 @@ export const useChatStore = defineStore('chat', {
           // 确保数据一致性
           this.ensureDataIntegrity();
           
-          // 如果有对话历史，不自动选择任何对话
-          this.currentChatId = null;
+          // 保留当前对话ID，避免清空已选择的对话
+          // this.currentChatId = null;
         } else {
           // 没有对话历史，清空当前状态
           this.chats = [];

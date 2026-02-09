@@ -22,7 +22,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
+import { useRoute } from 'vue-router';
 import ModelVersionForm from './components/models/ModelVersionForm.vue';
 import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import MainLayout from './layout/MainLayout.vue';
@@ -35,28 +36,56 @@ const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 
+// 路由
+const route = useRoute();
+
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
 
-// 监听activePanel变化，同步更新activeContent
+// 面板状态管理现在由 uiStore 负责，移除本地监听器
+
+// 监听路由变化，更新应用状态
 watch(
-  () => uiStore.activePanel,
-  (newPanel, oldPanel) => {
-    // 当切换到任何面板时，自动展开左侧面板
-    uiStore.leftNavVisible = true;
+  () => route.path,
+  async (newPath) => {
+    // 解析路由路径
+    const chatMatch = newPath.match(/^\/chat\/(.*)$/);
     
-    // 当切换到settings面板时，保存当前的activeContent作为previousContent
-    if (newPanel === 'settings' && oldPanel !== 'settings') {
-      // 确保只在从非settings面板切换过来时保存previousContent
-      if (uiStore.activeContent !== 'settings') {
-        uiStore.previousContent = uiStore.activeContent;
+    if (chatMatch) {
+      // 处理 /chat/:uuid 路由
+      const uuid = chatMatch[1];
+      console.log('路由切换到聊天对话:', uuid);
+      
+      // 确保对话历史已加载
+      try {
+        // 首先尝试选择对话
+        let success = chatStore.selectChat(uuid);
+        
+        // 如果找不到对话，重新加载对话历史并再次尝试
+        if (!success) {
+          console.log('对话未找到，重新加载对话历史:', uuid);
+          await chatStore.loadChatHistory();
+          success = chatStore.selectChat(uuid);
+        }
+        
+        if (!success) {
+          // 对话不存在，切换到首页
+          console.error('对话不存在:', uuid);
+          uiStore.setActiveContent('home');
+        }
+      } catch (error) {
+        console.error('加载对话历史失败:', error);
+        // 加载失败时，切换到首页
+        uiStore.setActiveContent('home');
       }
-      uiStore.setActiveContent('settings');
-    } else if (newPanel !== 'settings' && oldPanel === 'settings') {
-      // 当从settings面板切换回来时，使用previousContent
-      uiStore.setActiveContent(uiStore.previousContent || 'home');
+    } else if (newPath === '/' || newPath === '/setting') {
+      // 交给 uiStore 处理面板状态管理
+      uiStore.handleRouteNavigation(newPath);
+      // 清除当前对话ID，避免首页或设置页显示聊天内容
+      chatStore.currentChatId = null;
     }
-  }
+  },
+  { immediate: true }
 );
 
 import { apiService } from './services/apiService.js';

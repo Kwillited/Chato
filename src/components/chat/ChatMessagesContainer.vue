@@ -43,7 +43,11 @@ const chatMessagesContainer = ref(null);
 const jumpIndicatorRef = ref(null);
 
 // 从store计算属性获取数据
-const chatMessages = computed(() => chatStore.currentChatMessages);
+const chatMessages = computed(() => {
+  const messages = chatStore.currentChatMessages;
+  console.log('ChatMessages计算属性:', messages.length, '条消息');
+  return messages;
+});
 
 // 过滤出所有用户消息
 const userMessages = computed(() => {

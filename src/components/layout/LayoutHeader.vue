@@ -23,18 +23,18 @@
         />
       </template>
       <!-- 设置面板：返回按钮和系统设置标题 -->
-      <div v-else class="flex items-center space-x-1">
+      <div v-else class="flex items-center space-x-2">
         <!-- 返回按钮 -->
         <Button 
           shape="full"
           size="md"
           icon="fa-chevron-left"
-          tooltip="返回聊天"
-          @click="handleBackToChat"
-          class="pr-0"
+          tooltip="返回上一级"
+          @click="handleBack"
+          class="transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-700"
         />
         <!-- 系统设置标题 -->
-        <h2 class="text-lg font-bold text-dark dark:text-white">系统设置</h2>
+        <h2 class="text-lg font-bold text-dark dark:text-white transition-all duration-300">系统设置</h2>
       </div>
     </div>
     
@@ -100,6 +100,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useUiStore } from '../../store/uiStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { Button } from '../library/index.js';
@@ -116,6 +117,9 @@ const props = defineProps({
 // Stores
 const uiStore = useUiStore();
 const chatStore = useChatStore();
+
+// 路由
+const router = useRouter();
 
 // State
 const showHistoryMenu = ref(false);
@@ -167,11 +171,17 @@ const handleNewChat = () => {
   chatStore.currentChatId = null;
   chatStore.resetUnreadStatus();
   uiStore.setActiveContent('home');
+  // 跳转到根目录路由
+  router.push('/');
 };
 
-const handleBackToChat = () => {
-  uiStore.setActiveContent(uiStore.previousContent || 'home');
-  uiStore.setActivePanel('history');
+const handleBack = () => {
+  // 如果当前是设置面板，使用 uiStore 的方法返回
+  if (uiStore.activePanel === 'settings') {
+    uiStore.navigateFromSettings();
+  }
+  // 返回上一级路由
+  router.back();
 };
 
 const toggleHistoryMenu = () => {
@@ -182,6 +192,8 @@ const selectChatFromHistory = (chatId) => {
   showHistoryMenu.value = false;
   chatStore.selectChat(chatId);
   uiStore.setActiveContent('chat');
+  // 添加路由跳转逻辑
+  router.push(`/chat/${chatId}`);
 };
 
 // Expose

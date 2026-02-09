@@ -117,7 +117,8 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted, onUnmounted } from 'vue';
+import { computed, reactive, ref, onMounted, onUnmounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useUiStore } from '../../store/uiStore.js';
@@ -207,11 +208,24 @@ const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 
+// 路由
+const router = useRouter();
+
 // 从store获取对话历史
-const chatHistory = computed(() => chatStore.chatHistory);
+const chatHistory = computed(() => {
+  // 添加对currentChatId的依赖，确保currentChatId变化时组件重新渲染
+  const currentChatId = chatStore.currentChatId;
+  return chatStore.chatHistory;
+});
 
 // 搜索查询
 const searchQuery = ref('');
+
+// 监听currentChatId变化，确保会话项高亮状态更新
+watch(() => chatStore.currentChatId, (newChatId) => {
+  console.log('当前对话ID变化:', newChatId);
+  // 当对话ID变化时，组件会自动重新渲染，因为isActiveChat函数依赖currentChatId
+});
 
 // 用于管理分组的展开/折叠状态
 const collapsedGroups = reactive({});
@@ -318,10 +332,8 @@ const groupedChats = computed(() => {
 // 处理选择对话
 const handleChatSelect = (chatId) => {
   console.log('选择对话:', chatId);
-  chatStore.selectChat(chatId);
-  
-  // 确保activeContent是'chat'，以便正确显示ChatContent组件
-  uiStore.setActiveContent('chat');
+  // 只负责路由跳转，状态更新由路由监听器统一处理
+  router.push(`/chat/${chatId}`);
 };
 
 // 处理导出所有对话

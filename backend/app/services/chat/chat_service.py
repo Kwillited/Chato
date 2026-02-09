@@ -151,7 +151,7 @@ class ChatService(BaseService):
             messages = messages[-max_messages:]
         
         # 转换为适合模型输入的格式
-        from app.utils.message_utils import MessageUtils
+        from app.utils.message_processor import MessageProcessor
         formatted_messages = []
         for msg in messages:
             # 确保消息有必要的字段
@@ -163,7 +163,7 @@ class ChatService(BaseService):
                 
                 if not deep_thinking:
                     # 使用工具类过滤think标签
-                    content = MessageUtils.filter_think_tags(content)
+                    content = MessageProcessor.filter_think_tags(content)
                 else:
                     # 启用深度思考时，只去除多余的空白字符
                     content = content.strip()

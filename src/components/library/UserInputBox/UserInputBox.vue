@@ -621,6 +621,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { StorageManager } from '../../../utils/storage.js';
 import { formatFileSize } from '../../../utils/file.js';
 import { Tooltip } from '../index.js';
@@ -650,6 +651,9 @@ const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 const modelStore = useSettingsStore();
 const vectorStore = useVectorStore();
+
+// 初始化路由
+const router = useRouter();
 
 // 拖拽状态管理
 const dragCounter = ref(0);
@@ -1214,13 +1218,12 @@ const toggleViewPanel = () => {
 
 // 处理系统设置按钮点击事件
 const handleSystemSettingsClick = () => {
-  uiStore.setActivePanel('settings');
-  uiStore.setActiveContent('settings');
+  router.push('/setting');
 };
 
 // 处理AI配置按钮点击事件
 const handleAISettingsClick = () => {
-  uiStore.setActiveContent('aiSettings');
+  router.push('/setting');
 };
 
 // 切换主题
