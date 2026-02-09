@@ -52,6 +52,9 @@ class BaseModel(ABC):
                 
             response = self.llm.invoke(langchain_messages, **call_kwargs)
             
+            # 打印模型原始响应
+            print(f"[BaseModel.chat] 原始响应: type={type(response).__name__}, content={str(response)[:200]}...")
+            
             LoggingUtils.log_info("🔧 LLM调用: Model invoked successfully")
             return self._format_response(response.content)
             
