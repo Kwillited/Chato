@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from app.services.data_service import DataService
 from app.services.base_service import BaseService
-from app.utils.response.handler import ResponseHandler
+from app.utils.response_strategy.handler import ResponseHandler
 from app.utils import FileUtils
 from app.utils.model_utils import ModelUtils
 
@@ -151,7 +151,7 @@ class ChatService(BaseService):
             messages = messages[-max_messages:]
         
         # 转换为适合模型输入的格式
-        from app.utils.message_processor import MessageProcessor
+        from app.utils.message_handler import MessageHandler
         formatted_messages = []
         for msg in messages:
             # 确保消息有必要的字段
@@ -163,7 +163,7 @@ class ChatService(BaseService):
                 
                 if not deep_thinking:
                     # 使用工具类过滤think标签
-                    content = MessageProcessor.filter_think_tags(content)
+                    content = MessageHandler.Request.filter_think_tags(content)
                 else:
                     # 启用深度思考时，只去除多余的空白字符
                     content = content.strip()

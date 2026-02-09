@@ -1,9 +1,9 @@
 """流式响应策略"""
 import json
-from app.utils.response.strategy.base import ResponseStrategy
+from app.utils.response_strategy.strategy.base import ResponseStrategy
 from app.services.base_service import BaseService
-from app.utils.response.formatter import ResponseFormatter
-from app.utils.response.stream import StreamUtils
+from app.utils.message_handler import MessageHandler
+from app.utils.response_strategy.stream import StreamUtils
 
 
 class StreamingResponseStrategy(ResponseStrategy):
@@ -32,7 +32,7 @@ class StreamingResponseStrategy(ResponseStrategy):
                         full_reply += str(chunk)
                 
                 # 模型响应成功，创建AI消息并保存
-                ai_message = ResponseFormatter.process_full_reply(full_reply, now, model_display_name)
+                ai_message = MessageHandler.Response.process_full_reply(full_reply, now, model_display_name)
                 # 将用户消息添加到对话中
                 chat['messages'].append(user_message)
                 # 一次性保存用户消息和AI消息

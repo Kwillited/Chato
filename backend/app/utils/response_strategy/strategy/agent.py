@@ -1,107 +1,13 @@
-"""响应处理器工具类"""
+"""智能体响应策略"""
 import json
-import asyncio
-from typing import Dict, Any, Generator, Callable
-
-from app.utils.message_processor import MessageProcessor
+from app.utils.response_strategy.strategy.base import ResponseStrategy
 from app.services.base_service import BaseService
-
-
-class ResponseStrategy:
-    """响应处理策略接口"""
-    
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
-                       parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
-        """处理响应 - 改为异步"""
-        raise NotImplementedError
-
-
-class RegularResponseStrategy(ResponseStrategy):
-    """普通非流式响应处理策略"""
-    
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
-                       parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
-        """处理普通响应"""
-        try:
-            # 验证模型
-            model, error_response, error_code = chat_service.validate_model(parsed_model_name)
-            if error_response:
-                return error_response, error_code
-
-            messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-            version_config = chat_service.get_version_config(model, parsed_version_name)
-
-            chat_service.log_info("使用普通对话模式")
-            
-            from app.llm.managers.model_manager import ModelManager
-            # 即使是非流式调用，在异步链中也建议封装为异步执行
-            response = ModelManager.chat(parsed_model_name, model, version_config, messages, model_params)
-        
-            if isinstance(response, dict) and 'content' in response:
-                ai_reply = response['content']
-            else:
-                ai_reply = response
-        except Exception as e:
-            BaseService.log_error(f'调用模型失败: {str(e)}')
-            # 模型调用失败，不保存任何消息
-            return {'error': f'调用模型失败: {str(e)}'}, 500
-
-        # 模型响应成功，创建AI消息并保存
-        ai_message = MessageProcessor.process_full_reply(ai_reply, now, model_display_name)
-        # 将用户消息添加到对话中
-        chat['messages'].append(user_message)
-        # 一次性保存用户消息和AI消息
-        chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
-        
-        return {
-            'success': True,
-            'chat': chat,
-            'user_message': user_message,
-            'ai_message': ai_message
-        }, 201
-
-
-class StreamingResponseStrategy(ResponseStrategy):
-    """标准流式响应处理策略"""
-    
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
-                       parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
-        
-        # 必须定义为异步生成器
-        async def generate():
-            try:
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-                full_reply = ""
-                
-                # ！！！关键：改用 async for 遍历异步生成器
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
-                    formatted_chunk, full_reply = MessageProcessor.process_streaming_chunk(chunk, full_reply)
-                    yield formatted_chunk
-                
-                # 模型响应成功，创建AI消息并保存
-                ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
-                # 将用户消息添加到对话中
-                chat['messages'].append(user_message)
-                # 一次性保存用户消息和AI消息
-                chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
-                
-                final_data = {'done': True, 'chat': chat, 'ai_message': ai_message}
-                yield f'data: {json.dumps(final_data, ensure_ascii=False)}\n\n'
-            except Exception as e:
-                BaseService.log_error(f'流式处理失败: {str(e)}')
-                # 模型调用失败，不保存任何消息
-                yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
-        return generate
+from app.utils.message_handler import MessageHandler
+from app.utils.response_strategy.agent import AgentProcessor
 
 
 class AgentResponseStrategy(ResponseStrategy):
-    """智能体响应处理策略"""
+    """智能体响应处理策略（使用 AStream 实现）"""
     
     async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
                        parsed_model_name, parsed_version_name, model_params, 
@@ -135,12 +41,14 @@ class AgentResponseStrategy(ResponseStrategy):
                 # 工具执行信息存储，按 tool_index 有序
                 node_tool_info = {}
                 
-                # ！！！关键：改用 async for
+                # ！！！关键：使用 async for 遍历异步生成器（AStream 实现）
                 print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
                 async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
                     if isinstance(chunk, dict):
                         print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
+                        # 添加 agent 和 astream 标记
                         chunk['agent'] = True
+                        chunk['astream'] = True
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                         
                         # 获取节点信息
@@ -172,13 +80,13 @@ class AgentResponseStrategy(ResponseStrategy):
                                 
                                 metadata = node_metadata.get(current_node, {})
                                 print(f"[AgentResponseStrategy] 准备节点消息: node={current_node}, content={content[:50]}...")
-                                ai_message = MessageProcessor.process_full_reply(content, now, model_display_name)
-                                # 添加智能体消息相关字段
-                                ai_message['message_type'] = 'agent'
-                                ai_message['agent_session_id'] = agent_session_id
-                                ai_message['agent_node'] = current_node
-                                ai_message['agent_step'] = current_step
-                                ai_message['agent_metadata'] = json.dumps(metadata)
+                                # 使用AgentProcessor格式化智能体消息
+                                ai_message = AgentProcessor.format_agent_message(
+                                    content, now, model_display_name, 
+                                    session_id=agent_session_id, 
+                                    node=current_node, 
+                                    step=current_step
+                                )
                                 print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                                 
                                 responses.append(ai_message)
@@ -319,7 +227,8 @@ class AgentResponseStrategy(ResponseStrategy):
                             })
                     else:
                         print(f"[AgentResponseStrategy] 接收到非字典响应: {str(chunk)[:50]}...")
-                        yield f"data: {json.dumps({'chunk': str(chunk), 'agent': True}, ensure_ascii=False)}\n\n"
+                        # 添加 agent 和 astream 标记
+                        yield f"data: {json.dumps({'chunk': str(chunk), 'agent': True, 'astream': True}, ensure_ascii=False)}\n\n"
                 
                 # 保存当前节点的响应
                 print(f"[AgentResponseStrategy] 开始保存当前节点的响应")
@@ -352,13 +261,13 @@ class AgentResponseStrategy(ResponseStrategy):
                     
                     metadata = node_metadata.get(current_node, {})
                     print(f"[AgentResponseStrategy] 准备节点消息: node={current_node}, content={content[:50]}...")
-                    ai_message = MessageProcessor.process_full_reply(content, now, model_display_name)
-                    # 添加智能体消息相关字段
-                    ai_message['message_type'] = 'agent'
-                    ai_message['agent_session_id'] = agent_session_id
-                    ai_message['agent_node'] = current_node
-                    ai_message['agent_step'] = current_step
-                    ai_message['agent_metadata'] = json.dumps(metadata)
+                    # 使用AgentProcessor格式化智能体消息
+                    ai_message = AgentProcessor.format_agent_message(
+                        content, now, model_display_name, 
+                        session_id=agent_session_id, 
+                        node=current_node, 
+                        step=current_step
+                    )
                     print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                     
                     responses.append(ai_message)
@@ -385,170 +294,10 @@ class AgentResponseStrategy(ResponseStrategy):
                 chat_service.update_chat_and_save(chat, message_text, user_message, responses[-1] if responses else None, now)
                 print(f"[AgentResponseStrategy] 所有消息保存完成")
                 
-                # 发送完成信号
-                yield f'data: {json.dumps({"agent": True, "done": True, "saved_messages": responses}, ensure_ascii=False)}\n\n'
+                # 发送完成信号（AStream 格式）
+                yield f'data: {json.dumps({"agent": True, "astream": True, "done": True, "saved_messages": responses}, ensure_ascii=False)}\n\n'
             except Exception as e:
                 BaseService.log_error(f'智能体处理失败: {str(e)}')
                 # 模型调用失败，不保存任何消息
                 yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
         return generate
-
-
-class AStreamResponseStrategy(ResponseStrategy):
-    """AStream响应处理策略"""
-    
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
-                       parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
-        
-        async def generate():
-            try:
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-                full_reply = ""
-                
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
-                    if isinstance(chunk, dict):
-                        chunk['astream'] = True
-                        yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
-                        full_reply += chunk.get('chunk', chunk.get('content', ''))
-                    else:
-                        yield f"data: {json.dumps({'chunk': str(chunk), 'astream': True}, ensure_ascii=False)}\n\n"
-                        full_reply += str(chunk)
-                
-                # 模型响应成功，创建AI消息并保存
-                ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
-                # 将用户消息添加到对话中
-                chat['messages'].append(user_message)
-                # 一次性保存用户消息和AI消息
-                chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
-                yield f'data: {json.dumps({"astream": True, "done": True, "ai_message": ai_message}, ensure_ascii=False)}\n\n'
-            except Exception as e:
-                BaseService.log_error(f'AStream处理失败: {str(e)}')
-                # 模型调用失败，不保存任何消息
-                yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
-        return generate
-
-
-class AStreamEventsResponseStrategy(ResponseStrategy):
-    """异步事件流响应处理策略"""
-    
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
-                       parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
-        
-        async def generate():
-            full_reply = ""
-            try:
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
-                full_reply = ""
-                
-                # ！！！关键：async for
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
-                    if isinstance(chunk, str) and chunk.startswith('data: '):
-                        yield chunk
-                    else:
-                        if isinstance(chunk, dict):
-                            chunk['astream_events'] = True
-                        else:
-                            chunk = {'chunk': str(chunk), 'astream_events': True}
-                        yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
-                        full_reply += chunk.get('chunk', chunk.get('content', ''))
-
-                # 模型响应成功，创建AI消息并保存
-                ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
-                # 将用户消息添加到对话中
-                chat['messages'].append(user_message)
-                # 一次性保存用户消息和AI消息
-                chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
-                yield f"data: {json.dumps({'astream_events': True, 'done': True, 'ai_message': ai_message}, ensure_ascii=False)}\n\n"
-            except Exception as e:
-                BaseService.log_error(f'AStreamEvents处理失败: {str(e)}')
-                # 模型调用失败，不保存任何消息
-                yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
-        return generate
-
-
-class ResponseStrategyContext:
-    """响应策略上下文"""
-    
-    def __init__(self, strategy: ResponseStrategy):
-        self._strategy = strategy
-    
-    def set_strategy(self, strategy: ResponseStrategy):
-        self._strategy = strategy
-    
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
-                       parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
-        # 必须 await 策略的异步方法
-        return await self._strategy.handle_response(chat, message_text, user_message, now, 
-                                             enhanced_question, parsed_model_name, 
-                                             parsed_version_name, model_params, 
-                                             model_display_name, deep_thinking, 
-                                             use_agent, chat_service)
-
-
-class ResponseHandler:
-    """响应处理器，处理不同类型的响应"""
-    
-    @staticmethod
-    async def handle_regular_response(chat, message_text, user_message, now,
-                               enhanced_question, parsed_model_name, parsed_version_name, 
-                               model_params, model_display_name, deep_thinking=False, use_agent=False,
-                               chat_service=None):
-        strategy = RegularResponseStrategy()
-        context = ResponseStrategyContext(strategy)
-        return await context.handle_response(chat, message_text, user_message, now, 
-                                      enhanced_question, parsed_model_name, parsed_version_name, 
-                                      model_params, model_display_name, deep_thinking, use_agent, 
-                                      chat_service)
-    
-    @staticmethod
-    async def handle_streaming_response(chat, message_text, user_message, now,
-                                 enhanced_question, parsed_model_name, parsed_version_name, 
-                                 model_params, model_display_name, deep_thinking=False, use_agent=False,
-                                 chat_service=None):
-        if use_agent:
-            strategy = AgentResponseStrategy()
-        else:
-            strategy = StreamingResponseStrategy()
-        context = ResponseStrategyContext(strategy)
-        return await context.handle_response(chat, message_text, user_message, now, 
-                                      enhanced_question, parsed_model_name, parsed_version_name, 
-                                      model_params, model_display_name, deep_thinking, use_agent, 
-                                      chat_service)
-    
-    @staticmethod
-    async def handle_astream_response(chat, message_text, user_message, now,
-                               enhanced_question, parsed_model_name, parsed_version_name, 
-                               model_params, model_display_name, deep_thinking=False, use_agent=False,
-                               chat_service=None):
-        if use_agent:
-            # 使用 AgentResponseStrategy 处理智能体响应
-            strategy = AgentResponseStrategy()
-        else:
-            strategy = AStreamResponseStrategy()
-        context = ResponseStrategyContext(strategy)
-        return await context.handle_response(chat, message_text, user_message, now, 
-                                      enhanced_question, parsed_model_name, parsed_version_name, 
-                                      model_params, model_display_name, deep_thinking, use_agent, 
-                                      chat_service)
-    
-    @staticmethod
-    async def handle_astream_events_response(chat, message_text, user_message, now,
-                                      enhanced_question, parsed_model_name, parsed_version_name, 
-                                      model_params, model_display_name, deep_thinking=False, use_agent=False,
-                                      chat_service=None):
-        if use_agent:
-            # 使用 AgentResponseStrategy 处理智能体响应
-            strategy = AgentResponseStrategy()
-        else:
-            strategy = AStreamEventsResponseStrategy()
-        context = ResponseStrategyContext(strategy)
-        return await context.handle_response(chat, message_text, user_message, now, 
-                                      enhanced_question, parsed_model_name, parsed_version_name, 
-                                      model_params, model_display_name, deep_thinking, use_agent, 
-                                      chat_service)

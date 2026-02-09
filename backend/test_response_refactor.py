@@ -5,21 +5,21 @@ print("开始测试重构后的响应模块...")
 
 try:
     # 先导入基础策略类
-    from app.utils.response.strategy.base import ResponseStrategy
+    from app.utils.response_strategy.strategy.base import ResponseStrategy
     print("✓ 成功导入 ResponseStrategy")
     
-    # 测试导入策略类
-    from app.utils.response.strategy.regular import RegularResponseStrategy
+    # 测试导入具体策略
+    from app.utils.response_strategy.strategy.regular import RegularResponseStrategy
     print("✓ 成功导入 RegularResponseStrategy")
     
-    from app.utils.response.strategy.streaming import StreamingResponseStrategy
+    from app.utils.response_strategy.strategy.streaming import StreamingResponseStrategy
     print("✓ 成功导入 StreamingResponseStrategy")
     
-    from app.utils.response.strategy.agent import AgentResponseStrategy
+    from app.utils.response_strategy.strategy.agent import AgentResponseStrategy
     print("✓ 成功导入 AgentResponseStrategy")
     
-    # 最后导入 ResponseHandler
-    from app.utils.response.handler import ResponseHandler
+    # 测试导入 ResponseHandler
+    from app.utils.response_strategy.handler import ResponseHandler
     print("✓ 成功导入 ResponseHandler")
     
     # 测试策略类初始化

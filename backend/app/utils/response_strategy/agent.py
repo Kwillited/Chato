@@ -1,7 +1,7 @@
 """智能体处理工具类"""
 import json
 from app.services.base_service import BaseService
-from app.utils.response.stream import StreamUtils
+from app.utils.response_strategy.stream import StreamUtils
 
 
 class AgentProcessor:
@@ -77,10 +77,10 @@ class AgentProcessor:
         Returns:
             格式化后的智能体消息
         """
-        from app.utils.response.formatter import ResponseFormatter
+        from app.utils.message_handler import MessageHandler
         
         # 创建基础AI消息
-        ai_message = ResponseFormatter.process_full_reply(message, now, model_display_name)
+        ai_message = MessageHandler.Response.process_full_reply(message, now, model_display_name)
         
         # 添加智能体相关字段
         ai_message['message_type'] = 'agent'
