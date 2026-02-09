@@ -59,7 +59,7 @@ class BaseModel(ABC):
             LoggingUtils.log_error(f"🔧 LLM错误: Chat error: {e}")
             return self._format_response(f"Error: {str(e)}")
 
-    async def chat_stream(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> AsyncIterator[str]:
+    async def chat_stream(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
         """流式对话"""
         from app.utils.logging_utils import LoggingUtils
         LoggingUtils.log_info(f"🔧 LLM参数传递: Original stream params: {model_params}")
@@ -77,6 +77,9 @@ class BaseModel(ABC):
 
             # 3. 异步流式调用
             async for chunk in self.llm.astream(langchain_messages, **call_kwargs):
+                # 打印原始数据块
+                print(f"[BaseModel.chat_stream] 原始数据块: type={type(chunk).__name__}, content={str(chunk)[:200]}...")
+                
                 content = None
                 # 兼容不同厂商返回的 chunk 格式
                 if hasattr(chunk, 'content'):
@@ -87,14 +90,14 @@ class BaseModel(ABC):
                     content = chunk
                 
                 if content:
-                    yield StreamUtils.format_stream_chunk(content)
+                    yield {'chunk': content}
                     
         except Exception as e:
             LoggingUtils.log_error(f"🔧 LLM错误: Streaming error: {e}")
-            yield StreamUtils.format_stream_error(str(e))
+            yield {'error': str(e)}
         
         LoggingUtils.log_info("🔧 LLM调用: Stream invocation completed")
-        yield StreamUtils.format_stream_done()
+        yield {'done': True}
 
     def _format_response(self, content: str, content_struct: Optional[Any] = None) -> Dict[str, Any]:
         """统一响应格式"""

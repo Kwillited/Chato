@@ -46,9 +46,8 @@ class AgentResponseStrategy(ResponseStrategy):
                 async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
                     if isinstance(chunk, dict):
                         print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
-                        # 添加 agent 和 astream 标记
+                        # 添加 agent 标记
                         chunk['agent'] = True
-                        chunk['astream'] = True
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                         
                         # 获取节点信息
@@ -227,8 +226,8 @@ class AgentResponseStrategy(ResponseStrategy):
                             })
                     else:
                         print(f"[AgentResponseStrategy] 接收到非字典响应: {str(chunk)[:50]}...")
-                        # 添加 agent 和 astream 标记
-                        yield f"data: {json.dumps({'chunk': str(chunk), 'agent': True, 'astream': True}, ensure_ascii=False)}\n\n"
+                        # 添加 agent 标记
+                        yield f"data: {json.dumps({'chunk': str(chunk), 'agent': True}, ensure_ascii=False)}\n\n"
                 
                 # 保存当前节点的响应
                 print(f"[AgentResponseStrategy] 开始保存当前节点的响应")
@@ -294,8 +293,8 @@ class AgentResponseStrategy(ResponseStrategy):
                 chat_service.update_chat_and_save(chat, message_text, user_message, responses[-1] if responses else None, now)
                 print(f"[AgentResponseStrategy] 所有消息保存完成")
                 
-                # 发送完成信号（AStream 格式）
-                yield f'data: {json.dumps({"agent": True, "astream": True, "done": True, "saved_messages": responses}, ensure_ascii=False)}\n\n'
+                # 发送完成信号
+                yield f'data: {json.dumps({"agent": True, "done": True, "saved_messages": responses}, ensure_ascii=False)}\n\n'
             except Exception as e:
                 BaseService.log_error(f'智能体处理失败: {str(e)}')
                 # 模型调用失败，不保存任何消息
