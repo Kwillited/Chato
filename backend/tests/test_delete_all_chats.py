@@ -43,8 +43,30 @@ class TestDeleteAllChats:
     def test_delete_all_chats_with_multiple_chats(self):
         """测试删除多个对话"""
         # 创建两个测试对话
-        chat1 = self.chat_service.create_chat("测试对话1")
-        chat2 = self.chat_service.create_chat("测试对话2")
+        import uuid
+        from datetime import datetime
+        chat_id1 = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+        chat1 = {
+            'id': chat_id1,
+            'title': "测试对话1",
+            'preview': '',
+            'createdAt': now,
+            'updatedAt': now,
+            'messages': []
+        }
+        DataService.add_chat(chat1)
+        
+        chat_id2 = str(uuid.uuid4())
+        chat2 = {
+            'id': chat_id2,
+            'title': "测试对话2",
+            'preview': '',
+            'createdAt': now,
+            'updatedAt': now,
+            'messages': []
+        }
+        DataService.add_chat(chat2)
         
         # 验证对话已创建
         assert len(DataService.get_chats()) == 2
@@ -61,8 +83,19 @@ class TestDeleteAllChats:
     def test_delete_all_chats_with_messages(self):
         """测试删除包含消息的对话"""
         # 创建一个测试对话
-        chat = self.chat_service.create_chat("测试对话")
-        chat_id = chat["id"]
+        import uuid
+        from datetime import datetime
+        chat_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+        chat = {
+            'id': chat_id,
+            'title': "测试对话",
+            'preview': '',
+            'createdAt': now,
+            'updatedAt': now,
+            'messages': []
+        }
+        DataService.add_chat(chat)
         
         # 创建一个测试消息
         from app.repositories.message_repository import MessageRepository
@@ -99,7 +132,19 @@ class TestDeleteAllChats:
     def test_delete_all_chats_service_layer(self):
         """测试Service层的delete_all_chats方法"""
         # 创建一个测试对话
-        self.chat_service.create_chat("测试对话")
+        import uuid
+        from datetime import datetime
+        chat_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+        chat = {
+            'id': chat_id,
+            'title': "测试对话",
+            'preview': '',
+            'createdAt': now,
+            'updatedAt': now,
+            'messages': []
+        }
+        DataService.add_chat(chat)
         
         # 验证对话已创建
         assert len(DataService.get_chats()) == 1

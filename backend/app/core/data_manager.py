@@ -632,7 +632,13 @@ def save_chats_to_db(conn=None):
             pinned = chat.get('pinned', 0)
             
             # 创建或更新对话
-            chat_repo.update_chat(chat_id, title, preview, updated_at, pinned)
+            db_chat = chat_repo.get_chat_by_id(chat_id)
+            if db_chat:
+                # 更新现有对话
+                chat_repo.update_chat(chat_id, title, preview, updated_at, pinned)
+            else:
+                # 创建新对话
+                chat_repo.create_chat(chat_id, title, preview, created_at, updated_at)
             
             # 获取SQLite中该对话的所有消息ID
             sqlite_messages = message_repo.get_messages_by_chat_id(chat_id)

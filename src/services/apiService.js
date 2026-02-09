@@ -384,13 +384,6 @@ export const apiService = {
   requestWithRetry: requestWithRetry,
   // 聊天相关API
   chat: {
-    createChat: async (title = '新对话') => {
-      return await requestWithRetry({
-        method: 'POST',
-        url: '/chats',
-        data: { title },
-      });
-    },
     
     sendMessage: async (chatId, message, files, options = {}) => {
       const { model = 'GPT-4', stream = false, modelParams = {}, ragConfig = {}, deepThinking = false, agent = false, webSearchEnabled = false } = options;

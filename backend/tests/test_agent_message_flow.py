@@ -23,8 +23,18 @@ async def test_agent_message_flow():
         
         # 创建测试对话
         print("2. 创建测试对话...")
-        chat = chat_service.create_chat("测试智能体消息流程")
-        chat_id = chat['id']
+        from app.services.data_service import DataService
+        chat_id = str(uuid.uuid4())
+        now = datetime.now().isoformat()
+        chat = {
+            'id': chat_id,
+            'title': "测试智能体消息流程",
+            'preview': '',
+            'createdAt': now,
+            'updatedAt': now,
+            'messages': []
+        }
+        DataService.add_chat(chat)
         print(f"创建对话成功，ID: {chat_id}")
         
         # 创建用户消息

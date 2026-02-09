@@ -36,46 +36,7 @@ class ChatService(BaseService):
             # 失败时返回内存数据库中的对话
             return DataService.get_chats()
 
-    def create_chat(self, title=None):
-        """创建新对话"""
-        from app.core.logging_config import logger
-        try:
-            chat_id = str(uuid.uuid4())  # 生成唯一对话ID
-            now = datetime.now().isoformat()  # 时间戳（ISO格式）
-            
-            title = title or '新对话'
-            
-            # 创建对话对象
-            new_chat = {
-                'id': chat_id,
-                'title': title,
-                'preview': '',
-                'createdAt': now,
-                'updatedAt': now,
-                'messages': []
-            }
-            
-            # 保存到内存数据库
-            DataService.add_chat(new_chat)
-            
-            return new_chat
-        except Exception as e:
-            # 记录错误日志
-            logger.error(f"创建对话失败: {str(e)}")
-            # 重新创建并只保存到内存
-            chat_id = str(uuid.uuid4())
-            now = datetime.now().isoformat()
-            title = title or '新对话'
-            new_chat = {
-                'id': chat_id,
-                'title': title,
-                'preview': '',
-                'createdAt': now,
-                'updatedAt': now,
-                'messages': []
-            }
-            DataService.add_chat(new_chat)
-            return new_chat
+
 
     def get_chat(self, chat_id):
         """获取单个对话记录（按ID）"""

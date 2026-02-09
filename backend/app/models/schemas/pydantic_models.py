@@ -51,11 +51,6 @@ class ChatBase(BaseModel):
     preview: Optional[str] = ""
 
 
-class ChatCreate(ChatBase):
-    """创建对话模型"""
-    pass
-
-
 class ChatUpdate(ChatBase):
     """更新对话模型"""
     pinned: Optional[int] = 0
@@ -83,10 +78,6 @@ class ChatResponse(BaseModel):
     """单个对话响应模型"""
     chat: Chat
 
-
-class ChatCreateResponse(BaseModel):
-    """创建对话响应模型"""
-    chat: Chat
 
 
 class PinUpdateRequest(BaseModel):

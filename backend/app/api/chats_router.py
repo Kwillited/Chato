@@ -5,7 +5,7 @@ from app.services.chat.chat_service import ChatService  # 导入对话服务类
 from app.utils.error_handler import handle_api_errors
 from app.dependencies import get_chat_service
 from app.models.schemas.pydantic_models import (
-    ChatListResponse, ChatCreate, ChatResponse, ChatCreateResponse,
+    ChatListResponse, ChatResponse,
     PinUpdateRequest, PinUpdateResponse, DeleteChatResponse,
     SuccessResponse, SendMessageRequest
 )
@@ -20,13 +20,7 @@ def get_chats(chat_service: ChatService = Depends(get_chat_service)):
     chats = chat_service.get_chats()
     return ChatListResponse(chats=chats)
 
-# 创建新对话
-@router.post('', status_code=201, response_model=ChatCreateResponse)
-@handle_api_errors()
-def create_chat(data: ChatCreate = Body(...), chat_service: ChatService = Depends(get_chat_service)):
-    title = data.title
-    new_chat = chat_service.create_chat(title)
-    return ChatCreateResponse(chat=new_chat)
+
 
 # 获取单个对话记录（按ID）
 @router.get('/{chat_id}', response_model=ChatResponse)
