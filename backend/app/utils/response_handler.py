@@ -47,9 +47,14 @@ class RegularResponseStrategy(ResponseStrategy):
                 ai_reply = response
         except Exception as e:
             BaseService.log_error(f'调用模型失败: {str(e)}')
+            # 模型调用失败，不保存任何消息
             return {'error': f'调用模型失败: {str(e)}'}, 500
 
+        # 模型响应成功，创建AI消息并保存
         ai_message = MessageProcessor.process_full_reply(ai_reply, now, model_display_name)
+        # 将用户消息添加到对话中
+        chat['messages'].append(user_message)
+        # 一次性保存用户消息和AI消息
         chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
         
         return {
@@ -79,13 +84,18 @@ class StreamingResponseStrategy(ResponseStrategy):
                     formatted_chunk, full_reply = MessageProcessor.process_streaming_chunk(chunk, full_reply)
                     yield formatted_chunk
                 
+                # 模型响应成功，创建AI消息并保存
                 ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
+                # 将用户消息添加到对话中
+                chat['messages'].append(user_message)
+                # 一次性保存用户消息和AI消息
                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                 
                 final_data = {'done': True, 'chat': chat, 'ai_message': ai_message}
                 yield f'data: {json.dumps(final_data, ensure_ascii=False)}\n\n'
             except Exception as e:
                 BaseService.log_error(f'流式处理失败: {str(e)}')
+                # 模型调用失败，不保存任何消息
                 yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
         return generate
 
@@ -150,7 +160,7 @@ class AgentResponseStrategy(ResponseStrategy):
                         }
                         agent_state["steps"].append(step_info)
                         
-                        # 当节点变化时保存前一个节点的消息
+                        # 当节点变化时，将前一个节点的响应添加到待保存列表
                         if current_node and node != current_node:
                             # 确保推理节点被保存，即使内容为空
                             if current_node == 'reasoning' or (current_node in node_content and node_content[current_node].strip()):
@@ -161,7 +171,7 @@ class AgentResponseStrategy(ResponseStrategy):
                                     content = node_content.get(current_node, "")
                                 
                                 metadata = node_metadata.get(current_node, {})
-                                print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, content={content[:50]}...")
+                                print(f"[AgentResponseStrategy] 准备节点消息: node={current_node}, content={content[:50]}...")
                                 ai_message = MessageProcessor.process_full_reply(content, now, model_display_name)
                                 # 添加智能体消息相关字段
                                 ai_message['message_type'] = 'agent'
@@ -169,14 +179,12 @@ class AgentResponseStrategy(ResponseStrategy):
                                 ai_message['agent_node'] = current_node
                                 ai_message['agent_step'] = current_step
                                 ai_message['agent_metadata'] = json.dumps(metadata)
-                                print(f"[AgentResponseStrategy] 准备保存智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
+                                print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                                 
-                                # 保存消息
-                                chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                                 responses.append(ai_message)
-                                print(f"[AgentResponseStrategy] 智能体消息保存完成: message_id={ai_message['id']}, node={current_node}")
+                                print(f"[AgentResponseStrategy] 智能体消息已添加到待保存列表: message_id={ai_message['id']}, node={current_node}")
                                 
-                                # 清空已保存节点的内容
+                                # 清空已处理节点的内容
                                 if current_node in node_content:
                                     del node_content[current_node]
                                 if current_node in node_metadata:
@@ -343,7 +351,7 @@ class AgentResponseStrategy(ResponseStrategy):
                                     content += f"\n[工具 {tool_index} 完成] 工具: {tool_name}, 输出: {str(tool_output)}"
                     
                     metadata = node_metadata.get(current_node, {})
-                    print(f"[AgentResponseStrategy] 保存节点消息: node={current_node}, content={content[:50]}...")
+                    print(f"[AgentResponseStrategy] 准备节点消息: node={current_node}, content={content[:50]}...")
                     ai_message = MessageProcessor.process_full_reply(content, now, model_display_name)
                     # 添加智能体消息相关字段
                     ai_message['message_type'] = 'agent'
@@ -351,12 +359,10 @@ class AgentResponseStrategy(ResponseStrategy):
                     ai_message['agent_node'] = current_node
                     ai_message['agent_step'] = current_step
                     ai_message['agent_metadata'] = json.dumps(metadata)
-                    print(f"[AgentResponseStrategy] 准备保存智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
+                    print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                     
-                    # 保存消息
-                    chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                     responses.append(ai_message)
-                    print(f"[AgentResponseStrategy] 智能体消息保存完成: message_id={ai_message['id']}, node={current_node}")
+                    print(f"[AgentResponseStrategy] 智能体消息已添加到待保存列表: message_id={ai_message['id']}, node={current_node}")
                     
                     # 更新智能体会话状态
                     if agent_session_id:
@@ -368,9 +374,22 @@ class AgentResponseStrategy(ResponseStrategy):
                             graph_state=agent_state
                         )
                 
+                # 模型响应成功，一次性保存所有消息
+                print(f"[AgentResponseStrategy] 智能体流程完成，开始保存所有消息")
+                # 将用户消息添加到对话中
+                chat['messages'].append(user_message)
+                # 保存所有AI消息
+                for ai_message in responses:
+                    chat['messages'].append(ai_message)
+                # 一次性保存整个对话
+                chat_service.update_chat_and_save(chat, message_text, user_message, responses[-1] if responses else None, now)
+                print(f"[AgentResponseStrategy] 所有消息保存完成")
+                
                 # 发送完成信号
                 yield f'data: {json.dumps({"agent": True, "done": True, "saved_messages": responses}, ensure_ascii=False)}\n\n'
             except Exception as e:
+                BaseService.log_error(f'智能体处理失败: {str(e)}')
+                # 模型调用失败，不保存任何消息
                 yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
         return generate
 
@@ -397,10 +416,16 @@ class AStreamResponseStrategy(ResponseStrategy):
                         yield f"data: {json.dumps({'chunk': str(chunk), 'astream': True}, ensure_ascii=False)}\n\n"
                         full_reply += str(chunk)
                 
+                # 模型响应成功，创建AI消息并保存
                 ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
+                # 将用户消息添加到对话中
+                chat['messages'].append(user_message)
+                # 一次性保存用户消息和AI消息
                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                 yield f'data: {json.dumps({"astream": True, "done": True, "ai_message": ai_message}, ensure_ascii=False)}\n\n'
             except Exception as e:
+                BaseService.log_error(f'AStream处理失败: {str(e)}')
+                # 模型调用失败，不保存任何消息
                 yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
         return generate
 
@@ -431,10 +456,16 @@ class AStreamEventsResponseStrategy(ResponseStrategy):
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
                         full_reply += chunk.get('chunk', chunk.get('content', ''))
 
+                # 模型响应成功，创建AI消息并保存
                 ai_message = MessageProcessor.process_full_reply(full_reply, now, model_display_name)
+                # 将用户消息添加到对话中
+                chat['messages'].append(user_message)
+                # 一次性保存用户消息和AI消息
                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                 yield f"data: {json.dumps({'astream_events': True, 'done': True, 'ai_message': ai_message}, ensure_ascii=False)}\n\n"
             except Exception as e:
+                BaseService.log_error(f'AStreamEvents处理失败: {str(e)}')
+                # 模型调用失败，不保存任何消息
                 yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
         return generate
 

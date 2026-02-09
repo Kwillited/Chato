@@ -762,7 +762,24 @@ class ChatService(BaseService):
             # 验证对话是否存在
             chat = self.get_chat(chat_id)
             if not chat:
-                return False, {'error': '对话不存在'}, 404, None
+                # 对话不存在，自动创建新对话（使用前端传递的UUID）
+                from app.core.logging_config import logger
+                logger.info(f'对话不存在，自动创建新对话: {chat_id}')
+                
+                # 创建新对话对象
+                now = datetime.now().isoformat()
+                new_chat = {
+                    'id': chat_id,
+                    'title': '新对话',
+                    'preview': '',
+                    'createdAt': now,
+                    'updatedAt': now,
+                    'messages': []
+                }
+                
+                # 保存到内存数据库
+                DataService.add_chat(new_chat)
+                chat = new_chat
             
             # 验证模型配置
             if not model:
@@ -841,8 +858,7 @@ class ChatService(BaseService):
             logger.debug("RAG未启用，使用原始问题")
             enhanced_question = full_message_text
         
-        # 保存用户消息到数据库，即使模型调用失败也要保存
-        self.update_chat_and_save(chat, full_message_text, user_message, None, now)
+        # 移除单独保存用户消息的逻辑，改为在模型响应成功后与AI消息一起保存
         
         # 导入响应处理器
         from app.utils.response_handler import ResponseHandler

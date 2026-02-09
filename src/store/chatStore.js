@@ -95,27 +95,25 @@ export const useChatStore = defineStore('chat', {
       uiStore.setSearchQuery(query);
     },
 
-    // 创建新对话（调用API）
-    async createNewChat(model) {
+    // 创建新对话（前端生成UUID）
+    createNewChat(model) {
       try {
         // 先取消当前会话的选中状态，实现更流畅的过渡效果
         this.currentChatId = null;
         
-        // 添加短暂延迟，让样式有时间过渡
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // 前端生成UUID
+        const chatId = crypto.randomUUID();
+        const now = Date.now();
         
-        console.log('调用API创建新对话...');
-        const response = await apiService.chat.createChat('新对话');
-        console.log('API调用成功，响应:', response);
-        let newChat = response.chat;
-        
-        // 如果传递了模型参数，保存到新对话中
-        if (model) {
-          newChat = {
-            ...newChat,
-            model: model
-          };
-        }
+        // 创建对话对象
+        const newChat = {
+          id: chatId,
+          title: '新对话',
+          messages: [],
+          createdAt: now,
+          updatedAt: now,
+          model: model || ''
+        };
         
         // 将新对话添加到本地状态
         this.chats.unshift(newChat); // 添加到开头，保持最新优先
@@ -125,12 +123,11 @@ export const useChatStore = defineStore('chat', {
         const uiStore = useUiStore();
         uiStore.updateMessageInput('');
 
+        console.log('前端创建新对话:', chatId);
         return newChat;
       } catch (error) {
         console.error('创建新对话失败:', error);
-        console.error('错误详情:', error.message, error.stack, error.response);
-        errorUtils.setError(this, '创建新对话失败，请检查后端服务是否运行中');
-        // 后端服务不可用时，不执行本地创建操作，直接返回报错
+        errorUtils.setError(this, '创建新对话失败');
         throw error;
       }
     },
