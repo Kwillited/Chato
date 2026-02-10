@@ -96,43 +96,43 @@
       </div>
       
       <!-- 设置页面选项卡 - 只在设置页面显示 -->
-      <div v-if="activeContent === 'settings'" class="flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-full p-0.5">
+      <div v-if="activeContent === 'settings'" class="flex space-x-2 items-center">
         <button 
           @click="handleSettingsTabClick('general')"
-          class="px-3 py-1 text-xs font-medium rounded-full transition-all duration-200"
+          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-300"
           :class="uiStore.activeSection === 'general' 
             ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-dark-700'
           "
         >
           基本设置
         </button>
         <button 
           @click="handleSettingsTabClick('models')"
-          class="px-3 py-1 text-xs font-medium rounded-full transition-all duration-200"
+          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-300"
           :class="uiStore.activeSection === 'models' 
             ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-dark-700'
           "
         >
           模型配置
         </button>
         <button 
           @click="handleSettingsTabClick('rag')"
-          class="px-3 py-1 text-xs font-medium rounded-full transition-all duration-200"
+          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-300"
           :class="uiStore.activeSection === 'rag' 
             ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-dark-700'
           "
         >
           知识库配置
         </button>
         <button 
           @click="handleSettingsTabClick('about')"
-          class="px-3 py-1 text-xs font-medium rounded-full transition-all duration-200"
+          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-300"
           :class="uiStore.activeSection === 'about' 
             ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-dark-700'
           "
         >
           关于
