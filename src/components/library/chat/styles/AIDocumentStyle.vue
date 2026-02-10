@@ -2,26 +2,26 @@
   <!-- 文档模式样式 -->
   <div class="w-full group">
     <!-- 思考内容 -->
-    <div v-if="messageValue.thinking" class="relative mb-3">
-      <div class="bg-transparent border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-full">
-        <div class="flex items-start justify-between gap-2">
-          <div class="flex items-start gap-2 flex-1">
-            <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-            </svg>
-            <div 
-              :class="[
-                'text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic transition-all duration-300 ease-in-out overflow-hidden',
-                thinkingContentHeightClass
-              ]"
-              v-html="formatThinkingContent(messageValue.thinking)"
-            ></div>
-          </div>
-          <button 
-            @click="toggleThinkingExpanded" 
-            class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-300 ease-in-out"
-            :class="{ 'rotate-180': !isThinkingExpanded }"
-          >
+      <div v-if="messageValue.reasoning_content" class="relative mb-3">
+        <div class="bg-transparent border border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 overflow-hidden transition-all duration-300 ease-in-out w-full">
+          <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start gap-2 flex-1">
+              <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+              </svg>
+              <div 
+                :class="[
+                  'text-xs text-gray-500 dark:text-gray-400 leading-relaxed italic transition-all duration-300 ease-in-out overflow-hidden',
+                  reasoningContentHeightClass
+                ]"
+                v-html="formatThinkingContent(messageValue.reasoning_content)"
+              ></div>
+            </div>
+            <button 
+              @click="toggleReasoningExpanded" 
+              class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-300 ease-in-out"
+              :class="{ 'rotate-180': !isReasoningExpanded }"
+            >
             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
@@ -135,7 +135,7 @@
     </div>
     
     <!-- 模型名称、时间戳和操作按钮 -->
-    <div v-if="!messageValue.isTyping && (formattedContent || messageValue.thinking || messageValue.error || messageValue.status === 'tool_executed')" class="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center justify-between px-5">
+      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.reasoning_content || messageValue.error || messageValue.status === 'tool_executed')" class="text-sm text-gray-500 dark:text-gray-400 mt-2 flex items-center justify-between px-5">
       <span>
         <!-- 模型名称+时间 -->
         {{ messageValue.model || 'Chato' }} - {{ formatTime(messageValue.timestamp || messageValue.time) }}
@@ -176,9 +176,9 @@ const {
 
 // 使用聊天气泡工具函数
 const { 
-  isThinkingExpanded,
-  toggleThinkingExpanded,
-  thinkingContentHeightClass,
+  isReasoningExpanded,
+  toggleReasoningExpanded,
+  reasoningContentHeightClass,
   getNodeLabel
 } = useChatBubbleUtils(props)
 </script>

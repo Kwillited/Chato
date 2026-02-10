@@ -255,8 +255,8 @@ def build_message_list(messages):
         if hasattr(msg, 'id'):
             msg_id = msg.id
             role = msg.role
-            content = msg.actual_content
-            thinking = msg.thinking
+            content = msg.content
+            reasoning_content = msg.reasoning_content
             msg_created_at = msg.created_at
             model = msg.model
             files = msg.files
@@ -271,7 +271,7 @@ def build_message_list(messages):
             msg_id = msg[0]
             role = msg[2] if len(msg) > 2 else 'user'
             content = msg[3] if len(msg) > 3 else ''
-            thinking = msg[4] if len(msg) > 4 else None
+            reasoning_content = msg[4] if len(msg) > 4 else None
             msg_created_at = msg[5] if len(msg) > 5 else datetime.now().isoformat()
             model = msg[6] if len(msg) > 6 else None
             files = msg[7] if len(msg) > 7 else None
@@ -294,7 +294,7 @@ def build_message_list(messages):
             'id': msg_id,
             'role': role,
             'content': content,
-            'thinking': thinking,
+            'reasoning_content': reasoning_content,
             'createdAt': msg_created_at,
             'model': model,
             'files': files_list

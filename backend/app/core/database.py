@@ -47,5 +47,7 @@ def init_alembic_db():
     """初始化数据库，创建所有表"""
     # 导入所有模型，确保Base.metadata包含所有表定义
     from app.models import models
+    # 删除所有表并重新创建，以确保表结构与模型定义一致
+    Base.metadata.drop_all(bind=engine)
     # 创建所有表
     Base.metadata.create_all(bind=engine)

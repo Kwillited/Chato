@@ -236,13 +236,7 @@ export const useSettingsStore = defineStore('settings', {
     // 从后端API加载设置
     async loadSettingsFromApi() {
       try {
-        // 使用现有的apiService来调用后端API
-        const notificationSettings = await apiService.get('/settings/notification');
-        this.notificationsConfig = notificationSettings;
-        
-
-        
-        // 加载系统设置
+        // 加载系统设置（包含通知设置）
         const systemSettings = await apiService.get('/settings/system');
         if (systemSettings) {
           // 更新系统设置，转换字段名以匹配前端模型
@@ -256,6 +250,16 @@ export const useSettingsStore = defineStore('settings', {
             maxRecentFiles: systemSettings.max_recent_files
           };
           this.systemSettings = { ...this.systemSettings, ...updatedSystemSettings };
+          
+          // 更新通知设置
+          const updatedNotificationsConfig = {
+            enabled: systemSettings.enabled,
+            newMessage: systemSettings.newMessage,
+            sound: systemSettings.sound,
+            system: systemSettings.system,
+            displayTime: systemSettings.displayTime
+          };
+          this.notificationsConfig = { ...this.notificationsConfig, ...updatedNotificationsConfig };
         }
         
         // 加载模型列表
@@ -353,22 +357,24 @@ export const useSettingsStore = defineStore('settings', {
     // 保存设置到后端API
     async saveSettingsToApi() {
       try {
-        // 使用现有的apiService来调用后端API
-        await apiService.post('/settings/notification', this.notificationsConfig);
-        
-
-        
-        // 保存系统设置，转换字段名以匹配后端模型
-        const systemSettingsToSave = {
+        // 保存系统设置和通知设置到同一个端点
+        const settingsToSave = {
+          // 系统设置
           dark_mode: this.systemSettings.darkMode,
           font_size: this.systemSettings.fontSize,
           chat_style_document: this.systemSettings.chatStyleDocument,
           view_mode: this.systemSettings.viewMode,
           show_hidden_files: this.systemSettings.showHiddenFiles || false,
           auto_refresh_files: this.systemSettings.autoRefreshFiles || true,
-          max_recent_files: this.systemSettings.maxRecentFiles || 10
+          max_recent_files: this.systemSettings.maxRecentFiles || 10,
+          // 通知设置
+          enabled: this.notificationsConfig.enabled,
+          newMessage: this.notificationsConfig.newMessage,
+          sound: this.notificationsConfig.sound,
+          system: this.notificationsConfig.system,
+          displayTime: this.notificationsConfig.displayTime
         };
-        await apiService.post('/settings/system', systemSettingsToSave);
+        await apiService.post('/settings/system', settingsToSave);
       } catch (error) {
         console.error('保存设置到后端失败:', error);
       }

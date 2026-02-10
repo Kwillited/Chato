@@ -9,7 +9,7 @@ class MessageBase(BaseModel):
     role: str
     content: str
     model: Optional[str] = None
-    thinking: Optional[str] = None
+    reasoning_content: Optional[str] = None
 
 
 class MessageCreate(MessageBase):
@@ -219,6 +219,12 @@ class SystemSettings(BaseModel):
     show_hidden_files: bool = False
     auto_refresh_files: bool = True
     max_recent_files: int = 10
+    # 通知相关字段
+    enabled: bool = True
+    newMessage: bool = True
+    sound: bool = False
+    system: bool = True
+    displayTime: str = "5秒"
 
 
 class SettingResponse(BaseModel):

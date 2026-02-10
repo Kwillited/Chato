@@ -1,6 +1,6 @@
 """设置数据访问类"""
 from app.repositories.base_repository import BaseRepository
-from app.models.database.models import SystemSetting, NotificationSetting, AppSetting, VectorSetting
+from app.models.database.models import SystemSetting, AppSetting, VectorSetting
 
 class SettingRepository(BaseRepository):
     """设置数据访问类，处理设置相关的数据访问"""
@@ -23,23 +23,7 @@ class SettingRepository(BaseRepository):
             new_setting = VectorSetting(**vector_data)
             return self.add(new_setting)
     
-    # Notification Setting Methods
-    def get_notification_setting(self):
-        """获取通知设置"""
-        return self.db.query(NotificationSetting).first()
-    
-    def create_or_update_notification_setting(self, notification_data):
-        """创建或更新通知设置"""
-        existing_setting = self.get_notification_setting()
-        if existing_setting:
-            # 更新现有设置
-            for key, value in notification_data.items():
-                setattr(existing_setting, key, value)
-            return self.update(existing_setting)
-        else:
-            # 创建新设置
-            new_setting = NotificationSetting(**notification_data)
-            return self.add(new_setting)
+
     
     # App Setting Methods
     def get_app_setting(self):

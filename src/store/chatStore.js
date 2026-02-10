@@ -446,7 +446,7 @@ export const useChatStore = defineStore('chat', {
                     id: generateId('msg'),
                     role: 'ai',
                     content: '',
-                    thinking: '',
+                    reasoning_content: '',
                     timestamp: Date.now(),
                     status: 'agent_waiting',
                     isTyping: false,
@@ -558,7 +558,7 @@ export const useChatStore = defineStore('chat', {
                     id: generateId('msg'),
                     role: 'ai',
                     content: '',
-                    thinking: '',
+                    reasoning_content: '',
                     timestamp: Date.now(),
                     status: 'streaming',
                     isTyping: false,
@@ -775,23 +775,27 @@ export const useChatStore = defineStore('chat', {
           
           currentChat.messages.push(aiMessageRef);
           currentChat.updatedAt = Date.now();
-        } else if (response && response.ai_message) {
-          // 确保ai_message存在，无论content是否为空
-          const aiMessageRef = ref({
-            id: generateId('msg'),
-            role: 'ai',
-            content: response.ai_message.content || '（空回复）', // 处理空内容情况
-            timestamp: Date.now(),
-            status: 'received',
-            isTyping: false,
-            model: response.ai_message.model || formattedModel // 设置模型名称
-          });
-          
-          currentChat.messages.push(aiMessageRef);
-          currentChat.updatedAt = Date.now();
-          
-          // 如果用户当前没有查看该对话，设置未读标记并显示通知
-          this.handleNewMessageNotification(currentChat);
+        } else if (response && response.chat && response.chat.messages) {
+          // 从chat.messages中提取AI回复（新的响应结构）
+          const aiMessage = response.chat.messages.find(msg => msg.role === 'assistant');
+          if (aiMessage) {
+            const aiMessageRef = ref({
+              id: generateId('msg'),
+              role: 'ai',
+              content: aiMessage.content || '（空回复）', // 处理空内容情况
+              reasoning_content: aiMessage.reasoning_content || '', // 处理reasoning_content字段
+              timestamp: Date.now(),
+              status: 'received',
+              isTyping: false,
+              model: aiMessage.model || formattedModel // 设置模型名称
+            });
+            
+            currentChat.messages.push(aiMessageRef);
+            currentChat.updatedAt = Date.now();
+            
+            // 如果用户当前没有查看该对话，设置未读标记并显示通知
+            this.handleNewMessageNotification(currentChat);
+          }
         } else {
           // 处理其他情况，显示更详细的调试信息
           const aiMessageRef = ref({

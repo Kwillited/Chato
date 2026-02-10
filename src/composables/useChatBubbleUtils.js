@@ -6,20 +6,20 @@ import { ref, computed, watch, onMounted, nextTick } from 'vue'
  */
 export function useChatBubbleUtils(props) {
   // 思考内容展开状态 - 流式渲染时默认展开，历史消息默认折叠
-  const isThinkingExpanded = ref(false)
+  const isReasoningExpanded = ref(false)
 
   // 初始化时检查思考内容
-  const initThinkingExpanded = () => {
+  const initReasoningExpanded = () => {
     // 检查消息中的思考内容和状态
     const message = props.message?.value || props.message || {}
     // 历史消息默认折叠，流式渲染默认展开
-    if (message.thinking) {
+    if (message.reasoning_content) {
       // 只有当消息状态是 "streaming" 时才默认展开
       // 其他所有情况（包括历史消息）都默认折叠
       if (message.status === 'streaming') {
-        isThinkingExpanded.value = true
+        isReasoningExpanded.value = true
       } else {
-        isThinkingExpanded.value = false
+        isReasoningExpanded.value = false
       }
     }
   }
@@ -28,7 +28,7 @@ export function useChatBubbleUtils(props) {
   onMounted(() => {
     // 使用 nextTick 确保消息数据已经完全加载
     nextTick(() => {
-      initThinkingExpanded()
+      initReasoningExpanded()
     })
   })
 
@@ -37,27 +37,27 @@ export function useChatBubbleUtils(props) {
     // 检查新消息中的思考内容完成标志
     const message = newMessage?.value || newMessage || {}
     if (message.thinkingCompleted === true) {
-      isThinkingExpanded.value = false
+      isReasoningExpanded.value = false
     }
     // 检查新消息状态和思考内容
-    if (message.thinking) {
+    if (message.reasoning_content) {
       // 只有流式渲染的消息才展开
       if (message.status === 'streaming') {
-        isThinkingExpanded.value = true
+        isReasoningExpanded.value = true
       } else {
-        isThinkingExpanded.value = false
+        isReasoningExpanded.value = false
       }
     }
   }, { deep: true })
 
   // 切换思考内容展开/折叠状态
-  const toggleThinkingExpanded = () => {
-    isThinkingExpanded.value = !isThinkingExpanded.value
+  const toggleReasoningExpanded = () => {
+    isReasoningExpanded.value = !isReasoningExpanded.value
   }
 
   // 计算思考内容的高度类名
-  const thinkingContentHeightClass = computed(() => {
-    return isThinkingExpanded.value ? '' : 'max-h-10'
+  const reasoningContentHeightClass = computed(() => {
+    return isReasoningExpanded.value ? '' : 'max-h-10'
   })
 
   // 解析内容中的工具执行信息
@@ -207,10 +207,10 @@ export function useChatBubbleUtils(props) {
   }
 
   return {
-    isThinkingExpanded,
-    initThinkingExpanded,
-    toggleThinkingExpanded,
-    thinkingContentHeightClass,
+    isReasoningExpanded,
+    initReasoningExpanded,
+    toggleReasoningExpanded,
+    reasoningContentHeightClass,
     parseToolExecutions,
     extractNonToolContent,
     getEventLabel,

@@ -60,6 +60,8 @@ def init_db():
     from app.models import Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, NotificationSetting, AppSetting, SystemSetting, Folder, Document, DocumentChunk
     from app.models import MCPConfig, MCPTool, MCPServer
     
+    # 删除所有表并重新创建，以确保表结构与模型定义一致
+    Base.metadata.drop_all(bind=engine)
     # 创建所有表
     Base.metadata.create_all(bind=engine)
     
@@ -270,7 +272,7 @@ def insert_default_models():
             'versions': []
         },
         {
-            'name': 'Deepseek',
+            'name': 'DeepSeek',
             'description': '深度求索的Deepseek模型',
             'configured': False,
             'enabled': False,
@@ -474,17 +476,6 @@ def load_settings_from_db():
         
 
         
-        # 加载通知设置
-        notification_setting = setting_repo.get_notification_setting()
-        if notification_setting:
-            db['settings']['notification'] = {
-                'enabled': notification_setting.enabled,
-                'newMessage': notification_setting.new_message,
-                'sound': notification_setting.sound,
-                'system': notification_setting.system,
-                'displayTime': notification_setting.display_time
-            }
-        
         # 加载应用设置
         app_setting = setting_repo.get_app_setting()
         if app_setting:
@@ -494,7 +485,7 @@ def load_settings_from_db():
                 'port': app_setting.port
             }
         
-        # 加载系统设置
+        # 加载系统设置（包含通知设置）
         system_setting = setting_repo.get_system_setting()
         if system_setting:
             db['settings']['system'] = {
@@ -510,6 +501,15 @@ def load_settings_from_db():
                 'view_mode': system_setting.view_mode,
                 'default_model': system_setting.default_model,
                 'rag_view_mode': system_setting.rag_view_mode
+            }
+            
+            # 加载通知设置（从系统设置中获取）
+            db['settings']['notification'] = {
+                'enabled': system_setting.enabled,
+                'newMessage': system_setting.new_message,
+                'sound': system_setting.sound,
+                'system': system_setting.system,
+                'displayTime': system_setting.display_time
             }
         
         from app.core.logging_config import logger
@@ -660,7 +660,7 @@ def save_chats_to_db(conn=None):
                 msg_id = msg['id']
                 role = msg['role']
                 content = msg['content']
-                thinking = msg.get('thinking', None)
+                reasoning_content = msg.get('reasoning_content', None)
                 # 确保createdAt有值，即使键存在但值为None也使用默认值
                 msg_created_at = msg.get('createdAt') or datetime.now().isoformat()
                 model = msg.get('model', None)
@@ -678,7 +678,7 @@ def save_chats_to_db(conn=None):
                 
                 # 创建或更新消息
                 message_repo.create_or_update_message(
-                    msg_id, chat_id, role, content, thinking, msg_created_at, model, files_json,
+                    msg_id, chat_id, role, content, reasoning_content, msg_created_at, model, files_json,
                     message_type, agent_session_id, agent_node, agent_step, agent_metadata
                 )
         

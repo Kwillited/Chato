@@ -130,11 +130,11 @@ export function useChatBubble(props) {
   };
 
   // 格式化思考内容
-  const formatThinkingContent = (thinking) => {
-    if (!thinking) return ''
+  const formatThinkingContent = (reasoning_content) => {
+    if (!reasoning_content) return ''
     
     // 简单的换行处理
-    return thinking.replace(/\n/g, '<br>')
+    return reasoning_content.replace(/\n/g, '<br>')
   }
 
   // 监听消息变化，清理旧的缓存

@@ -30,7 +30,7 @@ def create_inconsistency():
     
     # 2. 在SQLite中添加一条不存在于内存的消息
     cursor.execute('''
-    INSERT INTO messages (id, chat_id, role, actual_content, thinking, created_at, model)
+    INSERT INTO messages (id, chat_id, role, content, reasoning_content, created_at, model)
     VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', ('fake-msg-456', 'fake-chat-123', 'user', '伪造消息内容', None, datetime.now().isoformat(), 'OpenAI'))
     

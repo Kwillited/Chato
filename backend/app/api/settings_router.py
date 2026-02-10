@@ -6,29 +6,13 @@ from app.services.settings.setting_service import SettingService
 from app.utils.error_handler import handle_api_errors as handle_exception
 from app.dependencies import get_setting_service
 from app.models.schemas.pydantic_models import (
-    NotificationSettings, BasicSettings, SystemSettings, SettingResponse
+    BasicSettings, SystemSettings, SettingResponse
 )
 
 # 创建设置API路由（前缀统一为 /api/settings）
 router = APIRouter(prefix='/api/settings')
 
-# 获取通知设置
-@router.get('/notification', response_model=NotificationSettings)
-@handle_exception()
-def get_notification_settings(setting_service: SettingService = Depends(get_setting_service)):
-    """获取通知设置"""
-    return setting_service.get_notification_settings()
 
-# 保存通知设置
-@router.post('/notification', response_model=SettingResponse)
-@handle_exception()
-def save_notification_settings(data: NotificationSettings = Body(...), setting_service: SettingService = Depends(get_setting_service)):
-    """保存通知设置"""
-    settings = setting_service.save_notification_settings(data.dict())
-    return SettingResponse(
-        message='通知设置已保存',
-        settings=settings
-    )
 
 
 

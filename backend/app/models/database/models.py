@@ -89,8 +89,8 @@ class Message(Base):
     agent_session_id = Column(String, ForeignKey("agent_sessions.id", ondelete="SET NULL"))
     role = Column(String, nullable=False)
     message_type = Column(String, default="normal")  # normal 或 agent
-    actual_content = Column(Text, nullable=False)
-    thinking = Column(Text)
+    content = Column(Text, nullable=False)
+    reasoning_content = Column(Text)
     created_at = Column(String, nullable=False)
     model = Column(String)
     files = Column(Text)  # 存储JSON格式的文件信息
@@ -157,6 +157,12 @@ class SystemSetting(Base):
     view_mode = Column(String, default="grid")
     default_model = Column(String, default="")
     rag_view_mode = Column(Boolean, default=True)  # RAG视图模式：True=文件列表，False=知识图谱
+    # 通知相关字段
+    enabled = Column(Boolean, default=True)
+    new_message = Column(Boolean, default=True)
+    sound = Column(Boolean, default=False)
+    system = Column(Boolean, default=True)
+    display_time = Column(String, default="5秒")
 
 
 class Folder(Base):

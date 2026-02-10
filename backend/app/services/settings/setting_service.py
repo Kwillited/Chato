@@ -28,45 +28,10 @@ class SettingService(BaseService):
         """
         return NamingUtils.convert_dict_keys(data_dict)
     
-    def get_notification_settings(self):
-        """获取通知设置"""
-        notification_setting = self.setting_repo.get_notification_setting()
-        if notification_setting:
-            # 将蛇形命名转换为驼峰命名返回给前端
-            return {
-                'enabled': notification_setting.enabled,
-                'newMessage': notification_setting.new_message,
-                'sound': notification_setting.sound,
-                'system': notification_setting.system,
-                'displayTime': notification_setting.display_time
-            }
-        else:
-            # 返回默认值
-            return {
-                'enabled': True,
-                'newMessage': True,
-                'sound': False,
-                'system': True,
-                'displayTime': '5秒'
-            }
-    
-    def save_notification_settings(self, data):
-        """保存通知设置"""
-        # 将驼峰命名转换为蛇形命名
-        snake_data = self.convert_dict_keys(data)
-        # 使用Repository保存设置到数据库
-        notification_setting = self.setting_repo.create_or_update_notification_setting(snake_data)
-        # 将蛇形命名转换为驼峰命名返回给前端
-        return {
-            'enabled': notification_setting.enabled,
-            'newMessage': notification_setting.new_message,
-            'sound': notification_setting.sound,
-            'system': notification_setting.system,
-            'displayTime': notification_setting.display_time
-        }    
+
 
     def get_system_setting(self):
-        """获取系统设置"""
+        """获取系统设置（包含通知设置）"""
         system_setting = self.setting_repo.get_system_setting()
         if system_setting:
             return {
@@ -81,7 +46,13 @@ class SettingService(BaseService):
                 'chat_style_document': system_setting.chat_style_document,
                 'view_mode': system_setting.view_mode,
                 'default_model': system_setting.default_model,
-                'rag_view_mode': system_setting.rag_view_mode
+                'rag_view_mode': system_setting.rag_view_mode,
+                # 通知相关字段
+                'enabled': system_setting.enabled,
+                'newMessage': system_setting.new_message,
+                'sound': system_setting.sound,
+                'system': system_setting.system,
+                'displayTime': system_setting.display_time
             }
         else:
             # 返回默认值
@@ -97,11 +68,17 @@ class SettingService(BaseService):
                 'chat_style_document': False,
                 'view_mode': 'grid',
                 'default_model': "",
-                'rag_view_mode': True
+                'rag_view_mode': True,
+                # 通知相关默认值
+                'enabled': True,
+                'newMessage': True,
+                'sound': False,
+                'system': True,
+                'displayTime': '5秒'
             }
     
     def save_system_setting(self, data):
-        """保存系统设置"""
+        """保存系统设置（包含通知设置）"""
         # 将驼峰命名转换为蛇形命名
         snake_data = self.convert_dict_keys(data)
         
@@ -109,7 +86,9 @@ class SettingService(BaseService):
         valid_fields = {
             'dark_mode', 'font_size', 'font_family', 'language', 'auto_scroll',
             'show_timestamps', 'confirm_delete', 'streaming_enabled', 'chat_style_document',
-            'view_mode', 'default_model', 'rag_view_mode'
+            'view_mode', 'default_model', 'rag_view_mode',
+            # 通知相关字段
+            'enabled', 'new_message', 'sound', 'system', 'display_time'
         }
         
         # 过滤掉无效字段
@@ -130,16 +109,20 @@ class SettingService(BaseService):
             'chat_style_document': system_setting.chat_style_document,
             'view_mode': system_setting.view_mode,
             'default_model': system_setting.default_model,
-            'rag_view_mode': system_setting.rag_view_mode
+            'rag_view_mode': system_setting.rag_view_mode,
+            # 通知相关字段
+            'enabled': system_setting.enabled,
+            'newMessage': system_setting.new_message,
+            'sound': system_setting.sound,
+            'system': system_setting.system,
+            'displayTime': system_setting.display_time
         }
     
     def get_all_settings(self):
         """获取所有设置"""
-        # 从各个专用表中获取所有设置
-        notification = self.get_notification_settings()
+        # 系统设置现在包含了通知设置
         system = self.get_system_setting()
         
         return {
-            'notification': notification,
             'system': system
         }

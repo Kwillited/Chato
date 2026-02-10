@@ -106,8 +106,8 @@ class TestDeleteAllChats:
             message_id="test-message-1",
             chat_id=chat_id,
             role="user",
-            actual_content="测试消息",
-            thinking=None,
+            content="测试消息",
+            reasoning_content=None,
             created_at=now,
             model="test-model"
         )

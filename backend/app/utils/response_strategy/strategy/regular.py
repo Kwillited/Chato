@@ -28,10 +28,12 @@ class RegularResponseStrategy(ResponseStrategy):
             # 即使是非流式调用，在异步链中也建议封装为异步执行
             response = ModelManager.chat(parsed_model_name, model, version_config, messages, model_params)
         
-            if isinstance(response, dict) and 'content' in response:
+            if isinstance(response, dict):
                 ai_reply = response['content']
+                reasoning_content = response.get('reasoning_content')
             else:
                 ai_reply = response
+                reasoning_content = None
         except Exception as e:
             BaseService.log_error(f'调用模型失败: {str(e)}')
             # 模型调用失败，不保存任何消息
@@ -39,14 +41,13 @@ class RegularResponseStrategy(ResponseStrategy):
 
         # 模型响应成功，创建AI消息并保存
         ai_message = MessageHandler.Response.process_full_reply(ai_reply, now, model_display_name)
-        # 将用户消息添加到对话中
-        chat['messages'].append(user_message)
-        # 一次性保存用户消息和AI消息
+        # 添加reasoning_content到AI消息
+        if reasoning_content:
+            ai_message['reasoning_content'] = reasoning_content
+        # 一次性保存用户消息和AI消息（用户消息已在 _process_message 中添加）
         chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
         
         return {
             'success': True,
-            'chat': chat,
-            'user_message': user_message,
-            'ai_message': ai_message
+            'chat': chat
         }, 201

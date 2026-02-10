@@ -55,8 +55,13 @@ class BaseModel(ABC):
             # 打印模型原始响应
             print(f"[BaseModel.chat] 原始响应: type={type(response).__name__}, content={str(response)[:200]}...")
             
+            # 提取reasoning_content
+            reasoning_content = None
+            if hasattr(response, 'additional_kwargs') and isinstance(response.additional_kwargs, dict):
+                reasoning_content = response.additional_kwargs.get('reasoning_content')
+            
             LoggingUtils.log_info("🔧 LLM调用: Model invoked successfully")
-            return self._format_response(response.content)
+            return self._format_response(response.content, reasoning_content=reasoning_content)
             
         except Exception as e:
             LoggingUtils.log_error(f"🔧 LLM错误: Chat error: {e}")
@@ -102,9 +107,10 @@ class BaseModel(ABC):
         LoggingUtils.log_info("🔧 LLM调用: Stream invocation completed")
         yield {'done': True}
 
-    def _format_response(self, content: str, content_struct: Optional[Any] = None) -> Dict[str, Any]:
+    def _format_response(self, content: str, reasoning_content: Optional[str] = None) -> Dict[str, Any]:
         """统一响应格式"""
-        return {
+        response = {
             'content': content,
-            'content_struct': content_struct
+            'reasoning_content': reasoning_content
         }
+        return response

@@ -145,7 +145,7 @@ class MessageHandler:
             # 创建AI回复，确保包含完整的模型和版本信息
             ai_message = MessageHandler.Response.create_ai_message(now, actual_content, model_display_name)
             # 添加思考内容到AI消息
-            ai_message['thinking'] = thinking_content
+            ai_message['reasoning_content'] = thinking_content
             
             return ai_message
         
