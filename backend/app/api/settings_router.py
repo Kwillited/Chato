@@ -12,10 +12,6 @@ from app.models.schemas.pydantic_models import (
 # 创建设置API路由（前缀统一为 /api/settings）
 router = APIRouter(prefix='/api/settings')
 
-
-
-
-
 # 获取基本设置
 @router.get('/basic', response_model=BasicSettings)
 @handle_exception()

@@ -534,14 +534,19 @@ export const useChatStore = defineStore('chat', {
               
               // 处理后端返回的流式数据格式，支持step标识
               let contentToAdd = '';
+              let reasoningContentToAdd = '';
               
-              // 只处理data.chunk字段
+              // 处理data.chunk字段和data.reasoning_content字段
               if (data.chunk) {
                 contentToAdd = data.chunk;
               }
               
+              if (data.reasoning_content) {
+                reasoningContentToAdd = data.reasoning_content;
+              }
+              
               // 确保内容更新能够触发Vue响应式更新
-              if (contentToAdd) {
+              if (contentToAdd || reasoningContentToAdd) {
                 // 检查是否需要创建新的消息对象
                 if (!aiMessages[messageKey]) {
                   // 更新之前添加的typing消息，替换为实际的AI回复
@@ -579,45 +584,53 @@ export const useChatStore = defineStore('chat', {
                 // 获取当前消息对象
                 const currentMessage = aiMessages[messageKey];
                 
-                // 检查并处理think标签
-                const chunk = contentToAdd;
+                // 处理reasoning_content
+                if (reasoningContentToAdd) {
+                  currentMessage.value.reasoning_content = currentMessage.value.reasoning_content + reasoningContentToAdd;
+                }
                 
-                // 检查是否在think标签内
-                if (currentMessage.value._inThinkingTag !== undefined) {
-                  // 已经在think标签内，检查是否结束
-                  const endTagIndex = chunk.indexOf('</think>');
-                  if (endTagIndex !== -1) {
-                    // 找到结束标签，更新思考内容并退出think标签模式
-                    currentMessage.value.thinking = currentMessage.value.thinking + chunk.substring(0, endTagIndex);
-                    // 标记思考内容已完成，用于自动折叠
-                    currentMessage.value.thinkingCompleted = true;
-                    // 更新实际内容（结束标签之后的内容）
-                    const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
-                    if (actualContent) {
-                      currentMessage.value.content = currentMessage.value.content + actualContent;
+                // 处理content
+                if (contentToAdd) {
+                  // 检查并处理think标签
+                  const chunk = contentToAdd;
+                  
+                  // 检查是否在think标签内
+                  if (currentMessage.value._inThinkingTag !== undefined) {
+                    // 已经在think标签内，检查是否结束
+                    const endTagIndex = chunk.indexOf('</think>');
+                    if (endTagIndex !== -1) {
+                      // 找到结束标签，更新思考内容并退出think标签模式
+                      currentMessage.value.thinking = currentMessage.value.thinking + chunk.substring(0, endTagIndex);
+                      // 标记思考内容已完成，用于自动折叠
+                      currentMessage.value.thinkingCompleted = true;
+                      // 更新实际内容（结束标签之后的内容）
+                      const actualContent = chunk.substring(endTagIndex + 8); // 8是</think>的长度
+                      if (actualContent) {
+                        currentMessage.value.content = currentMessage.value.content + actualContent;
+                      }
+                      // 退出think标签模式
+                      delete currentMessage.value._inThinkingTag;
+                    } else {
+                      // 未找到结束标签，继续累积思考内容
+                      currentMessage.value.thinking = currentMessage.value.thinking + chunk;
                     }
-                    // 退出think标签模式
-                    delete currentMessage.value._inThinkingTag;
                   } else {
-                    // 未找到结束标签，继续累积思考内容
-                    currentMessage.value.thinking = currentMessage.value.thinking + chunk;
-                  }
-                } else {
-                  // 不在think标签内，检查是否开始think标签
-                  const startTagIndex = chunk.indexOf('<think>');
-                  if (startTagIndex !== -1) {
-                    // 找到开始标签
-                    // 先处理开始标签之前的内容（如果有）
-                    const beforeThink = chunk.substring(0, startTagIndex);
-                    if (beforeThink) {
-                      currentMessage.value.content = currentMessage.value.content + beforeThink;
+                    // 不在think标签内，检查是否开始think标签
+                    const startTagIndex = chunk.indexOf('<think>');
+                    if (startTagIndex !== -1) {
+                      // 找到开始标签
+                      // 先处理开始标签之前的内容（如果有）
+                      const beforeThink = chunk.substring(0, startTagIndex);
+                      if (beforeThink) {
+                        currentMessage.value.content = currentMessage.value.content + beforeThink;
+                      }
+                      // 开始think标签模式，累积开始标签之后的内容
+                      currentMessage.value._inThinkingTag = true;
+                      currentMessage.value.thinking = chunk.substring(startTagIndex + 7); // 7是<think>的长度
+                    } else {
+                      // 没有think标签，直接更新实际内容
+                      currentMessage.value.content = currentMessage.value.content + chunk;
                     }
-                    // 开始think标签模式，累积开始标签之后的内容
-                    currentMessage.value._inThinkingTag = true;
-                    currentMessage.value.thinking = chunk.substring(startTagIndex + 7); // 7是<think>的长度
-                  } else {
-                    // 没有think标签，直接更新实际内容
-                    currentMessage.value.content = currentMessage.value.content + chunk;
                   }
                 }
                 

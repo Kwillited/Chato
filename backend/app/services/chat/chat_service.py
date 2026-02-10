@@ -36,8 +36,6 @@ class ChatService(BaseService):
             # 失败时返回内存数据库中的对话
             return DataService.get_chats()
 
-
-
     def get_chat(self, chat_id):
         """获取单个对话记录（按ID）"""
         # 从内存数据库获取
@@ -353,7 +351,7 @@ class ChatService(BaseService):
     
     async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False):
             """
-            重构后的异步流式模型回复函数
+            异步流式模型回复函数
             """
             # 1. 验证模型 (假设 validate_model 也是异步的，如果不是，去掉 await)
             model, error_response, _ = self.validate_model(model_name)

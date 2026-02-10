@@ -89,16 +89,24 @@ class BaseModel(ABC):
                 print(f"[BaseModel.chat_stream] 原始数据块: type={type(chunk).__name__}, content={str(chunk)[:200]}...")
                 
                 content = None
+                reasoning_content = None
                 # 兼容不同厂商返回的 chunk 格式
                 if hasattr(chunk, 'content'):
+                    # 先提取 reasoning_content 从 additional_kwargs
+                    if hasattr(chunk, 'additional_kwargs') and isinstance(chunk.additional_kwargs, dict):
+                        reasoning_content = chunk.additional_kwargs.get('reasoning_content')
+                    # 再提取 content 字段
                     content = chunk.content
                 elif isinstance(chunk, dict):
+                    # 先提取 reasoning_content 从 additional_kwargs
+                    reasoning_content = chunk.get('additional_kwargs', {}).get('reasoning_content')
+                    # 再提取 content 字段
                     content = chunk.get('content')
                 elif isinstance(chunk, str):
                     content = chunk
                 
-                if content:
-                    yield {'chunk': content}
+                if content or reasoning_content is not None:
+                    yield {'content': content, 'reasoning_content': reasoning_content}
                     
         except Exception as e:
             LoggingUtils.log_error(f"🔧 LLM错误: Streaming error: {e}")

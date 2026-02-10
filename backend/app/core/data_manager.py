@@ -60,9 +60,7 @@ def init_db():
     from app.models import Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, NotificationSetting, AppSetting, SystemSetting, Folder, Document, DocumentChunk
     from app.models import MCPConfig, MCPTool, MCPServer
     
-    # 删除所有表并重新创建，以确保表结构与模型定义一致
-    Base.metadata.drop_all(bind=engine)
-    # 创建所有表
+    # 只创建不存在的表，不删除现有表
     Base.metadata.create_all(bind=engine)
     
     from app.core.logging_config import logger
@@ -279,7 +277,7 @@ def insert_default_models():
             'icon_class': 'fa-code',
             'icon_bg': 'bg-orange-100',
             'icon_color': 'text-orange-600',
-            'icon_url': '/api/models/icons/Deepseek.png',
+            'icon_url': '/api/models/icons/DeepSeek.png',
             'versions': []
         },
         {
