@@ -11,7 +11,7 @@
     }"
   >
     <!-- 面板内容 -->
-    <div v-if="uiStore.leftNavVisible && uiStore.activePanel !== 'settings'" class="transition-all duration-300 h-full">
+    <div v-if="uiStore.leftNavVisible" class="transition-all duration-300 h-full">
       <PanelContent :active-panel="uiStore.activePanel" />
     </div>
   </div>
