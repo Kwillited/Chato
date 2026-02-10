@@ -81,7 +81,35 @@
 
     <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
-        <h4 class="font-medium">可配置模型</h4>
+        <div class="relative inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 shadow-sm">
+          <button 
+            @click="switchTab('inference')"
+            class="relative px-2 py-1 text-xs font-medium rounded-full transition-all duration-200 z-10"
+            :class="activeTab === 'inference' 
+              ? 'text-white font-medium' 
+              : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+            "
+          >
+            推理模型
+          </button>
+          <button 
+            @click="switchTab('vector')"
+            class="relative px-2 py-1 text-xs font-medium rounded-full transition-all duration-200 z-10"
+            :class="activeTab === 'vector' 
+              ? 'text-white font-medium' 
+              : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+            "
+          >
+            向量模型
+          </button>
+          <span 
+            class="absolute inset-0.5 bg-gray-800 dark:bg-gray-700 rounded-full transition-all duration-300 ease-in-out"
+            :style="{
+              transform: activeTab === 'inference' ? 'translateX(0)' : 'translateX(100%)',
+              width: '50%'
+            }"
+          ></span>
+        </div>
         <div class="relative w-40">
           <input
             type="text"
@@ -93,7 +121,8 @@
         </div>
       </div>
 
-      <div class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="unconfiguredModelsContainer">
+      <!-- 推理模型内容 -->
+      <div v-if="activeTab === 'inference'" class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="unconfiguredModelsContainer">
         <template v-if="isLoading">
           <div class="text-center py-6 text-neutral text-sm">加载中...</div>
         </template>
@@ -120,6 +149,69 @@
               <button
                 class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
                 @click="configModel(model)"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
+      
+      <!-- 向量模型内容 -->
+      <div v-else-if="activeTab === 'vector'" class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1">
+        <template v-if="isLoading">
+          <div class="text-center py-6 text-neutral text-sm">加载中...</div>
+        </template>
+        <template v-else>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-blue-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">OpenAI Embedding</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">OpenAI的文本嵌入模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-green-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">HuggingFace Embedding</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">HuggingFace的开源嵌入模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-purple-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">DeepSeek Embedding</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">DeepSeek的文本嵌入模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
               >
                 配置
               </button>
@@ -173,6 +265,7 @@ const configuredModelsSearch = ref('');
 const unconfiguredModelsSearch = ref('');
 const isConfigDrawerVisible = ref(false);
 const currentEditingModel = ref(null);
+const activeTab = ref('inference'); // inference 或 vector
 
 // ModelVersionForm 组件状态管理
 const modelVersionFormVisible = ref(false);
@@ -369,6 +462,11 @@ const toggleModelEnabled = async (model) => {
     // 恢复原始状态
     await loadModels();
   }
+};
+
+// 切换选项卡
+const switchTab = (tab) => {
+  activeTab.value = tab;
 };
 
 // 注：默认模型设置功能已移至系统设置中的对话设置部分
