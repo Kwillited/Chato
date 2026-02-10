@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col md:flex-row gap-6 max-w-6xl mx-auto h-full">
-    <div class="card pt-4 px-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
+    <div class="card px-4 py-4 pb-0 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-medium">已配置模型</h4>
         <div class="relative w-40">
@@ -79,7 +79,7 @@
       </div>
     </div>
 
-    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
+    <div class="card px-4 py-4 pb-0 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <div class="relative inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 shadow-sm">
           <button 
