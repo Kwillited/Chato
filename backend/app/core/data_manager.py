@@ -531,12 +531,6 @@ def save_settings_to_db(conn=None):
             vector_data = db['settings']['vector']
             setting_repo.create_or_update_vector_setting(vector_data)
         
-
-        
-
-        
-
-        
         # 保存系统设置
         if 'system' in db['settings']:
             system_data = db['settings']['system']

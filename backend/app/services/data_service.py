@@ -15,8 +15,6 @@ class DataService(BaseService):
         self.document_repo = DocumentRepository()
         self.chunk_repo = DocumentChunkRepository()
     
-
-    
     # 对话相关方法
     @staticmethod
     def get_chats():

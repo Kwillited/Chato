@@ -62,7 +62,7 @@ class MCPAdapter:
         # 读取配置文件
         if mcp_config is None:
             # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
-            config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
+            config_path = os.path.join(os.path.dirname(__file__), '..', '..', 'config', 'mcp_config.json')
             if os.path.exists(config_path):
                 logger.info(f"从配置文件读取 MCP 配置: {config_path}")
                 try:

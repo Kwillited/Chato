@@ -10,10 +10,11 @@ from app.repositories.agent_session_repository import AgentSessionRepository
 from app.services.chat.chat_service import ChatService
 from app.services.data_service import DataService
 from app.services.model.model_service import ModelService
-from app.services.mcp.mcp_service import MCPService
+
 from app.services.file.document_service import DocumentService
 
 from app.services.settings.setting_service import SettingService
+from app.services.mcp.mcp_service import MCPService
 from app.services.vector.vector_store_service import VectorStoreService
 from app.services.vector.vector_db_service import VectorDBService
 from app.services.vector.vector_service import VectorService

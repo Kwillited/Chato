@@ -1,3 +1,1 @@
-from .mcp_service import MCPService
-
-__all__ = ['MCPService']
+"""MCP 服务模块"""

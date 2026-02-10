@@ -64,8 +64,6 @@ def create_new_tables(conn):
         )
     ''')
     
-
-    
     # 创建通知设置表
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS notification_settings (
@@ -77,8 +75,6 @@ def create_new_tables(conn):
             display_time TEXT DEFAULT '5秒'
         )
     ''')
-    
-
     
     conn.commit()
     print("创建新表成功")

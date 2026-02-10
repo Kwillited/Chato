@@ -40,14 +40,10 @@ class MemoryDatabaseManager:
             if system_setting:
                 self._memory_data['system_settings'] = system_setting
             
-
-            
             # 加载向量设置
             vector_setting = self._db.query(VectorSetting).first()
             if vector_setting:
                 self._memory_data['vector_settings'] = vector_setting
-            
-
             
             # 加载聊天数据
             from sqlalchemy import desc

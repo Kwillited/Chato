@@ -103,10 +103,6 @@ class Message(Base):
     # 关系：属于一个智能体会话
     agent_session = relationship("AgentSession", back_populates="messages")
 
-
-
-
-
 class VectorSetting(Base):
     """向量设置表"""
     __tablename__ = "vector_settings"
@@ -119,8 +115,6 @@ class VectorSetting(Base):
     embedder_model = Column(String, default="qwen3-embedding-0.6b")
     chunk_size = Column(Integer, default=1000)
     chunk_overlap = Column(Integer, default=200)
-
-
 
 class SystemSetting(Base):
     """系统设置表"""

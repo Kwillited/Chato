@@ -81,7 +81,6 @@ class BaseRepository:
         
         if model_class_name == 'SystemSetting':
             return 'system_settings'
-
         elif model_class_name == 'VectorSetting':
             return 'vector_settings'
         

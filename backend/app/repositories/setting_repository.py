@@ -25,8 +25,6 @@ class SettingRepository(BaseRepository):
         # 使用内存数据库的create_or_update方法
         return memory_db.create_or_update('vector_settings', vector_data)
     
-
-    
     # System Setting Methods
     def get_system_setting(self):
         """获取系统设置"""
