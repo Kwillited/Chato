@@ -194,9 +194,7 @@ const getChatTitle = () => {
   if (props.activeContent === 'contextVisualization') {
     return '上下文可视化';
   }
-  if (props.activeContent === 'aiSettings') {
-    return 'AI配置';
-  }
+
   return '对话';
 };
 

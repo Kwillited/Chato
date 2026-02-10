@@ -7,7 +7,6 @@
     <McpMangerContent v-if="activeContent === 'mcpManagement'" />
     <ContextVisualizationContent v-if="activeContent === 'contextVisualization'" />
     <HomeContent v-if="activeContent === 'sendMessage' || activeContent === 'home'" />
-    <AISettingsContent v-if="activeContent === 'aiSettings'" />
   </div>
 </template>
 
@@ -19,7 +18,6 @@ import FileMangerContent from '../../views/FileMangerContent.vue';
 import McpMangerContent from '../../views/McpMangerContent.vue';
 import { ContextVisualizationContent } from '../library';
 import HomeContent from '../../views/HomeContent.vue';
-import AISettingsContent from '../../views/AISettingsContent.vue';
 
 // Props
 const props = defineProps({
