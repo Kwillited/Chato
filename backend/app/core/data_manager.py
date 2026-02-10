@@ -57,7 +57,7 @@ def init_db():
     # 使用SQLAlchemy的自动创建表功能，不再需要手动执行SQL语句
     # 表结构将由SQLAlchemy的模型定义自动创建
     from app.core.database import engine, Base
-    from app.models import Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, NotificationSetting, AppSetting, SystemSetting, Folder, Document, DocumentChunk
+    from app.models import Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, AppSetting, SystemSetting, Folder, Document, DocumentChunk
     from app.models import MCPConfig, MCPTool, MCPServer
     
     # 只创建不存在的表，不删除现有表
@@ -540,18 +540,7 @@ def save_settings_to_db(conn=None):
         
 
         
-        # 保存通知设置
-        if 'notification' in db['settings']:
-            notification_data = db['settings']['notification']
-            # 转换为数据库字段名（驼峰命名转换为下划线命名）
-            notification_db_data = {
-                'enabled': notification_data.get('enabled', True),
-                'new_message': notification_data.get('newMessage', True),
-                'sound': notification_data.get('sound', False),
-                'system': notification_data.get('system', True),
-                'display_time': notification_data.get('displayTime', '5秒')
-            }
-            setting_repo.create_or_update_notification_setting(notification_db_data)
+
         
         # 保存应用设置
         if 'app' in db['settings']:

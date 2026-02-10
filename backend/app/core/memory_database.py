@@ -1,7 +1,7 @@
 """内存数据库管理类"""
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from app.core.database import SessionLocal
-from app.models.database.models import SystemSetting, AppSetting, VectorSetting, NotificationSetting
+from app.models.database.models import SystemSetting, AppSetting, VectorSetting, Chat, Message, AgentSession
 
 class MemoryDatabaseManager:
     """内存数据库管理器，实现内存与SQLite的同步"""
@@ -25,9 +25,8 @@ class MemoryDatabaseManager:
         self._db = SessionLocal()
         self._memory_data = {
             'system_settings': None,
-            'app_settings': None,
             'vector_settings': None,
-            'notification_settings': None
+            'chats': []
         }
         
         # 初始化时从SQLite加载数据到内存
@@ -41,20 +40,19 @@ class MemoryDatabaseManager:
             if system_setting:
                 self._memory_data['system_settings'] = system_setting
             
-            # 加载应用设置
-            app_setting = self._db.query(AppSetting).first()
-            if app_setting:
-                self._memory_data['app_settings'] = app_setting
+
             
             # 加载向量设置
             vector_setting = self._db.query(VectorSetting).first()
             if vector_setting:
                 self._memory_data['vector_settings'] = vector_setting
             
-            # 加载通知设置
-            notification_setting = self._db.query(NotificationSetting).first()
-            if notification_setting:
-                self._memory_data['notification_settings'] = notification_setting
+
+            
+            # 加载聊天数据
+            from sqlalchemy import desc
+            chats = self._db.query(Chat).order_by(desc(Chat.updated_at)).all()
+            self._memory_data['chats'] = chats
         except Exception as e:
             print(f"从数据库加载数据失败: {e}")
     
@@ -111,21 +109,55 @@ class MemoryDatabaseManager:
                     self._db.refresh(new_setting)
                     return new_setting
             
-            elif model_type == 'notification_settings':
-                existing = self._db.query(NotificationSetting).first()
-                if existing:
-                    for key, value in data.__dict__.items():
-                        if not key.startswith('_'):
-                            setattr(existing, key, value)
-                    self._db.commit()
-                    self._db.refresh(existing)
-                    return existing
-                else:
-                    new_setting = NotificationSetting(**{k: v for k, v in data.__dict__.items() if not k.startswith('_')})
-                    self._db.add(new_setting)
-                    self._db.commit()
-                    self._db.refresh(new_setting)
-                    return new_setting
+
+            
+            elif model_type == 'chats':
+                # 保存聊天数据
+                if isinstance(data, list):
+                    try:
+                        # 先删除所有现有聊天及其相关记录
+                        self._db.query(Message).delete()
+                        self._db.query(AgentSession).delete()
+                        self._db.query(Chat).delete()
+                        
+                        # 添加所有聊天
+                        for chat in data:
+                            # 检查对象状态，如果已删除则重新创建
+                            if hasattr(chat, '_sa_instance_state') and chat._sa_instance_state.deleted:
+                                from sqlalchemy.orm import make_transient
+                                make_transient(chat)
+                            self._db.add(chat)
+                        
+                        self._db.commit()
+                        return data
+                    except Exception as e:
+                        print(f"保存聊天数据失败: {e}")
+                        self._db.rollback()
+                        # 尝试重新创建对象
+                        self._db.query(Message).delete()
+                        self._db.query(AgentSession).delete()
+                        self._db.query(Chat).delete()
+                        
+                        # 重新创建聊天对象
+                        from app.models.database.models import Chat as ChatModel
+                        new_chats = []
+                        for chat in data:
+                            # 创建新的聊天对象
+                            new_chat = ChatModel(
+                                id=chat.id,
+                                title=chat.title,
+                                preview=chat.preview,
+                                created_at=chat.created_at,
+                                updated_at=chat.updated_at,
+                                pinned=getattr(chat, 'pinned', 0)
+                            )
+                            self._db.add(new_chat)
+                            new_chats.append(new_chat)
+                        
+                        self._db.commit()
+                        # 更新内存数据库中的对象
+                        self._memory_data['chats'] = new_chats
+                        return new_chats
             
         except Exception as e:
             print(f"保存数据到数据库失败: {e}")
@@ -192,8 +224,6 @@ class MemoryDatabaseManager:
                     new_data = AppSetting(**data)
                 elif model_type == 'vector_settings':
                     new_data = VectorSetting(**data)
-                elif model_type == 'notification_settings':
-                    new_data = NotificationSetting(**data)
                 else:
                     return None
                 
@@ -216,8 +246,10 @@ class MemoryDatabaseManager:
                 data = self._db.query(AppSetting).first()
             elif model_type == 'vector_settings':
                 data = self._db.query(VectorSetting).first()
-            elif model_type == 'notification_settings':
-                data = self._db.query(NotificationSetting).first()
+
+            elif model_type == 'chats':
+                from sqlalchemy import desc
+                data = self._db.query(Chat).order_by(desc(Chat.updated_at)).all()
             else:
                 return False
             

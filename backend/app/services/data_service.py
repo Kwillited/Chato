@@ -39,14 +39,26 @@ class DataService(BaseService):
         """移除对话"""
         chat_index = next((i for i, c in enumerate(db['chats']) if c['id'] == chat_id), None)
         if chat_index is not None:
+            # 移除聊天
             db['chats'].pop(chat_index)
             DataService.set_dirty_flag('chats')
+            
+            # 移除相关的智能体会话
+            sessions_to_remove = [s for s in db['agent_sessions'] if s['chat_id'] == chat_id]
+            for session in sessions_to_remove:
+                db['agent_sessions'].remove(session)
+            if sessions_to_remove:
+                DataService.set_dirty_flag('agent_sessions')
     
     @staticmethod
     def clear_chats():
         """清空对话"""
         db['chats'] = []
         DataService.set_dirty_flag('chats')
+        
+        # 清空所有智能体会话
+        db['agent_sessions'] = []
+        DataService.set_dirty_flag('agent_sessions')
     
     @staticmethod
     def update_chat(chat_id, updated_data):

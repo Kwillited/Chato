@@ -192,13 +192,7 @@ class ModelVersionResponse(ModelVersionBase):
         from_attributes = True
 
 
-class NotificationSettings(BaseModel):
-    """通知设置模型"""
-    enabled: bool = True
-    newMessage: bool = True
-    sound: bool = False
-    system: bool = True
-    displayTime: str = "5秒"
+
 
 
 class BasicSettings(BaseModel):

@@ -120,17 +120,6 @@ class VectorSetting(Base):
     chunk_size = Column(Integer, default=1000)
     chunk_overlap = Column(Integer, default=200)
 
-class NotificationSetting(Base):
-    """通知设置表"""
-    __tablename__ = "notification_settings"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    enabled = Column(Boolean, default=True)
-    new_message = Column(Boolean, default=True)
-    sound = Column(Boolean, default=False)
-    system = Column(Boolean, default=True)
-    display_time = Column(String, default="5秒")
-
 class AppSetting(Base):
     """应用设置表"""
     __tablename__ = "app_settings"

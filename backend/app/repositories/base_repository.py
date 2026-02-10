@@ -85,7 +85,5 @@ class BaseRepository:
             return 'app_settings'
         elif model_class_name == 'VectorSetting':
             return 'vector_settings'
-        elif model_class_name == 'NotificationSetting':
-            return 'notification_settings'
         
         return None
