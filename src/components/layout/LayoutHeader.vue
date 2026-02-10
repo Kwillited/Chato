@@ -96,10 +96,10 @@
       </div>
       
       <!-- 设置页面选项卡 - 只在设置页面显示 -->
-      <div v-if="activeContent === 'settings'" class="relative inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 shadow-sm items-center min-w-[320px]">
+      <div v-if="activeContent === 'settings'" class="relative inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 shadow-sm items-center w-80">
         <button 
           @click="handleSettingsTabClick('general')"
-          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 flex-1 text-center"
+          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
           :class="uiStore.activeSection === 'general' 
             ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -109,7 +109,7 @@
         </button>
         <button 
           @click="handleSettingsTabClick('models')"
-          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 flex-1 text-center"
+          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
           :class="uiStore.activeSection === 'models' 
             ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -119,7 +119,7 @@
         </button>
         <button 
           @click="handleSettingsTabClick('rag')"
-          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 flex-1 text-center"
+          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
           :class="uiStore.activeSection === 'rag' 
             ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
@@ -129,7 +129,7 @@
         </button>
         <button 
           @click="handleSettingsTabClick('about')"
-          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 flex-1 text-center"
+          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
           :class="uiStore.activeSection === 'about' 
             ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
