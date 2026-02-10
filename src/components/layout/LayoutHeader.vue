@@ -96,12 +96,12 @@
       </div>
       
       <!-- 设置页面选项卡 - 只在设置页面显示 -->
-      <div v-if="activeContent === 'settings'" class="flex space-x-1 bg-gray-100 dark:bg-gray-800 rounded-full p-0.5 items-center">
+      <div v-if="activeContent === 'settings'" class="relative inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 shadow-sm items-center">
         <button 
           @click="handleSettingsTabClick('general')"
-          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200"
+          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10"
           :class="uiStore.activeSection === 'general' 
-            ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
+            ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
           "
         >
@@ -109,9 +109,9 @@
         </button>
         <button 
           @click="handleSettingsTabClick('models')"
-          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200"
+          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10"
           :class="uiStore.activeSection === 'models' 
-            ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
+            ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
           "
         >
@@ -119,9 +119,9 @@
         </button>
         <button 
           @click="handleSettingsTabClick('rag')"
-          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200"
+          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10"
           :class="uiStore.activeSection === 'rag' 
-            ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
+            ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
           "
         >
@@ -129,14 +129,22 @@
         </button>
         <button 
           @click="handleSettingsTabClick('about')"
-          class="px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200"
+          class="relative px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10"
           :class="uiStore.activeSection === 'about' 
-            ? 'text-white font-medium bg-gray-800 dark:bg-gray-700' 
+            ? 'text-white font-medium' 
             : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
           "
         >
           关于
         </button>
+        <!-- 滑动块 -->
+        <span 
+          class="absolute inset-0.5 bg-gray-800 dark:bg-gray-700 rounded-full transition-all duration-300 ease-in-out"
+          :style="{
+            transform: getSettingsTabTransform(),
+            width: '25%'
+          }"
+        ></span>
       </div>
     </div>
   </div>
@@ -243,6 +251,19 @@ const selectChatFromHistory = (chatId) => {
 // 处理设置选项卡点击事件
 const handleSettingsTabClick = (section) => {
   uiStore.setActiveSection(section);
+};
+
+// 计算设置选项卡滑动块的位置
+const getSettingsTabTransform = () => {
+  const activeSection = uiStore.activeSection || 'general';
+  const sectionIndex = {
+    general: 0,
+    models: 1,
+    rag: 2,
+    about: 3
+  }[activeSection] || 0;
+  
+  return `translateX(${sectionIndex * 100}%)`;
 };
 
 // Expose
