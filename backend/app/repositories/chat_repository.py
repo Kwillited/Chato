@@ -31,8 +31,6 @@ class ChatRepository(BaseRepository):
         # 添加到内存数据库
         chats = memory_db.get('chats')
         chats.insert(0, chat)
-        # 同步到SQLite
-        memory_db.set('chats', chats)
         return chat
     
     def update_chat(self, chat_id, title, preview, updated_at, pinned=0):
@@ -43,9 +41,6 @@ class ChatRepository(BaseRepository):
             chat.preview = preview
             chat.updated_at = updated_at
             chat.pinned = pinned
-            # 同步到SQLite
-            chats = memory_db.get('chats')
-            memory_db.set('chats', chats)
             return chat
         return None
     
@@ -58,6 +53,13 @@ class ChatRepository(BaseRepository):
             chats = [c for c in chats if c.id != chat_id]
             # 同步到SQLite
             memory_db.set('chats', chats)
+            
+            # 从SQLite中删除
+            db_chat = self.db.query(Chat).filter(Chat.id == chat_id).first()
+            if db_chat:
+                self.db.delete(db_chat)
+                self.db.commit()
+                
             return True
         return False
     

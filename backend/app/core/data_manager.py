@@ -139,6 +139,7 @@ def load_chats_from_db():
         from app.repositories.chat_repository import ChatRepository
         from app.repositories.message_repository import MessageRepository
         from app.core.database import get_db
+        from app.models.database.models import Chat
         from app.utils.data_utils import build_message_list, build_chat_dict
         
         # 获取数据库会话
@@ -566,34 +567,22 @@ def save_chats_to_db(conn=None):
     global db
     
     try:
-        # 使用Repository层保存对话数据
-        from app.repositories.chat_repository import ChatRepository
-        from app.repositories.message_repository import MessageRepository
+        # 直接操作SQLite数据库，避免使用Repository层导致的会话冲突
         from app.core.database import get_db
+        from app.models.database.models import Chat, Message
+        from app.core.logging_config import logger
         
         # 获取数据库会话
         db_session = next(get_db())
-        chat_repo = ChatRepository(db_session)
-        message_repo = MessageRepository(db_session)
         
-        # 获取SQLite中所有对话ID
-        all_chats = chat_repo.get_all_chats()
-        sqlite_chat_ids = {chat.id for chat in all_chats}
+        # 先删除所有现有聊天及其相关记录
+        logger.info("清理现有对话数据")
+        db_session.query(Message).delete()
+        db_session.query(Chat).delete()
+        db_session.commit()
         
-        # 获取内存中所有对话ID
-        memory_chat_ids = {chat['id'] for chat in db['chats']}
-        
-        # 找出需要删除的对话ID
-        chat_ids_to_delete = sqlite_chat_ids - memory_chat_ids
-        
-        # 删除不再存在于内存中的对话（会级联删除消息）
-        if chat_ids_to_delete:
-            from app.core.logging_config import logger
-            logger.info(f"删除不存在于内存的对话: {len(chat_ids_to_delete)} 个")
-            for chat_id in chat_ids_to_delete:
-                chat_repo.delete_chat(chat_id)
-        
-        # 保存所有对话和消息
+        # 重新创建所有对话和消息
+        logger.info(f"创建{len(db['chats'])}个对话及其消息")
         for chat in db['chats']:
             chat_id = chat['id']
             title = chat['title']
@@ -602,32 +591,31 @@ def save_chats_to_db(conn=None):
             updated_at = chat['updatedAt']
             pinned = chat.get('pinned', 0)
             
-            # 创建或更新对话
-            db_chat = chat_repo.get_chat_by_id(chat_id)
-            if db_chat:
-                # 更新现有对话
-                chat_repo.update_chat(chat_id, title, preview, updated_at, pinned)
-            else:
-                # 创建新对话
-                chat_repo.create_chat(chat_id, title, preview, created_at, updated_at)
+            # 创建新对话
+            new_chat = Chat(
+                id=chat_id,
+                title=title,
+                preview=preview,
+                created_at=created_at,
+                updated_at=updated_at,
+                pinned=pinned
+            )
+            db_session.add(new_chat)
             
-            # 获取SQLite中该对话的所有消息ID
-            sqlite_messages = message_repo.get_messages_by_chat_id(chat_id)
-            sqlite_msg_ids = {msg.id for msg in sqlite_messages}
+            # 收集消息并去重
+            seen_msg_ids = set()
+            messages_to_add = []
             
-            # 获取内存中该对话的所有消息ID
-            memory_msg_ids = {msg['id'] for msg in chat.get('messages', [])}
-            
-            # 找出需要删除的消息ID
-            msg_ids_to_delete = sqlite_msg_ids - memory_msg_ids
-            
-            # 删除不再存在于内存中的消息
-            if msg_ids_to_delete:
-                for msg_id in msg_ids_to_delete:
-                    message_repo.delete_message(msg_id)
-            
-            # 保存对话中的消息
             for msg in chat.get('messages', []):
+                msg_id = msg['id']
+                # 检查消息ID是否已经存在
+                if msg_id not in seen_msg_ids:
+                    seen_msg_ids.add(msg_id)
+                    messages_to_add.append(msg)
+            
+            # 创建去重后的消息
+            logger.info(f"为对话{chat_id}创建{len(messages_to_add)}个消息")
+            for msg in messages_to_add:
                 msg_id = msg['id']
                 role = msg['role']
                 content = msg['content']
@@ -647,13 +635,26 @@ def save_chats_to_db(conn=None):
                 # 将files列表转换为JSON字符串
                 files_json = json.dumps(files)
                 
-                # 创建或更新消息
-                message_repo.create_or_update_message(
-                    msg_id, chat_id, role, content, reasoning_content, msg_created_at, model, files_json,
-                    message_type, agent_session_id, agent_node, agent_step, agent_metadata
+                # 创建新消息
+                new_message = Message(
+                    id=msg_id,
+                    chat_id=chat_id,
+                    role=role,
+                    message_type=message_type,
+                    content=content,
+                    reasoning_content=reasoning_content,
+                    created_at=msg_created_at,
+                    model=model,
+                    files=files_json,
+                    agent_session_id=agent_session_id,
+                    agent_node=agent_node,
+                    agent_step=agent_step,
+                    agent_metadata=agent_metadata
                 )
+                db_session.add(new_message)
         
-        from app.core.logging_config import logger
+        # 提交所有操作
+        db_session.commit()
         logger.info("对话数据已保存到SQLite数据库")
     except Exception as e:
         from app.core.logging_config import logger

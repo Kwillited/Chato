@@ -105,9 +105,11 @@ class MemoryDatabaseManager:
                         # 添加所有聊天
                         for chat in data:
                             # 检查对象状态，如果已删除则重新创建
-                            if hasattr(chat, '_sa_instance_state') and chat._sa_instance_state.deleted:
-                                from sqlalchemy.orm import make_transient
-                                make_transient(chat)
+                            if hasattr(chat, '_sa_instance_state'):
+                                if chat._sa_instance_state.deleted:
+                                    from sqlalchemy.orm import make_transient
+                                    make_transient(chat)
+                            # 直接添加对象到会话中
                             self._db.add(chat)
                         
                         self._db.commit()
