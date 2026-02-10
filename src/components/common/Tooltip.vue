@@ -124,6 +124,8 @@ onMounted(() => {
     // 添加passive: true优化性能
     wrapper.addEventListener('pointerover', showTooltip, { passive: true });
     wrapper.addEventListener('pointerout', hideTooltip, { passive: true });
+    // 添加点击事件监听器，确保点击时隐藏tooltip
+    wrapper.addEventListener('click', hideTooltip, { passive: true });
     window.addEventListener('resize', debouncedHandleResize);
   }
 });
@@ -133,6 +135,7 @@ onUnmounted(() => {
   if (wrapper) {
     wrapper.removeEventListener('pointerover', showTooltip);
     wrapper.removeEventListener('pointerout', hideTooltip);
+    wrapper.removeEventListener('click', hideTooltip);
     window.removeEventListener('resize', debouncedHandleResize);
     if (resizeTimeout) {
       clearTimeout(resizeTimeout);
