@@ -1,36 +1,7 @@
 <template>
   <div id="settingsPanel" class="h-full flex flex-col">
     <div class="overflow-y-auto h-full scrollbar-thin">
-      <div class="p-2 space-y-1">
-        <SettingNavItem 
-          id="general" 
-          :activeSection="uiStore.activeSection"
-          label="基本设置" 
-          iconClass="fa-regular fa-user"
-          @click="handleSectionClick"
-        />
-        <SettingNavItem 
-          id="models" 
-          :activeSection="uiStore.activeSection"
-          label="模型配置" 
-          iconClass="fa-solid fa-gears"
-          @click="handleSectionClick"
-        />
-        <SettingNavItem 
-          id="rag" 
-          :activeSection="uiStore.activeSection"
-          label="知识库配置" 
-          iconClass="fa-solid fa-book-open"
-          @click="handleSectionClick"
-        />
-        <SettingNavItem 
-          id="about" 
-          :activeSection="uiStore.activeSection"
-          label="关于" 
-          iconClass="fa-solid fa-circle-info"
-          @click="handleSectionClick"
-        />
-      </div>
+      <!-- 设置导航项已移至顶部导航栏 -->
     </div>
   </div>
 </template>
@@ -38,8 +9,6 @@
 <script setup>
 import { onMounted } from 'vue';
 import { useUiStore } from '../../store/uiStore.js';
-import SettingNavItem from '../common/SettingNavItem.vue';
-
 
 const uiStore = useUiStore();
 
@@ -49,14 +18,6 @@ onMounted(() => {
     uiStore.setActiveSection('general');
   }
 });
-
-
-
-// 处理设置项点击事件
-const handleSectionClick = (section) => {
-  // section参数会从SettingNavItem组件的click事件中传递过来
-  uiStore.setActiveSection(section);
-};
 </script>
 
 <style scoped>
