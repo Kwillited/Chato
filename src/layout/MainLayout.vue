@@ -111,12 +111,15 @@ let resizeRequestId = null;
 
 // 计算中栏中心位置的函数
 const updateTitlePosition = () => {
-  if (!headerRef.value?.titleContainer || !leftPanelRef.value?.leftPanel || !mainContentRef.value?.mainContent) return;
+  if (!headerRef.value?.titleContainer || !mainContentRef.value?.mainContent) return;
   
   // 使用requestAnimationFrame优化视觉更新
   requestAnimationFrame(() => {
     // 获取左侧面板宽度
-    const leftPanelWidth = uiStore.leftNavVisible ? leftPanelRef.value.leftPanel.offsetWidth : 0;
+    let leftPanelWidth = 0;
+    if (uiStore.leftNavVisible && leftPanelRef.value?.leftPanel) {
+      leftPanelWidth = leftPanelRef.value.leftPanel.offsetWidth;
+    }
     // 获取主内容区宽度
     const mainContentWidth = mainContentRef.value.mainContent.offsetWidth;
     // 计算中栏中心位置
