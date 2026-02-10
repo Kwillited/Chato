@@ -170,7 +170,7 @@
                   <i class="fa-solid fa-cube text-xl text-blue-500"></i>
                 </div>
                 <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">OpenAI Embedding</div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">OpenAI</div>
                   <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">OpenAI的文本嵌入模型</div>
                 </div>
               </div>
@@ -188,8 +188,8 @@
                   <i class="fa-solid fa-cube text-xl text-green-500"></i>
                 </div>
                 <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">HuggingFace Embedding</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">HuggingFace的开源嵌入模型</div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Azure OpenAI</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Azure OpenAI的文本嵌入模型</div>
                 </div>
               </div>
               <button
@@ -206,8 +206,242 @@
                   <i class="fa-solid fa-cube text-xl text-purple-500"></i>
                 </div>
                 <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">DeepSeek Embedding</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">DeepSeek的文本嵌入模型</div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Google Generative AI</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Google的生成式AI模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-orange-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Cohere</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Cohere的文本嵌入模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-red-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Amazon Bedrock</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Amazon的Bedrock模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-teal-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Voyage AI</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Voyage AI的文本嵌入模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-yellow-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Ollama</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ollama的本地运行模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-indigo-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Hugging Face</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Hugging Face的开源模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-pink-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Sentence Transformers</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">句子转换模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-lime-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">FastEmbed</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">快速嵌入模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-amber-500"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">Llama.cpp</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Llama模型的C++实现</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-blue-400"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">百度文心</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">百度的文心模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-blue-600"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">百度千帆</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">百度的千帆模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-purple-400"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">智谱AI (ZhipuAI)</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">智谱AI的模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-orange-400"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">阿里巴巴通义</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">阿里巴巴的通义模型</div>
+                </div>
+              </div>
+              <button
+                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+              >
+                配置
+              </button>
+            </div>
+          </div>
+          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
+                  <i class="fa-solid fa-cube text-xl text-green-400"></i>
+                </div>
+                <div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">腾讯混元</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">腾讯的混元模型</div>
                 </div>
               </div>
               <button
