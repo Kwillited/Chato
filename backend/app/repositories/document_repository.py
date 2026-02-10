@@ -1,44 +1,29 @@
 """文档数据访问类"""
 from app.repositories.base_repository import BaseRepository
 from app.models.database.models import Document
-from app.core.memory_database import memory_db
 
 class DocumentRepository(BaseRepository):
     """文档数据访问类，处理文档相关的数据访问"""
     
     def get_all_documents(self):
         """获取所有文档"""
-        # 从内存数据库获取所有文档
-        return memory_db.get('documents')
+        return self.db.query(Document).all()
     
     def get_document_by_id(self, document_id):
         """根据ID获取文档"""
-        # 从内存数据库获取文档
-        return memory_db.get('documents', document_id)
+        return self.db.query(Document).filter(Document.id == document_id).first()
     
     def get_document_by_name(self, document_name):
         """根据名称获取文档"""
-        # 从内存数据库查询文档
-        documents = memory_db.query('documents', name=document_name)
-        return documents[0] if documents else None
+        return self.db.query(Document).filter(Document.name == document_name).first()
     
     def get_documents_by_folder_id(self, folder_id):
         """根据文件夹ID获取文档"""
-        # 从内存数据库查询文档
-        return memory_db.query('documents', folder_id=folder_id)
+        return self.db.query(Document).filter(Document.folder_id == folder_id).all()
     
     def get_documents_by_folder_name(self, folder_name):
         """根据文件夹名称获取文档"""
-        # 从内存数据库获取所有文档
-        documents = memory_db.get('documents')
-        # 从内存数据库获取文件夹
-        folders = memory_db.query('folders', name=folder_name)
-        if not folders:
-            return []
-        
-        folder_id = folders[0].id
-        # 过滤出对应文件夹的文档
-        return [doc for doc in documents if doc.folder_id == folder_id]
+        return self.db.query(Document).join(Document.folder).filter(folder_name == Document.folder.name).all()
     
     def create_document(self, document_id, name, path, size, type, uploaded_at, folder_id=None, extra_metadata=None):
         """创建新文档"""
@@ -80,27 +65,17 @@ class DocumentRepository(BaseRepository):
         document = self.get_document_by_id(document_id)
         if document:
             self.delete(document)
-            # 同时删除关联的文档分块
-            chunks = memory_db.query('document_chunks', document_id=document_id)
-            for chunk in chunks:
-                memory_db.delete('document_chunks', chunk.id)
             return True
         return False
     
     def delete_document_by_name(self, document_name, folder_id=None):
         """根据名称删除文档"""
-        # 从内存数据库查询文档
-        documents = memory_db.query('documents', name=document_name)
+        query = self.db.query(Document).filter(Document.name == document_name)
         if folder_id:
-            documents = [doc for doc in documents if doc.folder_id == folder_id]
-        
-        if documents:
-            document = documents[0]
+            query = query.filter(Document.folder_id == folder_id)
+        document = query.first()
+        if document:
             self.delete(document)
-            # 同时删除关联的文档分块
-            chunks = memory_db.query('document_chunks', document_id=document.id)
-            for chunk in chunks:
-                memory_db.delete('document_chunks', chunk.id)
             return True
         return False
     
@@ -109,21 +84,15 @@ class DocumentRepository(BaseRepository):
         documents = self.get_documents_by_folder_id(folder_id)
         for document in documents:
             self.delete(document)
-            # 同时删除关联的文档分块
-            chunks = memory_db.query('document_chunks', document_id=document.id)
-            for chunk in chunks:
-                memory_db.delete('document_chunks', chunk.id)
         return True
     
     def delete_all_documents(self):
         """删除所有文档"""
-        # 从内存数据库获取所有文档
-        documents = memory_db.get('documents')
-        # 删除所有文档及其关联的分块
-        for document in documents:
-            memory_db.delete('documents', document.id)
-            # 删除关联的文档分块
-            chunks = memory_db.query('document_chunks', document_id=document.id)
-            for chunk in chunks:
-                memory_db.delete('document_chunks', chunk.id)
-        return True
+        try:
+            # 删除所有文档
+            self.db.query(Document).delete()
+            self.db.commit()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            raise e

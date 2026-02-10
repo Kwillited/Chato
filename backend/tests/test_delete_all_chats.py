@@ -87,16 +87,6 @@ class TestDeleteAllChats:
         from datetime import datetime
         chat_id = str(uuid.uuid4())
         now = datetime.now().isoformat()
-        # 使用 chat_repo.create_chat 创建对话，确保对话被添加到 memory_db 中
-        self.chat_repo.create_chat(
-            chat_id=chat_id,
-            title="测试对话",
-            preview='',
-            created_at=now,
-            updated_at=now
-        )
-        
-        # 同时添加到 DataService 中，保持测试的一致性
         chat = {
             'id': chat_id,
             'title': "测试对话",

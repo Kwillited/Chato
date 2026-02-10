@@ -129,18 +129,25 @@ class MessageHandler:
             return ai_message
         
         @staticmethod
-        def process_full_reply(full_reply, now, model_display_name):
+        def process_full_reply(full_reply, now, model_display_name, full_reasoning=None):
             """处理完整回复，分离思考内容和实际内容
             
             Args:
                 full_reply: 完整的回复内容
                 now: 当前时间戳
                 model_display_name: 模型显示名称
+                full_reasoning: 累积的思考内容
                 
             Returns:
                 标准格式的AI回复消息
             """
-            thinking_content, actual_content = MessageHandler.Request.process_think_tags(full_reply)
+            # 如果提供了full_reasoning，直接使用它
+            if full_reasoning:
+                thinking_content = full_reasoning
+                actual_content = full_reply
+            else:
+                # 否则从full_reply中提取思考内容
+                thinking_content, actual_content = MessageHandler.Request.process_think_tags(full_reply)
             
             # 创建AI回复，确保包含完整的模型和版本信息
             ai_message = MessageHandler.Response.create_ai_message(now, actual_content, model_display_name)
