@@ -14,7 +14,7 @@
         </div>
       </div>
 
-      <div class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="configuredModelsContainer">
+      <div class="grid grid-cols-1 gap-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="configuredModelsContainer">
         <template v-if="isLoading">
           <div class="text-center py-6 text-neutral text-sm">加载中...</div>
         </template>
@@ -122,7 +122,7 @@
       </div>
 
       <!-- 推理模型内容 -->
-      <div v-if="activeTab === 'inference'" class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="unconfiguredModelsContainer">
+      <div v-if="activeTab === 'inference'" class="grid grid-cols-1 gap-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="unconfiguredModelsContainer">
         <template v-if="isLoading">
           <div class="text-center py-6 text-neutral text-sm">加载中...</div>
         </template>
@@ -158,7 +158,7 @@
       </div>
       
       <!-- 向量模型内容 -->
-      <div v-else-if="activeTab === 'vector'" class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1">
+      <div v-else-if="activeTab === 'vector'" class="grid grid-cols-1 gap-3 overflow-y-auto pr-2 scrollbar-thin flex-1">
         <template v-if="isLoading">
           <div class="text-center py-6 text-neutral text-sm">加载中...</div>
         </template>
