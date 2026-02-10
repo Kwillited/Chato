@@ -8,7 +8,7 @@ from sqlalchemy import inspect, text
 from app.core.database import engine, Base
 from app.models.database.models import (
     Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, 
-    AppSetting, SystemSetting, Folder, Document, DocumentChunk
+    SystemSetting, Folder, Document, DocumentChunk
 )
 
 def migrate_database():
@@ -103,16 +103,7 @@ def migrate_database():
     
 
     
-    # 检查AppSetting表
-    app_table_name = "app_settings"
-    if app_table_name in inspector.get_table_names():
-        columns = {col['name'] for col in inspector.get_columns(app_table_name)}
-        required_columns = {'id', 'debug', 'host', 'port'}
-        missing_columns = required_columns - columns
-        if missing_columns:
-            print(f"   ⚠️  AppSetting表缺少列: {missing_columns}")
-        else:
-            print("   ✅ AppSetting表结构完整")
+
     
     print("🎉 数据库迁移完成！")
 

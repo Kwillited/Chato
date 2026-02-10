@@ -1,7 +1,7 @@
 """内存数据库管理类"""
 from typing import Dict, Any, Optional, List
 from app.core.database import SessionLocal
-from app.models.database.models import SystemSetting, AppSetting, VectorSetting, Chat, Message, AgentSession
+from app.models.database.models import SystemSetting, VectorSetting, Chat, Message, AgentSession
 
 class MemoryDatabaseManager:
     """内存数据库管理器，实现内存与SQLite的同步"""
@@ -77,21 +77,7 @@ class MemoryDatabaseManager:
                     self._db.refresh(new_setting)
                     return new_setting
             
-            elif model_type == 'app_settings':
-                existing = self._db.query(AppSetting).first()
-                if existing:
-                    for key, value in data.__dict__.items():
-                        if not key.startswith('_'):
-                            setattr(existing, key, value)
-                    self._db.commit()
-                    self._db.refresh(existing)
-                    return existing
-                else:
-                    new_setting = AppSetting(**{k: v for k, v in data.__dict__.items() if not k.startswith('_')})
-                    self._db.add(new_setting)
-                    self._db.commit()
-                    self._db.refresh(new_setting)
-                    return new_setting
+
             
             elif model_type == 'vector_settings':
                 existing = self._db.query(VectorSetting).first()
@@ -220,8 +206,7 @@ class MemoryDatabaseManager:
                 # 创建新数据
                 if model_type == 'system_settings':
                     new_data = SystemSetting(**data)
-                elif model_type == 'app_settings':
-                    new_data = AppSetting(**data)
+
                 elif model_type == 'vector_settings':
                     new_data = VectorSetting(**data)
                 else:
@@ -242,8 +227,7 @@ class MemoryDatabaseManager:
         try:
             if model_type == 'system_settings':
                 data = self._db.query(SystemSetting).first()
-            elif model_type == 'app_settings':
-                data = self._db.query(AppSetting).first()
+
             elif model_type == 'vector_settings':
                 data = self._db.query(VectorSetting).first()
 

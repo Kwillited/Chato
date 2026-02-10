@@ -57,7 +57,7 @@ def init_db():
     # 使用SQLAlchemy的自动创建表功能，不再需要手动执行SQL语句
     # 表结构将由SQLAlchemy的模型定义自动创建
     from app.core.database import engine, Base
-    from app.models import Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, AppSetting, SystemSetting, Folder, Document, DocumentChunk
+    from app.models import Model, ModelVersion, Chat, Message, AgentSession, VectorSetting, SystemSetting, Folder, Document, DocumentChunk
     from app.models import MCPConfig, MCPTool, MCPServer
     
     # 只创建不存在的表，不删除现有表
@@ -474,14 +474,7 @@ def load_settings_from_db():
         
 
         
-        # 加载应用设置
-        app_setting = setting_repo.get_app_setting()
-        if app_setting:
-            db['settings']['app'] = {
-                'debug': app_setting.debug,
-                'host': app_setting.host,
-                'port': app_setting.port
-            }
+
         
         # 加载系统设置（包含通知设置）
         system_setting = setting_repo.get_system_setting()
@@ -542,10 +535,7 @@ def save_settings_to_db(conn=None):
         
 
         
-        # 保存应用设置
-        if 'app' in db['settings']:
-            app_data = db['settings']['app']
-            setting_repo.create_or_update_app_setting(app_data)
+
         
         # 保存系统设置
         if 'system' in db['settings']:

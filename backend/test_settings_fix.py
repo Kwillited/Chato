@@ -69,16 +69,7 @@ def test_settings_sqlite():
         db['settings']['system']['font_size'] = 18
         print("✅ 修改了系统设置")
     
-    if 'app' not in db['settings']:
-        db['settings']['app'] = {
-            'debug': True,
-            'host': '0.0.0.0',
-            'port': 5000
-        }
-        print("✅ 创建了应用设置")
-    else:
-        db['settings']['app']['debug'] = False
-        print("✅ 修改了应用设置")
+
     
     if 'notification' not in db['settings']:
         db['settings']['notification'] = {
@@ -122,14 +113,7 @@ def test_settings_sqlite():
     else:
         print("   ❌ 系统设置表中未找到数据")
     
-    # 检查应用设置
-    print("   检查应用设置...")
-    cursor.execute("SELECT debug, host, port FROM app_settings")
-    app_result = cursor.fetchone()
-    if app_result:
-        print(f"   ✅ 应用设置 - debug: {app_result[0]}, host: {app_result[1]}, port: {app_result[2]}")
-    else:
-        print("   ❌ 应用设置表中未找到数据")
+
     
     # 检查通知设置
     print("   检查通知设置...")
@@ -163,8 +147,7 @@ def test_settings_sqlite():
         print(f"   ✅ 向量设置 - top_k: {db['settings']['vector']['top_k']}, score_threshold: {db['settings']['vector']['score_threshold']}")
     if 'system' in db['settings']:
         print(f"   ✅ 系统设置 - dark_mode: {db['settings']['system']['dark_mode']}, font_size: {db['settings']['system']['font_size']}")
-    if 'app' in db['settings']:
-        print(f"   ✅ 应用设置 - debug: {db['settings']['app']['debug']}")
+
     
     print("🎉 测试完成！")
     return True

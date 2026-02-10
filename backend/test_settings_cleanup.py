@@ -43,9 +43,7 @@ try:
     system_setting = setting_repo.get_system_setting()
     print(f"   ✓ 获取系统设置成功")
     
-    # 测试获取应用设置
-    app_setting = setting_repo.get_app_setting()
-    print(f"   ✓ 获取应用设置成功")
+
     
     # 测试获取向量设置
     vector_setting = setting_repo.get_vector_setting()

@@ -120,14 +120,7 @@ class VectorSetting(Base):
     chunk_size = Column(Integer, default=1000)
     chunk_overlap = Column(Integer, default=200)
 
-class AppSetting(Base):
-    """应用设置表"""
-    __tablename__ = "app_settings"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    debug = Column(Boolean, default=True)
-    host = Column(String, default="0.0.0.0")
-    port = Column(Integer, default=5000)
+
 
 class SystemSetting(Base):
     """系统设置表"""

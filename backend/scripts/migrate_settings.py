@@ -35,7 +35,7 @@ def check_new_tables(conn):
     """检查新的设置表是否存在"""
     cursor = conn.cursor()
     
-    tables = ['vector_settings', 'notification_settings', 'app_settings']
+    tables = ['vector_settings', 'notification_settings']
     missing_tables = []
     
     for table in tables:
@@ -78,15 +78,7 @@ def create_new_tables(conn):
         )
     ''')
     
-    # 创建应用设置表
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS app_settings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            debug BOOLEAN DEFAULT TRUE,
-            host TEXT DEFAULT '0.0.0.0',
-            port INTEGER DEFAULT 5000
-        )
-    ''')
+
     
     conn.commit()
     print("创建新表成功")
@@ -159,31 +151,7 @@ def migrate_notification_settings(conn, notification_settings):
     print("通知设置迁移成功")
     return True
 
-# 迁移应用设置
-def migrate_app_settings(conn, app_settings):
-    """迁移应用设置"""
-    cursor = conn.cursor()
-    
-    # 检查是否已有数据
-    cursor.execute("SELECT COUNT(*) FROM app_settings")
-    if cursor.fetchone()[0] > 0:
-        print("应用设置表已有数据，跳过迁移")
-        return False
-    
-    # 插入应用设置
-    cursor.execute('''
-        INSERT INTO app_settings (
-            debug, host, port
-        ) VALUES (?, ?, ?)
-    ''', (
-        app_settings.get('debug', True),
-        app_settings.get('host', '0.0.0.0'),
-        app_settings.get('port', 5000)
-    ))
-    
-    conn.commit()
-    print("应用设置迁移成功")
-    return True
+
 
 # 主迁移函数
 def main():
@@ -238,8 +206,7 @@ def main():
         if 'notification' in settings_dict:
             migrate_notification_settings(conn, settings_dict['notification'])
         
-        if 'app' in settings_dict:
-            migrate_app_settings(conn, settings_dict['app'])
+
         
         print("\n" + "=" * 60)
         print("设置迁移完成!")
