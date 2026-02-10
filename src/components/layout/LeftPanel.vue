@@ -1,20 +1,22 @@
 <template>
   <div 
+    v-if="uiStore.leftNavVisible && uiStore.activePanel !== 'settings'"
     id="panelContainer" 
     ref="leftPanel"
     class="h-full flex-shrink-0 z-40 overflow-hidden transition-all duration-300" 
     :style="{
-      width: uiStore.leftNavVisible ? uiStore.leftNavWidth : 'auto',
-      minWidth: uiStore.leftNavVisible ? '200px' : 'auto',
-      maxWidth: uiStore.leftNavVisible ? '370px' : 'auto',
+      width: uiStore.leftNavWidth,
+      minWidth: '200px',
+      maxWidth: '370px',
       flexShrink: 0
     }"
   >
     <!-- 面板内容 -->
-    <div v-if="uiStore.leftNavVisible && uiStore.activePanel !== 'settings'" class="transition-all duration-300 h-full">
+    <div class="transition-all duration-300 h-full">
       <PanelContent :active-panel="uiStore.activePanel" />
     </div>
   </div>
+  <div v-else class="w-0 flex-shrink-0"></div>
 </template>
 
 <script setup>
