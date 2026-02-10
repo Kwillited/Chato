@@ -25,55 +25,48 @@ class BaseRepository:
     
     def add(self, model):
         """添加模型实例到数据库"""
-        # 对于设置相关模型，使用内存数据库
+        # 对于所有模型，使用内存数据库
         model_type = self._get_model_type(model)
         if model_type:
             memory_db.set(model_type, model)
             return model
         
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.add(model)
-        self.db.commit()
-        self.db.refresh(model)
-        return model
+        # 如果无法确定模型类型，返回None
+        return None
     
     def update(self, model):
         """更新模型实例"""
-        # 对于设置相关模型，使用内存数据库
+        # 对于所有模型，使用内存数据库
         model_type = self._get_model_type(model)
         if model_type:
             memory_db.set(model_type, model)
             return model
         
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.commit()
-        self.db.refresh(model)
-        return model
+        # 如果无法确定模型类型，返回None
+        return None
     
     def delete(self, model):
         """删除模型实例"""
-        # 对于设置相关模型，不支持删除操作
+        # 对于所有模型，使用内存数据库
         model_type = self._get_model_type(model)
         if model_type:
-            # 可以选择将其设置为None或使用默认值
-            memory_db.set(model_type, None)
+            # 对于有ID的模型，使用delete方法
+            if hasattr(model, 'id'):
+                memory_db.delete(model_type, model.id)
+            else:
+                # 对于无ID的模型，设置为None
+                memory_db.set(model_type, None)
             return
-        
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.delete(model)
-        self.db.commit()
     
     def commit(self):
         """提交事务"""
-        # 对于设置相关模型，内存数据库会自动提交
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.commit()
+        # 所有数据操作都通过内存数据库，内存数据库会自动提交
+        pass
     
     def rollback(self):
         """回滚事务"""
-        # 对于设置相关模型，需要从数据库重新加载
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.rollback()
+        # 所有数据操作都通过内存数据库，需要从数据库重新加载
+        pass
     
     def _get_model_type(self, model) -> str:
         """获取模型类型对应的内存数据库键名"""
@@ -87,5 +80,27 @@ class BaseRepository:
             return 'vector_settings'
         elif model_class_name == 'NotificationSetting':
             return 'notification_settings'
+        elif model_class_name == 'Chat':
+            return 'chats'
+        elif model_class_name == 'Message':
+            return 'messages'
+        elif model_class_name == 'Document':
+            return 'documents'
+        elif model_class_name == 'DocumentChunk':
+            return 'document_chunks'
+        elif model_class_name == 'Folder':
+            return 'folders'
+        elif model_class_name == 'AgentSession':
+            return 'agent_sessions'
+        elif model_class_name == 'Model':
+            return 'models'
+        elif model_class_name == 'ModelVersion':
+            return 'model_versions'
+        elif model_class_name == 'MCPConfig':
+            return 'mcp_configs'
+        elif model_class_name == 'MCPTool':
+            return 'mcp_tools'
+        elif model_class_name == 'MCPServer':
+            return 'mcp_servers'
         
         return None

@@ -1,17 +1,22 @@
 """消息数据访问类"""
 from app.repositories.base_repository import BaseRepository
 from app.models.database.models import Message
+from app.core.memory_database import memory_db
 
 class MessageRepository(BaseRepository):
     """消息数据访问类，处理消息相关的数据访问"""
     
     def get_messages_by_chat_id(self, chat_id):
         """根据对话ID获取所有消息"""
-        return self.db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.created_at).all()
+        # 从内存数据库查询消息
+        messages = memory_db.query('messages', chat_id=chat_id)
+        # 按created_at排序
+        return sorted(messages, key=lambda x: x.created_at)
     
     def get_message_by_id(self, message_id):
         """根据ID获取消息"""
-        return self.db.query(Message).filter(Message.id == message_id).first()
+        # 从内存数据库获取消息
+        return memory_db.get('messages', message_id)
     
     def create_message(self, message_id, chat_id, role, content, reasoning_content, created_at, model, files=None, 
                        message_type="normal", agent_session_id=None, agent_node="", agent_step=0, agent_metadata=""):
@@ -60,16 +65,21 @@ class MessageRepository(BaseRepository):
     
     def delete_messages_by_chat_id(self, chat_id):
         """根据对话ID删除所有消息"""
-        # 批量删除，利用SQLAlchemy的删除API
-        result = self.db.query(Message).filter(Message.chat_id == chat_id).delete()
-        self.db.commit()
-        return result
+        # 从内存数据库查询消息
+        messages = memory_db.query('messages', chat_id=chat_id)
+        # 删除所有消息
+        for message in messages:
+            memory_db.delete('messages', message.id)
+        return len(messages)
     
     def delete_all_messages(self):
         """删除所有消息"""
-        result = self.db.query(Message).delete()
-        self.db.commit()
-        return result
+        # 从内存数据库获取所有消息
+        messages = memory_db.get('messages')
+        # 删除所有消息
+        for message in messages:
+            memory_db.delete('messages', message.id)
+        return len(messages)
     
     def delete_message(self, message_id):
         """删除消息"""

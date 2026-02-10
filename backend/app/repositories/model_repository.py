@@ -1,18 +1,21 @@
 """模型数据访问类"""
-from sqlalchemy import or_
 from app.repositories.base_repository import BaseRepository
 from app.models.database.models import Model, ModelVersion
+from app.core.memory_database import memory_db
 
 class ModelRepository(BaseRepository):
     """模型数据访问类，处理模型相关的数据访问"""
     
     def get_all_models(self):
         """获取所有模型"""
-        return self.db.query(Model).all()
+        # 从内存数据库获取所有模型
+        return memory_db.get('models')
     
     def get_model_by_name(self, model_name):
         """根据名称获取模型"""
-        return self.db.query(Model).filter(Model.name == model_name).first()
+        # 从内存数据库查询模型
+        models = memory_db.query('models', name=model_name)
+        return models[0] if models else None
     
     def create_model(self, name, description, configured, enabled, icon_class, icon_bg, icon_color, icon_url, icon_blob):
         """创建新模型"""
@@ -46,14 +49,14 @@ class ModelRepository(BaseRepository):
     
     def get_model_versions(self, model_id):
         """获取模型的所有版本"""
-        return self.db.query(ModelVersion).filter(ModelVersion.model_id == model_id).all()
+        # 从内存数据库查询模型版本
+        return memory_db.query('model_versions', model_id=model_id)
     
     def get_model_version(self, model_id, version_name):
         """获取特定版本的模型"""
-        return self.db.query(ModelVersion).filter(
-            ModelVersion.model_id == model_id,
-            ModelVersion.version_name == version_name
-        ).first()
+        # 从内存数据库查询模型版本
+        versions = memory_db.query('model_versions', model_id=model_id, version_name=version_name)
+        return versions[0] if versions else None
     
     def create_model_version(self, model_id, version_name, custom_name, api_key, api_base_url, streaming_config):
         """创建新模型版本"""
@@ -99,7 +102,9 @@ class ModelRepository(BaseRepository):
     
     def is_model_table_empty(self):
         """检查模型表是否为空"""
-        return self.db.query(Model).count() == 0
+        # 从内存数据库获取所有模型
+        models = memory_db.get('models')
+        return len(models) == 0
     
     def create_or_update_model(self, name, description, configured, enabled, icon_class, icon_bg, icon_color, icon_url, icon_blob):
         """创建或更新模型"""

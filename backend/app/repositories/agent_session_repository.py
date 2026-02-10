@@ -1,18 +1,22 @@
 """智能体会话数据访问类"""
-from sqlalchemy import desc
 from app.repositories.base_repository import BaseRepository
 from app.models.database.models import AgentSession
+from app.core.memory_database import memory_db
 
 class AgentSessionRepository(BaseRepository):
     """智能体会话数据访问类，处理智能体会话相关的数据访问"""
     
     def get_session_by_id(self, session_id):
         """根据ID获取智能体会话"""
-        return self.db.query(AgentSession).filter(AgentSession.id == session_id).first()
+        # 从内存数据库获取智能体会话
+        return memory_db.get('agent_sessions', session_id)
     
     def get_sessions_by_chat_id(self, chat_id):
         """根据对话ID获取所有智能体会话"""
-        return self.db.query(AgentSession).filter(AgentSession.chat_id == chat_id).order_by(desc(AgentSession.created_at)).all()
+        # 从内存数据库查询智能体会话
+        sessions = memory_db.query('agent_sessions', chat_id=chat_id)
+        # 按created_at降序排序
+        return sorted(sessions, key=lambda x: x.created_at, reverse=True)
     
     def create_session(self, session_id, chat_id, created_at, updated_at, graph_state=None, current_node="", step_count=0):
         """创建新智能体会话"""
@@ -59,20 +63,26 @@ class AgentSessionRepository(BaseRepository):
     
     def delete_sessions_by_chat_id(self, chat_id):
         """根据对话ID删除所有智能体会话"""
-        # 批量删除，利用SQLAlchemy的删除API
-        result = self.db.query(AgentSession).filter(AgentSession.chat_id == chat_id).delete()
-        self.db.commit()
-        return result
+        # 从内存数据库查询智能体会话
+        sessions = memory_db.query('agent_sessions', chat_id=chat_id)
+        # 删除所有智能体会话
+        for session in sessions:
+            memory_db.delete('agent_sessions', session.id)
+        return len(sessions)
     
     def delete_all_sessions(self):
         """删除所有智能体会话"""
-        result = self.db.query(AgentSession).delete()
-        self.db.commit()
-        return result
+        # 从内存数据库获取所有智能体会话
+        sessions = memory_db.get('agent_sessions')
+        # 删除所有智能体会话
+        for session in sessions:
+            memory_db.delete('agent_sessions', session.id)
+        return len(sessions)
     
     def get_all_sessions(self):
         """获取所有智能体会话"""
-        return self.db.query(AgentSession).all()
+        # 从内存数据库获取所有智能体会话
+        return memory_db.get('agent_sessions')
     
     def create_or_update_session(self, session_id, chat_id, created_at, updated_at, graph_state=None, current_node="", step_count=0):
         """创建或更新智能体会话"""
@@ -92,4 +102,8 @@ class AgentSessionRepository(BaseRepository):
     
     def get_latest_session_by_chat_id(self, chat_id):
         """获取对话的最新智能体会话"""
-        return self.db.query(AgentSession).filter(AgentSession.chat_id == chat_id).order_by(desc(AgentSession.created_at)).first()
+        # 从内存数据库查询智能体会话
+        sessions = memory_db.query('agent_sessions', chat_id=chat_id)
+        # 按created_at降序排序并返回第一个
+        sorted_sessions = sorted(sessions, key=lambda x: x.created_at, reverse=True)
+        return sorted_sessions[0] if sorted_sessions else None

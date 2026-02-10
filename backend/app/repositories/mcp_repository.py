@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Any
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.database.mcp_models import MCPConfig, MCPTool, MCPServer
+from app.core.memory_database import memory_db
 import json
 
 
@@ -26,10 +27,9 @@ class MCPRepository:
         Returns:
             Optional[MCPConfig]: 配置对象
         """
-        return self.db.query(MCPConfig).filter(
-            MCPConfig.name == name,
-            MCPConfig.enabled == True
-        ).first()
+        # 从内存数据库查询配置
+        configs = memory_db.query('mcp_configs', name=name, enabled=True)
+        return configs[0] if configs else None
     
     def get_all_configs(self) -> List[MCPConfig]:
         """获取所有 MCP 配置
@@ -37,7 +37,8 @@ class MCPRepository:
         Returns:
             List[MCPConfig]: 配置列表
         """
-        return self.db.query(MCPConfig).filter(MCPConfig.enabled == True).all()
+        # 从内存数据库查询所有启用的配置
+        return memory_db.query('mcp_configs', enabled=True)
     
     def create_config(self, name: str, config: Dict[str, Any]) -> MCPConfig:
         """创建 MCP 配置
@@ -54,18 +55,16 @@ class MCPRepository:
         if existing:
             # 更新现有配置
             existing.config = json.dumps(config)
-            self.db.commit()
-            self.db.refresh(existing)
+            memory_db.set('mcp_configs', existing)
             return existing
         
         # 创建新配置
         new_config = MCPConfig(
             name=name,
-            config=json.dumps(config)
+            config=json.dumps(config),
+            enabled=True
         )
-        self.db.add(new_config)
-        self.db.commit()
-        self.db.refresh(new_config)
+        memory_db.set('mcp_configs', new_config)
         return new_config
     
     def update_config(self, name: str, config: Dict[str, Any]) -> Optional[MCPConfig]:
@@ -81,8 +80,7 @@ class MCPRepository:
         existing = self.get_config(name)
         if existing:
             existing.config = json.dumps(config)
-            self.db.commit()
-            self.db.refresh(existing)
+            memory_db.set('mcp_configs', existing)
             return existing
         return None
     
@@ -98,7 +96,7 @@ class MCPRepository:
         existing = self.get_config(name)
         if existing:
             existing.enabled = False
-            self.db.commit()
+            memory_db.set('mcp_configs', existing)
             return True
         return False
     
@@ -111,10 +109,9 @@ class MCPRepository:
         Returns:
             Optional[MCPTool]: 工具对象
         """
-        return self.db.query(MCPTool).filter(
-            MCPTool.name == name,
-            MCPTool.enabled == True
-        ).first()
+        # 从内存数据库查询工具
+        tools = memory_db.query('mcp_tools', name=name, enabled=True)
+        return tools[0] if tools else None
     
     def get_all_tools(self) -> List[MCPTool]:
         """获取所有 MCP 工具
@@ -122,7 +119,8 @@ class MCPRepository:
         Returns:
             List[MCPTool]: 工具列表
         """
-        return self.db.query(MCPTool).filter(MCPTool.enabled == True).all()
+        # 从内存数据库查询所有启用的工具
+        return memory_db.query('mcp_tools', enabled=True)
     
     def create_tool(self, name: str, description: str, tool_type: str) -> MCPTool:
         """创建 MCP 工具
@@ -141,19 +139,17 @@ class MCPRepository:
             # 更新现有工具
             existing.description = description
             existing.type = tool_type
-            self.db.commit()
-            self.db.refresh(existing)
+            memory_db.set('mcp_tools', existing)
             return existing
         
         # 创建新工具
         new_tool = MCPTool(
             name=name,
             description=description,
-            type=tool_type
+            type=tool_type,
+            enabled=True
         )
-        self.db.add(new_tool)
-        self.db.commit()
-        self.db.refresh(new_tool)
+        memory_db.set('mcp_tools', new_tool)
         return new_tool
     
     def get_server(self, name: str) -> Optional[MCPServer]:
@@ -165,10 +161,9 @@ class MCPRepository:
         Returns:
             Optional[MCPServer]: 服务器对象
         """
-        return self.db.query(MCPServer).filter(
-            MCPServer.name == name,
-            MCPServer.enabled == True
-        ).first()
+        # 从内存数据库查询服务器
+        servers = memory_db.query('mcp_servers', name=name, enabled=True)
+        return servers[0] if servers else None
     
     def get_all_servers(self) -> List[MCPServer]:
         """获取所有 MCP 服务器
@@ -176,7 +171,8 @@ class MCPRepository:
         Returns:
             List[MCPServer]: 服务器列表
         """
-        return self.db.query(MCPServer).filter(MCPServer.enabled == True).all()
+        # 从内存数据库查询所有启用的服务器
+        return memory_db.query('mcp_servers', enabled=True)
     
     def create_server(self, name: str, description: str, server_type: str, config: Dict[str, Any]) -> MCPServer:
         """创建 MCP 服务器
@@ -197,8 +193,7 @@ class MCPRepository:
             existing.description = description
             existing.type = server_type
             existing.config = json.dumps(config)
-            self.db.commit()
-            self.db.refresh(existing)
+            memory_db.set('mcp_servers', existing)
             return existing
         
         # 创建新服务器
@@ -206,9 +201,8 @@ class MCPRepository:
             name=name,
             description=description,
             type=server_type,
-            config=json.dumps(config)
+            config=json.dumps(config),
+            enabled=True
         )
-        self.db.add(new_server)
-        self.db.commit()
-        self.db.refresh(new_server)
+        memory_db.set('mcp_servers', new_server)
         return new_server

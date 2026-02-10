@@ -1,21 +1,26 @@
 """文件夹数据访问类"""
 from app.repositories.base_repository import BaseRepository
 from app.models.database.models import Folder
+from app.core.memory_database import memory_db
 
 class FolderRepository(BaseRepository):
     """文件夹数据访问类，处理文件夹相关的数据访问"""
     
     def get_all_folders(self):
         """获取所有文件夹"""
-        return self.db.query(Folder).all()
+        # 从内存数据库获取所有文件夹
+        return memory_db.get('folders')
     
     def get_folder_by_id(self, folder_id):
         """根据ID获取文件夹"""
-        return self.db.query(Folder).filter(Folder.id == folder_id).first()
+        # 从内存数据库获取文件夹
+        return memory_db.get('folders', folder_id)
     
     def get_folder_by_name(self, folder_name):
         """根据名称获取文件夹"""
-        return self.db.query(Folder).filter(Folder.name == folder_name).first()
+        # 从内存数据库查询文件夹
+        folders = memory_db.query('folders', name=folder_name)
+        return folders[0] if folders else None
     
     def create_folder(self, folder_id, name, created_at, updated_at, description=""):
         """创建新文件夹"""
@@ -59,11 +64,9 @@ class FolderRepository(BaseRepository):
     
     def delete_all_folders(self):
         """删除所有文件夹"""
-        try:
-            # 删除所有文件夹
-            self.db.query(Folder).delete()
-            self.db.commit()
-            return True
-        except Exception as e:
-            self.db.rollback()
-            raise e
+        # 从内存数据库获取所有文件夹
+        folders = memory_db.get('folders')
+        # 删除所有文件夹
+        for folder in folders:
+            memory_db.delete('folders', folder.id)
+        return True

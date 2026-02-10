@@ -47,6 +47,19 @@ class DataService(BaseService):
         """清空对话"""
         db['chats'] = []
         DataService.set_dirty_flag('chats')
+        
+        # 同时清空 memory_db 中的对话和消息
+        from app.core.memory_database import memory_db
+        
+        # 清空对话
+        chats = memory_db.get('chats')
+        for chat in chats:
+            memory_db.delete('chats', chat.id)
+        
+        # 清空消息
+        messages = memory_db.get('messages')
+        for message in messages:
+            memory_db.delete('messages', message.id)
     
     @staticmethod
     def update_chat(chat_id, updated_data):
