@@ -139,9 +139,9 @@
         </button>
         <!-- 滑动块 -->
         <span 
-          class="absolute inset-0.5 bg-gray-800 dark:bg-gray-700 rounded-full transition-all duration-300 ease-in-out"
+          class="absolute top-0.5 bottom-0.5 bg-gray-800 dark:bg-gray-700 rounded-full transition-all duration-300 ease-in-out"
           :style="{
-            transform: getSettingsTabTransform(),
+            left: getSettingsTabLeft(),
             width: '25%'
           }"
         ></span>
@@ -254,7 +254,7 @@ const handleSettingsTabClick = (section) => {
 };
 
 // 计算设置选项卡滑动块的位置
-const getSettingsTabTransform = () => {
+const getSettingsTabLeft = () => {
   const activeSection = uiStore.activeSection || 'general';
   const sectionIndex = {
     general: 0,
@@ -263,7 +263,7 @@ const getSettingsTabTransform = () => {
     about: 3
   }[activeSection] || 0;
   
-  return `translateX(${sectionIndex * 100}%)`;
+  return `${sectionIndex * 25}%`;
 };
 
 // Expose
