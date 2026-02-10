@@ -62,6 +62,7 @@
         <!-- 历史对话下拉菜单 -->
         <div 
           v-if="showHistoryMenu"
+          ref="historyMenuRef"
           class="absolute top-full mt-2 right-0 w-64 rounded-lg shadow-lg border z-9999 dropdown-content flex flex-col py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700 max-h-96 overflow-y-auto"
         >
           <!-- 下拉菜单标题 -->
@@ -151,7 +152,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUiStore } from '../../store/uiStore.js';
 import { useChatStore } from '../../store/chatStore.js';
@@ -176,6 +177,15 @@ const router = useRouter();
 // State
 const showHistoryMenu = ref(false);
 const titleContainer = ref(null);
+const historyMenuRef = ref(null);
+
+// 处理点击外部关闭历史菜单
+const handleClickOutside = (event) => {
+  if (historyMenuRef.value && !historyMenuRef.value.contains(event.target) && 
+      !event.target.closest('#historyChat') && showHistoryMenu.value) {
+    showHistoryMenu.value = false;
+  }
+};
 
 // 获取当前对话标题
 const getChatTitle = () => {
@@ -263,6 +273,15 @@ const getSettingsTabLeft = () => {
   
   return `${sectionIndex * 25}%`;
 };
+
+// 生命周期钩子
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 // Expose
 defineExpose({
