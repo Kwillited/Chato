@@ -117,15 +117,8 @@ class ChatService(BaseService):
             if 'role' in msg and 'content' in msg:
                 # 原始内容
                 original_content = msg['content']
-                # 剔除content中的think标签内容，仅当未启用深度思考时
-                content = original_content
-                
-                if not deep_thinking:
-                    # 使用工具类过滤think标签
-                    content = MessageHandler.Request.filter_think_tags(content)
-                else:
-                    # 启用深度思考时，只去除多余的空白字符
-                    content = content.strip()
+                # 直接使用原始内容，因为现在思考内容已经通过reasoning_content字段处理
+                content = original_content.strip()
                 
                 formatted_messages.append({
                     'role': msg['role'],

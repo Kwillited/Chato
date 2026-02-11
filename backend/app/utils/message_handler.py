@@ -59,18 +59,7 @@ class MessageHandler:
         
 
         
-        @staticmethod
-        def filter_think_tags(content: str) -> str:
-            """过滤内容中的think标签
-            
-            Args:
-                content: 原始内容
-                
-            Returns:
-                过滤后的内容
-            """
-            # 直接返回原始内容，因为现在思考内容已经通过reasoning_content字段处理
-            return content
+
     
     # 输出处理器（Response）
     class Response:
