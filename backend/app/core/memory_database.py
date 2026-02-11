@@ -62,15 +62,17 @@ class MemoryDatabaseManager:
                     for key, value in data.__dict__.items():
                         if not key.startswith('_'):
                             setattr(existing, key, value)
-                    self._db.commit()
-                    self._db.refresh(existing)
+                    # 移除 commit，让调用方决定何时提交
+                    # self._db.commit()
+                    # self._db.refresh(existing)
                     return existing
                 else:
                     # 创建新记录
                     new_setting = SystemSetting(**{k: v for k, v in data.__dict__.items() if not k.startswith('_')})
                     self._db.add(new_setting)
-                    self._db.commit()
-                    self._db.refresh(new_setting)
+                    # 移除 commit，让调用方决定何时提交
+                    # self._db.commit()
+                    # self._db.refresh(new_setting)
                     return new_setting
             
 
@@ -81,14 +83,16 @@ class MemoryDatabaseManager:
                     for key, value in data.__dict__.items():
                         if not key.startswith('_'):
                             setattr(existing, key, value)
-                    self._db.commit()
-                    self._db.refresh(existing)
+                    # 移除 commit，让调用方决定何时提交
+                    # self._db.commit()
+                    # self._db.refresh(existing)
                     return existing
                 else:
                     new_setting = VectorSetting(**{k: v for k, v in data.__dict__.items() if not k.startswith('_')})
                     self._db.add(new_setting)
-                    self._db.commit()
-                    self._db.refresh(new_setting)
+                    # 移除 commit，让调用方决定何时提交
+                    # self._db.commit()
+                    # self._db.refresh(new_setting)
                     return new_setting
             
 
@@ -112,11 +116,13 @@ class MemoryDatabaseManager:
                             # 直接添加对象到会话中
                             self._db.add(chat)
                         
-                        self._db.commit()
+                        # 移除 commit，让调用方决定何时提交
+                        # self._db.commit()
                         return data
                     except Exception as e:
                         print(f"保存聊天数据失败: {e}")
-                        self._db.rollback()
+                        # 移除 rollback，让调用方决定何时回滚
+                        # self._db.rollback()
                         # 尝试重新创建对象
                         self._db.query(Message).delete()
                         self._db.query(AgentSession).delete()
@@ -138,14 +144,16 @@ class MemoryDatabaseManager:
                             self._db.add(new_chat)
                             new_chats.append(new_chat)
                         
-                        self._db.commit()
+                        # 移除 commit，让调用方决定何时提交
+                        # self._db.commit()
                         # 更新内存数据库中的对象
                         self._memory_data['chats'] = new_chats
                         return new_chats
             
         except Exception as e:
             print(f"保存数据到数据库失败: {e}")
-            self._db.rollback()
+            # 移除 rollback，让调用方决定何时回滚
+            # self._db.rollback()
             return None
     
     def get(self, model_type: str) -> Optional[Any]:
@@ -199,6 +207,12 @@ class MemoryDatabaseManager:
                 
                 # 同步到SQLite
                 result = self.save_to_database(model_type, existing_data)
+                try:
+                    # 提交事务，确保更改被保存到数据库
+                    self._db.commit()
+                except Exception as commit_error:
+                    print(f"提交事务失败: {commit_error}")
+                    # 不调用 rollback()，因为 commit() 失败后事务可能已经关闭
                 return result
             else:
                 # 创建新数据
@@ -215,9 +229,21 @@ class MemoryDatabaseManager:
                 
                 # 同步到SQLite
                 result = self.save_to_database(model_type, new_data)
+                try:
+                    # 提交事务，确保更改被保存到数据库
+                    self._db.commit()
+                except Exception as commit_error:
+                    print(f"提交事务失败: {commit_error}")
+                    # 不调用 rollback()，因为 commit() 失败后事务可能已经关闭
                 return result
         except Exception as e:
             print(f"创建或更新数据失败: {e}")
+            # 尝试回滚，但捕获可能的错误
+            try:
+                self._db.rollback()
+            except:
+                # 忽略回滚错误，因为事务可能已经关闭
+                pass
             return None
     
     def refresh(self, model_type: str) -> bool:

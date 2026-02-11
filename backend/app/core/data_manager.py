@@ -489,7 +489,7 @@ def load_settings_from_db():
                 'show_timestamps': system_setting.show_timestamps,
                 'confirm_delete': system_setting.confirm_delete,
                 'streaming_enabled': system_setting.streaming_enabled,
-                'chat_style_document': system_setting.chat_style_document,
+                'chat_style': system_setting.chat_style,
                 'view_mode': system_setting.view_mode,
                 'default_model': system_setting.default_model,
                 'rag_view_mode': system_setting.rag_view_mode
@@ -545,7 +545,7 @@ def save_settings_to_db(conn=None):
                 'show_timestamps': system_data.get('show_timestamps', True),
                 'confirm_delete': system_data.get('confirm_delete', True),
                 'streaming_enabled': system_data.get('streaming_enabled', True),
-                'chat_style_document': system_data.get('chat_style_document', False),
+                'chat_style': system_data.get('chat_style', 'bubble'),
                 'view_mode': system_data.get('view_mode', 'grid'),
                 'default_model': system_data.get('default_model', ''),
                 'rag_view_mode': system_data.get('rag_view_mode', True)

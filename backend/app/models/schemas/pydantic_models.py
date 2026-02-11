@@ -207,14 +207,9 @@ class BasicSettings(BaseModel):
 class SystemSettings(BaseModel):
     """系统设置模型"""
     dark_mode: bool = False
-    font_size: int = 14
-    chat_style_document: bool = False
+    chat_style: str = "bubble"
     view_mode: str = "grid"
-    show_hidden_files: bool = False
-    auto_refresh_files: bool = True
-    max_recent_files: int = 10
     # 通知相关字段
-    enabled: bool = True
     newMessage: bool = True
     sound: bool = False
     system: bool = True

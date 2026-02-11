@@ -119,7 +119,7 @@ class ModelConverter:
         sanitized_data = {}
         for key, value in model_data.items():
             # 处理布尔类型字段
-            if key in ['configured', 'enabled', 'streaming_config', 'dark_mode', 'auto_scroll', 'show_timestamps', 'confirm_delete', 'streaming_enabled', 'chat_style_document', 'rag_view_mode']:
+            if key in ['configured', 'enabled', 'streaming_config', 'dark_mode', 'auto_scroll', 'show_timestamps', 'confirm_delete', 'streaming_enabled', 'rag_view_mode']:
                 sanitized_data[key] = ModelConverter.convert_to_bool(value)
             else:
                 sanitized_data[key] = value

@@ -1,19 +1,19 @@
 <template>
   <div v-if="message" :id="id">
     <!-- 默认样式 -->
-    <div v-if="!chatStyleDocument" class="flex" :class="{ 'justify-end': isUserMessage }">
+    <div v-if="chatStyle !== 'document'" class="flex" :class="{ 'justify-end': isUserMessage }">
       <!-- AI消息气泡 -->
       <AIChatBubble 
         v-if="!isUserMessage" 
         :message="message" 
-        :chatStyleDocument="chatStyleDocument"
+        :chatStyle="chatStyle"
       />
       
       <!-- 用户消息气泡 -->
       <UserChatBubble 
         v-else 
         :message="message" 
-        :chatStyleDocument="chatStyleDocument"
+        :chatStyle="chatStyle"
         @editMessage="handleEditMessage"
       />
     </div>
@@ -24,7 +24,7 @@
       <div v-if="!isUserMessage" class="mb-4 w-full">
         <AIChatBubble 
           :message="message" 
-          :chatStyleDocument="chatStyleDocument"
+          :chatStyle="chatStyle"
         />
       </div>
       
@@ -32,7 +32,7 @@
       <div v-else class="flex justify-end mb-4 w-full">
         <UserChatBubble 
           :message="message" 
-          :chatStyleDocument="false"
+          :chatStyle="'bubble'"
           @editMessage="handleEditMessage"
         />
       </div>
@@ -51,9 +51,9 @@ const props = defineProps({
     required: true,
     default: () => ({})
   },
-  chatStyleDocument: {
-    type: Boolean,
-    default: false
+  chatStyle: {
+    type: String,
+    default: 'bubble'
   },
   id: {
     type: String,

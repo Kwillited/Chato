@@ -34,12 +34,9 @@ const STORAGE_KEYS = {
  * @property {boolean} darkMode - 深色模式
  * @property {number} fontSize - 字体大小
  * @property {string} fontFamily - 字体
- * @property {string} language - 语言
  * @property {boolean} autoScroll - 自动滚动
- * @property {boolean} showTimestamps - 显示时间戳
- * @property {boolean} confirmDelete - 删除确认
  * @property {boolean} streamingEnabled - 启用流式输出
- * @property {boolean} chatStyleDocument - 使用文档样式
+ * @property {string} chatStyle - 聊天样式，可选值：'bubble' 或 'document'
  */
 
 // 定义模型参数的类型描述
@@ -56,7 +53,6 @@ export const useSettingsStore = defineStore('settings', {
   state: () => ({
     // 通知相关设置
     notificationsConfig: {
-      enabled: true,
       newMessage: true,
       sound: false,
       system: true,
@@ -68,16 +64,13 @@ export const useSettingsStore = defineStore('settings', {
       darkMode: false,
       fontSize: 16,
       fontFamily: 'Inter, system-ui, sans-serif',
-      language: 'zh-CN',
       autoScroll: true,
-      showTimestamps: true,
       graphLayout: 'force',
       graphNodeSize: 40,
       showGraphNodeLabels: true,
       graphAnimations: true,
-      confirmDelete: true,
       streamingEnabled: true,
-      chatStyleDocument: false,
+      chatStyle: 'bubble',
       defaultModel: '',
       viewMode: 'grid',
     },
@@ -197,7 +190,6 @@ export const useSettingsStore = defineStore('settings', {
     // 重置设置为默认值
     resetSettings() {
       this.notificationsConfig = {
-        enabled: true,
         newMessage: true,
         sound: false,
         system: true,
@@ -208,12 +200,9 @@ export const useSettingsStore = defineStore('settings', {
         darkMode: false,
         fontSize: 16,
         fontFamily: 'Inter, system-ui, sans-serif',
-        language: 'zh-CN',
         autoScroll: true,
-        showTimestamps: true,
-        confirmDelete: true,
         streamingEnabled: true,
-        chatStyleDocument: false,
+        chatStyle: 'bubble',
         viewMode: 'grid',
       };
 
@@ -242,18 +231,15 @@ export const useSettingsStore = defineStore('settings', {
           // 更新系统设置，转换字段名以匹配前端模型
           const updatedSystemSettings = {
             darkMode: systemSettings.dark_mode,
-            fontSize: systemSettings.font_size,
-            chatStyleDocument: systemSettings.chat_style_document,
+            chatStyle: systemSettings.chat_style,
             viewMode: systemSettings.view_mode,
-            showHiddenFiles: systemSettings.show_hidden_files,
-            autoRefreshFiles: systemSettings.auto_refresh_files,
-            maxRecentFiles: systemSettings.max_recent_files
+            streamingEnabled: systemSettings.streaming_enabled,
+            defaultModel: systemSettings.default_model
           };
           this.systemSettings = { ...this.systemSettings, ...updatedSystemSettings };
           
           // 更新通知设置
           const updatedNotificationsConfig = {
-            enabled: systemSettings.enabled,
             newMessage: systemSettings.newMessage,
             sound: systemSettings.sound,
             system: systemSettings.system,
@@ -361,14 +347,11 @@ export const useSettingsStore = defineStore('settings', {
         const settingsToSave = {
           // 系统设置
           dark_mode: this.systemSettings.darkMode,
-          font_size: this.systemSettings.fontSize,
-          chat_style_document: this.systemSettings.chatStyleDocument,
+          chat_style: this.systemSettings.chatStyle,
           view_mode: this.systemSettings.viewMode,
-          show_hidden_files: this.systemSettings.showHiddenFiles || false,
-          auto_refresh_files: this.systemSettings.autoRefreshFiles || true,
-          max_recent_files: this.systemSettings.maxRecentFiles || 10,
+          streaming_enabled: this.systemSettings.streamingEnabled,
+          default_model: this.systemSettings.defaultModel,
           // 通知设置
-          enabled: this.notificationsConfig.enabled,
           newMessage: this.notificationsConfig.newMessage,
           sound: this.notificationsConfig.sound,
           system: this.notificationsConfig.system,

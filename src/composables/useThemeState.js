@@ -17,8 +17,7 @@ export function useThemeState() {
   // 计算属性：当前字体家族
   const fontFamily = computed(() => settingsStore.systemSettings.fontFamily);
   
-  // 计算属性：当前语言
-  const language = computed(() => settingsStore.systemSettings.language);
+
   
   // 方法：切换深色模式
   const toggleDarkMode = () => {
@@ -35,10 +34,7 @@ export function useThemeState() {
     settingsStore.updateSystemSettings({ fontFamily: family });
   };
   
-  // 方法：设置语言
-  const setLanguage = (lang) => {
-    settingsStore.updateSystemSettings({ language: lang });
-  };
+
   
   // 方法：应用主题设置
   const applyThemeSettings = () => {
@@ -62,7 +58,6 @@ export function useThemeState() {
       darkMode: false,
       fontSize: 16,
       fontFamily: 'Inter, system-ui, sans-serif',
-      language: 'zh-CN',
     });
     applyThemeSettings();
   };
@@ -72,13 +67,11 @@ export function useThemeState() {
     isDarkMode,
     fontSize,
     fontFamily,
-    language,
     
     // 方法
     toggleDarkMode,
     setFontSize,
     setFontFamily,
-    setLanguage,
     applyThemeSettings,
     resetThemeSettings,
   };

@@ -235,11 +235,11 @@ const activeTab = ref('chat'); // 默认选中对话设置选项卡
 const showDeleteAllModal = ref(false);
 const isDeletingAll = ref(false);
 
-// 计算属性：聊天样式值（转换为字符串格式）
+// 计算属性：聊天样式值
 const chatStyleValue = computed({
-  get: () => settingsStore.systemSettings.chatStyleDocument ? 'document' : 'bubble',
+  get: () => settingsStore.systemSettings.chatStyle,
   set: (value) => {
-    settingsStore.systemSettings.chatStyleDocument = value === 'document';
+    settingsStore.systemSettings.chatStyle = value;
   }
 });
 
@@ -417,7 +417,7 @@ onUnmounted(() => {
 // 设置聊天样式
 const setChatStyle = (style) => {
   settingsStore.updateSystemSettings({
-    chatStyleDocument: style === 'document'
+    chatStyle: style
   });
 };
 

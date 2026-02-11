@@ -16,9 +16,9 @@ const props = defineProps({
     required: true,
     default: () => ({})
   },
-  chatStyleDocument: {
-    type: Boolean,
-    default: false
+  chatStyle: {
+    type: String,
+    default: 'bubble'
   }
 })
 

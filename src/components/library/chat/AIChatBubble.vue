@@ -1,7 +1,7 @@
 <template>
   <!-- 文档模式样式 -->
   <AIDocumentStyle 
-    v-if="chatStyleDocument"
+    v-if="chatStyle === 'document'"
     :message="message"
   />
   
@@ -13,7 +13,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import AIBubbleStyle from './styles/AIBubbleStyle.vue'
 import AIDocumentStyle from './styles/AIDocumentStyle.vue'
 
@@ -23,9 +22,9 @@ const props = defineProps({
     required: true,
     default: () => ({})
   },
-  chatStyleDocument: {
-    type: Boolean,
-    default: false
+  chatStyle: {
+    type: String,
+    default: 'bubble'
   }
 })
 </script>

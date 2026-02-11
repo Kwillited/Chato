@@ -9,7 +9,7 @@
           v-for="(message, msgIndex) in group.messages" 
           :key="message.timestamp" 
           :message="message" 
-          :chatStyleDocument="settingsStore.systemSettings.chatStyleDocument" 
+          :chatStyle="settingsStore.systemSettings.chatStyle" 
           :id="`message-${groupIndex}-${msgIndex}`" 
         />
       </template>

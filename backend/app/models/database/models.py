@@ -122,19 +122,11 @@ class SystemSetting(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     dark_mode = Column(Boolean, default=False)
-    font_size = Column(Integer, default=16)
-    font_family = Column(String, default="Inter, system-ui, sans-serif")
-    language = Column(String, default="zh-CN")
-    auto_scroll = Column(Boolean, default=True)
-    show_timestamps = Column(Boolean, default=True)
-    confirm_delete = Column(Boolean, default=True)
     streaming_enabled = Column(Boolean, default=True)
-    chat_style_document = Column(Boolean, default=False)
+    chat_style = Column(String, default="bubble")
     view_mode = Column(String, default="grid")
     default_model = Column(String, default="")
-    rag_view_mode = Column(Boolean, default=True)  # RAG视图模式：True=文件列表，False=知识图谱
     # 通知相关字段
-    enabled = Column(Boolean, default=True)
     new_message = Column(Boolean, default=True)
     sound = Column(Boolean, default=False)
     system = Column(Boolean, default=True)
