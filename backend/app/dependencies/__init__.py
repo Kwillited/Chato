@@ -18,12 +18,19 @@ from app.services.mcp.mcp_service import MCPService
 from app.services.vector.vector_store_service import VectorStoreService
 from app.services.vector.vector_db_service import VectorDBService
 from app.services.vector.vector_service import VectorService
+from app.core.memory_cache import MemoryCache
 
 
 # 数据库会话依赖
 def get_db_session():
     """获取数据库会话"""
     return Depends(get_db)
+
+
+# 内存缓存依赖
+def get_memory_cache():
+    """获取内存缓存实例"""
+    return MemoryCache()
 
 
 # 仓库依赖
@@ -42,9 +49,9 @@ def get_model_repository(db: Session = Depends(get_db)):
     return ModelRepository(db)
 
 
-def get_setting_repository(db: Session = Depends(get_db)):
+def get_setting_repository(db: Session = Depends(get_db), memory_cache: MemoryCache = Depends(get_memory_cache)):
     """获取设置仓库实例"""
-    return SettingRepository(db)
+    return SettingRepository(db, memory_cache)
 
 
 def get_agent_session_repository(db: Session = Depends(get_db)):
@@ -70,10 +77,11 @@ def get_model_service(
 
 
 def get_setting_service(
-    setting_repo: SettingRepository = Depends(get_setting_repository)
+    setting_repo: SettingRepository = Depends(get_setting_repository),
+    memory_cache: MemoryCache = Depends(get_memory_cache)
 ):
     """获取设置服务实例"""
-    return SettingService(setting_repo)
+    return SettingService(setting_repo, memory_cache)
 
 
 def get_mcp_service(setting_service: SettingService = Depends(get_setting_service)):

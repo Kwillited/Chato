@@ -1,7 +1,6 @@
 """基础Repository类"""
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
-from app.core.memory_database import memory_db
 
 class BaseRepository:
     """基础Repository类，提供通用的数据访问方法"""
@@ -25,10 +24,13 @@ class BaseRepository:
     
     def add(self, model):
         """添加模型实例到数据库"""
-        # 对于设置相关模型，使用内存数据库
+        # 对于设置相关模型，使用传统数据库操作
         model_type = self._get_model_type(model)
         if model_type:
-            memory_db.set(model_type, model)
+            # 直接添加到数据库
+            self.db.add(model)
+            self.db.commit()
+            self.db.refresh(model)
             return model
         
         # 对于其他模型，继续使用直接数据库操作
@@ -39,10 +41,12 @@ class BaseRepository:
     
     def update(self, model):
         """更新模型实例"""
-        # 对于设置相关模型，使用内存数据库
+        # 对于设置相关模型，使用传统数据库操作
         model_type = self._get_model_type(model)
         if model_type:
-            memory_db.set(model_type, model)
+            # 直接更新数据库
+            self.db.commit()
+            self.db.refresh(model)
             return model
         
         # 对于其他模型，继续使用直接数据库操作
@@ -55,8 +59,7 @@ class BaseRepository:
         # 对于设置相关模型，不支持删除操作
         model_type = self._get_model_type(model)
         if model_type:
-            # 可以选择将其设置为None或使用默认值
-            memory_db.set(model_type, None)
+            # 可以选择将其设置为默认值
             return
         
         # 对于其他模型，继续使用直接数据库操作
