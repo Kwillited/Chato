@@ -63,7 +63,7 @@ class AgentProcessor:
             return formatted_chunk, full_reply
     
     @staticmethod
-    def format_agent_message(message, now, model_display_name, session_id=None, node=None, step=None):
+    def format_agent_message(message, now, model_display_name, session_id=None, node=None, step=None, full_reasoning=None):
         """格式化智能体消息
 
         Args:
@@ -73,6 +73,7 @@ class AgentProcessor:
             session_id: 智能体会话ID
             node: 智能体节点名称
             step: 智能体步骤
+            full_reasoning: 累积的思考内容
 
         Returns:
             格式化后的智能体消息
@@ -80,7 +81,7 @@ class AgentProcessor:
         from app.utils.message_handler import MessageHandler
         
         # 创建基础AI消息
-        ai_message = MessageHandler.Response.process_full_reply(message, now, model_display_name)
+        ai_message = MessageHandler.Response.process_full_reply(message, now, model_display_name, full_reasoning)
         
         # 添加智能体相关字段
         ai_message['message_type'] = 'agent'

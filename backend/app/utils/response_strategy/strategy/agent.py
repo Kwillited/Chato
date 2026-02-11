@@ -87,11 +87,9 @@ class AgentResponseStrategy(ResponseStrategy):
                                     content, now, model_display_name, 
                                     session_id=agent_session_id, 
                                     node=current_node, 
-                                    step=current_step
+                                    step=current_step,
+                                    full_reasoning=node_reasoning_content
                                 )
-                                # 如果有思考内容，直接设置
-                                if node_reasoning_content:
-                                    ai_message['reasoning_content'] = node_reasoning_content
                                 print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                                 
                                 responses.append(ai_message)
@@ -292,11 +290,9 @@ class AgentResponseStrategy(ResponseStrategy):
                         content, now, model_display_name, 
                         session_id=agent_session_id, 
                         node=current_node, 
-                        step=current_step
+                        step=current_step,
+                        full_reasoning=node_reasoning_content
                     )
-                    # 如果有思考内容，直接设置
-                    if node_reasoning_content:
-                        ai_message['reasoning_content'] = node_reasoning_content
                     print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                     
                     responses.append(ai_message)
