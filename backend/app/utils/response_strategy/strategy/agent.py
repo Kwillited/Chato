@@ -25,6 +25,7 @@ class AgentResponseStrategy(ResponseStrategy):
                 
                 # 累积每个节点的响应
                 node_content = {}
+                node_reasoning = {}  # 新增：存储每个节点的思考内容
                 node_metadata = {}
                 current_node = None
                 current_step = 0
@@ -79,6 +80,8 @@ class AgentResponseStrategy(ResponseStrategy):
                                 
                                 metadata = node_metadata.get(current_node, {})
                                 print(f"[AgentResponseStrategy] 准备节点消息: node={current_node}, content={content[:50]}...")
+                                # 获取节点的思考内容
+                                node_reasoning_content = node_reasoning.get(current_node, None)
                                 # 使用AgentProcessor格式化智能体消息
                                 ai_message = AgentProcessor.format_agent_message(
                                     content, now, model_display_name, 
@@ -86,6 +89,9 @@ class AgentResponseStrategy(ResponseStrategy):
                                     node=current_node, 
                                     step=current_step
                                 )
+                                # 如果有思考内容，直接设置
+                                if node_reasoning_content:
+                                    ai_message['reasoning_content'] = node_reasoning_content
                                 print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                                 
                                 responses.append(ai_message)
@@ -121,7 +127,10 @@ class AgentResponseStrategy(ResponseStrategy):
                         if chunk.get('event') == 'on_chat_model_stream':
                             # 修复内容提取逻辑，适配 agent_wrapper.py 的响应格式
                             content = chunk.get('data', {}).get('content', '')
-                            print(f"[AgentResponseStrategy] 提取到内容: {content[:50]}...")
+                            reasoning_content = chunk.get('data', {}).get('reasoning_content', None)
+                            print(f"[AgentResponseStrategy] 提取到内容: {content[:50]}..., 思考内容: {reasoning_content[:50]}..." if reasoning_content else f"[AgentResponseStrategy] 提取到内容: {content[:50]}...")
+                            
+                            # 累积内容
                             if content:
                                 if node not in node_content:
                                     node_content[node] = ''
@@ -131,9 +140,25 @@ class AgentResponseStrategy(ResponseStrategy):
                                 agent_state["messages"].append({
                                     "role": "assistant",
                                     "content": content,
+                                    "reasoning_content": reasoning_content,
                                     "node": node,
                                     "agent_step": step
                                 })
+                            # 处理 reasoning_content
+                            if reasoning_content is not None:
+                                if node not in node_reasoning:
+                                    node_reasoning[node] = ''
+                                node_reasoning[node] += reasoning_content
+                                print(f"[AgentResponseStrategy] 累积节点思考内容: node={node}, length={len(node_reasoning[node])}")
+                                # 如果没有 content，也更新智能体状态中的消息
+                                if not content:
+                                    agent_state["messages"].append({
+                                        "role": "assistant",
+                                        "content": "",
+                                        "reasoning_content": reasoning_content,
+                                        "node": node,
+                                        "agent_step": step
+                                    })
                         elif chunk.get('event') == 'on_tool_call_stream':
                             # 存储工具调用计划
                             tool_calls = chunk.get('data', {}).get('tool_calls', [])
@@ -149,11 +174,11 @@ class AgentResponseStrategy(ResponseStrategy):
                                     # 更新智能体状态中的消息
                                     agent_state["messages"].append({
                                         "role": "assistant",
-                                    "content": f"计划调用工具: {tool_name}",
-                                    "node": node,
-                                    "agent_step": step,
-                                    "tool_name": tool_name,
-                                    "tool_args": tool_args
+                                        "content": f"计划调用工具: {tool_name}",
+                                        "node": node,
+                                        "agent_step": step,
+                                        "tool_name": tool_name,
+                                        "tool_args": tool_args
                                     })
                         elif chunk.get('event') == 'on_tool_start':
                             # 存储工具开始执行的信息
@@ -260,6 +285,8 @@ class AgentResponseStrategy(ResponseStrategy):
                     
                     metadata = node_metadata.get(current_node, {})
                     print(f"[AgentResponseStrategy] 准备节点消息: node={current_node}, content={content[:50]}...")
+                    # 获取节点的思考内容
+                    node_reasoning_content = node_reasoning.get(current_node, None)
                     # 使用AgentProcessor格式化智能体消息
                     ai_message = AgentProcessor.format_agent_message(
                         content, now, model_display_name, 
@@ -267,6 +294,9 @@ class AgentResponseStrategy(ResponseStrategy):
                         node=current_node, 
                         step=current_step
                     )
+                    # 如果有思考内容，直接设置
+                    if node_reasoning_content:
+                        ai_message['reasoning_content'] = node_reasoning_content
                     print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={current_node}, step={current_step}")
                     
                     responses.append(ai_message)

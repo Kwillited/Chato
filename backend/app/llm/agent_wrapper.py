@@ -149,14 +149,23 @@ class AgentWrapper:
 
                 if kind == "on_chat_model_stream":
                     chunk = event.get('data', {}).get('chunk')
-                    if chunk and chunk.content:
-                        # 重点：此处输出包含 <thought> 标签，前端可根据此标签渲染 UI
-                        yield {
-                            'event': 'on_chat_model_stream',
-                            'node': node,
-                            'agent_step': agent_step,
-                            'data': {'content': chunk.content}
-                        }
+                    if chunk:
+                        # 提取 reasoning_content
+                        reasoning_content = None
+                        if hasattr(chunk, 'additional_kwargs') and isinstance(chunk.additional_kwargs, dict):
+                            reasoning_content = chunk.additional_kwargs.get('reasoning_content')
+                        
+                        if chunk.content or reasoning_content is not None:
+                            # 重点：此处输出包含 <thought> 标签和 reasoning_content，前端可根据此标签渲染 UI
+                            yield {
+                                'event': 'on_chat_model_stream',
+                                'node': node,
+                                'agent_step': agent_step,
+                                'data': {
+                                    'content': chunk.content,
+                                    'reasoning_content': reasoning_content
+                                }
+                            }
                     
                     if chunk and hasattr(chunk, 'tool_call_chunks') and chunk.tool_call_chunks:
                         yield {
