@@ -57,10 +57,6 @@ class MessageHandler:
                 return latest_input, chat_history
             return "", []
         
-
-        
-
-    
     # 输出处理器（Response）
     class Response:
         """输出处理器，处理模型响应到用户的转换"""

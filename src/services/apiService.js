@@ -285,37 +285,60 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
               onMessage({ ...parsedData, done: true });
             } else if (parsedData.event === 'on_chat_model_stream') {
               // 流事件，提取chunk内容，保留node和step信息
-              if (parsedData.data.chunk) {
-                // 提取chunk内容
-                const chunkData = parsedData.data.chunk;
-                if (chunkData.content) {
-                  // chunk包含content字段
+              console.log('接收到on_chat_model_stream事件:', parsedData); // 添加调试日志
+                // 直接从data对象中提取content和reasoning_content字段
+                if (parsedData.data.content !== undefined) {
+                  // data包含content字段
+                  console.log('提取到content和reasoning_content:', {
+                    content: parsedData.data.content,
+                    reasoning_content: parsedData.data.reasoning_content
+                  }); // 添加调试日志
                   onMessage({ 
                     event: parsedData.event, 
                     node: parsedData.node, 
                     agent_step: parsedData.agent_step, 
-                    chunk: chunkData.content, 
+                    chunk: parsedData.data.content, 
+                    reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
                     done: false 
                   });
-                } else {
-                  // chunk直接是内容
+                } else if (parsedData.data.chunk) {
+                  // 兼容旧格式：data包含chunk字段
+                  const chunkData = parsedData.data.chunk;
+                  if (chunkData.content) {
+                    // chunk包含content字段
+                    console.log('提取到content和reasoning_content (旧格式):', {
+                      content: chunkData.content,
+                      reasoning_content: parsedData.data.reasoning_content
+                    }); // 添加调试日志
+                    onMessage({ 
+                      event: parsedData.event, 
+                      node: parsedData.node, 
+                      agent_step: parsedData.agent_step, 
+                      chunk: chunkData.content, 
+                      reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
+                      done: false 
+                    });
+                  } else {
+                    // chunk直接是内容
+                    onMessage({ 
+                      event: parsedData.event, 
+                      node: parsedData.node, 
+                      agent_step: parsedData.agent_step, 
+                      chunk: chunkData, 
+                      reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
+                      done: false 
+                    });
+                  }
+                } else if (parsedData.data.content) {
+                  // data直接包含content字段
                   onMessage({ 
                     event: parsedData.event, 
                     node: parsedData.node, 
                     agent_step: parsedData.agent_step, 
-                    chunk: chunkData, 
+                    chunk: parsedData.data.content, 
+                    reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
                     done: false 
                   });
-                }
-              } else if (parsedData.data.content) {
-                // data直接包含content字段
-                onMessage({ 
-                  event: parsedData.event, 
-                  node: parsedData.node, 
-                  agent_step: parsedData.agent_step, 
-                  chunk: parsedData.data.content, 
-                  done: false 
-                });
               } else {
                 // 其他流事件格式，直接传递
                 onMessage(parsedData);
