@@ -98,23 +98,22 @@ class AgentWrapper:
         if not self.is_initialized:
             await self.initialize()
 
-        # 设置模型参数
-        if hasattr(self.llm, 'temperature'):
-            self.llm.temperature = model_params.get('temperature', 0.7)
-        if hasattr(self.llm, 'max_tokens'):
-            self.llm.max_tokens = model_params.get('max_tokens', 2000)
-        if hasattr(self.llm, 'top_p'):
-            self.llm.top_p = model_params.get('top_p', 1.0)
-        if hasattr(self.llm, 'top_k'):
-            self.llm.top_k = model_params.get('top_k', 50)
-        if hasattr(self.llm, 'frequency_penalty'):
-            self.llm.frequency_penalty = model_params.get('frequency_penalty', 0.0)
+        # 1. 集中处理参数（调用基础模型的钩子）
+        call_kwargs = self.base_model._prepare_call_kwargs(model_params)
+        
+        # 2. 绑定工具时传递处理后的参数
+        tools = self.tool_manager.get_tools()
+        self.llm_with_tools = self.llm.bind_tools(tools, **call_kwargs) if tools else self.llm
+        
+        # 3. 重新初始化智能体节点和图
+        self.agent_nodes = AgentNodes(self.llm_with_tools, self.tool_manager)
+        self.graph = self._build_graph()
 
         prepared_messages = self._prepare_messages(messages)
         
         # 1. 基础模式
         if not use_agent:
-            async for event in self.llm.astream_events(prepared_messages, version="v2"):
+            async for event in self.llm.astream_events(prepared_messages, version="v2", **call_kwargs):
                 # 打印原始数据块
                 print(f"[AgentWrapper.chat_stream] 原始数据块 (基础模式): type={type(event).__name__}, content={str(event)[:200]}...")
                 
