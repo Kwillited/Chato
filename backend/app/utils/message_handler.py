@@ -57,33 +57,7 @@ class MessageHandler:
                 return latest_input, chat_history
             return "", []
         
-        @staticmethod
-        def process_think_tags(content: str) -> tuple:
-            """处理内容中的Think标签，提取思考内容并移除标签
-            
-            Args:
-                content: 包含思考标签的内容
-                
-            Returns:
-                tuple: (thinking_content, actual_content)
-            """
-            # 支持两种标签格式
-            think_patterns = [
-                re.compile(r'\s*<think>([\s\S]*?)</think>\s*', re.IGNORECASE),
-                re.compile(r'\s*\[think\]([\s\S]*?)\[/think\]\s*', re.IGNORECASE)
-            ]
-            
-            thinking_content = None
-            actual_content = content
-            
-            for pattern in think_patterns:
-                match = pattern.match(content)
-                if match:
-                    thinking_content = match.group(1)
-                    actual_content = pattern.sub('', content).strip()
-                    break
-            
-            return thinking_content, actual_content
+
         
         @staticmethod
         def filter_think_tags(content: str) -> str:
@@ -95,9 +69,8 @@ class MessageHandler:
             Returns:
                 过滤后的内容
             """
-            # 使用统一的process_think_tags方法
-            _, filtered_content = MessageHandler.Request.process_think_tags(content)
-            return filtered_content
+            # 直接返回原始内容，因为现在思考内容已经通过reasoning_content字段处理
+            return content
     
     # 输出处理器（Response）
     class Response:
@@ -141,13 +114,9 @@ class MessageHandler:
             Returns:
                 标准格式的AI回复消息
             """
-            # 如果提供了full_reasoning，直接使用它
-            if full_reasoning:
-                thinking_content = full_reasoning
-                actual_content = full_reply
-            else:
-                # 否则从full_reply中提取思考内容
-                thinking_content, actual_content = MessageHandler.Request.process_think_tags(full_reply)
+            # 直接使用提供的full_reasoning或None
+            thinking_content = full_reasoning
+            actual_content = full_reply
             
             # 创建AI回复，确保包含完整的模型和版本信息
             ai_message = MessageHandler.Response.create_ai_message(now, actual_content, model_display_name)
