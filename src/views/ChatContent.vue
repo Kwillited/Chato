@@ -58,6 +58,16 @@ const chatMessagesContainerRef = ref(null);
 // 本地UI状态
 const isScrollToBottomVisible = ref(false);
 
+// 统一检查和跳转逻辑
+const checkAndRedirectToHome = () => {
+  if (!chatStore.currentChatId || chatStore.currentChatMessages.length === 0) {
+    console.log('没有当前对话或消息为空，跳转到首页');
+    router.push('/');
+    return true;
+  }
+  return false;
+};
+
 // 处理发送消息事件
 const handleSendMessage = (message, model, deepThinking, webSearchEnabled, agent = false) => {
   if (message.trim() || chatStore.uploadedFiles.length > 0) {
@@ -129,42 +139,29 @@ watch(
   }
 );
 
-// 监听当前对话变化，安全滚动到底部
+// 合并监听：当前对话ID和消息长度变化
 watch(
-  () => chatStore.currentChatId,
-  async (newChatId) => {
-    console.log('当前对话ID变化:', newChatId);
+  [() => chatStore.currentChatId, () => chatStore.currentChatMessages.length],
+  async ([newChatId, newLength]) => {
+    console.log('对话状态变化 - ID:', newChatId, '消息数:', newLength);
+    
+    // 检查是否需要跳转
+    if (checkAndRedirectToHome()) {
+      return;
+    }
+    
+    // 如果有对话ID，等待微任务确保状态更新
     if (newChatId) {
-      // 等待一个微任务，确保chatStore.chats数组已经更新
       await nextTick();
       console.log('当前对话:', chatStore.currentChat);
       console.log('当前对话消息:', chatStore.currentChatMessages.length, '条');
-      
-      // 检查如果消息为空，切换到发送消息视图
-      // 但是，只有当对话确实存在且消息为空时才切换
-      if (chatStore.currentChat && chatStore.currentChatMessages.length === 0) {
-        console.log('消息为空，跳转到首页');
-        router.push('/home');
-        return;
-      }
     }
     
     nextTick(() => {
       safeScrollToBottom();
     });
-  }
-);
-
-// 监听当前对话消息列表变化，当消息为空时切换到发送消息视图
-watch(
-  () => chatStore.currentChatMessages.length,
-  (newLength) => {
-    console.log('当前对话消息长度变化:', newLength);
-    if (newLength === 0 && chatStore.currentChatId && chatStore.currentChat) {
-      console.log('消息为空，跳转到首页');
-      router.push('/home');
-    }
-  }
+  },
+  { immediate: true } // 立即执行一次检查
 );
 
 // 使用requestAnimationFrame确保DOM完全渲染后再滚动
@@ -184,9 +181,8 @@ const safeScrollToBottom = () => {
 onMounted(() => {
   console.log('ChatContent组件已挂载，使用Pinia状态管理');
 
-  // 检查如果消息为空，切换到发送消息视图
-  if (chatStore.currentChatMessages.length === 0) {
-    router.push('/home');
+  // 检查是否需要跳转
+  if (checkAndRedirectToHome()) {
     return;
   }
 

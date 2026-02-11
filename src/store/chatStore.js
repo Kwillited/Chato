@@ -933,13 +933,9 @@ export const useChatStore = defineStore('chat', {
         if (chatIndex !== -1) {
           this.chats.splice(chatIndex, 1);
 
-          // 如果删除的是当前对话，选择第一个对话或设置 currentChatId 为 null
+          // 如果删除的是当前对话，设置 currentChatId 为 null（无论是否还有其他对话）
           if (this.currentChatId === chatId) {
-            if (this.chats.length > 0) {
-              this.selectChat(this.chats[0].id);
-            } else {
-              this.currentChatId = null;
-            }
+            this.currentChatId = null;
           }
           
           // 新增：无论删除的是不是当前对话，只要删除后chats数组为空，就将currentChatId设置为null
@@ -1237,13 +1233,9 @@ export const useChatStore = defineStore('chat', {
         // API调用成功后，从本地状态中删除成功删除的对话
         this.chats = this.chats.filter((chat) => !successfullyDeleted.includes(chat.id));
 
-        // 如果当前对话被删除，选择第一个对话或设置 currentChatId 为 null
+        // 如果当前对话被删除，设置 currentChatId 为 null（无论是否还有其他对话）
         if (successfullyDeleted.includes(this.currentChatId)) {
-          if (this.chats.length > 0) {
-            this.selectChat(this.chats[0].id);
-          } else {
-            this.currentChatId = null;
-          }
+          this.currentChatId = null;
         }
 
         // 不再需要本地保存，所有数据已通过API同步到后端

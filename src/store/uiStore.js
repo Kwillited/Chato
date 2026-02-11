@@ -14,9 +14,17 @@ export const useUiStore = defineStore('ui', {
   
   /**
    * 持久化配置
-   * 启用状态持久化，确保刷新页面后状态不丢失
+   * 只持久化必要的设置项，不持久化路由相关状态，避免与路由导航冲突
    */
-  persist: true,
+  persist: {
+    paths: [
+      'leftNavWidth',
+      'rightPanelWidth',
+      'isDeepThinking',
+      'isWebSearchEnabled',
+      'isAgentEnabled'
+    ]
+  },
   state: () => ({
     // 面板视图状态
     activePanel: 'history', // 当前激活的面板
@@ -303,8 +311,12 @@ export const useUiStore = defineStore('ui', {
     /**
      * 处理路由导航时的面板状态管理
      * @param {string} routePath - 路由路径
+     * @param {Object} routeQuery - 路由查询参数，可用于通过路由修改设置
      */
-    handleRouteNavigation(routePath) {
+    handleRouteNavigation(routePath, routeQuery = {}) {
+      // 处理路由查询参数，允许通过URL参数修改持久化设置
+      this.handleRouteQueryParams(routeQuery);
+      
       if (routePath === '/setting') {
         this.navigateToSettings();
       } else if (routePath === '/') {
@@ -316,6 +328,37 @@ export const useUiStore = defineStore('ui', {
           this.activeContent = 'home';
           // 保持当前面板状态
         }
+      }
+    },
+    
+    /**
+     * 处理路由查询参数，允许通过URL参数修改设置
+     * @param {Object} query - 路由查询参数
+     */
+    handleRouteQueryParams(query) {
+      // 处理深度思考模式
+      if (query.deepThinking !== undefined) {
+        this.isDeepThinking = query.deepThinking === 'true';
+      }
+      
+      // 处理联网搜索模式
+      if (query.webSearch !== undefined) {
+        this.isWebSearchEnabled = query.webSearch === 'true';
+      }
+      
+      // 处理智能体模式
+      if (query.agent !== undefined) {
+        this.isAgentEnabled = query.agent === 'true';
+      }
+      
+      // 处理左侧导航栏宽度
+      if (query.leftNavWidth) {
+        this.leftNavWidth = query.leftNavWidth;
+      }
+      
+      // 处理右侧面板宽度
+      if (query.rightPanelWidth) {
+        this.rightPanelWidth = query.rightPanelWidth;
       }
     },
   },

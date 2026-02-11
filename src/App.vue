@@ -23,7 +23,7 @@
 
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import ModelVersionForm from './components/models/ModelVersionForm.vue';
 import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import MainLayout from './layout/MainLayout.vue';
@@ -38,6 +38,7 @@ const uiStore = useUiStore();
 
 // 路由
 const route = useRoute();
+const router = useRouter();
 
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
@@ -79,13 +80,39 @@ watch(
         uiStore.setActiveContent('home');
       }
     } else if (newPath === '/' || newPath === '/setting') {
-      // 交给 uiStore 处理面板状态管理
-      uiStore.handleRouteNavigation(newPath);
+      // 交给 uiStore 处理面板状态管理，传递查询参数
+        uiStore.handleRouteNavigation(newPath, route.query);
       // 清除当前对话ID，避免首页或设置页显示聊天内容
       chatStore.currentChatId = null;
     }
   },
-  { immediate: true }
+  {
+    immediate: true
+  }
+);
+
+// 监听currentChatId变化，实现状态驱动路由
+watch(
+  () => chatStore.currentChatId,
+  (newChatId) => {
+    console.log('currentChatId变化:', newChatId);
+    const currentPath = route.path;
+    
+    if (newChatId) {
+      // 有对话ID，确保路由是对应的聊天路径
+      const expectedPath = `/chat/${newChatId}`;
+      if (currentPath !== expectedPath && !currentPath.includes('/setting')) {
+        console.log('更新路由到对话:', expectedPath);
+        router.push(expectedPath);
+      }
+    } else {
+      // 没有对话ID，确保路由是根路径
+      if (currentPath !== '/' && !currentPath.includes('/setting')) {
+        console.log('更新路由到首页:', '/');
+        router.push('/');
+      }
+    }
+  }
 );
 
 import { apiService } from './services/apiService.js';
