@@ -27,11 +27,19 @@ class MemoryDatabaseManager:
             system_setting = self._db.query(SystemSetting).first()
             if system_setting:
                 self._memory_cache.set('system_settings', system_setting)
+            else:
+                # 数据库中没有记录，创建默认对象并存储到内存缓存
+                default_setting = SystemSetting()
+                self._memory_cache.set('system_settings', default_setting)
             
             # 加载向量设置
             vector_setting = self._db.query(VectorSetting).first()
             if vector_setting:
                 self._memory_cache.set('vector_settings', vector_setting)
+            else:
+                # 数据库中没有记录，创建默认对象并存储到内存缓存
+                default_vector_setting = VectorSetting()
+                self._memory_cache.set('vector_settings', default_vector_setting)
             
             # 加载聊天数据
             from sqlalchemy import desc
@@ -40,7 +48,7 @@ class MemoryDatabaseManager:
         except Exception as e:
             print(f"从数据库加载数据失败: {e}")
     
-    def save_to_database(self, model_type: str, data: Any):
+    def save_to_database(self, model_type: str, data: Any, update_keys=None):
         """将内存数据保存到SQLite数据库"""
         try:
             if model_type == 'system_settings':
@@ -48,9 +56,16 @@ class MemoryDatabaseManager:
                 existing = self._db.query(SystemSetting).first()
                 if existing:
                     # 更新现有记录
-                    for key, value in data.__dict__.items():
-                        if not key.startswith('_'):
-                            setattr(existing, key, value)
+                    if update_keys:
+                        # 只更新指定的字段
+                        for key in update_keys:
+                            if hasattr(existing, key) and hasattr(data, key):
+                                setattr(existing, key, getattr(data, key))
+                    else:
+                        # 更新所有字段
+                        for key, value in data.__dict__.items():
+                            if not key.startswith('_'):
+                                setattr(existing, key, value)
                     return existing
                 else:
                     # 创建新记录
@@ -67,9 +82,16 @@ class MemoryDatabaseManager:
                 # 确保向量设置表只有一条记录
                 existing = self._db.query(VectorSetting).first()
                 if existing:
-                    for key, value in data.__dict__.items():
-                        if not key.startswith('_'):
-                            setattr(existing, key, value)
+                    if update_keys:
+                        # 只更新指定的字段
+                        for key in update_keys:
+                            if hasattr(existing, key) and hasattr(data, key):
+                                setattr(existing, key, getattr(data, key))
+                    else:
+                        # 更新所有字段
+                        for key, value in data.__dict__.items():
+                            if not key.startswith('_'):
+                                setattr(existing, key, value)
                     return existing
                 else:
                     # 先删除所有现有记录（如果有）
@@ -190,22 +212,32 @@ class MemoryDatabaseManager:
             existing_data = self._memory_cache.get(model_type)
             
             if existing_data:
-                # 更新现有数据
+                # 更新现有数据，只更新请求体中提供的字段
                 for key, value in data.items():
                     if hasattr(existing_data, key):
                         setattr(existing_data, key, value)
                 
-                # 同步到SQLite
-                result = self.save_to_database(model_type, existing_data)
+                # 同步到SQLite，只更新请求体中提供的字段
+                result = self.save_to_database(model_type, existing_data, data.keys())
                 # 提交事务
                 self._db.commit()
                 return result
             else:
-                # 创建新数据
+                # 创建新数据，使用默认值和请求体中的值
                 if model_type == 'system_settings':
-                    new_data = SystemSetting(**data)
+                    # 创建默认对象
+                    new_data = SystemSetting()
+                    # 更新请求体中提供的字段
+                    for key, value in data.items():
+                        if hasattr(new_data, key):
+                            setattr(new_data, key, value)
                 elif model_type == 'vector_settings':
-                    new_data = VectorSetting(**data)
+                    # 创建默认对象
+                    new_data = VectorSetting()
+                    # 更新请求体中提供的字段
+                    for key, value in data.items():
+                        if hasattr(new_data, key):
+                            setattr(new_data, key, value)
                 else:
                     return None
                 

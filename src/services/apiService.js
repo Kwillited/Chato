@@ -114,7 +114,7 @@ async function requestWithRetry(config, options = {}) {
     maxDelay: 8000,
     jitter: 0.1, // ±10% 随机抖动
     retryableStatusCodes: [500, 502, 503, 504],
-    retryableMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+    retryableMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     onRetry: null, // 重试回调
     ...options
   };
@@ -610,6 +610,9 @@ export const apiService = {
   },
   put: async (url, data = {}) => {
     return await requestWithRetry({ method: 'PUT', url, data });
+  },
+  patch: async (url, data = {}) => {
+    return await requestWithRetry({ method: 'PATCH', url, data });
   },
   delete: async (url) => {
       return await requestWithRetry({ method: 'DELETE', url });

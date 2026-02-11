@@ -216,6 +216,18 @@ class SystemSettings(BaseModel):
     displayTime: str = "5秒"
 
 
+class PatchSystemSettings(BaseModel):
+    """系统设置PATCH模型"""
+    dark_mode: bool | None = None
+    chat_style: str | None = None
+    view_mode: str | None = None
+    # 通知相关字段
+    newMessage: bool | None = None
+    sound: bool | None = None
+    system: bool | None = None
+    displayTime: str | None = None
+
+
 class SettingResponse(BaseModel):
     """设置响应模型"""
     message: str

@@ -75,6 +75,9 @@ export const useSettingsStore = defineStore('settings', {
       viewMode: 'grid',
     },
 
+    // 初始设置值，用于比较修改
+    initialSettings: null,
+
     // 模型相关设置
     availableModels: [],
     models: [],
@@ -250,6 +253,21 @@ export const useSettingsStore = defineStore('settings', {
         
         // 加载模型列表
         await this.loadModels();
+        
+        // 保存初始设置值，用于后续比较修改
+        this.initialSettings = {
+          // 系统设置
+          dark_mode: this.systemSettings.darkMode,
+          chat_style: this.systemSettings.chatStyle,
+          view_mode: this.systemSettings.viewMode,
+          streaming_enabled: this.systemSettings.streamingEnabled,
+          default_model: this.systemSettings.defaultModel,
+          // 通知设置
+          newMessage: this.notificationsConfig.newMessage,
+          sound: this.notificationsConfig.sound,
+          system: this.notificationsConfig.system,
+          displayTime: this.notificationsConfig.displayTime
+        };
       } catch (error) {
         console.error('从后端加载设置失败:', error);
       }
@@ -343,8 +361,8 @@ export const useSettingsStore = defineStore('settings', {
     // 保存设置到后端API
     async saveSettingsToApi() {
       try {
-        // 保存系统设置和通知设置到同一个端点
-        const settingsToSave = {
+        // 构建完整的设置对象
+        const currentSettings = {
           // 系统设置
           dark_mode: this.systemSettings.darkMode,
           chat_style: this.systemSettings.chatStyle,
@@ -357,7 +375,27 @@ export const useSettingsStore = defineStore('settings', {
           system: this.notificationsConfig.system,
           displayTime: this.notificationsConfig.displayTime
         };
-        await apiService.post('/settings/system', settingsToSave);
+        
+        // 与初始设置比较，只保留修改的字段
+        const changedSettings = {};
+        for (const [key, value] of Object.entries(currentSettings)) {
+          if (this.initialSettings && this.initialSettings[key] !== value) {
+            changedSettings[key] = value;
+          }
+        }
+        
+        // 如果没有修改的字段，直接返回
+        if (Object.keys(changedSettings).length === 0) {
+          console.log('没有修改的设置，跳过保存');
+          return;
+        }
+        
+        // 发送修改的字段
+        console.log('保存修改的设置:', changedSettings);
+        await apiService.patch('/settings/system', changedSettings);
+        
+        // 更新初始设置值，以便下次比较
+        this.initialSettings = { ...currentSettings };
       } catch (error) {
         console.error('保存设置到后端失败:', error);
       }
