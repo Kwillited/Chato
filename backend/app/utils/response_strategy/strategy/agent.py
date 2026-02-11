@@ -369,12 +369,17 @@ class AgentResponseStrategy(ResponseStrategy):
                 # 处理智能体响应
                 print(f"[AgentResponseStrategy] 智能体响应完成: {type(response)}")
                 
+                # 提取content和reasoning_content
+                content = response.get('content', response) if isinstance(response, dict) else response
+                reasoning_content = response.get('reasoning_content') if isinstance(response, dict) else None
+                
                 # 准备智能体消息
                 ai_message = AgentProcessor.format_agent_message(
-                    response, now, model_display_name, 
+                    content, now, model_display_name, 
                     session_id=agent_session_id, 
                     node="final", 
-                    step=0
+                    step=0,
+                    full_reasoning=reasoning_content
                 )
                 
                 # 保存消息

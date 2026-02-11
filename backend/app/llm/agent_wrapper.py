@@ -209,7 +209,7 @@ class AgentWrapper:
         self, 
         messages: List[Dict[str, str]], 
         model_params: Dict[str, Any]
-    ) -> str:
+    ) -> Dict[str, Any]:
         """
         智能体非流式聊天接口
         
@@ -218,7 +218,7 @@ class AgentWrapper:
             model_params: 模型参数字典
         
         Returns:
-            智能体回复内容
+            包含content和reasoning_content的字典
         """
         if not self.is_initialized:
             await self.initialize()
@@ -250,12 +250,25 @@ class AgentWrapper:
             if final_state and "messages" in final_state:
                 for message in reversed(final_state["messages"]):
                     if isinstance(message, AIMessage):
-                        return message.content
+                        # 提取reasoning_content
+                        reasoning_content = None
+                        if hasattr(message, 'additional_kwargs') and isinstance(message.additional_kwargs, dict):
+                            reasoning_content = message.additional_kwargs.get('reasoning_content')
+                        return {
+                            'content': message.content,
+                            'reasoning_content': reasoning_content
+                        }
             
-            return "智能体处理完成，但未生成回复"
+            return {
+                'content': "智能体处理完成，但未生成回复",
+                'reasoning_content': None
+            }
         except Exception as e:
             logger.error(f"[Agent] Chat Error: {str(e)}")
-            return f"智能体处理失败: {str(e)}"
+            return {
+                'content': f"智能体处理失败: {str(e)}",
+                'reasoning_content': None
+            }
 
     def __getattr__(self, name):
         """
