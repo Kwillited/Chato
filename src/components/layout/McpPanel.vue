@@ -11,11 +11,9 @@
         <div class="tool-category">
           <h3 class="text-xs font-medium text-gray-500 mb-2 px-2">MCP 服务器</h3>
           
-          <!-- 加载状态 -->
-          <div v-if="isLoading" class="text-center p-4">
-            <i class="fa-solid fa-spinner fa-spin mr-2"></i>
-            加载工具中...
-          </div>
+          <!-- 加载状态：使用骨架屏提升体验 -->
+          <SkeletonLoader v-if="isLoading" type="tools" :count="3" />
+
           <!-- 过滤后的工具列表 -->
           <div v-else-if="filteredTools.length > 0">
             <div v-for="tool in filteredTools" :key="tool.id" class="tool-item p-3 rounded-lg bg-white border border-gray-100 dark:bg-dark-700 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 relative" @click="handleToolClick(tool)">
@@ -80,6 +78,7 @@ import { showNotification } from '../../utils/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
 import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
+import SkeletonLoader from '../common/SkeletonLoader.vue';
 import { useUiStore } from '../../store/uiStore.js';
 
 // 状态管理

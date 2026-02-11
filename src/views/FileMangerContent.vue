@@ -161,11 +161,9 @@
           <p v-else-if="!currentFolder && selectedFolder" class="text-sm mt-2">点击上传按钮添加文件</p>
         </div>
         
-        <!-- 加载状态 -->
-        <div v-if="isLoading" class="flex flex-col items-center justify-center h-64 text-gray-500">
-          <div class="w-10 h-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
-          <p>加载中...</p>
-        </div>
+        <!-- 加载状态：使用骨架屏提升体验 -->
+        <SkeletonLoader v-if="isLoading" type="grid" :count="4" />
+
       </div>
       
       <!-- 知识图谱可视化视图 -->
@@ -208,6 +206,7 @@ import { formatFileSize } from '../utils/file.js';
 import { Button } from '../components/library/index.js';
 import { KnowledgeGraphVisualization } from '../components/library';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
+import SkeletonLoader from '../components/common/SkeletonLoader.vue';
 import { showNotification } from '../utils/notificationUtils.js';
 
 // 初始化stores

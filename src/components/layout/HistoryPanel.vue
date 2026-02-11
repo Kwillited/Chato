@@ -18,31 +18,8 @@
     <div ref="scrollContainer" class="overflow-y-auto flex-1 scrollbar-thin transition-colors duration-300 ease-in-out">
       <div id="chatHistory" class="p-2 space-y-3 transition-all duration-300 ease-in-out">
         <!-- 加载状态：使用骨架屏提升体验 -->
-        <div v-if="chatStore.isLoading && chatHistory.length === 0" class="transition-opacity duration-300">
-          <div class="animate-pulse">
-            <div class="h-6 bg-gray-100 dark:bg-dark-700 rounded-md mx-2 mb-4 transition-colors duration-300"></div>
-            <div class="space-y-2">
-              <div class="p-2 rounded-lg bg-gray-50 dark:bg-dark-700 transition-colors duration-300">
-                <div class="flex items-center w-full">
-                  <div class="w-4 h-4 bg-gray-200 dark:bg-dark-600 rounded-full mr-2 transition-colors duration-300"></div>
-                  <div class="h-4 bg-gray-200 dark:bg-dark-600 rounded-md flex-1 max-w-[200px] transition-colors duration-300"></div>
-                </div>
-              </div>
-              <div class="p-2 rounded-lg bg-gray-50 dark:bg-dark-700 transition-colors duration-300">
-                <div class="flex items-center w-full">
-                  <div class="w-4 h-4 bg-gray-200 dark:bg-dark-600 rounded-full mr-2 transition-colors duration-300"></div>
-                  <div class="h-4 bg-gray-200 dark:bg-dark-600 rounded-md flex-1 max-w-[150px] transition-colors duration-300"></div>
-                </div>
-              </div>
-              <div class="p-2 rounded-lg bg-gray-50 dark:bg-dark-700 transition-colors duration-300">
-                <div class="flex items-center w-full">
-                  <div class="w-4 h-4 bg-gray-200 dark:bg-dark-600 rounded-full mr-2 transition-colors duration-300"></div>
-                  <div class="h-4 bg-gray-200 dark:bg-dark-600 rounded-md flex-1 max-w-[180px] transition-colors duration-300"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <SkeletonLoader v-if="chatStore.isLoading && chatHistory.length === 0" type="history" :count="3" />
+
         <!-- 有对话历史时显示 -->
         <div v-else-if="chatHistory.length > 0" class="transition-opacity duration-300">
           <div v-for="group in groupedChats" :key="group.title" class="mb-4 transition-all duration-300">
@@ -99,16 +76,7 @@
           class="p-6 text-center text-neutral dark:text-gray-300 text-sm transition-colors duration-300">
           没有找到与 "{{ searchQuery }}" 相关的对话
         </div>
-        <!-- 错误状态 -->
-        <div v-else-if="chatStore.error" id="errorChatState" class="p-6 text-center text-red-500 dark:text-red-400 text-sm transition-colors duration-300">
-          <div class="mb-4">{{ chatStore.error }}</div>
-          <button 
-            @click="handleRetry" 
-            class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 transition-colors duration-300 flex items-center justify-center mx-auto"
-          >
-            <i class="fa-solid fa-refresh mr-1.5"></i> 手动重试
-          </button>
-        </div>
+
         <!-- 空状态 -->
         <div v-else id="emptyChatState" class="p-10 text-center text-gray-500 dark:text-gray-300 text-sm italic transition-colors duration-300">暂无对话记录</div>
       </div>
@@ -124,6 +92,7 @@ import { useSettingsStore } from '../../store/settingsStore.js';
 import { useUiStore } from '../../store/uiStore.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import { SearchBar, ConfirmationModal } from '../library/index.js';
+import SkeletonLoader from '../common/SkeletonLoader.vue';
 
 // 滚动容器引用
 const scrollContainer = ref(null);
@@ -434,11 +403,7 @@ const hasUnreadMessage = (chat) => {
   return false;
 };
 
-// 处理手动重试
-const handleRetry = () => {
-  console.log('手动触发重试获取对话历史');
-  chatStore.loadChatHistory(true);
-};
+
 </script>
 
 <style scoped>

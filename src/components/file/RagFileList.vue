@@ -23,13 +23,16 @@
     <!-- 空文件状态 -->
     <StateDisplay v-else-if="!loadingFiles" type="empty" title="暂无文件" message="该知识库中暂无文件，点击上方'上传文件'按钮添加" icon="fa-file-circle-exclamation" />
     
-    <!-- 加载文件状态 -->
-    <StateDisplay v-if="loadingFiles" type="loading" message="加载文件中..." />
+    <!-- 加载状态：使用骨架屏提升体验 -->
+    <SkeletonLoader v-if="loadingFiles" type="files" :count="3" />
+
+
   </div>
 </template>
 
 <script setup>
 import StateDisplay from '../common/StateDisplay.vue';
+import SkeletonLoader from '../common/SkeletonLoader.vue';
 import { formatFileSize } from '../../utils/file.js';
 
 defineProps({

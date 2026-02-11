@@ -15,8 +15,10 @@
           <!-- 空状态提示 -->
           <StateDisplay v-else-if="!loadingFolders" type="empty" title="暂无知识库" message="点击右上角按钮创建您的第一个知识库" icon="fa-inbox" />
           
-          <!-- 加载状态 -->
-          <StateDisplay v-if="loadingFolders" type="loading" message="加载知识库中..." />
+          <!-- 加载状态：使用骨架屏提升体验 -->
+          <SkeletonLoader v-if="loadingFolders" type="folders" :count="3" />
+
+
         </div>
         
         <!-- 文件列表 - 二级菜单视图 -->
@@ -26,11 +28,6 @@
           :loadingFiles="loadingFiles"
         />
       </div>
-    </div>
-
-    <!-- 加载状态指示器 -->
-    <div v-if="fileStore.loading" class="loading-overlay absolute inset-0 bg-white/80 flex items-center justify-center z-50">
-      <Loading type="spin" size="medium" text="处理中..." />
     </div>
     
     <!-- 创建知识库模态弹窗 -->
@@ -79,7 +76,8 @@ import RagToolbar from '../file/RagToolbar.vue';
 import RagFolderList from '../file/RagFolderList.vue';
 import RagFileList from '../file/RagFileList.vue';
 import StateDisplay from '../common/StateDisplay.vue';
-import { Loading, ConfirmationModal } from '../library/index.js';
+import SkeletonLoader from '../common/SkeletonLoader.vue';
+import { ConfirmationModal } from '../library/index.js';
 import RagCreateKnowledgeBaseModal from '../file/RagCreateKnowledgeBaseModal.vue';
 
 const ragStore = useVectorStore();
