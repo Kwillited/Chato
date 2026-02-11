@@ -207,8 +207,10 @@ class BasicSettings(BaseModel):
 class SystemSettings(BaseModel):
     """系统设置模型"""
     dark_mode: bool = False
+    streaming_enabled: bool = True
     chat_style: str = "bubble"
     view_mode: str = "grid"
+    default_model: str = ""
     # 通知相关字段
     newMessage: bool = True
     sound: bool = False
@@ -219,8 +221,10 @@ class SystemSettings(BaseModel):
 class PatchSystemSettings(BaseModel):
     """系统设置PATCH模型"""
     dark_mode: bool | None = None
+    streaming_enabled: bool | None = None
     chat_style: str | None = None
     view_mode: str | None = None
+    default_model: str | None = None
     # 通知相关字段
     newMessage: bool | None = None
     sound: bool | None = None
