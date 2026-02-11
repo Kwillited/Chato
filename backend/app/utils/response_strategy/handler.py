@@ -36,9 +36,13 @@ class ResponseHandler:
                                enhanced_question, parsed_model_name, parsed_version_name, 
                                model_params, model_display_name, deep_thinking=False, use_agent=False,
                                chat_service=None):
-        """处理普通响应（非流式、非智能体）"""
-        from app.utils.response_strategy.strategy.regular import RegularResponseStrategy
-        strategy = RegularResponseStrategy()
+        """处理普通响应（非流式）"""
+        if use_agent:
+            from app.utils.response_strategy.strategy.agent import AgentResponseStrategy
+            strategy = AgentResponseStrategy()
+        else:
+            from app.utils.response_strategy.strategy.regular import RegularResponseStrategy
+            strategy = RegularResponseStrategy()
         context = ResponseStrategyContext(strategy)
         return await context.handle_response(chat, message_text, user_message, now, 
                                       enhanced_question, parsed_model_name, parsed_version_name, 

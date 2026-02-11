@@ -81,8 +81,7 @@ class AgentWrapper:
     async def chat_stream(
         self, 
         messages: List[Dict[str, str]], 
-        model_params: Dict[str, Any], 
-        use_agent: bool = True
+        model_params: Dict[str, Any]
     ) -> AsyncIterator[Dict[str, Any]]:
         """
         智能体流式聊天接口
@@ -90,7 +89,6 @@ class AgentWrapper:
         Args:
             messages: 消息列表
             model_params: 模型参数字典
-            use_agent: 是否使用智能体模式
         
         Yields:
             流式输出的事件
@@ -111,19 +109,7 @@ class AgentWrapper:
 
         prepared_messages = self._prepare_messages(messages)
         
-        # 1. 基础模式
-        if not use_agent:
-            async for event in self.llm.astream_events(prepared_messages, version="v2", **call_kwargs):
-                # 打印原始数据块
-                print(f"[AgentWrapper.chat_stream] 原始数据块 (基础模式): type={type(event).__name__}, content={str(event)[:200]}...")
-                
-                if event.get('event') == "on_chat_model_stream":
-                    content = event.get('data', {}).get('chunk', {}).content
-                    if content:
-                        yield {'event': 'on_chat_model_stream', 'data': {'chunk': {'content': content}}}
-            return
-
-        # 2. 智能体模式
+        # 智能体模式
         initial_state = {
             "messages": prepared_messages,
             "loop_count": 0
@@ -219,6 +205,58 @@ class AgentWrapper:
                 formatted.append(SystemMessage(content=content))
         return formatted
     
+    async def chat(
+        self, 
+        messages: List[Dict[str, str]], 
+        model_params: Dict[str, Any]
+    ) -> str:
+        """
+        智能体非流式聊天接口
+        
+        Args:
+            messages: 消息列表
+            model_params: 模型参数字典
+        
+        Returns:
+            智能体回复内容
+        """
+        if not self.is_initialized:
+            await self.initialize()
+
+        # 1. 集中处理参数（调用基础模型的钩子）
+        call_kwargs = self.base_model._prepare_call_kwargs(model_params)
+        
+        # 2. 绑定工具时传递处理后的参数
+        tools = self.tool_manager.get_tools()
+        self.llm_with_tools = self.llm.bind_tools(tools, **call_kwargs) if tools else self.llm
+        
+        # 3. 重新初始化智能体节点和图
+        self.agent_nodes = AgentNodes(self.llm_with_tools, self.tool_manager)
+        self.graph = self._build_graph()
+
+        prepared_messages = self._prepare_messages(messages)
+        
+        # 智能体模式
+        initial_state = {
+            "messages": prepared_messages,
+            "loop_count": 0
+        }
+        
+        try:
+            # 执行智能体图
+            final_state = await self.graph.ainvoke(initial_state)
+            
+            # 从最终状态中获取回复
+            if final_state and "messages" in final_state:
+                for message in reversed(final_state["messages"]):
+                    if isinstance(message, AIMessage):
+                        return message.content
+            
+            return "智能体处理完成，但未生成回复"
+        except Exception as e:
+            logger.error(f"[Agent] Chat Error: {str(e)}")
+            return f"智能体处理失败: {str(e)}"
+
     def __getattr__(self, name):
         """
         代理获取基础模型的属性

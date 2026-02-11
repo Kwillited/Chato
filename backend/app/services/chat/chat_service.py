@@ -373,7 +373,7 @@ class ChatService(BaseService):
                     # ！！！核心改进 2：直接异步遍历生成器
                     # 不要再手动去写 while __anext__，那是 asyncio.run 的死穴
                     print(f"[chat_with_model_stream] 开始接收智能体流式响应")
-                    async for chunk in agent_wrapper.chat_stream(messages, model_params, use_agent=True):
+                    async for chunk in agent_wrapper.chat_stream(messages, model_params):
                         # 这里的 chunk 已经是 AgentWrapper 处理好的 dict 或 str
                         print(f"[chat_with_model_stream] 接收到智能体响应块: {type(chunk).__name__}, content={str(chunk)[:100]}...")
                         yield chunk
@@ -817,11 +817,6 @@ class ChatService(BaseService):
         else:
             logger.debug("RAG未启用，使用原始问题")
             enhanced_question = full_message_text
-        
-        # 移除单独保存用户消息的逻辑，改为在模型响应成功后与AI消息一起保存
-        
-        # 导入响应处理器
-        # ResponseHandler 已在文件顶部导入
         
         # 根据stream和agent的值决定返回类型
         if stream:
