@@ -33,3 +33,8 @@ __pycache__/
 *.tmp
 *.temp
 .cache/
+
+# Build directories
+dist/
+web_dist/
+build/
