@@ -12,7 +12,7 @@ class AgentResponseStrategy(ResponseStrategy):
     async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
+                       selected_message_ids=None, chat_service=None):
         # 检查是否为流式调用
         is_streaming = model_params.get('stream', False)
         
@@ -20,7 +20,7 @@ class AgentResponseStrategy(ResponseStrategy):
             # 现有的流式处理逻辑
             async def generate():
                 try:
-                    messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
+                    messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking, selected_message_ids)
                     
                     # 创建智能体会话
                     agent_session = chat_service.create_agent_session(chat['id'], graph_state={}, current_node="")
@@ -339,7 +339,7 @@ class AgentResponseStrategy(ResponseStrategy):
                 print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
                 
                 # 准备消息
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
+                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking, selected_message_ids)
                 
                 # 调用智能体（非流式）
                 from app.llm.agent_wrapper import AgentWrapper

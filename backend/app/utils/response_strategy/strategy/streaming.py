@@ -12,11 +12,11 @@ class StreamingResponseStrategy(ResponseStrategy):
     async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
+                       selected_message_ids=None, chat_service=None):
         
         async def generate():
             try:
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
+                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking, selected_message_ids)
                 full_reply = ""
                 full_reasoning = ""
                 

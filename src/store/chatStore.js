@@ -299,6 +299,20 @@ export const useChatStore = defineStore('chat', {
       return ragConfigToUse;
     },
 
+    // 构建 selectedMessageIds 数组
+    buildSelectedMessageIds() {
+      // 获取所有选中的复选框
+      const selectedCheckboxes = document.querySelectorAll('.message-item input[type="checkbox"]:checked');
+      
+      // 提取消息ID并构建数组
+      const selectedMessageIds = Array.from(selectedCheckboxes).map(checkbox => {
+        // 从复选框的 id 属性中提取消息ID（去掉 "msg-" 前缀）
+        return checkbox.id.replace('msg-', '');
+      });
+      
+      return selectedMessageIds;
+    },
+
     // 发送流式消息
     async sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent, modelParams) {
       let aiMessages = {}; // 存储不同步骤的消息对象
@@ -310,6 +324,10 @@ export const useChatStore = defineStore('chat', {
       this.uploadedFiles = []; // 立即清空
 
       try {
+        // 构建 selectedMessageIds 数组
+        const selectedMessageIds = this.buildSelectedMessageIds();
+        console.log('构建的 selectedMessageIds:', selectedMessageIds);
+
         await apiService.chat.sendStreamingMessage(
           currentChat.id,         // chatId
           content.trim(),         // message
@@ -320,7 +338,8 @@ export const useChatStore = defineStore('chat', {
             deepThinking: deepThinking, // 使用传递的深度思考参数
             ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
             webSearchEnabled: webSearchEnabled, // 使用传递的联网搜索参数
-            agent: agent // 使用传递的智能体参数
+            agent: agent, // 使用传递的智能体参数
+            selectedMessageIds: selectedMessageIds // 传递 selectedMessageIds 参数
           },
             // 处理接收到的消息
             (data) => {
@@ -743,6 +762,10 @@ export const useChatStore = defineStore('chat', {
       this.uploadedFiles = []; // 立即清空
       
       try {
+        // 构建 selectedMessageIds 数组
+        const selectedMessageIds = this.buildSelectedMessageIds();
+        console.log('构建的 selectedMessageIds:', selectedMessageIds);
+
         let response = await apiService.chat.sendMessage(
           currentChat.id,         // chatId
           content.trim(),         // message
@@ -754,7 +777,8 @@ export const useChatStore = defineStore('chat', {
             deepThinking: deepThinking, // 使用传递的深度思考参数
             ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
             webSearchEnabled: webSearchEnabled, // 使用传递的联网搜索参数
-            agent: agent // 使用传递的智能体参数
+            agent: agent, // 使用传递的智能体参数
+            selectedMessageIds: selectedMessageIds // 传递 selectedMessageIds 参数
           }
         );
         

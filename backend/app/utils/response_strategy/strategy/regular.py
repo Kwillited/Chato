@@ -11,7 +11,7 @@ class RegularResponseStrategy(ResponseStrategy):
     async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, deep_thinking=False, use_agent=False, 
-                       chat_service=None):
+                       selected_message_ids=None, chat_service=None):
         """处理普通响应"""
         try:
             # 验证模型
@@ -19,7 +19,7 @@ class RegularResponseStrategy(ResponseStrategy):
             if error_response:
                 return error_response, error_code
 
-            messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking)
+            messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking, selected_message_ids)
             version_config = chat_service.get_version_config(model, parsed_version_name)
 
             chat_service.log_info("使用普通对话模式")

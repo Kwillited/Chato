@@ -85,7 +85,7 @@ class ChatService(BaseService):
             BaseService.log_error(f"更新对话置顶状态失败: {str(e)}")
             return False
     
-    def get_chat_context(self, chat_id, max_messages=10, deep_thinking=False):
+    def get_chat_context(self, chat_id, max_messages=10, deep_thinking=False, selected_message_ids=None):
         """
         获取对话上下文历史
         
@@ -93,6 +93,7 @@ class ChatService(BaseService):
             chat_id: 对话ID
             max_messages: 最大获取的消息数量，默认10条
             deep_thinking: 是否启用深度思考，启用时保留think标签
+            selected_message_ids: 用户选择的消息ID列表，None表示使用默认逻辑
             
         返回:
             格式化的上下文消息列表，或者None（如果对话不存在）
@@ -105,9 +106,17 @@ class ChatService(BaseService):
         # 获取对话历史消息
         messages = chat.get('messages', [])
         
-        # 如果消息数量超过max_messages，只保留最近的max_messages条
-        if len(messages) > max_messages:
-            messages = messages[-max_messages:]
+        # 如果提供了选中的消息ID列表，只包含这些消息
+        if selected_message_ids:
+            # 过滤出用户选择的消息
+            selected_messages = [msg for msg in messages if msg.get('id') in selected_message_ids]
+            # 保持消息的原始顺序
+            selected_messages.sort(key=lambda x: messages.index(x))
+            messages = selected_messages
+        else:
+            # 如果消息数量超过max_messages，只保留最近的max_messages条
+            if len(messages) > max_messages:
+                messages = messages[-max_messages:]
         
         # 转换为适合模型输入的格式
         from app.utils.message_handler import MessageHandler
@@ -315,7 +324,7 @@ class ChatService(BaseService):
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
         logger.info(f"对话更新成功，等待自动保存: chat_id={chat_id}")
 
-    def _prepare_messages_for_model(self, chat_id, enhanced_question, deep_thinking=False):
+    def _prepare_messages_for_model(self, chat_id, enhanced_question, deep_thinking=False, selected_message_ids=None):
         """
         准备发送给模型的消息格式
         
@@ -323,12 +332,13 @@ class ChatService(BaseService):
             chat_id: 对话ID
             enhanced_question: 增强后的问题
             deep_thinking: 是否启用深度思考
+            selected_message_ids: 用户选择的消息ID列表
         
         返回:
             格式化的消息列表
         """
-        # 获取对话上下文历史
-        context_messages = self.get_chat_context(chat_id, deep_thinking=deep_thinking)
+        # 获取对话上下文历史，传递selected_message_ids
+        context_messages = self.get_chat_context(chat_id, deep_thinking=deep_thinking, selected_message_ids=selected_message_ids)
         
         # 准备消息格式，如果有上下文则使用上下文，否则使用当前问题
         if context_messages and len(context_messages) > 0:
@@ -677,10 +687,12 @@ class ChatService(BaseService):
         deep_thinking = data.get('deepThinking', False)
         use_agent = data.get('agent', False)
         files = data.get('files', [])
+        # 新增：获取用户选择的消息ID列表
+        selected_message_ids = data.get('selectedMessageIds', None)
         
         # 添加调试日志，显示后端接收的参数
         from app.core.logging_config import logger
-        logger.debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件")
+        logger.debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件, selectedMessageIds={selected_message_ids}")
         
         return {
             'message_text': message_text,
@@ -691,7 +703,9 @@ class ChatService(BaseService):
             'stream': stream,
             'deep_thinking': deep_thinking,
             'use_agent': use_agent,
-            'files': files
+            'files': files,
+            # 新增：返回用户选择的消息ID列表
+            'selected_message_ids': selected_message_ids
         }
     
     def _validate_request(self, chat_id, parsed_model_name, model):
@@ -771,6 +785,8 @@ class ChatService(BaseService):
         deep_thinking = parsed_data['deep_thinking']
         use_agent = parsed_data['use_agent']
         files = parsed_data['files']
+        # 新增：获取用户选择的消息ID列表
+        selected_message_ids = parsed_data.get('selected_message_ids', None)
         
         now = datetime.now().isoformat()
         
@@ -826,6 +842,7 @@ class ChatService(BaseService):
                 chat, full_message_text, user_message, now,
                 enhanced_question, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, deep_thinking, use_agent,
+                selected_message_ids=selected_message_ids,  # 新增：传递用户选择的消息ID列表
                 chat_service=self
             )
         else:
@@ -834,6 +851,7 @@ class ChatService(BaseService):
                 chat, full_message_text, user_message, now,
                 enhanced_question, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, deep_thinking, use_agent,
+                selected_message_ids=selected_message_ids,  # 新增：传递用户选择的消息ID列表
                 chat_service=self
             )
     
