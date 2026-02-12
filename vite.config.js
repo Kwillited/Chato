@@ -33,6 +33,8 @@ export default defineConfig({
   
   // 构建配置
   build: {
+    // 修改构建目录为 build
+    outDir: 'web_dist',
     // 代码分割配置
     rollupOptions: {
       output: {
