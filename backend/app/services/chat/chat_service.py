@@ -350,15 +350,16 @@ class ChatService(BaseService):
         
         return messages
     
-    async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False):
+    async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False, model=None):
             """
             异步流式模型回复函数
             """
-            # 1. 验证模型 (假设 validate_model 也是异步的，如果不是，去掉 await)
-            model, error_response, _ = self.validate_model(model_name)
-            if error_response:
-                yield f'data: {json.dumps(error_response, ensure_ascii=False)}\n\n'
-                return
+            # 1. 验证模型 (如果传入了 model，则直接使用)
+            if not model:
+                model, error_response, _ = self.validate_model(model_name)
+                if error_response:
+                    yield f'data: {json.dumps(error_response, ensure_ascii=False)}\n\n'
+                    return
             
             # 2. 获取版本配置
             version_config = self.get_version_config(model, parsed_version_name)
@@ -843,6 +844,7 @@ class ChatService(BaseService):
                 chat, full_message_text, user_message, now,
                 model_messages, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, use_agent,
+                model=model,  # 传递模型配置
                 chat_service=self
             )
         else:
@@ -851,10 +853,11 @@ class ChatService(BaseService):
                 chat, full_message_text, user_message, now,
                 model_messages, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, use_agent,
+                model=model,  # 传递模型配置
                 chat_service=self
             )
     
-    async def send_message(self, chat_id, data): # <--- 改为 async def
+    async def send_message(self, chat_id, data):
             """发送消息（应用层）
             
             参数:

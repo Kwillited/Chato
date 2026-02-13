@@ -12,7 +12,7 @@ class StreamingResponseStrategy(ResponseStrategy):
     async def handle_response(self, chat, message_text, user_message, now, model_messages, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, use_agent=False, 
-                       chat_service=None):
+                       model=None, chat_service=None):
         
         async def generate():
             try:
@@ -21,7 +21,7 @@ class StreamingResponseStrategy(ResponseStrategy):
                 full_reasoning = ""
                 
                 # ！！！关键：使用 async for 遍历异步生成器（AStream 实现）
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, model_messages, parsed_version_name, model_params, use_agent):
+                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, model_messages, parsed_version_name, model_params, use_agent, model=model):
                     if isinstance(chunk, dict):
                         # 处理字典类型的响应块
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"

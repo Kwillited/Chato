@@ -7,6 +7,6 @@ class ResponseStrategy:
     async def handle_response(self, chat, message_text, user_message, now, model_messages, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, use_agent=False, 
-                       chat_service=None):
+                       model=None, chat_service=None):
         """处理响应 - 改为异步"""
         raise NotImplementedError

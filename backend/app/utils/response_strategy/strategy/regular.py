@@ -11,13 +11,14 @@ class RegularResponseStrategy(ResponseStrategy):
     async def handle_response(self, chat, message_text, user_message, now, model_messages, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, use_agent=False, 
-                       chat_service=None):
+                       model=None, chat_service=None):
         """处理普通响应"""
         try:
-            # 验证模型
-            model, error_response, error_code = chat_service.validate_model(parsed_model_name)
-            if error_response:
-                return error_response, error_code
+            # 验证模型（如果没有传入 model，则验证）
+            if not model:
+                model, error_response, error_code = chat_service.validate_model(parsed_model_name)
+                if error_response:
+                    return error_response, error_code
 
             # 直接使用传入的 model_messages
             messages = model_messages

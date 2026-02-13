@@ -12,7 +12,7 @@ class AgentResponseStrategy(ResponseStrategy):
     async def handle_response(self, chat, message_text, user_message, now, model_messages, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, use_agent=False, 
-                       chat_service=None):
+                       model=None, chat_service=None):
         # 检查是否为流式调用
         is_streaming = model_params.get('stream', False)
         
@@ -48,7 +48,7 @@ class AgentResponseStrategy(ResponseStrategy):
                     
                     # ！！！关键：使用 async for 遍历异步生成器（AStream 实现）
                     print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
-                    async for chunk in chat_service.chat_with_model_stream(parsed_model_name, model_messages, parsed_version_name, model_params, use_agent):
+                    async for chunk in chat_service.chat_with_model_stream(parsed_model_name, model_messages, parsed_version_name, model_params, use_agent, model=model):
                         if isinstance(chunk, dict):
                             print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
                             # 添加 agent 标记
@@ -342,8 +342,7 @@ class AgentResponseStrategy(ResponseStrategy):
                 from app.llm.agent_wrapper import AgentWrapper
                 from app.llm.managers.model_manager import ModelManager
                 
-                # 获取基础模型驱动
-                model = chat_service.validate_model(parsed_model_name)[0]
+                # 获取基础模型驱动（直接使用传入的 model）
                 version_config = chat_service.get_version_config(model, parsed_version_name)
                 base_driver = ModelManager.get_model_driver(parsed_model_name, model, version_config)
                 
