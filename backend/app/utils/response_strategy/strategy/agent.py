@@ -11,7 +11,7 @@ class AgentResponseStrategy(ResponseStrategy):
     
     async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
                        parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
+                       model_display_name, use_agent=False, 
                        selected_message_ids=None, chat_service=None):
         # 检查是否为流式调用
         is_streaming = model_params.get('stream', False)
@@ -20,7 +20,7 @@ class AgentResponseStrategy(ResponseStrategy):
             # 现有的流式处理逻辑
             async def generate():
                 try:
-                    messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking, selected_message_ids)
+                    messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids)
                     
                     # 创建智能体会话
                     agent_session = chat_service.create_agent_session(chat['id'], graph_state={}, current_node="")
@@ -314,8 +314,6 @@ class AgentResponseStrategy(ResponseStrategy):
                     
                     # 模型响应成功，一次性保存所有消息
                     print(f"[AgentResponseStrategy] 智能体流程完成，开始保存所有消息")
-                    # 将用户消息添加到对话中
-                    chat['messages'].append(user_message)
                     # 保存所有AI消息
                     for ai_message in responses:
                         chat['messages'].append(ai_message)
@@ -339,7 +337,7 @@ class AgentResponseStrategy(ResponseStrategy):
                 print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
                 
                 # 准备消息
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking, selected_message_ids)
+                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids)
                 
                 # 调用智能体（非流式）
                 from app.llm.agent_wrapper import AgentWrapper
@@ -384,8 +382,6 @@ class AgentResponseStrategy(ResponseStrategy):
                 
                 # 保存消息
                 print(f"[AgentResponseStrategy] 智能体流程完成，开始保存消息")
-                # 将用户消息添加到对话中
-                chat['messages'].append(user_message)
                 # 保存AI消息
                 chat['messages'].append(ai_message)
                 # 一次性保存整个对话

@@ -85,14 +85,13 @@ class ChatService(BaseService):
             BaseService.log_error(f"更新对话置顶状态失败: {str(e)}")
             return False
     
-    def get_chat_context(self, chat_id, max_messages=10, deep_thinking=False, selected_message_ids=None):
+    def get_chat_context(self, chat_id, max_messages=10, selected_message_ids=None):
         """
         获取对话上下文历史
         
         参数:
             chat_id: 对话ID
             max_messages: 最大获取的消息数量，默认10条
-            deep_thinking: 是否启用深度思考，启用时保留think标签
             selected_message_ids: 用户选择的消息ID列表，None表示使用默认逻辑
             
         返回:
@@ -324,21 +323,20 @@ class ChatService(BaseService):
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
         logger.info(f"对话更新成功，等待自动保存: chat_id={chat_id}")
 
-    def _prepare_messages_for_model(self, chat_id, enhanced_question, deep_thinking=False, selected_message_ids=None):
+    def _prepare_messages_for_model(self, chat_id, enhanced_question, selected_message_ids=None):
         """
         准备发送给模型的消息格式
         
         参数:
             chat_id: 对话ID
             enhanced_question: 增强后的问题
-            deep_thinking: 是否启用深度思考
             selected_message_ids: 用户选择的消息ID列表
         
         返回:
             格式化的消息列表
         """
         # 获取对话上下文历史，传递selected_message_ids
-        context_messages = self.get_chat_context(chat_id, deep_thinking=deep_thinking, selected_message_ids=selected_message_ids)
+        context_messages = self.get_chat_context(chat_id, selected_message_ids=selected_message_ids)
         
         # 准备消息格式，如果有上下文则使用上下文，否则使用当前问题
         if context_messages and len(context_messages) > 0:
@@ -790,16 +788,6 @@ class ChatService(BaseService):
         
         now = datetime.now().isoformat()
         
-        # 创建用户消息
-        user_message = {
-            'id': str(uuid.uuid4()),
-            'role': 'user',
-            'content': message_text,
-            'createdAt': now,
-            'files': files  # 保存原始文件信息
-        }
-        chat['messages'].append(user_message)
-        
         # 获取模型默认参数
         model_params = {
             'temperature': 0.7,
@@ -834,6 +822,16 @@ class ChatService(BaseService):
             logger.debug("RAG未启用，使用原始问题")
             enhanced_question = full_message_text
         
+        # 创建用户消息，使用增强后的问题作为内容
+        user_message = {
+            'id': str(uuid.uuid4()),
+            'role': 'user',
+            'content': enhanced_question,
+            'createdAt': now,
+            'files': files  # 保存原始文件信息
+        }
+        chat['messages'].append(user_message)
+        
         # 根据stream和agent的值决定返回类型
         if stream:
             # 所有流式对话（包括智能体的流式模式）都使用 handle_streaming_response
@@ -841,8 +839,8 @@ class ChatService(BaseService):
             return await ResponseHandler.handle_streaming_response(
                 chat, full_message_text, user_message, now,
                 enhanced_question, parsed_model_name, parsed_version_name, 
-                model_params, model_display_name, deep_thinking, use_agent,
-                selected_message_ids=selected_message_ids,  # 新增：传递用户选择的消息ID列表
+                model_params, model_display_name, use_agent,
+                selected_message_ids=selected_message_ids,  # 传递用户选择的消息ID列表
                 chat_service=self
             )
         else:
@@ -850,8 +848,8 @@ class ChatService(BaseService):
             return await ResponseHandler.handle_regular_response(
                 chat, full_message_text, user_message, now,
                 enhanced_question, parsed_model_name, parsed_version_name, 
-                model_params, model_display_name, deep_thinking, use_agent,
-                selected_message_ids=selected_message_ids,  # 新增：传递用户选择的消息ID列表
+                model_params, model_display_name, use_agent,
+                selected_message_ids=selected_message_ids,  # 传递用户选择的消息ID列表
                 chat_service=self
             )
     

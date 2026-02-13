@@ -11,12 +11,12 @@ class StreamingResponseStrategy(ResponseStrategy):
     
     async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
                        parsed_model_name, parsed_version_name, model_params, 
-                       model_display_name, deep_thinking=False, use_agent=False, 
+                       model_display_name, use_agent=False, 
                        selected_message_ids=None, chat_service=None):
         
         async def generate():
             try:
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, deep_thinking, selected_message_ids)
+                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids)
                 full_reply = ""
                 full_reasoning = ""
                 
@@ -41,8 +41,6 @@ class StreamingResponseStrategy(ResponseStrategy):
                 
                 # 模型响应成功，创建AI消息并保存
                 ai_message = MessageHandler.Response.process_full_reply(full_reply, now, model_display_name, full_reasoning)
-                # 将用户消息添加到对话中
-                chat['messages'].append(user_message)
                 # 一次性保存用户消息和AI消息
                 chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
                 
