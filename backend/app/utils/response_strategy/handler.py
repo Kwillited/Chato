@@ -16,16 +16,16 @@ class ResponseStrategyContext:
     def set_strategy(self, strategy: ResponseStrategy):
         self._strategy = strategy
     
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
+    async def handle_response(self, chat, message_text, user_message, now, model_messages, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, use_agent=False, 
-                       selected_message_ids=None, chat_service=None):
+                       chat_service=None):
         # 必须 await 策略的异步方法
         return await self._strategy.handle_response(chat, message_text, user_message, now, 
-                                             enhanced_question, parsed_model_name, 
+                                             model_messages, parsed_model_name, 
                                              parsed_version_name, model_params, 
                                              model_display_name, use_agent, 
-                                             selected_message_ids, chat_service)
+                                             chat_service)
 
 
 class ResponseHandler:
@@ -33,9 +33,9 @@ class ResponseHandler:
     
     @staticmethod
     async def handle_regular_response(chat, message_text, user_message, now,
-                               enhanced_question, parsed_model_name, parsed_version_name, 
+                               model_messages, parsed_model_name, parsed_version_name, 
                                model_params, model_display_name, use_agent=False,
-                               selected_message_ids=None, chat_service=None):
+                               chat_service=None):
         """处理普通响应（非流式）"""
         if use_agent:
             from app.utils.response_strategy.strategy.agent import AgentResponseStrategy
@@ -45,15 +45,16 @@ class ResponseHandler:
             strategy = RegularResponseStrategy()
         context = ResponseStrategyContext(strategy)
         return await context.handle_response(chat, message_text, user_message, now, 
-                                      enhanced_question, parsed_model_name, parsed_version_name, 
+                                      model_messages, parsed_model_name, parsed_version_name, 
                                       model_params, model_display_name, use_agent, 
-                                      selected_message_ids, chat_service)
+                                      chat_service)
+    
     
     @staticmethod
     async def handle_streaming_response(chat, message_text, user_message, now,
-                                 enhanced_question, parsed_model_name, parsed_version_name, 
+                                 model_messages, parsed_model_name, parsed_version_name, 
                                  model_params, model_display_name, use_agent=False,
-                                 selected_message_ids=None, chat_service=None):
+                                 chat_service=None):
         """处理流式响应（包括智能体的流式模式）"""
         if use_agent:
             from app.utils.response_strategy.strategy.agent import AgentResponseStrategy
@@ -63,6 +64,6 @@ class ResponseHandler:
             strategy = StreamingResponseStrategy()
         context = ResponseStrategyContext(strategy)
         return await context.handle_response(chat, message_text, user_message, now, 
-                                      enhanced_question, parsed_model_name, parsed_version_name, 
+                                      model_messages, parsed_model_name, parsed_version_name, 
                                       model_params, model_display_name, use_agent, 
-                                      selected_message_ids, chat_service)
+                                      chat_service)

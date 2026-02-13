@@ -9,19 +9,19 @@ from app.utils.response_strategy.stream import StreamUtils
 class StreamingResponseStrategy(ResponseStrategy):
     """标准流式响应处理策略（使用 AStream 实现）"""
     
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
+    async def handle_response(self, chat, message_text, user_message, now, model_messages, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, use_agent=False, 
-                       selected_message_ids=None, chat_service=None):
+                       chat_service=None):
         
         async def generate():
             try:
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids)
+                # 直接使用传入的 model_messages
                 full_reply = ""
                 full_reasoning = ""
                 
                 # ！！！关键：使用 async for 遍历异步生成器（AStream 实现）
-                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
+                async for chunk in chat_service.chat_with_model_stream(parsed_model_name, model_messages, parsed_version_name, model_params, use_agent):
                     if isinstance(chunk, dict):
                         # 处理字典类型的响应块
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"

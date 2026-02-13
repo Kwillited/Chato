@@ -9,10 +9,10 @@ from app.utils.response_strategy.agent import AgentProcessor
 class AgentResponseStrategy(ResponseStrategy):
     """智能体响应处理策略（使用 AStream 实现）"""
     
-    async def handle_response(self, chat, message_text, user_message, now, enhanced_question, 
+    async def handle_response(self, chat, message_text, user_message, now, model_messages, 
                        parsed_model_name, parsed_version_name, model_params, 
                        model_display_name, use_agent=False, 
-                       selected_message_ids=None, chat_service=None):
+                       chat_service=None):
         # 检查是否为流式调用
         is_streaming = model_params.get('stream', False)
         
@@ -20,7 +20,7 @@ class AgentResponseStrategy(ResponseStrategy):
             # 现有的流式处理逻辑
             async def generate():
                 try:
-                    messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids)
+                    # 直接使用传入的 model_messages
                     
                     # 创建智能体会话
                     agent_session = chat_service.create_agent_session(chat['id'], graph_state={}, current_node="")
@@ -48,7 +48,7 @@ class AgentResponseStrategy(ResponseStrategy):
                     
                     # ！！！关键：使用 async for 遍历异步生成器（AStream 实现）
                     print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
-                    async for chunk in chat_service.chat_with_model_stream(parsed_model_name, messages, parsed_version_name, model_params, use_agent):
+                    async for chunk in chat_service.chat_with_model_stream(parsed_model_name, model_messages, parsed_version_name, model_params, use_agent):
                         if isinstance(chunk, dict):
                             print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
                             # 添加 agent 标记
@@ -336,8 +336,7 @@ class AgentResponseStrategy(ResponseStrategy):
                 agent_session_id = agent_session['id'] if agent_session else None
                 print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
                 
-                # 准备消息
-                messages = chat_service._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids)
+                # 直接使用传入的 model_messages
                 
                 # 调用智能体（非流式）
                 from app.llm.agent_wrapper import AgentWrapper
@@ -362,7 +361,7 @@ class AgentResponseStrategy(ResponseStrategy):
                 
                 # 非流式调用智能体
                 print(f"[AgentResponseStrategy] 开始非流式智能体调用")
-                response = await agent_wrapper.chat(messages, model_params)
+                response = await agent_wrapper.chat(model_messages, model_params)
                 
                 # 处理智能体响应
                 print(f"[AgentResponseStrategy] 智能体响应完成: {type(response)}")

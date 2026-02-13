@@ -832,24 +832,25 @@ class ChatService(BaseService):
         }
         chat['messages'].append(user_message)
         
+        # 构建模型输入
+        model_messages = self._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids=selected_message_ids)
+        
         # 根据stream和agent的值决定返回类型
         if stream:
             # 所有流式对话（包括智能体的流式模式）都使用 handle_streaming_response
             # 内部会根据 use_agent 参数选择对应的策略
             return await ResponseHandler.handle_streaming_response(
                 chat, full_message_text, user_message, now,
-                enhanced_question, parsed_model_name, parsed_version_name, 
+                model_messages, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, use_agent,
-                selected_message_ids=selected_message_ids,  # 传递用户选择的消息ID列表
                 chat_service=self
             )
         else:
             # 所有非流式对话都使用 handle_regular_response
             return await ResponseHandler.handle_regular_response(
                 chat, full_message_text, user_message, now,
-                enhanced_question, parsed_model_name, parsed_version_name, 
+                model_messages, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, use_agent,
-                selected_message_ids=selected_message_ids,  # 传递用户选择的消息ID列表
                 chat_service=self
             )
     
