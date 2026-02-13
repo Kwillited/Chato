@@ -2,8 +2,7 @@
 from abc import ABC, abstractmethod
 from langchain_core.language_models import BaseLanguageModel
 from typing import List, Dict, Any, Optional, AsyncIterator 
-from app.utils.message_utils import MessageUtils
-from app.utils.response_strategy.stream import StreamUtils
+from app.utils.message import MessageSystem
 
 class BaseModel(ABC):
     def __init__(self, model_config: Dict[str, Any], version_config: Dict[str, Any]):
@@ -40,7 +39,7 @@ class BaseModel(ABC):
         
         try:
             # 1. 消息格式转换
-            langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
+            langchain_messages = MessageSystem.convert_to_langchain_messages(messages)
             
             # 2. 调用钩子处理参数（如适配 Ollama 的 options）
             call_kwargs = self._prepare_call_kwargs(model_params)
@@ -74,7 +73,7 @@ class BaseModel(ABC):
         
         try:
             # 1. 消息格式转换
-            langchain_messages = MessageUtils.convert_to_langchain_messages(messages)
+            langchain_messages = MessageSystem.convert_to_langchain_messages(messages)
             
             # 2. 调用钩子处理参数
             call_kwargs = self._prepare_call_kwargs(model_params)

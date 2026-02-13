@@ -1,10 +1,10 @@
-"""消息处理工具类"""
-from app.utils.message_handler import MessageHandler
-from app.utils.response_strategy.agent import AgentProcessor
+"""响应消息处理模块"""
+from app.utils.message.base import MessageSystem
+from app.utils.message.agent import AgentSystem
 
 
-class ResponseMessageUtils:
-    """响应消息处理工具"""
+class ResponseMessageSystem:
+    """响应消息处理系统，包含消息创建和格式化功能"""
     
     @staticmethod
     def create_ai_message(content, now, model_display_name, reasoning_content=None, **kwargs):
@@ -20,7 +20,7 @@ class ResponseMessageUtils:
         Returns:
             格式化后的AI消息
         """
-        ai_message = MessageHandler.Response.process_full_reply(content, now, model_display_name, reasoning_content)
+        ai_message = MessageSystem.process_full_reply(content, now, model_display_name, reasoning_content)
         # 添加额外参数
         for key, value in kwargs.items():
             ai_message[key] = value
@@ -42,8 +42,8 @@ class ResponseMessageUtils:
         Returns:
             格式化后的智能体消息
         """
-        return AgentProcessor.format_agent_message(content, now, model_display_name, 
-                                                 session_id=session_id, 
-                                                 node=node, 
-                                                 step=step,
-                                                 full_reasoning=reasoning_content)
+        return AgentSystem.format_agent_message(content, now, model_display_name, 
+                                             session_id=session_id, 
+                                             node=node, 
+                                             step=step,
+                                             full_reasoning=reasoning_content)

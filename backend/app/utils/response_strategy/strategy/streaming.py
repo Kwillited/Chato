@@ -1,8 +1,8 @@
 """流式响应策略"""
 import json
 from app.utils.response_strategy.strategy.base import BaseResponseStrategyImpl
-from app.utils.response_strategy.message_utils import ResponseMessageUtils
-from app.utils.response_strategy.streaming_utils import StreamingUtils
+from app.utils.message import ResponseMessageSystem
+from app.utils.stream import StreamSystem
 
 
 class StreamingResponseStrategy(BaseResponseStrategyImpl):
@@ -19,7 +19,7 @@ class StreamingResponseStrategy(BaseResponseStrategyImpl):
                 full_reasoning = ""
                 
                 # 使用工具类处理流式响应
-                async for chunk in StreamingUtils.handle_streaming_response(
+                async for chunk in StreamSystem.handle_streaming_response(
                     chat_service, parsed_model_name, model_messages, 
                     parsed_version_name, model_params, use_agent, model
                 ):
@@ -41,7 +41,7 @@ class StreamingResponseStrategy(BaseResponseStrategyImpl):
                         full_reply += str(chunk)
                 
                 # 使用工具类创建AI消息
-                ai_message = ResponseMessageUtils.create_ai_message(
+                ai_message = ResponseMessageSystem.create_ai_message(
                     full_reply, now, model_display_name, full_reasoning
                 )
                 

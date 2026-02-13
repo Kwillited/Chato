@@ -1,9 +1,9 @@
 """智能体响应策略"""
 import json
 from app.utils.response_strategy.strategy.base import BaseResponseStrategyImpl
-from app.utils.response_strategy.message_utils import ResponseMessageUtils
-from app.utils.response_strategy.agent_utils import AgentUtils
-from app.utils.response_strategy.streaming_utils import StreamingUtils
+from app.utils.message import ResponseMessageSystem
+from app.utils.message.agent import AgentSystem
+from app.utils.stream import StreamSystem
 
 
 class AgentResponseStrategy(BaseResponseStrategyImpl):
@@ -37,7 +37,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         async def generate():
             try:
                 # 使用工具类创建智能体会话
-                agent_session_id = AgentUtils.create_agent_session(chat_service, chat['id'])
+                agent_session_id = AgentSystem.create_agent_session(chat_service, chat['id'])
                 print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
                 
                 # 累积每个节点的响应
@@ -49,14 +49,14 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                 responses = []
                 
                 # 使用工具类创建智能体状态
-                agent_state = AgentUtils.create_agent_state()
+                agent_state = AgentSystem.create_agent_state()
                 
                 # 工具执行信息存储
                 node_tool_info = {}
                 
                 # 处理流式响应
                 print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
-                async for chunk in StreamingUtils.handle_streaming_response(
+                async for chunk in StreamSystem.handle_streaming_response(
                     chat_service, parsed_model_name, model_messages, 
                     parsed_version_name, model_params, True, model
                 ):
@@ -102,7 +102,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                         current_step = step
                         
                         # 更新智能体会话状态
-                        AgentUtils.update_agent_session(
+                        AgentSystem.update_agent_session(
                             chat_service, agent_session_id, current_node, current_step, agent_state
                         )
                         
@@ -120,7 +120,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                 print(f"[AgentResponseStrategy] 开始保存当前节点的响应")
                 if current_node:
                     # 处理工具信息
-                    tool_content = AgentUtils.process_tool_info(node_tool_info, current_node)
+                    tool_content = AgentSystem.process_tool_info(node_tool_info, current_node)
                     if tool_content:
                         node_content[current_node] = tool_content
                     
@@ -133,10 +133,11 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                 
                 # 保存所有消息
                 print(f"[AgentResponseStrategy] 智能体流程完成，开始保存所有消息")
+                # 先添加所有AI消息
                 for ai_message in responses:
                     chat['messages'].append(ai_message)
-                chat_service.update_chat_and_save(chat, message_text, user_message, 
-                                               responses[-1] if responses else None, now)
+                # 调用update_chat_and_save方法更新对话其他属性，但不传递ai_message参数
+                chat_service.update_chat_and_save(chat, message_text, user_message, None, now)
                 print(f"[AgentResponseStrategy] 所有消息保存完成")
                 
                 # 发送完成信号
@@ -154,7 +155,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                                            model_display_name, model, chat_service):
         """处理非流式智能体响应"""
         # 使用工具类创建智能体会话
-        agent_session_id = AgentUtils.create_agent_session(chat_service, chat['id'])
+        agent_session_id = AgentSystem.create_agent_session(chat_service, chat['id'])
         print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
         
         # 调用智能体
@@ -170,7 +171,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         await agent_wrapper.initialize()
         
         # 使用工具类创建智能体状态
-        agent_state = AgentUtils.create_agent_state()
+        agent_state = AgentSystem.create_agent_state()
         
         # 非流式调用智能体
         print(f"[AgentResponseStrategy] 开始非流式智能体调用")
@@ -184,7 +185,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         reasoning_content = response.get('reasoning_content') if isinstance(response, dict) else None
         
         # 创建智能体消息
-        ai_message = ResponseMessageUtils.create_agent_message(
+        ai_message = ResponseMessageSystem.create_agent_message(
             content, now, model_display_name, 
             session_id=agent_session_id, 
             node="final", 
@@ -194,7 +195,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         
         # 保存消息
         print(f"[AgentResponseStrategy] 智能体流程完成，开始保存消息")
-        chat['messages'].append(ai_message)
         chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
         print(f"[AgentResponseStrategy] 消息保存完成")
         
@@ -210,7 +210,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         # 确保推理节点被保存
         if node == 'reasoning' or (node in node_content and node_content[node].strip()):
             # 使用工具类获取节点内容
-            content = AgentUtils.get_node_content(node_content, node)
+            content = AgentSystem.get_node_content(node_content, node)
             
             metadata = node_metadata.get(node, {})
             print(f"[AgentResponseStrategy] 准备节点消息: node={node}, content={content[:50]}...")
@@ -219,7 +219,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
             node_reasoning_content = node_reasoning.get(node, None)
             
             # 创建智能体消息
-            ai_message = ResponseMessageUtils.create_agent_message(
+            ai_message = ResponseMessageSystem.create_agent_message(
                 content, now, model_display_name, 
                 session_id=agent_session_id, 
                 node=node, 

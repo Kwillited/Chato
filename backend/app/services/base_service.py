@@ -5,7 +5,7 @@ from functools import wraps
 from app.utils.logging_utils import LoggingUtils
 from app.utils.error_handler import ErrorHandler
 from app.utils import ValidationUtils
-from app.utils.model_utils import ModelUtils
+from app.utils.model import ModelUtils
 
 class BaseService:
     """所有服务类的基类，封装公共方法"""

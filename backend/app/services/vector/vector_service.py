@@ -5,7 +5,7 @@ from app.repositories.vector_repository import VectorRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.services.vector.vector_store_service import VectorStoreService
 from app.services.chat.generation_service import GenerationService
-from app.utils.vector_utils import VectorUtils
+from app.utils.rag import VectorUtils
 
 class VectorService(BaseService):
     """向量服务类，封装所有向量相关的操作"""

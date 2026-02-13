@@ -1,10 +1,16 @@
+"""核心消息处理模块"""
 from typing import List, Dict, Any
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage
+import json
+import uuid
+import re
+from app.core.logging_config import logger
 
 
-class MessageUtils:
-    """消息处理工具类"""
+class MessageSystem:
+    """核心消息处理系统，包含消息格式转换、输入提取、标签过滤、消息创建等功能"""
     
+    # 消息格式转换相关方法
     @staticmethod
     def convert_to_langchain_messages(messages: List[Dict[str, str]]) -> List[BaseMessage]:
         """将内部消息格式转换为langchain消息格式
@@ -78,3 +84,53 @@ class MessageUtils:
         
         # 去除多余的空白字符
         return content.strip()
+    
+    # 消息创建相关方法
+    @staticmethod
+    def create_ai_message(now, content, model_display_name, files=None):
+        """创建标准格式的AI回复消息
+        
+        Args:
+            now: 当前时间戳
+            content: 回复内容
+            model_display_name: 模型显示名称
+            files: 相关文件列表
+            
+        Returns:
+            标准格式的AI回复消息
+        """
+        ai_message_id = str(uuid.uuid4())
+        ai_message = {
+            'id': ai_message_id,
+            'role': 'assistant',
+            'content': content,
+            'createdAt': now,
+            'model': model_display_name,
+            'files': files or []  # 添加files字段，默认空列表
+        }
+        logger.debug(f"创建AI消息: id={ai_message_id}, model={model_display_name}, content_length={len(content)}")
+        return ai_message
+    
+    @staticmethod
+    def process_full_reply(full_reply, now, model_display_name, full_reasoning=None):
+        """处理完整回复，分离思考内容和实际内容
+        
+        Args:
+            full_reply: 完整的回复内容
+            now: 当前时间戳
+            model_display_name: 模型显示名称
+            full_reasoning: 累积的思考内容
+            
+        Returns:
+            标准格式的AI回复消息
+        """
+        # 直接使用提供的full_reasoning或None
+        thinking_content = full_reasoning
+        actual_content = full_reply
+        
+        # 创建AI回复，确保包含完整的模型和版本信息
+        ai_message = MessageSystem.create_ai_message(now, actual_content, model_display_name)
+        # 添加思考内容到AI消息
+        ai_message['reasoning_content'] = thinking_content
+        
+        return ai_message

@@ -4,27 +4,21 @@
 print("开始测试响应模块导入...")
 
 try:
-    # 测试导入 MessageHandler
-    from app.utils.message_handler import MessageHandler
-    print("✓ 成功导入 MessageHandler")
+    # 测试导入核心消息处理模块
+    from app.utils.message import MessageSystem
+    print("✓ 成功导入 MessageSystem")
     
-    # 测试导入 StreamUtils
-    from app.utils.response_strategy.stream import StreamUtils
-    print("✓ 成功导入 StreamUtils")
+    # 测试导入流式处理模块
+    from app.utils.stream import StreamSystem
+    print("✓ 成功导入 StreamSystem")
     
-    # 测试导入 AgentProcessor
-    from app.utils.response_strategy.agent import AgentProcessor
-    print("✓ 成功导入 AgentProcessor")
+    # 测试导入智能体处理模块
+    from app.utils.agent import AgentSystem
+    print("✓ 成功导入 AgentSystem")
     
-    # 测试导入工具类
-    from app.utils.response_strategy.message_utils import ResponseMessageUtils
-    print("✓ 成功导入 ResponseMessageUtils")
-    
-    from app.utils.response_strategy.agent_utils import AgentUtils
-    print("✓ 成功导入 AgentUtils")
-    
-    from app.utils.response_strategy.streaming_utils import StreamingUtils
-    print("✓ 成功导入 StreamingUtils")
+    # 测试导入响应消息工具模块
+    from app.utils.response_message import ResponseMessageSystem
+    print("✓ 成功导入 ResponseMessageSystem")
     
     # 测试导入策略类
     from app.utils.response_strategy.strategy.regular import RegularResponseStrategy
@@ -43,10 +37,12 @@ try:
     print("\n所有模块导入成功！重构后的响应模块工作正常。")
     
     print("\n重构后的模块结构：")
-    print("1. 基础策略类: ResponseStrategy, BaseResponseStrategyImpl")
-    print("2. 具体策略: RegularResponseStrategy, StreamingResponseStrategy, AgentResponseStrategy")
-    print("3. 工具类: ResponseMessageUtils, AgentUtils, StreamingUtils")
-    print("4. 处理器: ResponseHandler")
+    print("1. 核心消息处理模块: MessageSystem")
+    print("2. 流式处理模块: StreamSystem")
+    print("3. 智能体处理模块: AgentSystem")
+    print("4. 响应消息工具模块: ResponseMessageSystem")
+    print("5. 策略类: RegularResponseStrategy, StreamingResponseStrategy, AgentResponseStrategy")
+    print("6. 处理器: ResponseHandler")
     
 except Exception as e:
     print(f"✗ 导入失败: {e}")

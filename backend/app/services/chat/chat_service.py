@@ -7,7 +7,7 @@ from app.services.data_service import DataService
 from app.services.base_service import BaseService
 from app.utils.response_strategy.handler import ResponseHandler
 from app.utils import FileUtils
-from app.utils.model_utils import ModelUtils
+from app.utils.model import ModelUtils
 
 class ChatService(BaseService):
     """对话服务类，封装所有对话相关的业务逻辑"""
@@ -118,7 +118,7 @@ class ChatService(BaseService):
                 messages = messages[-max_messages:]
         
         # 转换为适合模型输入的格式
-        from app.utils.message_handler import MessageHandler
+        from app.utils.message import MessageSystem
         formatted_messages = []
         for msg in messages:
             # 确保消息有必要的字段

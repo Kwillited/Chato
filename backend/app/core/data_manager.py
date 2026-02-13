@@ -3,7 +3,7 @@ import json
 import os
 from datetime import datetime
 from app.core.config import config_manager
-from app.utils.data_utils import build_message_list
+from app.utils.data import build_message_list
 
 # 1. 初始化内存数据库（全局唯一）
 db = {
@@ -140,7 +140,7 @@ def load_chats_from_db():
         from app.repositories.message_repository import MessageRepository
         from app.core.database import get_db
         from app.models.database.models import Chat
-        from app.utils.data_utils import build_message_list, build_chat_dict
+        from app.utils.data import build_message_list, build_chat_dict
         
         # 获取数据库会话
         db_session = next(get_db())
