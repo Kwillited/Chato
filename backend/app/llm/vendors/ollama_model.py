@@ -20,12 +20,17 @@ class OllamaModel(BaseModel):
         """
         重写：专门为 Ollama 封装 options 字典
         """
+        # 参数映射：将通用参数名映射为 Ollama 特定的参数名
         mapping = {
             'temperature': 'temperature',
             'max_tokens': 'num_predict',
             'top_p': 'top_p',
             'top_k': 'top_k',
-            'frequency_penalty': 'repeat_penalty',
+            'frequency_penalty': 'repeat_penalty',  # 频率惩罚映射为 Ollama 的重复惩罚
+            # 注意：frequency_penalty 的默认值在 chat_service.py 中被固定为 1
+            # 这样可以有效减少模型生成重复内容的可能性
+            # 重要：当设置为 0 时，会导致 Ollama 的 qwen2.5 模型出现断言错误
+            # 但 qwen3 模型不受此影响
         }
         
         ollama_options = {}

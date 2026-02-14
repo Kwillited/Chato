@@ -86,7 +86,7 @@ export const useSettingsStore = defineStore('settings', {
       max_tokens: 2000,
       top_p: 1.0,
       top_k: 50,
-      frequency_penalty: 0.0,
+      frequency_penalty: 1.0,
     },
     
     // 模型加载状态
@@ -214,7 +214,7 @@ export const useSettingsStore = defineStore('settings', {
         max_tokens: 2000,
         top_p: 1.0,
         top_k: 50,
-        frequency_penalty: 0.0,
+        frequency_penalty: 1.0,
       };
 
       this.availableModels = [];
@@ -730,7 +730,7 @@ export const useSettingsStore = defineStore('settings', {
         max_tokens: 2000,
         top_p: 1.0,
         top_k: 50,
-        frequency_penalty: 0.0,
+        frequency_penalty: 1.0,
       };
       this.availableModels = [];
       this.modelError = null;

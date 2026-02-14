@@ -795,12 +795,21 @@ class ChatService(BaseService):
             'max_tokens': 2000,
             'top_p': 1,
             'top_k': 50,
-            'frequency_penalty': 0,
+            'frequency_penalty': 1,  # 固定默认值为 1
+            # 注意：frequency_penalty 会被映射为 Ollama 的 repeat_penalty 参数
+            # 设置为 1 可以有效减少模型生成重复内容的可能性
+            # 重要：当设置为 0 时，会导致 Ollama 的 qwen2.5 模型出现断言错误
+            # 但 qwen3 模型不受此影响
             'stream': stream,  # 将 stream 参数添加到 model_params 中
             'deepThinking': deep_thinking  # 添加深度思考参数
         }
-        # 合并用户自定义参数
-        model_params.update(user_model_params)
+        # 合并用户自定义参数，但强制保留 frequency_penalty 的默认值
+        # 这样做是为了确保所有对话都使用一致的重复惩罚值，避免前端缓存旧设置导致的问题
+        temp_params = {**user_model_params}
+        if 'frequency_penalty' in temp_params:
+            # 删除用户参数中的 frequency_penalty，确保使用后端的默认值
+            del temp_params['frequency_penalty']
+        model_params.update(temp_params)
         
         # 处理上传的文件
         file_contents = self.process_uploaded_files(files)
