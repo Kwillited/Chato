@@ -3,6 +3,9 @@ import App from './App.vue';
 import pinia from './store/pinia.js';
 import router from './router/index.js';
 
+// 导入代码块样式
+import './assets/styles/codeBlock.css';
+
 // 等待DOM完全加载后再初始化Vue应用
 document.addEventListener('DOMContentLoaded', () => {
   try {

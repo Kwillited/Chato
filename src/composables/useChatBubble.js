@@ -1,7 +1,64 @@
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import { marked } from '../plugins/markdown.js'
+import { marked } from 'marked'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 import { copyToClipboard } from '../utils/browser.js'
 import { showNotification } from '../utils/notificationUtils.js'
+
+// 配置 marked 选项
+const renderer = new marked.Renderer();
+
+// 自定义代码块渲染
+renderer.code = function(code, language) {
+  // 处理可能的AST节点
+  let actualCode = code;
+  let actualLanguage = language;
+  
+  // 如果code是对象，尝试提取实际的代码内容
+  if (typeof code === 'object' && code !== null) {
+    // 检查是否是marked的AST节点
+    if (code.type === 'code') {
+      actualCode = code.text || code.raw || '';
+      actualLanguage = code.lang || language;
+    } else {
+      // 其他对象，转换为JSON字符串
+      actualCode = JSON.stringify(code, null, 2);
+    }
+  } else if (typeof code !== 'string') {
+    // 非字符串非对象，转换为字符串
+    actualCode = String(code);
+  }
+  
+  // 如果没有语言或语言为'text'，则显示为'plaintext'
+  const displayLanguage = actualLanguage && actualLanguage !== 'text' ? actualLanguage : 'plaintext';
+  
+  // 创建唯一ID用于复制功能
+  const codeBlockId = `code-block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // 返回带头部的代码块HTML
+  return `
+    <div class="code-container">
+      <div class="code-header">
+        <span class="code-language">${displayLanguage}</span>
+        <button 
+          class="copy-code-btn"
+          data-code-block-id="${codeBlockId}"
+          title="复制代码"
+        >
+          <i class="fa-solid fa-copy"></i>
+        </button>
+      </div>
+      <pre><code id="${codeBlockId}">${actualCode}</code></pre>
+    </div>
+  `;
+};
+
+// 设置 marked 配置
+marked.setOptions({
+  renderer: renderer,
+  breaks: true,
+  gfm: true
+});
 
 /**
  * 聊天气泡组件的公共逻辑
@@ -28,45 +85,24 @@ export function useChatBubble(props) {
     return messageValue.value.content || messageValue.value.text || ''
   })
 
-  // 正则表达式常量，避免重复创建
-  const THINKING_TAG_REGEX = /^\s*<think>[\s\S]*?<\/think>\s*/;
-
-  // 缓存计算结果，避免重复解析相同内容
-  const formattedContentCache = ref(new Map())
-
   // 格式化消息内容（支持Markdown）
   const formattedContent = computed(() => {
     const content = messageContent.value
     if (!content) return ''
 
-    // 生成缓存key
-    const cacheKey = `${content}-${messageValue.value.lastUpdate}`
-    
-    // 如果缓存中存在，直接返回
-    if (formattedContentCache.value.has(cacheKey)) {
-      return formattedContentCache.value.get(cacheKey)
-    }
+    console.log('原始Markdown内容:', content);
 
-    // 处理AI回复中的思考标签
-    let contentToParse = content.replace(THINKING_TAG_REGEX, '');
-    
     // 使用集中化配置的marked库转换Markdown为HTML
     let parsedContent = ''
     try {
-      parsedContent = marked.parse(contentToParse);
+      console.log('调用marked解析Markdown');
+      // 直接使用marked函数解析
+      parsedContent = marked(content);
+      console.log('Markdown解析结果:', parsedContent);
     } catch (error) {
       console.error('Markdown解析错误:', error);
-      parsedContent = contentToParse.replace(/\n/g, '<br>');
-    }
-    
-    // 缓存结果
-    formattedContentCache.value.set(cacheKey, parsedContent)
-    
-    // 限制缓存大小，防止内存泄漏
-    if (formattedContentCache.value.size > 50) {
-      // 删除最早的缓存项
-      const firstKey = formattedContentCache.value.keys().next().value
-      formattedContentCache.value.delete(firstKey)
+      parsedContent = content.replace(/\n/g, '<br>');
+      console.log('错误处理后的内容:', parsedContent);
     }
     
     return parsedContent
@@ -80,8 +116,8 @@ export function useChatBubble(props) {
   // 复制消息内容到剪贴板
   const copyMessageContent = async () => {
     try {
-      // 移除思考标签后再复制
-      const contentToCopy = messageContent.value.replace(THINKING_TAG_REGEX, '');
+      // 直接复制内容
+      const contentToCopy = messageContent.value;
       await copyToClipboard(contentToCopy)
       // 显示复制成功通知
       showNotification('消息内容已复制到剪贴板', 'success')
@@ -137,13 +173,40 @@ export function useChatBubble(props) {
     return reasoning_content.replace(/\n/g, '<br>')
   }
 
-  // 监听消息变化，清理旧的缓存
-  watch(() => props.message, () => {
-    // 清理超过100项的缓存，防止内存泄漏
-    if (formattedContentCache.value.size > 100) {
-      formattedContentCache.value.clear()
+  // 初始化复制按钮事件监听器
+  const initCopyButtons = () => {
+    // 等待DOM更新完成后添加事件监听器
+    setTimeout(() => {
+      const copyButtons = document.querySelectorAll('.copy-code-btn');
+      copyButtons.forEach(button => {
+        // 移除已有的事件监听器，避免重复绑定
+        button.removeEventListener('click', handleCopyButtonClick);
+        // 添加新的事件监听器
+        button.addEventListener('click', handleCopyButtonClick);
+      });
+    }, 0);
+  };
+
+  // 处理复制按钮点击事件
+  const handleCopyButtonClick = (event) => {
+    const button = event.currentTarget;
+    const codeBlockId = button.getAttribute('data-code-block-id');
+    if (codeBlockId) {
+      copyCodeToClipboard(codeBlockId);
     }
+  };
+
+  // 监听消息变化，清理旧的缓存并重新初始化复制按钮
+  watch(() => props.message, () => {
+    // 由于移除了缓存机制，这里不再需要清理缓存
+    // 重新初始化复制按钮事件监听器
+    initCopyButtons();
   }, { deep: true })
+
+  // 组件挂载时初始化复制按钮
+  onMounted(() => {
+    initCopyButtons();
+  });
 
   return {
     messageValue,
@@ -153,6 +216,7 @@ export function useChatBubble(props) {
     copyMessageContent,
     copyCodeToClipboard,
     formatThinkingContent,
-    copyButtonStates
+    copyButtonStates,
+    initCopyButtons
   }
 }

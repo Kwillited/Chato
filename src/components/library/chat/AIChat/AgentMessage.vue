@@ -8,7 +8,7 @@
     
     <!-- 消息内容 -->
       <div v-if="contentWithoutTools" :class="stepBubbleClasses">
-        <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="contentWithoutTools"></div>
+        <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="parsedContent"></div>
       </div>
       
       <!-- 步骤的工具执行状态 -->
@@ -45,6 +45,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { marked } from 'marked'
 import { ToolExecutionStatus } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
 import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
@@ -102,6 +103,23 @@ const contentWithoutTools = computed(() => {
   const content = messageValue.value.content || ''
   return extractNonToolContent(content)
 })
+
+// 解析Markdown内容
+const parsedContent = computed(() => {
+  const content = contentWithoutTools.value
+  if (!content) return ''
+  
+  try {
+    console.log('AgentMessage解析Markdown内容:', content);
+    // 直接使用marked函数解析
+    const result = marked(content);
+    console.log('AgentMessage解析结果:', result);
+    return result;
+  } catch (error) {
+    console.error('AgentMessage解析Markdown错误:', error);
+    return content.replace(/\n/g, '<br>');
+  }
+});
 </script>
 
 <style scoped>
