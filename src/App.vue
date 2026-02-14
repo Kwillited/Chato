@@ -26,6 +26,7 @@
 <script setup>
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useNavigation } from './composables/useNavigation.js';
 import ModelVersionForm from './components/models/ModelVersionForm.vue';
 import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
 import MainLayout from './layout/MainLayout.vue';
@@ -42,6 +43,9 @@ const uiStore = useUiStore();
 const route = useRoute();
 const router = useRouter();
 
+// 导航管理
+const { handleRouteChange, handleStateDrivenRouting } = useNavigation();
+
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
 
@@ -49,56 +53,7 @@ const isInitialLoading = ref(true);
 watch(
   () => route,
   async (newRoute) => {
-    // 处理设置页面路由
-    if (newRoute.path === '/setting') {
-      // 进入设置页面时，隐藏左右侧边栏
-      uiStore.activePanel = 'settings';
-      uiStore.rightPanelVisible = false;
-      console.log('进入设置页面，隐藏左右侧边栏');
-    } else {
-      // 离开设置页面时，恢复右侧面板可见性
-      if (uiStore.activePanel === 'settings') {
-        uiStore.activePanel = 'history';
-        uiStore.rightPanelVisible = true;
-        console.log('离开设置页面，恢复右侧面板可见性');
-      }
-    }
-    
-    // 处理 /chat/:uuid 路由
-    if (newRoute.name === 'Chat') {
-      const uuid = newRoute.params.uuid;
-      console.log('路由切换到聊天对话:', uuid);
-      
-      // 确保对话历史已加载
-      try {
-        // 首先尝试选择对话
-        let success = chatStore.selectChat(uuid);
-        
-        // 如果找不到对话，重新加载对话历史并再次尝试
-        if (!success) {
-          console.log('对话未找到，重新加载对话历史:', uuid);
-          await chatStore.loadChatHistory();
-          success = chatStore.selectChat(uuid);
-        }
-        
-        if (!success) {
-          // 对话不存在，切换到首页
-          console.error('对话不存在:', uuid);
-          router.push('/');
-        } else {
-          // 对话存在，设置activeContent为chat
-          uiStore.setActiveContent('chat');
-        }
-      } catch (error) {
-        console.error('加载对话历史失败:', error);
-        // 加载失败时，切换到首页
-        router.push('/');
-      }
-    } else if (newRoute.meta && newRoute.meta.activeContent) {
-      // 使用路由的meta字段设置activeContent
-      uiStore.setActiveContent(newRoute.meta.activeContent);
-      console.log('路由切换到:', newRoute.meta.activeContent);
-    }
+    await handleRouteChange(newRoute, router);
   },
   {
     immediate: true,
@@ -110,23 +65,7 @@ watch(
 watch(
   () => chatStore.currentChatId,
   (newChatId) => {
-    console.log('currentChatId变化:', newChatId);
-    const currentPath = route.path;
-    
-    if (newChatId) {
-      // 有对话ID，确保路由是对应的聊天路径
-      const expectedPath = `/chat/${newChatId}`;
-      if (currentPath !== expectedPath && !currentPath.includes('/setting')) {
-        console.log('更新路由到对话:', expectedPath);
-        router.push(expectedPath);
-      }
-    } else if (!currentPath.includes('/setting')) {
-      // 没有对话ID且不在设置页面，确保路由是根路径
-      if (currentPath !== '/') {
-        console.log('更新路由到首页:', '/');
-        router.push('/');
-      }
-    }
+    handleStateDrivenRouting(newChatId, route.path, router);
   }
 );
 

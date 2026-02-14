@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { ROUTE_CONFIGS } from './constants.js';
 
 // 导入视图组件（使用懒加载）
 const HomeContent = () => import('../views/HomeContent.vue');
@@ -8,45 +9,22 @@ const FileMangerContent = () => import('../views/FileMangerContent.vue');
 const McpMangerContent = () => import('../views/McpMangerContent.vue');
 const ContextVisualizationContent = () => import('../components/library/ContextVisualization/ContextVisualizationContent.vue');
 
-const routes = [
-  {
-    path: '/',
-    name: 'Home',
-    component: HomeContent,
-    meta: { activeContent: 'home' }
-  },
-  {
-    path: '/chat/:uuid',
-    name: 'Chat',
-    component: ChatContent,
-    meta: { activeContent: 'chat' },
-    props: true
-  },
-  {
-    path: '/setting',
-    name: 'Setting',
-    component: SettingsContent,
-    meta: { activeContent: 'settings' }
-  },
-  {
-    path: '/file',
-    name: 'FileManager',
-    component: FileMangerContent,
-    meta: { activeContent: 'fileManager' }
-  },
-  {
-    path: '/mcp',
-    name: 'McpManagement',
-    component: McpMangerContent,
-    meta: { activeContent: 'mcpManagement' }
-  },
-  {
-    path: '/context',
-    name: 'ContextVisualization',
-    component: ContextVisualizationContent,
-    meta: { activeContent: 'contextVisualization' }
-  }
-];
+// 组件映射
+const componentMap = {
+  Home: HomeContent,
+  Chat: ChatContent,
+  Setting: SettingsContent,
+  FileManager: FileMangerContent,
+  RagManagement: FileMangerContent,
+  McpManagement: McpMangerContent,
+  ContextVisualization: ContextVisualizationContent
+};
+
+// 生成路由配置
+const routes = ROUTE_CONFIGS.map(config => ({
+  ...config,
+  component: componentMap[config.name]
+}));
 
 const router = createRouter({
   history: createWebHistory(),

@@ -613,11 +613,11 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
 import { StorageManager } from '../../../utils/storage.js';
 import { formatFileSize } from '../../../utils/file.js';
 import { Tooltip } from '../index.js';
 import { showNotification } from '../../../utils/notificationUtils.js';
+import { useNavigation } from '../../../composables/useNavigation.js';
 import DragDropZone from '../../common/DragDropZone.vue';
 import { Button } from '../../../components/library/index.js';
 
@@ -644,8 +644,8 @@ const uiStore = useUiStore();
 const modelStore = useSettingsStore();
 const vectorStore = useVectorStore();
 
-// 初始化路由
-const router = useRouter();
+// 导航管理
+const { navigateToSettings } = useNavigation();
 
 // 拖拽状态管理
 const dragCounter = ref(0);
@@ -1210,12 +1210,12 @@ const toggleViewPanel = () => {
 
 // 处理系统设置按钮点击事件
 const handleSystemSettingsClick = () => {
-  router.push('/setting');
+  navigateToSettings();
 };
 
 // 处理AI配置按钮点击事件
 const handleAISettingsClick = () => {
-  router.push('/setting');
+  navigateToSettings();
 };
 
 // 切换主题

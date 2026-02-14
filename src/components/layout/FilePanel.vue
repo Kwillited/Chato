@@ -6,11 +6,11 @@
       <!-- 文件夹样式的根目录 -->
       <div class="folder-container p-2">
         <!-- 工具栏组件 -->
-        <RagToolbar :loading="fileStore.loading" />
+        <FileToolbar :loading="fileStore.loading" />
         
         <!-- 文件夹列表 - 根目录视图 -->
         <div v-if="!currentFolder">
-          <RagFolderList v-if="folders.length > 0" :folders="folders" />
+          <FileFolderList v-if="folders.length > 0" :folders="folders" />
           
           <!-- 空状态提示 -->
           <StateDisplay v-else-if="!loadingFolders" type="empty" title="暂无知识库" message="点击右上角按钮创建您的第一个知识库" icon="fa-inbox" />
@@ -22,7 +22,7 @@
         </div>
         
         <!-- 文件列表 - 二级菜单视图 -->
-        <RagFileList v-else
+        <FileFileList v-else
           :currentFolder="currentFolder"
           :currentFiles="currentFiles"
           :loadingFiles="loadingFiles"
@@ -31,7 +31,7 @@
     </div>
     
     <!-- 创建知识库模态弹窗 -->
-    <RagCreateKnowledgeBaseModal 
+    <FileCreateKnowledgeBaseModal 
       :visible="showCreateModal"
       @close="handleCloseModal"
       @created="handleKnowledgeBaseCreated"
@@ -72,13 +72,13 @@ import { showNotification } from '../../utils/notificationUtils.js';
 
 // 导入子组件
 
-import RagToolbar from '../file/RagToolbar.vue';
-import RagFolderList from '../file/RagFolderList.vue';
-import RagFileList from '../file/RagFileList.vue';
+import FileToolbar from '../file/FileToolbar.vue';
+import FileFolderList from '../file/FileFolderList.vue';
+import FileFileList from '../file/FileFileList.vue';
 import StateDisplay from '../common/StateDisplay.vue';
 import SkeletonLoader from '../common/SkeletonLoader.vue';
 import { ConfirmationModal } from '../library/index.js';
-import RagCreateKnowledgeBaseModal from '../file/RagCreateKnowledgeBaseModal.vue';
+import FileCreateKnowledgeBaseModal from '../file/FileCreateKnowledgeBaseModal.vue';
 
 const ragStore = useVectorStore();
 const fileStore = useFileStore();
