@@ -3,15 +3,17 @@
     class="app-container h-screen flex flex-col overflow-hidden bg-light text-dark dark:bg-dark-primary dark:text-light"
     :class="{ 'transition-all duration-300': !isInitialLoading }"
   >
-    <!-- 主内容区域：显示区域 -->
-    <div class="flex flex-1 overflow-hidden">
-      <!-- 3. 显示区域容器 -->
-      <MainLayout 
-        :active-content="uiStore.activeContent" 
-        :saved-right-panel-width="uiStore.rightPanelWidth" 
-        :is-initial-loading="isInitialLoading"
-      />
-    </div>
+    <!-- 路由视图：渲染当前路由对应的组件 -->
+    <router-view v-slot="{ Component }">
+      <transition name="fade" mode="out-in">
+        <MainLayout 
+          :saved-right-panel-width="uiStore.rightPanelWidth" 
+          :is-initial-loading="isInitialLoading"
+        >
+          <component :is="Component" :key="$route.path" />
+        </MainLayout>
+      </transition>
+    </router-view>
 
     <!-- 模型版本表单（支持添加和编辑） -->
     <ModelVersionForm />
@@ -43,18 +45,28 @@ const router = useRouter();
 // 初始加载状态，用于控制首次加载时的动画
 const isInitialLoading = ref(true);
 
-// 面板状态管理现在由 uiStore 负责，移除本地监听器
-
 // 监听路由变化，更新应用状态
 watch(
-  () => route.path,
-  async (newPath) => {
-    // 解析路由路径
-    const chatMatch = newPath.match(/^\/chat\/(.*)$/);
+  () => route,
+  async (newRoute) => {
+    // 处理设置页面路由
+    if (newRoute.path === '/setting') {
+      // 进入设置页面时，隐藏左右侧边栏
+      uiStore.activePanel = 'settings';
+      uiStore.rightPanelVisible = false;
+      console.log('进入设置页面，隐藏左右侧边栏');
+    } else {
+      // 离开设置页面时，恢复右侧面板可见性
+      if (uiStore.activePanel === 'settings') {
+        uiStore.activePanel = 'history';
+        uiStore.rightPanelVisible = true;
+        console.log('离开设置页面，恢复右侧面板可见性');
+      }
+    }
     
-    if (chatMatch) {
-      // 处理 /chat/:uuid 路由
-      const uuid = chatMatch[1];
+    // 处理 /chat/:uuid 路由
+    if (newRoute.name === 'Chat') {
+      const uuid = newRoute.params.uuid;
       console.log('路由切换到聊天对话:', uuid);
       
       // 确保对话历史已加载
@@ -72,22 +84,25 @@ watch(
         if (!success) {
           // 对话不存在，切换到首页
           console.error('对话不存在:', uuid);
-          uiStore.setActiveContent('home');
+          router.push('/');
+        } else {
+          // 对话存在，设置activeContent为chat
+          uiStore.setActiveContent('chat');
         }
       } catch (error) {
         console.error('加载对话历史失败:', error);
         // 加载失败时，切换到首页
-        uiStore.setActiveContent('home');
+        router.push('/');
       }
-    } else if (newPath === '/' || newPath === '/setting') {
-      // 交给 uiStore 处理面板状态管理，传递查询参数
-        uiStore.handleRouteNavigation(newPath, route.query);
-      // 清除当前对话ID，避免首页或设置页显示聊天内容
-      chatStore.currentChatId = null;
+    } else if (newRoute.meta && newRoute.meta.activeContent) {
+      // 使用路由的meta字段设置activeContent
+      uiStore.setActiveContent(newRoute.meta.activeContent);
+      console.log('路由切换到:', newRoute.meta.activeContent);
     }
   },
   {
-    immediate: true
+    immediate: true,
+    deep: true
   }
 );
 
@@ -105,9 +120,9 @@ watch(
         console.log('更新路由到对话:', expectedPath);
         router.push(expectedPath);
       }
-    } else {
-      // 没有对话ID，确保路由是根路径
-      if (currentPath !== '/' && !currentPath.includes('/setting')) {
+    } else if (!currentPath.includes('/setting')) {
+      // 没有对话ID且不在设置页面，确保路由是根路径
+      if (currentPath !== '/') {
         console.log('更新路由到首页:', '/');
         router.push('/');
       }
@@ -200,5 +215,16 @@ onMounted(async () => {
   cursor: not-allowed !important;
   opacity: 0.5;
   pointer-events: none;
+}
+
+/* 路由过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

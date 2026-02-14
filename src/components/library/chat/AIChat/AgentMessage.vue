@@ -48,7 +48,6 @@ import { computed } from 'vue'
 import { marked } from 'marked'
 import { ToolExecutionStatus } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
-import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
 
 const props = defineProps({
   message: {
@@ -72,7 +71,7 @@ const {
   getNodeLabel,
   parseToolExecutions,
   extractNonToolContent
-} = useChatBubbleUtils(props)
+} = useChatBubble(props)
 
 // 计算步骤气泡样式类
 const stepBubbleClasses = computed(() => {

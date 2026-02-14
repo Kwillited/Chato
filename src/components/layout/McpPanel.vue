@@ -76,6 +76,7 @@
 import { ref, onMounted } from 'vue';
 import { showNotification } from '../../utils/notificationUtils.js';
 import { useSearch } from '../../composables/useSearch.js';
+import { useNavigation } from '../../composables/useNavigation.js';
 import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 import SkeletonLoader from '../common/SkeletonLoader.vue';
@@ -83,6 +84,9 @@ import { useUiStore } from '../../store/uiStore.js';
 
 // 状态管理
 const uiStore = useUiStore();
+
+// 导航方法
+const { navigateToMcpManagement } = useNavigation();
 
 // 确认删除模态框状态
 const showDeleteModal = ref(false);
@@ -241,15 +245,15 @@ const getToolIcon = (toolType) => {
 
 // 处理工具点击事件
 const handleToolClick = (tool) => {
-  // 切换到MCP管理视图
-  uiStore.setActiveContent('mcpManagement');
+  // 切换到MCP管理视图并更新路由
+  navigateToMcpManagement();
   console.log('切换到MCP管理视图，工具:', tool.name);
 };
 
 // 进入MCP管理页面
 const enterMcpManagement = () => {
-  // 直接切换到MCP管理视图
-  uiStore.setActiveContent('mcpManagement');
+  // 直接切换到MCP管理视图并更新路由
+  navigateToMcpManagement();
   console.log('直接进入MCP管理视图');
 };
 </script>

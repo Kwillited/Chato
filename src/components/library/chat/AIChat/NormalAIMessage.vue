@@ -33,7 +33,7 @@
 import { computed } from 'vue'
 import { marked } from 'marked'
 import { Loading } from '../../index.js'
-import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
+import { useChatBubble } from '../../../../composables/useChatBubble.js'
 
 const props = defineProps({
   message: {
@@ -92,7 +92,7 @@ const parsedContent = computed(() => {
 // 使用聊天气泡工具函数
 const { 
   getEventLabel
-} = useChatBubbleUtils({ message: props.message })
+} = useChatBubble({ message: props.message })
 
 // 计算气泡样式类
 const bubbleClasses = computed(() => {

@@ -87,6 +87,7 @@
 <script setup>
 import { computed, reactive, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { useNavigation } from '../../composables/useNavigation.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useUiStore } from '../../store/uiStore.js';
@@ -179,6 +180,9 @@ const uiStore = useUiStore();
 
 // 路由
 const router = useRouter();
+
+// 导航方法
+const { navigateToChat } = useNavigation();
 
 // 从store获取对话历史
 const chatHistory = computed(() => {
@@ -302,7 +306,7 @@ const groupedChats = computed(() => {
 const handleChatSelect = (chatId) => {
   console.log('选择对话:', chatId);
   // 只负责路由跳转，状态更新由路由监听器统一处理
-  router.push(`/chat/${chatId}`);
+  navigateToChat(chatId);
 };
 
 // 处理导出所有对话

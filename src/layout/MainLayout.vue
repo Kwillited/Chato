@@ -2,7 +2,7 @@
   <div id="mainLayoutContainer" class="flex-1 flex flex-col bg-light dark:bg-dark-primary overflow-hidden" :class="{ 'transition-all duration-300': !isInitialLoading }">
     <!-- 整体导航栏 -->
     <LayoutHeader 
-      :active-content="activeContent"
+      :active-content="uiStore.activeContent"
       ref="headerRef"
     />
     
@@ -25,11 +25,14 @@
       ></div>
       
       <!-- 主内容区域 -->
-      <MainContent 
-        :active-content="activeContent"
-        :is-initial-loading="isInitialLoading"
-        ref="mainContentRef"
-      />
+      <div 
+        id="mainContent" 
+        ref="mainContent"
+        class="flex-1 flex flex-col overflow-hidden bg-light dark:bg-dark-primary transition-all duration-300"
+      >
+        <!-- 路由组件插槽 -->
+        <slot></slot>
+      </div>
       
       <!-- 右侧分隔线 -->
       <div 
@@ -73,15 +76,10 @@ import { useUiStore } from '../store/uiStore.js';
 import { useChatStore } from '../store/chatStore.js';
 import LayoutHeader from '../components/layout/LayoutHeader.vue';
 import LeftPanel from '../components/layout/LeftPanel.vue';
-import MainContent from '../components/layout/MainContent.vue';
 import RightPanel from '../components/layout/RightPanel.vue';
 
 // Props
 const props = defineProps({
-  activeContent: {
-    type: String,
-    default: 'home'
-  },
   savedRightPanelWidth: {
     type: String,
     default: '256px'
@@ -99,7 +97,7 @@ const chatStore = useChatStore();
 // Refs
 const headerRef = ref(null);
 const leftPanelRef = ref(null);
-const mainContentRef = ref(null);
+const mainContent = ref(null);
 const rightPanelRef = ref(null);
 
 // 调整状态
@@ -111,7 +109,7 @@ let resizeRequestId = null;
 
 // 计算中栏中心位置的函数
 const updateTitlePosition = () => {
-  if (!headerRef.value?.titleContainer || !mainContentRef.value?.mainContent) return;
+  if (!headerRef.value?.titleContainer || !mainContent.value) return;
   
   // 使用requestAnimationFrame优化视觉更新
   requestAnimationFrame(() => {
@@ -121,7 +119,7 @@ const updateTitlePosition = () => {
       leftPanelWidth = leftPanelRef.value.leftPanel.offsetWidth;
     }
     // 获取主内容区宽度
-    const mainContentWidth = mainContentRef.value.mainContent.offsetWidth;
+    const mainContentWidth = mainContent.value.offsetWidth;
     // 计算中栏中心位置
     const centerPosition = leftPanelWidth + (mainContentWidth / 2);
     
@@ -330,7 +328,7 @@ watch(
 
 // 监听激活内容变化，确保对话切换时标题位置正确
 watch(
-  () => props.activeContent,
+  () => uiStore.activeContent,
   () => {
     // 立即更新标题位置
     updateTitlePosition();

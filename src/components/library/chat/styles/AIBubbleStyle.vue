@@ -119,7 +119,6 @@ import NormalAIMessage from '../AIChat/NormalAIMessage.vue'
 import AgentMessage from '../AIChat/AgentMessage.vue'
 import { formatTime } from '../../../../utils/time.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
-import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
 
 const props = defineProps({
   message: {
@@ -129,21 +128,17 @@ const props = defineProps({
   }
 })
 
-// 使用公共聊天气泡逻辑
+// 使用公共聊天气泡逻辑（包含原 useChatBubbleUtils 的功能）
 const { 
   messageValue, 
   formattedContent, 
   updateKey, 
   copyMessageContent,
-  formatThinkingContent
-} = useChatBubble(props)
-
-// 使用聊天气泡工具函数
-const { 
+  formatThinkingContent,
   isReasoningExpanded,
   toggleReasoningExpanded,
   reasoningContentHeightClass
-} = useChatBubbleUtils(props)
+} = useChatBubble(props)
 </script>
 
 <style scoped>

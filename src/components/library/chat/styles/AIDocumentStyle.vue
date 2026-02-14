@@ -154,7 +154,6 @@
 <script setup>
 import { Tooltip, ToolExecutionStatus, Loading } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
-import { useChatBubbleUtils } from '../../../../composables/useChatBubbleUtils.js'
 import { formatTime } from '../../../../utils/time.js'
 
 const props = defineProps({
@@ -180,7 +179,7 @@ const {
   toggleReasoningExpanded,
   reasoningContentHeightClass,
   getNodeLabel
-} = useChatBubbleUtils(props)
+} = useChatBubble(props)
 </script>
 
 <style scoped>

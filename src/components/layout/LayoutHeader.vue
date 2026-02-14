@@ -3,7 +3,7 @@
     <!-- 左侧：隐藏左侧面板按钮和新增会话按钮 -->
     <div class="flex space-x-2">
       <!-- 隐藏左侧面板按钮和新增会话按钮 - 只在非设置页面显示 -->
-      <template v-if="uiStore.activePanel !== 'settings'">
+      <template v-if="activeContent !== 'settings'">
         <!-- 隐藏左侧面板按钮 -->
         <Button 
           shape="full"
@@ -154,6 +154,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useNavigation } from '../../composables/useNavigation.js';
 import { useUiStore } from '../../store/uiStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { Button } from '../library/index.js';
@@ -173,6 +174,9 @@ const chatStore = useChatStore();
 
 // 路由
 const router = useRouter();
+
+// 导航方法
+const { navigateToHome, navigateToChat } = useNavigation();
 
 // State
 const showHistoryMenu = ref(false);
@@ -230,9 +234,8 @@ const handleSideMenuToggle = () => {
 const handleNewChat = () => {
   chatStore.currentChatId = null;
   chatStore.resetUnreadStatus();
-  uiStore.setActiveContent('home');
   // 跳转到根目录路由
-  router.push('/');
+  navigateToHome();
 };
 
 const handleBack = () => {
@@ -251,9 +254,8 @@ const toggleHistoryMenu = () => {
 const selectChatFromHistory = (chatId) => {
   showHistoryMenu.value = false;
   chatStore.selectChat(chatId);
-  uiStore.setActiveContent('chat');
   // 添加路由跳转逻辑
-  router.push(`/chat/${chatId}`);
+  navigateToChat(chatId);
 };
 
 // 处理设置选项卡点击事件

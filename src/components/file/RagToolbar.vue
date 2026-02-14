@@ -35,6 +35,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useUiStore } from '../../store/uiStore.js';
 import { useVectorStore } from '../../store/vectorStore.js';
@@ -51,6 +52,9 @@ defineProps({
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 const ragStore = useVectorStore();
+
+// 路由
+const router = useRouter();
 
 // 搜索查询
 const searchQuery = ref('');
@@ -76,9 +80,13 @@ const handleViewToggle = () => {
   if (isFileManagerView.value) {
     uiStore.setActiveContent('chat');
     isFileManagerView.value = false;
+    // 更新路由到首页
+    router.push('/');
   } else {
     uiStore.setActiveContent('fileManager');
     isFileManagerView.value = true;
+    // 更新路由到文件管理页面
+    router.push('/file');
   }
 };
 
