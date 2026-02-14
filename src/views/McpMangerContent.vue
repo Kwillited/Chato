@@ -244,6 +244,7 @@ import { showNotification } from '../utils/notificationUtils.js';
 import { Button } from '../components/library/index.js';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { eventBus } from '../services/eventBus.js';
 
 // 状态管理
 const settingsStore = useSettingsStore();
@@ -612,6 +613,10 @@ const saveConfig = async () => {
     const result = await response.json();
     showNotification(result.message || (isEmptyConfig ? '配置已清空' : '配置保存成功'), 'success');
     console.log('Saved config:', result.config);
+    
+    // 发送事件通知其他组件配置已更新
+    eventBus.emit('mcpConfigUpdated');
+    console.log('MCP config updated event emitted');
   } catch (error) {
     console.error('Failed to save config:', error);
     showNotification(error.message || '配置保存失败', 'error');

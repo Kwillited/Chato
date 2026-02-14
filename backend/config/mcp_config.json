@@ -2,16 +2,17 @@
   "filesystem": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["-y", "@modelcontextprotocol/server-filesystem", "H:\\ChaTo"]
-  },
-  "weather": {
-    "transport": "stdio",
-    "command": "npx",
-    "args": ["-y", "@h1deya/mcp-server-weather"]
+    "args": [
+      "-y",
+      "@modelcontextprotocol/server-filesystem",
+      "H:\\ChaTo"
+    ]
   },
   "freesearch": {
     "transport": "stdio",
     "command": "npx",
-    "args": ["freesearch-mcpserver@latest"]
+    "args": [
+      "freesearch-mcpserver@latest"
+    ]
   }
 }

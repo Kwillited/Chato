@@ -73,10 +73,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useNotification } from '../../composables/useNotification.js';
 import { useSearch } from '../../composables/useSearch.js';
 import { useNavigation } from '../../composables/useNavigation.js';
+import { eventBus } from '../../services/eventBus.js';
 
 // 使用通知组合式函数
 const { showSuccess, showError } = useNotification();
@@ -112,7 +113,24 @@ const { searchQuery, filteredTools } = useSearch({
 onMounted(() => {
   // 加载MCP工具
   loadMcpTools();
+  
+  // 监听配置更新事件
+  eventBus.on('mcpConfigUpdated', handleConfigUpdated);
+  console.log('MCP config updated event listener added');
 });
+
+// 组件卸载时的清理
+onUnmounted(() => {
+  // 移除事件监听
+  eventBus.off('mcpConfigUpdated', handleConfigUpdated);
+  console.log('MCP config updated event listener removed');
+});
+
+// 处理配置更新事件
+const handleConfigUpdated = () => {
+  console.log('MCP config updated event received, reloading tools...');
+  loadMcpTools();
+};
 
 // 加载MCP服务器
 const loadMcpTools = async () => {

@@ -37,16 +37,42 @@ class MCPService(BaseService):
 
     def get_mcp_servers(self):
         """获取MCP服务器列表"""
-        # 从MCP配置中获取服务器列表
-        # 获取默认配置中的服务器
-        default_config = self.mcp_adapter_service.get_default_config()
-        servers = []
-        for i, (server_name, server_config) in enumerate(default_config.items()):
-            server_info = {
-                "id": i + 1,
-                "name": server_name,
-                "description": f"{server_name.capitalize()} MCP Server",
-                "type": server_name
-            }
-            servers.append(server_info)
-        return servers
+        # 从配置文件中获取服务器列表
+        import os
+        import json
+        
+        # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
+        
+        try:
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+            else:
+                # 如果配置文件不存在，使用默认配置
+                config = self.mcp_adapter_service.get_default_config()
+            
+            servers = []
+            for i, (server_name, server_config) in enumerate(config.items()):
+                server_info = {
+                    "id": i + 1,
+                    "name": server_name,
+                    "description": f"{server_name.capitalize()} MCP Server",
+                    "type": server_name
+                }
+                servers.append(server_info)
+            return servers
+        except Exception as e:
+            self.logger.error(f"获取MCP服务器列表失败: {e}")
+            # 出错时使用默认配置
+            default_config = self.mcp_adapter_service.get_default_config()
+            servers = []
+            for i, (server_name, server_config) in enumerate(default_config.items()):
+                server_info = {
+                    "id": i + 1,
+                    "name": server_name,
+                    "description": f"{server_name.capitalize()} MCP Server",
+                    "type": server_name
+                }
+                servers.append(server_info)
+            return servers
