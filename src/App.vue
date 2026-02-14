@@ -99,15 +99,8 @@ onMounted(async () => {
   if (isBackendHealthy) {
     console.log('后端服务健康，开始加载应用数据...');
     
-    // 加载用户设置和数据
+    // 加载用户设置和数据（包含模型数据）
     await settingsStore.loadSettings();
-    
-    // 加载模型数据
-    try {
-      await settingsStore.loadModels();
-    } catch (error) {
-      console.error('初始化加载模型数据失败:', error);
-    }
 
     // 异步加载对话历史（非阻塞方式）
     chatStore.loadChatHistory().catch(error => {
