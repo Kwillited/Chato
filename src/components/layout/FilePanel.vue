@@ -461,28 +461,27 @@ const handleDeleteFolderConfirm = async () => {
   const folder = deleteFolderData.value;
   
   try {
-    // 调用后端API删除文件夹，现在使用folder_id而不是folder_name
-    const config = {
-      method: 'DELETE',
-      url: '/api/files/folders',
-      params: { folder_id: folder.id }
-    };
-    await api(config);
+    // 使用fileStore的deleteFolder方法，保持代码一致性
+    const result = await fileStore.deleteFolder(folder);
     
-    // 显示成功提示
-    showSuccess(`已成功删除知识库文件夹: ${folder.name}`);
-    
-    // 重新加载文件夹列表
-    await loadFolders();
-    
-    // 如果删除的是当前文件夹，则返回上一级
-    if (currentFolder.value === folder) {
-      currentFolder.value = null;
-      currentFiles.value = [];
+    if (result.success) {
+      // 显示成功提示
+      showSuccess(`已成功删除知识库文件夹: ${folder.name}`);
+      
+      // 重新加载文件夹列表（fileStore内部已经处理，但为了确保同步，这里再加载一次）
+      await loadFolders();
+      
+      // 如果删除的是当前文件夹，则返回上一级
+      if (currentFolder.value === folder) {
+        currentFolder.value = null;
+        currentFiles.value = [];
+      }
+      
+      // 关闭模态框
+      showDeleteFolderModal.value = false;
+    } else {
+      throw new Error(result.error || '删除失败');
     }
-    
-    // 关闭模态框
-    showDeleteFolderModal.value = false;
   } catch (error) {
     // 显示错误提示
     showError(`删除知识库文件夹失败: ${error.message || String(error)}`);
