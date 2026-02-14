@@ -3,7 +3,7 @@ import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 import { copyToClipboard } from '../utils/browser.js'
-import { showNotification } from '../utils/notificationUtils.js'
+import { useNotification } from './useNotification.js'
 
 // 配置 marked 选项
 const renderer = new marked.Renderer();
@@ -64,6 +64,9 @@ marked.setOptions({
  * 聊天气泡组件的公共逻辑
  */
 export function useChatBubble(props) {
+  // 使用通知组合式函数
+  const { showSuccess, showError } = useNotification();
+
   // 访问ref包装的消息对象
   const messageValue = computed(() => {
     // 更严格的类型检查，确保返回有效的消息对象
@@ -120,11 +123,11 @@ export function useChatBubble(props) {
       const contentToCopy = messageContent.value;
       await copyToClipboard(contentToCopy)
       // 显示复制成功通知
-      showNotification('消息内容已复制到剪贴板', 'success')
+      showSuccess('消息内容已复制到剪贴板')
     } catch (error) {
       console.error('复制失败:', error)
       // 显示复制失败通知
-      showNotification('复制失败，请重试', 'error')
+      showError('复制失败，请重试')
     }
   }
 
@@ -151,7 +154,7 @@ export function useChatBubble(props) {
         copyButtonStates.value.set(codeBlockId, true)
         
         // 显示复制成功通知
-        showNotification('代码已复制到剪贴板', 'success')
+        showSuccess('代码已复制到剪贴板')
         
         // 2秒后恢复原状
         setTimeout(() => {
@@ -161,7 +164,7 @@ export function useChatBubble(props) {
     } catch (error) {
       console.error('复制代码失败:', error);
       // 显示复制失败通知
-      showNotification('复制代码失败，请重试', 'error')
+      showError('复制代码失败，请重试')
     }
   };
 

@@ -616,8 +616,11 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { StorageManager } from '../../../utils/storage.js';
 import { formatFileSize } from '../../../utils/file.js';
 import { Tooltip } from '../index.js';
-import { showNotification } from '../../../utils/notificationUtils.js';
+import { useNotification } from '../../../composables/useNotification.js';
 import { useNavigation } from '../../../composables/useNavigation.js';
+
+// 使用通知组合式函数
+const { showSuccess, showError } = useNotification();
 import DragDropZone from '../../common/DragDropZone.vue';
 import { Button } from '../../../components/library/index.js';
 
@@ -887,11 +890,11 @@ const handleSendMessage = async () => {
         try {
           // 这里可以通过 API 调用 Python 后端来检查和启动 Ollama 服务
           // 暂时显示提示信息
-          showNotification('Ollama服务检查功能已迁移到 Python 后端', 'info', 3000);
+          showSuccess('Ollama服务检查功能已迁移到 Python 后端');
         } catch (error) {
           console.error('Ollama服务管理失败:', error);
           // 显示更具体的错误信息
-          showNotification(`Ollama服务管理失败: ${error.message || error}`, 'error', 3000);
+          showError(`Ollama服务管理失败: ${error.message || error}`);
         }
       }, 0);
     }
@@ -1237,7 +1240,7 @@ const handleSwitchAccount = () => {
 // 处理退出账号点击
 const handleLogout = () => {
   showUserMenu.value = false;
-  showNotification('退出账号功能待实现', 'info');
+  showSuccess('退出账号功能待实现');
 };
 
 // 关闭命令行窗口

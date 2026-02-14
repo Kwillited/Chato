@@ -74,9 +74,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { showNotification } from '../../utils/notificationUtils.js';
+import { useNotification } from '../../composables/useNotification.js';
 import { useSearch } from '../../composables/useSearch.js';
 import { useNavigation } from '../../composables/useNavigation.js';
+
+// 使用通知组合式函数
+const { showSuccess, showError } = useNotification();
 import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 import SkeletonLoader from '../common/SkeletonLoader.vue';
@@ -126,7 +129,7 @@ const loadMcpTools = async () => {
     console.log('MCP servers loaded:', data);
   } catch (error) {
     console.error('Failed to load MCP servers:', error);
-    showNotification('加载MCP服务器失败', 'error');
+    showError('加载MCP服务器失败');
   } finally {
     isLoading.value = false;
   }
@@ -142,7 +145,7 @@ const handleFileUpload = async (event) => {
   try {
     // 检查文件类型
     if (!['.py', '.json'].some(ext => file.name.toLowerCase().endsWith(ext))) {
-      showNotification('请上传Python (.py) 或 JSON (.json) 文件', 'error');
+      showError('请上传Python (.py) 或 JSON (.json) 文件');
       return;
     }
     
@@ -151,7 +154,7 @@ const handleFileUpload = async (event) => {
     formData.append('toolFile', file);
     
     // 显示上传中通知
-    showNotification('正在上传工具...', 'success');
+    showSuccess('正在上传工具...');
     
     // 这里可以添加实际的上传API调用
     // const response = await apiService.uploadMcpTool(formData);
@@ -169,7 +172,7 @@ const handleFileUpload = async (event) => {
         type: 'custom'
       });
       
-      showNotification('工具上传成功', 'success');
+      showSuccess('工具上传成功');
       
       // 清空文件输入
       event.target.value = '';
@@ -177,7 +180,7 @@ const handleFileUpload = async (event) => {
     
   } catch (error) {
     console.error('Failed to upload MCP tool:', error);
-    showNotification('工具上传失败', 'error');
+    showError('工具上传失败');
   }
 };
 
@@ -208,14 +211,14 @@ const handleDeleteToolConfirm = async () => {
     const index = tools.value.findIndex(tool => tool.id === currentDeleteToolId.value);
     if (index !== -1) {
       const deletedTool = tools.value.splice(index, 1)[0];
-      showNotification(`${deletedTool.name} 已删除`, 'success');
+      showSuccess(`${deletedTool.name} 已删除`);
     }
     
     // 关闭模态框
     showDeleteModal.value = false;
   } catch (error) {
     console.error('Failed to delete MCP tool:', error);
-    showNotification('工具删除失败', 'error');
+    showError('工具删除失败');
   } finally {
     isDeletingTool.value = false;
   }

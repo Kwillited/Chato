@@ -63,12 +63,15 @@
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useVectorStore } from '../../store/vectorStore.js';
 import { useFileStore } from '../../store/fileStore.js';
 import api from '../../services/apiService.js';
 import { eventBus } from '../../services/eventBus.js';
-import { showNotification } from '../../utils/notificationUtils.js';
+import { useNotification } from '../../composables/useNotification.js';
+
+// 使用通知组合式函数
+const { showSuccess, showError } = useNotification();
 
 // 导入子组件
 
@@ -148,7 +151,7 @@ const loadFiles = async () => {
     await fileStore.loadFiles();
   } catch (error) {
     console.error('加载文件列表失败:', error);
-    showNotification(`加载文件列表失败: ${error.message || String(error)}`, 'error');
+    showError(`加载文件列表失败: ${error.message || String(error)}`);
   } finally {
     loadingFiles.value = false;
   }
@@ -166,7 +169,7 @@ const loadFolders = async () => {
     folderIdMap.value = fileStore.folderIdMap || {};
   } catch (error) {
     console.error('加载文件夹失败:', error);
-    showNotification(`加载文件夹失败: ${error.message || String(error)}`, 'error');
+    showError(`加载文件夹失败: ${error.message || String(error)}`);
   } finally {
     loadingFolders.value = false;
   }
@@ -233,7 +236,7 @@ const handleDeleteAllConfirm = async () => {
   try {
     const result = await fileStore.deleteAllDocuments();
     if (result.success) {
-      showNotification(result.message, 'success');
+      showSuccess(result.message);
       // 删除成功后，重新加载文件和文件夹列表
       await loadFiles();
       await loadFolders();
@@ -243,7 +246,7 @@ const handleDeleteAllConfirm = async () => {
       // 关闭模态框
       showDeleteAllModal.value = false;
     } else {
-      showNotification(`删除所有内容失败: ${result.error}`, 'error');
+      showError(`删除所有内容失败: ${result.error}`);
     }
   } finally {
     isDeletingAll.value = false;
@@ -259,7 +262,7 @@ const loadFilesInFolder = async (folder) => {
     currentFiles.value = result || [];
   } catch (error) {
     console.error('加载文件失败:', error);
-    showNotification(`加载文件失败: ${error.message || String(error)}`, 'error');
+    showError(`加载文件失败: ${error.message || String(error)}`);
   } finally {
     loadingFiles.value = false;
   }
@@ -295,13 +298,13 @@ const handleFolderDoubleClick = async (event) => {
       const fileExtension = file.name.split('.').pop().toLowerCase();
       
       if (file.size > maxSize) {
-        showNotification(`文件太大: ${file.name} - 最大支持50MB`, 'error');
+        showError(`文件太大: ${file.name} - 最大支持50MB`);
         failedFiles.push(file.name);
         continue;
       }
       
       if (!supportedTypes.includes(fileExtension)) {
-        showNotification(`不支持的文件类型: ${file.name} - 支持类型: ${supportedTypes.join(', ')}`, 'error');
+        showError(`不支持的文件类型: ${file.name} - 支持类型: ${supportedTypes.join(', ')}`);
         failedFiles.push(file.name);
         continue;
       }
@@ -329,14 +332,14 @@ const handleFolderDoubleClick = async (event) => {
         
         // 根据上传结果显示通知
         if (successFiles.length > 0) {
-          showNotification(`${successFiles.length} 个文件已成功上传到知识库 "${folder.name}"`, 'success');
+          showSuccess(`${successFiles.length} 个文件已成功上传到知识库 "${folder.name}"`);
         }
         if (failedFiles.length > 0) {
-          showNotification(`${failedFiles.length} 个文件上传失败，请重试`, 'error');
+          showError(`${failedFiles.length} 个文件上传失败，请重试`);
         }
       } catch (error) {
         console.error('上传文件时发生错误:', error);
-        showNotification(`上传文件失败: ${error.message || String(error)}`, 'error');
+        showError(`上传文件失败: ${error.message || String(error)}`);
       }
     }
   };
@@ -409,10 +412,10 @@ const handleUploadToFolder = async (event) => {
         
         // 根据上传结果显示通知
         if (successFiles.length > 0) {
-          showNotification(`${successFiles.length} 个文件已成功上传到知识库 "${folder.name}"`, 'success');
+          showSuccess(`${successFiles.length} 个文件已成功上传到知识库 "${folder.name}"`);
         }
         if (failedFiles.length > 0) {
-          showNotification(`${failedFiles.length} 个文件上传失败，请重试`, 'error');
+          showError(`${failedFiles.length} 个文件上传失败，请重试`);
         }
       }
     };
@@ -421,7 +424,7 @@ const handleUploadToFolder = async (event) => {
     input.click();
   } catch (error) {
     console.error('上传文件时发生错误:', error);
-    showNotification('上传文件失败，请重试', 'error');
+    showError('上传文件失败，请重试');
   }
 };
 
@@ -432,12 +435,12 @@ const _processFiles = async (files) => {
       const file = files[i];
       const result = await fileStore.uploadFile(file);
       if (!result.success) {
-        showNotification(`上传文件 ${file.name} 失败: ${result.error}`, 'error');
+        showError(`上传文件 ${file.name} 失败: ${result.error}`);
       }
     }
     // 显示成功提示
     if (files.length > 0) {
-      showNotification(`${files.length} 个文件上传成功`, 'success');
+      showSuccess(`${files.length} 个文件上传成功`);
     }
   }
 };
@@ -467,7 +470,7 @@ const handleDeleteFolderConfirm = async () => {
     await api(config);
     
     // 显示成功提示
-    showNotification(`已成功删除知识库文件夹: ${folder.name}`, 'success');
+    showSuccess(`已成功删除知识库文件夹: ${folder.name}`);
     
     // 重新加载文件夹列表
     await loadFolders();
@@ -482,7 +485,7 @@ const handleDeleteFolderConfirm = async () => {
     showDeleteFolderModal.value = false;
   } catch (error) {
     // 显示错误提示
-    showNotification(`删除知识库文件夹失败: ${error.message || String(error)}`, 'error');
+    showError(`删除知识库文件夹失败: ${error.message || String(error)}`);
   }
 };
 
@@ -539,7 +542,7 @@ const handleSearchKnowledgeBase = async (event) => {
     // const result = await ragStore.searchKnowledgeBase(searchTerm);
   } catch (error) {
     console.error('搜索知识库失败:', error);
-    showNotification(`搜索知识库失败: ${error.message || String(error)}`, 'error');
+    showError(`搜索知识库失败: ${error.message || String(error)}`);
   }
 };
 </script>

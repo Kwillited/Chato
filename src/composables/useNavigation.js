@@ -8,11 +8,14 @@ export function useNavigation() {
   const uiStore = useUiStore();
   const chatStore = useChatStore();
 
-  // 导航到首页
-  const navigateToHome = () => {
-    router.push(ROUTES.HOME);
-    uiStore.setActiveContent(ACTIVE_CONTENT.HOME);
+  // 通用导航函数
+  const navigateTo = (path, content) => {
+    router.push(path);
+    uiStore.setActiveContent(content);
   };
+
+  // 导航到首页
+  const navigateToHome = () => navigateTo(ROUTES.HOME, ACTIVE_CONTENT.HOME);
 
   // 导航到聊天
   const navigateToChat = (chatId) => {
@@ -21,34 +24,19 @@ export function useNavigation() {
   };
 
   // 导航到设置
-  const navigateToSettings = () => {
-    router.push(ROUTES.SETTING);
-    uiStore.setActiveContent(ACTIVE_CONTENT.SETTINGS);
-  };
+  const navigateToSettings = () => navigateTo(ROUTES.SETTING, ACTIVE_CONTENT.SETTINGS);
 
   // 导航到文件管理器
-  const navigateToFileManager = () => {
-    router.push(ROUTES.FILE);
-    uiStore.setActiveContent(ACTIVE_CONTENT.FILE_MANAGER);
-  };
+  const navigateToFileManager = () => navigateTo(ROUTES.FILE, ACTIVE_CONTENT.FILE_MANAGER);
 
   // 导航到RAG管理
-  const navigateToRagManagement = () => {
-    router.push(ROUTES.RAG);
-    uiStore.setActiveContent(ACTIVE_CONTENT.RAG_MANAGEMENT);
-  };
+  const navigateToRagManagement = () => navigateTo(ROUTES.RAG, ACTIVE_CONTENT.RAG_MANAGEMENT);
 
   // 导航到MCP管理
-  const navigateToMcpManagement = () => {
-    router.push(ROUTES.MCP);
-    uiStore.setActiveContent(ACTIVE_CONTENT.MCP_MANAGEMENT);
-  };
+  const navigateToMcpManagement = () => navigateTo(ROUTES.MCP, ACTIVE_CONTENT.MCP_MANAGEMENT);
 
   // 导航到上下文可视化
-  const navigateToContextVisualization = () => {
-    router.push(ROUTES.CONTEXT);
-    uiStore.setActiveContent(ACTIVE_CONTENT.CONTEXT_VISUALIZATION);
-  };
+  const navigateToContextVisualization = () => navigateTo(ROUTES.CONTEXT, ACTIVE_CONTENT.CONTEXT_VISUALIZATION);
 
   // 创建新对话并导航
   const createAndNavigateToNewChat = async (model) => {
@@ -135,6 +123,7 @@ export function useNavigation() {
   };
 
   return {
+    navigateTo,
     navigateToHome,
     navigateToChat,
     navigateToSettings,

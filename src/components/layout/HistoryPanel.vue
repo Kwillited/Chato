@@ -91,9 +91,12 @@ import { useNavigation } from '../../composables/useNavigation.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useUiStore } from '../../store/uiStore.js';
-import { showNotification } from '../../utils/notificationUtils.js';
+import { useNotification } from '../../composables/useNotification.js';
 import { SearchBar, ConfirmationModal } from '../library/index.js';
 import SkeletonLoader from '../common/SkeletonLoader.vue';
+
+// 使用通知组合式函数
+const { showSuccess, showError } = useNotification();
 
 // 滚动容器引用
 const scrollContainer = ref(null);
@@ -330,7 +333,7 @@ const handleExportAll = () => {
     console.log('对话历史导出成功');
   } catch (error) {
     console.error('导出对话历史失败:', error);
-    showNotification('导出失败，请重试。', 'error');
+    showError('导出失败，请重试。');
   }
 };
 
@@ -341,13 +344,13 @@ const handleDeleteAllConfirm = async () => {
   
   try {
     await chatStore.deleteAllChats();
-    showNotification('所有对话已删除', 'success');
+    showSuccess('所有对话已删除');
     showDeleteAllModal.value = false;
     
     // 删除所有对话后切换到home内容
     uiStore.setActiveContent('home');
   } catch (error) {
-    showNotification('删除失败: ' + error.message, 'error');
+    showError('删除失败: ' + error.message);
   } finally {
     isDeletingAll.value = false;
   }
@@ -359,7 +362,7 @@ const handleDeleteChat = async (chatId) => {
   try {
     const wasCurrentChat = chatStore.currentChatId === chatId;
     await chatStore.deleteChat(chatId);
-    showNotification('对话已删除', 'success');
+    showSuccess('对话已删除');
     
     // 检查是否删除了最后一个对话
     if (chatStore.chats.length === 0 || (wasCurrentChat && chatStore.chats.length === 0)) {
@@ -367,7 +370,7 @@ const handleDeleteChat = async (chatId) => {
       uiStore.setActiveContent('home');
     }
   } catch (error) {
-    showNotification('删除失败: ' + error.message, 'error');
+    showError('删除失败: ' + error.message);
   }
 };
 

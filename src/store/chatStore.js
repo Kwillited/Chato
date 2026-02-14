@@ -4,7 +4,7 @@ import { generateId } from '../utils/data.js';
 import { useSettingsStore } from './settingsStore.js';
 import { useVectorStore } from './vectorStore.js';
 import { useUiStore } from './uiStore.js';
-import { showNotification } from '../utils/notificationUtils.js';
+import { useNotification } from '../composables/useNotification.js';
 import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils, stateUtils } from '../utils/storeUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
@@ -314,33 +314,17 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 发送流式消息
-    async sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent, modelParams) {
+    async sendStreamingMessage(currentChat, content, formattedModel, filesToSend, messageParams) {
       let aiMessages = {}; // 存储不同步骤的消息对象
       let currentStep = -1;
       let currentNode = null;
 
-      // 立即清空上传文件列表，提供更好的用户体验
-      const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
-      this.uploadedFiles = []; // 立即清空
-
       try {
-        // 构建 selectedMessageIds 数组
-        const selectedMessageIds = this.buildSelectedMessageIds();
-        console.log('构建的 selectedMessageIds:', selectedMessageIds);
-
         await apiService.chat.sendStreamingMessage(
           currentChat.id,         // chatId
           content.trim(),         // message
           filesToSend,            // 使用保存的文件列表
-          {
-            model: formattedModel, // 确保使用name-version.version_name格式的模型名称
-            modelParams: modelParams, // 传递模型参数
-            deepThinking: deepThinking, // 使用传递的深度思考参数
-            ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
-            webSearchEnabled: webSearchEnabled, // 使用传递的联网搜索参数
-            agent: agent, // 使用传递的智能体参数
-            selectedMessageIds: selectedMessageIds // 传递 selectedMessageIds 参数
-          },
+          messageParams,
             // 处理接收到的消息
             (data) => {
               console.log('处理流式消息数据块:', data); // 添加日志追踪
@@ -706,30 +690,19 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 发送非流式消息
-    async sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent, modelParams) {
-      // 立即清空上传文件列表，提供更好的用户体验
-      const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
-      this.uploadedFiles = []; // 立即清空
-      
+    async sendNonStreamingMessage(currentChat, content, formattedModel, filesToSend, messageParams) {
       try {
-        // 构建 selectedMessageIds 数组
-        const selectedMessageIds = this.buildSelectedMessageIds();
-        console.log('构建的 selectedMessageIds:', selectedMessageIds);
+        // 添加 stream: false 参数
+        const paramsWithStream = {
+          ...messageParams,
+          stream: false
+        };
 
         let response = await apiService.chat.sendMessage(
           currentChat.id,         // chatId
           content.trim(),         // message
           filesToSend,            // 使用保存的文件列表
-          {
-            model: formattedModel, // 确保使用name-version.version_name格式的模型名称
-            modelParams: modelParams, // 传递模型参数
-            stream: false,  // 非流式输出
-            deepThinking: deepThinking, // 使用传递的深度思考参数
-            ragConfig: ragConfigToUse, // 使用动态调整的RAG配置
-            webSearchEnabled: webSearchEnabled, // 使用传递的联网搜索参数
-            agent: agent, // 使用传递的智能体参数
-            selectedMessageIds: selectedMessageIds // 传递 selectedMessageIds 参数
-          }
+          paramsWithStream
         );
         
         // 添加调试日志，查看实际响应格式
@@ -837,6 +810,34 @@ export const useChatStore = defineStore('chat', {
       this.uploadedFiles = [];
     },
 
+    // 准备消息发送参数
+    prepareMessageParams(content, model, deepThinking, webSearchEnabled, agent, modelParams) {
+      // 构建 selectedMessageIds 数组
+      const selectedMessageIds = this.buildSelectedMessageIds();
+      console.log('构建的 selectedMessageIds:', selectedMessageIds);
+      
+      // 格式化模型名称
+      const formattedModel = this.formatModelName(model);
+      
+      // 准备RAG配置
+      const ragConfigToUse = this.prepareRagConfig();
+      
+      return {
+        selectedMessageIds,
+        formattedModel,
+        ragConfigToUse,
+        messageParams: {
+          model: formattedModel,
+          modelParams: modelParams,
+          deepThinking: deepThinking,
+          ragConfig: ragConfigToUse,
+          webSearchEnabled: webSearchEnabled,
+          agent: agent,
+          selectedMessageIds: selectedMessageIds
+        }
+      };
+    },
+
     // 发送消息（使用API服务）
     async sendMessage(content, model, deepThinking = false, webSearchEnabled = false, agent = false) {
       // 验证消息参数
@@ -860,26 +861,29 @@ export const useChatStore = defineStore('chat', {
       this.prepareMessageState(currentChat, content, model);
 
       try {
-        // 格式化模型名称
-        const formattedModel = this.formatModelName(model);
-        
-        // 检查流式输出支持
-        const shouldUseStreaming = this.checkStreamingSupport(formattedModel);
-        
-        // 准备RAG配置
-        const ragConfigToUse = this.prepareRagConfig();
-        
         // 获取模型参数
         const settingsStore = useSettingsStore();
         const modelParams = settingsStore.currentModelParams;
         
+        // 准备消息发送参数
+        const { formattedModel, ragConfigToUse, messageParams } = this.prepareMessageParams(
+          content, model, deepThinking, webSearchEnabled, agent, modelParams
+        );
+        
+        // 检查流式输出支持
+        const shouldUseStreaming = this.checkStreamingSupport(formattedModel);
+        
+        // 立即清空上传文件列表，提供更好的用户体验
+        const filesToSend = [...this.uploadedFiles]; // 保存要发送的文件
+        this.uploadedFiles = []; // 立即清空
+        
         // 根据是否支持流式输出选择发送方式
         if (shouldUseStreaming) {
           // 发送流式消息
-          await this.sendStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent, modelParams);
+          await this.sendStreamingMessage(currentChat, content, formattedModel, filesToSend, messageParams);
         } else {
           // 发送非流式消息
-          await this.sendNonStreamingMessage(currentChat, content, formattedModel, deepThinking, ragConfigToUse, webSearchEnabled, agent, modelParams);
+          await this.sendNonStreamingMessage(currentChat, content, formattedModel, filesToSend, messageParams);
         }
 
         // 不再需要本地保存，所有数据已通过API同步到后端
@@ -1249,10 +1253,10 @@ export const useChatStore = defineStore('chat', {
         } else if (displayTimeSetting === '10秒') {
           displayTimeMs = 10000;
         }
-        // 显示新消息通知
-        showNotification(`新消息: ${chat.title}`, 'success', displayTimeMs, true);
-        // 播放未读消息通知声音
-        this.playNotificationSound();
+        // 使用通知组合式函数
+        const { showNotificationWithSound } = useNotification();
+        // 显示新消息通知并播放声音
+        showNotificationWithSound(`新消息: ${chat.title}`, displayTimeMs);
       }
     },
     

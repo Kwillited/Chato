@@ -242,21 +242,29 @@ export const useUiStore = defineStore('ui', {
      * 切换深度思考模式
      */
     toggleDeepThinking() {
-      this.isDeepThinking = !this.isDeepThinking;
+      this.toggleState('isDeepThinking');
     },
 
     /**
      * 切换联网搜索模式
      */
     toggleWebSearch() {
-      this.isWebSearchEnabled = !this.isWebSearchEnabled;
+      this.toggleState('isWebSearchEnabled');
     },
 
     /**
      * 切换智能体模式
      */
     toggleAgent() {
-      this.isAgentEnabled = !this.isAgentEnabled;
+      this.toggleState('isAgentEnabled');
+    },
+
+    /**
+     * 通用状态切换函数
+     * @param {string} stateName - 状态名称
+     */
+    toggleState(stateName) {
+      this[stateName] = !this[stateName];
     },
 
     /**

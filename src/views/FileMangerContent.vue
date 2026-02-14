@@ -207,11 +207,14 @@ import { Button } from '../components/library/index.js';
 import { KnowledgeGraphVisualization } from '../components/library';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
-import { showNotification } from '../utils/notificationUtils.js';
+import { useNotification } from '../composables/useNotification.js';
 
 // 初始化stores
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
+
+// 使用通知组合式函数
+const { showError } = useNotification();
 const ragStore = useVectorStore();
 const fileStore = useFileStore();
 const chatStore = useChatStore();
@@ -434,7 +437,7 @@ const handleUploadClick = async () => {
     }
   } catch (error) {
     console.error('上传文件失败:', error);
-    showNotification(`上传文件失败: ${error.message || String(error)}`, 'error');
+    showError(`上传文件失败: ${error.message || String(error)}`);
   }
 };
 
@@ -489,7 +492,7 @@ const handleDeleteConfirm = async () => {
     }
   } catch (error) {
     console.error('删除文件失败:', error);
-    showNotification(`删除文件失败: ${error.message || String(error)}`, 'error');
+    showError(`删除文件失败: ${error.message || String(error)}`);
   } finally {
     // 关闭模态框
     showDeleteModal.value = false;
