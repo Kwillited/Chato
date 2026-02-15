@@ -25,6 +25,25 @@
         />
         <p v-if="error" class="text-red-500 text-xs mt-1">{{ error }}</p>
       </div>
+      
+      <!-- 向量模型选择 -->
+      <div class="mb-4">
+        <label for="embeddingModel" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">向量模型</label>
+        <select
+          id="embeddingModel"
+          v-model="selectedEmbeddingModel"
+          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+        >
+          <option value="qwen3-embedding-0.6b">Qwen3 Embedding (0.6B)</option>
+          <option value="all-MiniLM-L6-v2">Sentence-BERT MiniLM</option>
+          <option value="all-mpnet-base-v2">Sentence-BERT MPNet</option>
+          <option value="text-embedding-3-small">OpenAI Text Embedding 3 Small</option>
+          <option value="text-embedding-3-large">OpenAI Text Embedding 3 Large</option>
+          <option value="text-embedding-ada-002">OpenAI Ada 002</option>
+          <option value="llama3">Ollama Llama 3</option>
+          <option value="mistral">Ollama Mistral</option>
+        </select>
+      </div>
     </template>
   </ConfirmationModal>
 </template>
@@ -51,6 +70,7 @@ const fileStore = useFileStore();
 
 // Refs
 const knowledgeBaseName = ref('');
+const selectedEmbeddingModel = ref('qwen3-embedding-0.6b'); // 默认使用Qwen3嵌入模型
 const error = ref('');
 const inputRef = ref(null);
 
@@ -112,6 +132,7 @@ const handleCancel = () => {
 // 重置表单
 const resetForm = () => {
   knowledgeBaseName.value = '';
+  selectedEmbeddingModel.value = 'qwen3-embedding-0.6b'; // 重置为默认值
   error.value = '';
 };
 

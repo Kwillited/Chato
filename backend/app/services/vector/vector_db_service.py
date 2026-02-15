@@ -130,69 +130,45 @@ class VectorDBService(BaseService):
             return False
     
     def _init_embeddings(self) -> bool:
-        """初始化嵌入模型
+        """初始化嵌入模型（使用即用即加载策略）
         
         Returns:
             bool: 是否成功初始化嵌入模型
         """
         try:
-            # 尝试从新位置导入（推荐方式）
-            try:
-                from langchain_huggingface import HuggingFaceEmbeddings
-                self.log_info("使用langchain-huggingface包中的HuggingFaceEmbeddings")
-            except ImportError:
-                # 兼容旧版本
-                self.log_warning("langchain-huggingface包未安装，尝试使用langchain_community中的HuggingFaceEmbeddings")
-                from langchain_community.embeddings import HuggingFaceEmbeddings
+            from app.llm.managers.embedding_model_manager import EmbeddingModelManager
             
-            # 模型路径搜索逻辑 - 优化版：减少不必要的文件系统调用
-            model_path = None
+            # 使用嵌入模型管理器获取嵌入模型（支持缓存）
+            self.log_info(f"尝试加载嵌入模型: {self.embedder_model}")
+            self._embeddings = EmbeddingModelManager.get_embedding_model(
+                self.embedder_model,
+                device='cpu',
+                normalize_embeddings=True
+            )
             
-            # 1. 优先检查用户指定的本地模型路径
-            user_local_model_path = r'C:\Users\Admin\.cache\modelscope\hub\models\Qwen\Qwen3-Embedding-0___6B'
-            if os.path.exists(user_local_model_path):
-                self.log_info(f"使用用户指定的本地模型路径: {user_local_model_path}")
-                model_path = user_local_model_path
-            elif os.path.exists(self.embedder_model):
-                # 2. 如果直接指定了本地路径且存在，优先使用
-                model_path = self.embedder_model
-            else:
-                # 3. 构建并检查标准用户数据目录下的模型路径
-                standard_model_path = os.path.join(self.embedding_models_dir, self.embedder_model)
-                if os.path.exists(standard_model_path):
-                    model_path = standard_model_path
-                else:
-                    # 4. 检查特定的qwen3-embedding模型路径
-                    qwen_model_path = os.path.join(self.embedding_models_dir, 'qwen3-embedding')
-                    if os.path.exists(qwen_model_path):
-                        model_path = qwen_model_path
-                    else:
-                        # 5. 检查本地缓存路径
-                        local_cache_path = os.path.join(os.path.dirname(__file__), '.cache', self.embedder_model)
-                        if os.path.exists(local_cache_path):
-                            model_path = local_cache_path
-                        else:
-                            # 6. 检查HuggingFace缓存路径
-                            hf_cache_path = os.path.join(os.path.expanduser('~'), '.cache', 'huggingface', 'hub', 
-                                                       f'models--{self.embedder_model.replace('/', '--')}', 'snapshots')
-                            if os.path.exists(hf_cache_path):
-                                model_path = hf_cache_path
-            
-            # 加载模型
-            if model_path:
-                self.log_info(f"找到嵌入模型路径: {model_path}")
-                self._embeddings = HuggingFaceEmbeddings(
-                    model_name=model_path,
-                    model_kwargs={'device': 'cpu'},
-                    encode_kwargs={'normalize_embeddings': True}
-                )
-                self.log_info(f"嵌入模型初始化成功: {model_path}")
+            if self._embeddings:
+                self.log_info(f"嵌入模型初始化成功: {self.embedder_model}")
                 return True
             else:
-                # 不尝试从HuggingFace下载模型，只记录日志
-                self.log_warning(f"未找到嵌入模型: {self.embedder_model}，跳过下载")
-                self._embeddings = None
-                return False
+                # 模型加载失败，尝试使用默认模型
+                self.log_warning(f"未找到嵌入模型: {self.embedder_model}，尝试使用默认模型")
+                
+                # 尝试使用默认模型
+                default_model = 'all-MiniLM-L6-v2'
+                self.log_info(f"尝试加载默认嵌入模型: {default_model}")
+                self._embeddings = EmbeddingModelManager.get_embedding_model(
+                    default_model,
+                    device='cpu',
+                    normalize_embeddings=True
+                )
+                
+                if self._embeddings:
+                    self.log_info(f"默认嵌入模型初始化成功: {default_model}")
+                    return True
+                else:
+                    self.log_error(f"默认嵌入模型也加载失败: {default_model}")
+                    self._embeddings = None
+                    return False
             
         except ImportError as e:
             self.log_error(f"嵌入模型依赖包未安装: {e}")
@@ -201,21 +177,6 @@ class VectorDBService(BaseService):
             return False
         except Exception as e:
             self.log_error(f"嵌入模型初始化失败: {e}")
-            
-            # 尝试使用替代缓存位置
-            try:
-                alternative_cache_dir = os.path.join(os.path.dirname(__file__), '.cache', 'sentence-transformers', self.embedder_model)
-                if os.path.exists(alternative_cache_dir):
-                    self.log_info(f"尝试使用替代本地缓存模型: {alternative_cache_dir}")
-                    self._embeddings = HuggingFaceEmbeddings(
-                        model_name=alternative_cache_dir,
-                        model_kwargs={'device': 'cpu'},
-                        encode_kwargs={'normalize_embeddings': True}
-                    )
-                    return True
-            except Exception as alt_error:
-                self.log_error(f"替代模型加载也失败: {alt_error}")
-                
             self._embeddings = None
             return False
     

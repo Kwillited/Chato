@@ -181,3 +181,44 @@ class DocumentChunk(Base):
     
     # 关系：属于一个文档
     document = relationship("Document", back_populates="chunks")
+
+
+class EmbeddingModel(Base):
+    """嵌入模型表"""
+    __tablename__ = "embedding_models"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, unique=True, nullable=False)
+    description = Column(Text)
+    type = Column(String, default="huggingface")  # huggingface, openai, ollama
+    configured = Column(Boolean, default=False)
+    enabled = Column(Boolean, default=False)
+    icon_class = Column(String)
+    icon_bg = Column(String)
+    icon_color = Column(String)
+    
+    # 关系：一个嵌入模型可以有多个版本
+    versions = relationship("EmbeddingModelVersion", back_populates="model", cascade="all, delete-orphan")
+
+
+class EmbeddingModelVersion(Base):
+    """嵌入模型版本表"""
+    __tablename__ = "embedding_model_versions"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(Integer, ForeignKey("embedding_models.id", ondelete="CASCADE"), nullable=False)
+    version_name = Column(String, nullable=False)
+    custom_name = Column(String)
+    api_key = Column(String)  # 用于OpenAI等需要API密钥的模型
+    api_base_url = Column(String)  # 用于自定义API地址
+    model_path = Column(String)  # 用于本地模型的路径
+    dimension = Column(Integer)  # 向量维度
+    
+    # 关系：多个版本属于一个嵌入模型
+    model = relationship("EmbeddingModel", back_populates="versions")
+    
+    # 唯一约束：一个模型不能有重复的版本名称
+    __table_args__ = ({
+        'sqlite_autoincrement': True,
+        'extend_existing': True
+    })

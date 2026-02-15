@@ -6,6 +6,7 @@ from app.api.files_router import router as files_router
 from app.api.health_router import router as health_router
 from app.api.models_router import router as models_router
 from app.api.mcp_router import router as mcp_router
+from app.api.embedding_models_router import router as embedding_models_router
 
 from app.api.settings_router import router as settings_router
 from app.api.vector_router import router as vector_router
@@ -21,6 +22,7 @@ def register_routes(app):
     app.include_router(files_router, tags=['files'])
     app.include_router(models_router, tags=['models'])
     app.include_router(mcp_router, tags=['mcp'])
+    app.include_router(embedding_models_router, tags=['embedding-models'])
 
     app.include_router(settings_router, tags=['settings'])
     app.include_router(vector_router, tags=['vectors'])

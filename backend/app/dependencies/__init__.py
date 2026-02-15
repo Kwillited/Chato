@@ -18,6 +18,7 @@ from app.services.mcp.mcp_service import MCPService
 from app.services.vector.vector_store_service import VectorStoreService
 from app.services.vector.vector_db_service import VectorDBService
 from app.services.vector.vector_service import VectorService
+from app.repositories.embedding_model_repository import EmbeddingModelRepository
 from app.core.memory_cache import MemoryCache
 
 
@@ -60,13 +61,9 @@ def get_agent_session_repository(db: Session = Depends(get_db)):
 
 
 # 服务依赖
-def get_chat_service(
-    chat_repo: ChatRepository = Depends(get_chat_repository),
-    message_repo: MessageRepository = Depends(get_message_repository),
-    agent_session_repo: AgentSessionRepository = Depends(get_agent_session_repository)
-):
+def get_chat_service():
     """获取对话服务实例"""
-    return ChatService(chat_repo, message_repo, agent_session_repo)
+    return ChatService()
 
 
 def get_model_service(
@@ -111,3 +108,8 @@ def get_data_service():
 def get_vector_service():
     """获取向量服务实例"""
     return VectorService()
+
+
+def get_embedding_model_repository(db: Session = Depends(get_db)):
+    """获取嵌入模型仓库实例"""
+    return EmbeddingModelRepository(db)

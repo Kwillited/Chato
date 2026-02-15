@@ -77,6 +77,10 @@ class ConfigManager:
         embedding_models_dir = os.path.join(user_data_dir, 'models', 'embedding')
         os.makedirs(embedding_models_dir, exist_ok=True)
         
+        # 创建config目录，用于存储数据库文件
+        config_dir = os.path.join(user_data_dir, 'config')
+        os.makedirs(config_dir, exist_ok=True)
+        
     def get_user_data_dir(self):
         """获取用户数据目录"""
         user_data_dir = dirs.user_data_dir

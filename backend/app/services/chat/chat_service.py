@@ -12,29 +12,20 @@ from app.utils.model import ModelUtils
 class ChatService(BaseService):
     """对话服务类，封装所有对话相关的业务逻辑"""
     
-    def __init__(self, chat_repo=None, message_repo=None, agent_session_repo=None):
-        """初始化对话服务
-        
-        Args:
-            chat_repo: 对话仓库实例（保持兼容性，实际不再使用）
-            message_repo: 消息仓库实例（保持兼容性，实际不再使用）
-            agent_session_repo: 智能体会话仓库实例（保持兼容性，实际不再使用）
-        """
-        # 保持兼容性，但不再使用这些参数
-        pass
+    def __init__(self):
+        """初始化对话服务"""
+        super().__init__()
     
     def get_chats(self):
         """获取所有对话"""
-        from app.core.logging_config import logger
         try:
             # 直接从内存数据库获取对话
-            memory_chats = DataService.get_chats()
-            return memory_chats
+            return DataService.get_chats()
         except Exception as e:
             # 记录错误日志
-            logger.error(f"获取对话列表失败: {str(e)}")
-            # 失败时返回内存数据库中的对话
-            return DataService.get_chats()
+            self.log_error(f"获取对话列表失败: {str(e)}")
+            # 失败时返回空列表
+            return []
 
     def get_chat(self, chat_id):
         """获取单个对话记录（按ID）"""
@@ -50,8 +41,8 @@ class ChatService(BaseService):
             return True
         except Exception as e:
             # 使用BaseService的日志方法
-            BaseService.log_error(f"删除对话失败: {str(e)}")
-            return True
+            self.log_error(f"删除对话失败: {str(e)}")
+            return False
 
     def delete_all_chats(self):
         """删除所有对话记录"""
@@ -62,8 +53,8 @@ class ChatService(BaseService):
             return True
         except Exception as e:
             # 使用BaseService的日志方法
-            BaseService.log_error(f"删除所有对话失败: {str(e)}")
-            return True
+            self.log_error(f"删除所有对话失败: {str(e)}")
+            return False
     
     def update_chat_pin(self, chat_id, pinned):
         """更新对话置顶状态"""
@@ -82,7 +73,7 @@ class ChatService(BaseService):
             return True
         except Exception as e:
             # 使用BaseService的日志方法
-            BaseService.log_error(f"更新对话置顶状态失败: {str(e)}")
+            self.log_error(f"更新对话置顶状态失败: {str(e)}")
             return False
     
     def get_chat_context(self, chat_id, max_messages=10, selected_message_ids=None):
@@ -135,6 +126,42 @@ class ChatService(BaseService):
         
         return formatted_messages
 
+    def _perform_rag_search(self, question, selected_folders=None, k=None):
+        """执行RAG搜索，获取相关文档片段"""
+        from app.core.config import config_manager
+        from app.services.vector.vector_service import VectorService
+        
+        vector_service = VectorService()
+        
+        # 从配置中获取参数
+        config_vector = config_manager.get('vector', {})
+        if k is None:
+            k = config_vector.get('top_k', 3)
+        score_threshold = config_vector.get('score_threshold', 0.7)
+        
+        # 构建过滤器
+        filter = None
+        if selected_folders:
+            # 如果有选中的文件夹，构建filter条件
+            filter = {'folder_id': {'$in': selected_folders}}
+        
+        # 执行相似性搜索
+        vector_results = vector_service.search_vectors(
+            query=question,
+            k=k,
+            filter=filter,
+            score_threshold=score_threshold
+        )
+        
+        # 转换向量结果为文档列表
+        context_docs = []
+        if vector_results['success']:
+            for result in vector_results['results']:
+                # 添加文档到上下文
+                context_docs.append(result)
+        
+        return context_docs, vector_results
+
     def get_rag_enhanced_prompt(self, question, rag_config=None):
         """RAG增强提示 - 直接使用生成服务的build_prompt方法"""
         # 只使用前端传递的enabled状态，其余配置从系统获取
@@ -154,51 +181,21 @@ class ChatService(BaseService):
         
         try:
             logger.debug("RAG功能已启用，开始执行RAG增强")
-            # 直接使用生成服务的build_prompt方法，避免通过LangChainRAGService间接调用
-            from app.core.config import config_manager
-            from app.services.chat.generation_service import GenerationService
-            from app.services.vector.vector_service import VectorService
-            
-            generation_service = GenerationService()
-            vector_service = VectorService()
-            
-            # 从配置中获取参数
-            config_vector = config_manager.get('vector', {})
-            k = config_vector.get('top_k', 3)
-            score_threshold = config_vector.get('score_threshold', 0.7)
-            
-            # 构建过滤器
-            filter = None
-            if selected_folders:
-                # 如果有选中的文件夹，构建filter条件
-                filter = {'folder_id': {'$in': selected_folders}}
-            
-            # 执行相似性搜索
-            logger.debug(f"正在搜索相关文档，参数: k={k}, score_threshold={score_threshold}, filter={filter}")
-            vector_results = vector_service.search_vectors(
-                query=question,
-                k=k,
-                filter=filter,
-                score_threshold=score_threshold
-            )
-            
-            # 转换向量结果为文档列表
-            context_docs = []
-            if vector_results['success']:
-                for result in vector_results['results']:
-                    # 添加文档到上下文
-                    context_docs.append(result)
+            # 执行RAG搜索
+            context_docs, _ = self._perform_rag_search(question, selected_folders)
             
             logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
             
             # 使用生成服务的build_prompt方法构建提示
+            from app.services.chat.generation_service import GenerationService
+            generation_service = GenerationService()
             enhanced_prompt = generation_service.build_prompt(question, context_docs)
             logger.debug(f"RAG增强提示构建完成，长度: {len(enhanced_prompt)} 字符")
             
             return enhanced_prompt
         except Exception as e:
             # 使用logger记录错误
-            logger.error(f"RAG调用失败: {str(e)}")
+            self.log_error(f"RAG调用失败: {str(e)}")
             # 确保即使RAG失败，原始问题也能正常返回
             return question
     
@@ -217,12 +214,10 @@ class ChatService(BaseService):
         try:
             logger.debug(f"开始生成增强响应: 查询='{query[:50]}{'...' if len(query) > 50 else ''}'")
             # 1. 调用向量服务获取相关文档
-            from app.services.vector.vector_service import VectorService
-            vector_service = VectorService()
-            vector_results = vector_service.search_vectors(query, k=k)
+            context_docs, vector_results = self._perform_rag_search(query, k=k)
             
             if not vector_results['success']:
-                logger.error(f"向量检索失败: {vector_results['message']}")
+                self.log_error(f"向量检索失败: {vector_results['message']}")
                 return {
                     'success': False,
                     'message': '向量检索失败',
@@ -236,7 +231,7 @@ class ChatService(BaseService):
             # 调用生成服务的 generate_rag_response 方法
             rag_result = generation_service.generate_rag_response(
                 query=query,
-                context_docs=vector_results['results'],
+                context_docs=context_docs,
                 chat_history=chat_history
             )
             
@@ -249,14 +244,14 @@ class ChatService(BaseService):
                     'context': rag_result['context_docs']
                 }
             else:
-                logger.error(f"生成响应失败: {rag_result.get('error', '未知错误')}")
+                self.log_error(f"生成响应失败: {rag_result.get('error', '未知错误')}")
                 return {
                     'success': False,
                     'message': f'生成响应失败: {rag_result.get('error', '未知错误')}',
                     'response': '抱歉，我无法生成响应。'
                 }
         except Exception as e:
-            logger.error(f"生成增强响应失败: {str(e)}")
+            self.log_error(f"生成增强响应失败: {str(e)}")
             return {
                 'success': False,
                 'message': f'生成增强响应失败: {str(e)}',
@@ -265,19 +260,7 @@ class ChatService(BaseService):
     
 
 
-    def parse_model_info(self, model_name):
-        """
-        解析前端发送的模型格式 "Ollama-qwen3:0.6b"
-        返回: (模型名称, 版本名称, 模型显示名称)
-        """
-        return ModelUtils.parse_model_info(model_name)
 
-    def validate_model(self, model_name):
-        """
-        验证模型是否存在且已配置
-        返回: (model_object, error_response, error_code)
-        """
-        return ModelUtils.validate_model(model_name, DataService)
     
     def update_chat_and_save(self, chat, message_text, user_message, ai_message, now):
         """更新对话并保存"""
@@ -356,7 +339,7 @@ class ChatService(BaseService):
             """
             # 1. 验证模型 (如果传入了 model，则直接使用)
             if not model:
-                model, error_response, _ = self.validate_model(model_name)
+                model, error_response, _ = ModelUtils.validate_model(model_name, DataService)
                 if error_response:
                     yield f'data: {json.dumps(error_response, ensure_ascii=False)}\n\n'
                     return
@@ -489,10 +472,10 @@ class ChatService(BaseService):
             
             return session_dict
         except ValueError as e:
-            BaseService.log_error(f"创建智能体会话参数验证失败: {str(e)}")
+            self.log_error(f"创建智能体会话参数验证失败: {str(e)}")
             return None
         except Exception as e:
-            BaseService.log_error(f"创建智能体会话失败: {str(e)}")
+            self.log_error(f"创建智能体会话失败: {str(e)}")
             return None
     
     def get_agent_session(self, session_id):
@@ -516,10 +499,10 @@ class ChatService(BaseService):
             session = DataService.get_agent_session_by_id(session_id)
             return session
         except ValueError as e:
-            BaseService.log_error(f"获取智能体会话参数验证失败: {str(e)}")
+            self.log_error(f"获取智能体会话参数验证失败: {str(e)}")
             return None
         except Exception as e:
-            BaseService.log_error(f"获取智能体会话失败: {str(e)}")
+            self.log_error(f"获取智能体会话失败: {str(e)}")
             return None
     
     def update_agent_session(self, session_id, graph_state=None, current_node=None, step_count=None):
@@ -579,10 +562,10 @@ class ChatService(BaseService):
             
             return None
         except ValueError as e:
-            BaseService.log_error(f"更新智能体会话参数验证失败: {str(e)}")
+            self.log_error(f"更新智能体会话参数验证失败: {str(e)}")
             return None
         except Exception as e:
-            BaseService.log_error(f"更新智能体会话失败: {str(e)}")
+            self.log_error(f"更新智能体会话失败: {str(e)}")
             return None
     
     def delete_agent_session(self, session_id):
@@ -607,10 +590,10 @@ class ChatService(BaseService):
             
             return True
         except ValueError as e:
-            BaseService.log_error(f"删除智能体会话参数验证失败: {str(e)}")
+            self.log_error(f"删除智能体会话参数验证失败: {str(e)}")
             return False
         except Exception as e:
-            BaseService.log_error(f"删除智能体会话失败: {str(e)}")
+            self.log_error(f"删除智能体会话失败: {str(e)}")
             return False
     
     def get_agent_sessions_by_chat_id(self, chat_id):
@@ -634,10 +617,10 @@ class ChatService(BaseService):
             sessions = DataService.get_agent_sessions_by_chat_id(chat_id)
             return sessions
         except ValueError as e:
-            BaseService.log_error(f"获取对话的智能体会话参数验证失败: {str(e)}")
+            self.log_error(f"获取对话的智能体会话参数验证失败: {str(e)}")
             return []
         except Exception as e:
-            BaseService.log_error(f"获取对话的智能体会话失败: {str(e)}")
+            self.log_error(f"获取对话的智能体会话失败: {str(e)}")
             return []
     
     def get_latest_agent_session(self, chat_id):
@@ -661,10 +644,10 @@ class ChatService(BaseService):
             session = DataService.get_latest_agent_session(chat_id)
             return session
         except ValueError as e:
-            BaseService.log_error(f"获取最新智能体会话参数验证失败: {str(e)}")
+            self.log_error(f"获取最新智能体会话参数验证失败: {str(e)}")
             return None
         except Exception as e:
-            BaseService.log_error(f"获取最新智能体会话失败: {str(e)}")
+            self.log_error(f"获取最新智能体会话失败: {str(e)}")
             return None
     
     def _parse_request_data(self, data):
@@ -877,7 +860,7 @@ class ChatService(BaseService):
             parsed_data = self._parse_request_data(data)
             
             # 使用辅助函数解析模型信息
-            parsed_model_name, parsed_version_name, model_display_name = self.parse_model_info(parsed_data['model_name'])
+            parsed_model_name, parsed_version_name, model_display_name = ModelUtils.parse_model_info(parsed_data['model_name'])
             
             # 获取模型配置
             model = DataService.get_model_by_name(parsed_model_name)

@@ -45,16 +45,14 @@ async def init_vector_system():
             # 从配置中获取向量数据库路径
             vector_db_path = config_manager.get('vector.vector_db_path', 
                                            os.path.join(user_data_dir, 'Retrieval-Augmented Generation', 'vectorDb'))
-            # 获取嵌入模型配置
-            embedder_model = config_manager.get('vector.embedder_model', 'qwen3-embedding-0.6b')
             
-            # 创建向量存储服务实例
-            vector_service = VectorStoreService(vector_db_path, embedder_model)
+            # 创建向量存储服务实例（会自动从配置中获取嵌入模型）
+            vector_service = VectorStoreService(vector_db_path)
             
-            # 触发向量存储初始化（同步执行，后续可优化为异步）
-            _ = vector_service.vector_store
+            # 注意：不再主动触发向量存储初始化，让它在首次使用时自动初始化
+            # 这样嵌入模型会在真正需要时才加载，实现即用即加载
             
-            logger.info(f"向量系统初始化成功: 模型={embedder_model}, 向量库={vector_db_path}")
+            logger.info(f"向量系统初始化成功: 向量库={vector_db_path}")
             _initialized = True
             return True
         except Exception as e:
