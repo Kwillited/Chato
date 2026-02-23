@@ -3,6 +3,13 @@ import { apiService } from '../services/apiService.js';
 import { errorUtils, loadingUtils, apiUtils } from '../utils/storeUtils.js';
 
 export const useVectorStore = defineStore('vector', {
+  persist: {
+    paths: [
+      'config.enabled',
+      'config.retrieval',
+      'config.embedding'
+    ]
+  },
   state: () => ({
     // 向量配置（合并原ragConfig）
     config: {

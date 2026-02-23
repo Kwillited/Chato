@@ -2,7 +2,7 @@
   <div v-if="folders.length > 0" class="folders-list mt-3">
     <h3 class="text-sm font-medium text-gray-700 dark:text-white mb-2 px-2">知识库文件夹 ({{ folders.length }})</h3>
     <div v-for="folder in folders" :key="folder.id || folder.path"
-      class="folder-item bg-gray-50 border border-gray-300 dark:bg-dark-bg-tertiary dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg-secondary transition-all duration-300"
+      class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg-secondary transition-all duration-300"
       @dragover.prevent="handleFolderDragOver($event, folder)"
       @dragleave.prevent="handleFolderDragLeave"
       @drop.prevent="handleFolderDrop($event, folder)"

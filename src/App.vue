@@ -33,11 +33,13 @@ import MainLayout from './layout/MainLayout.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
 import { useUiStore } from './store/uiStore.js';
+import { useVectorStore } from './store/vectorStore.js';
 
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
+const vectorStore = useVectorStore();
 
 // 路由
 const route = useRoute();
@@ -117,6 +119,13 @@ onMounted(async () => {
   // 初始化默认面板
   if (!uiStore.activePanel) {
     uiStore.setActivePanel('history');
+  }
+
+  // 确保vectorStore.config.enabled与uiStore.activePanel保持一致
+  if (uiStore.activePanel === 'rag') {
+    vectorStore.setRagConfig({ enabled: true });
+  } else {
+    vectorStore.setRagConfig({ enabled: false });
   }
 
   console.log('AIClient应用已初始化，使用Pinia状态管理');

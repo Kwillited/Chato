@@ -95,7 +95,7 @@
             />
             
             <!-- 用户按钮带下拉菜单 -->
-            <div class="relative hover-scale">
+            <div class="relative">
                 <Button 
                   icon="fa-user-circle"
                   @click.stop="toggleUserMenu"
@@ -1250,18 +1250,21 @@ const closeCommandLine = () => {
 
 // 点击外部区域关闭菜单
 const closeMenusOnClickOutside = (event) => {
-  const menuButtons = document.querySelectorAll('.relative.hover-scale');
+  // 检查点击目标是否在用户菜单内部
+  const userMenu = document.querySelector('.dropdown-content');
+  const menuContainer = document.querySelector('.relative');
   
-  let clickedInsideMenu = false;
-  menuButtons.forEach(button => {
-    if (button.contains(event.target)) {
-      clickedInsideMenu = true;
-    }
-  });
-  
-  if (!clickedInsideMenu) {
-    showUserMenu.value = false;
+  // 如果点击目标在菜单内部或在菜单容器上，不关闭菜单
+  if (userMenu && userMenu.contains(event.target)) {
+    return;
   }
+  
+  if (menuContainer && menuContainer.contains(event.target)) {
+    return;
+  }
+  
+  // 否则，关闭菜单
+  showUserMenu.value = false;
 };
 
 onUnmounted(() => {
@@ -1447,18 +1450,13 @@ const getFileIcon = (fileName) => {
 }
 
 /* 下拉菜单动画 */
+/* 修复下拉菜单闪烁问题，保持原始展开方向 */
 .dropdown-content {
-  animation: fadeInDown 0.2s ease-out;
-}
-
-@keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -10px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
+  /* 移除可能导致闪烁的动画 */
+  animation: none !important;
+  /* 确保菜单使用HTML中定义的正确定位和展开方向 */
+  opacity: 1;
+  /* 避免过渡效果导致的闪烁 */
+  transition: none !important;
 }
 </style>

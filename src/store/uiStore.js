@@ -22,7 +22,8 @@ export const useUiStore = defineStore('ui', {
       'rightPanelWidth',
       'isDeepThinking',
       'isWebSearchEnabled',
-      'isAgentEnabled'
+      'isAgentEnabled',
+      'activePanel'
     ]
   },
   state: () => ({
