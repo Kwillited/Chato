@@ -127,15 +127,7 @@
                   :tooltip="`切换到${uiStore.activeView === 'chat' ? '上下文工程可视化' : '对话'}视图`"
                   @click="toggleView"
                 />
-                <Button
-                  shape="rounded"
-                  size="md"
-                  variant="secondary"
-                  icon="fa-check"
-                  tooltip="应用调整"
-                  @click="applyContextChanges"
-                  :disabled="selectedMessages.size === 0"
-                />
+
               </div>
             </div>
           </div>
@@ -388,12 +380,7 @@ const clearAllSelections = () => {
   selectedMessages.value.clear();
 };
 
-// 应用上下文调整
-const applyContextChanges = () => {
-  // 这里可以添加应用上下文调整的逻辑
-  // 例如：更新上下文配置、发送到后端等
-  showNotification('上下文调整已应用', 'success');
-};
+
 
 // 切换视图模式
 const toggleView = () => {

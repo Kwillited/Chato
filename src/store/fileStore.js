@@ -229,21 +229,23 @@ export const useFileStore = defineStore('file', {
     },
     
     // 创建文件夹/知识库
-    async createFolder(knowledgeBaseName) {
+    async createFolder(knowledgeBaseName, embeddingModel) {
       try {
         const result = await apiUtils.wrapApiCall(this, async () => {
           let response;
           
-          // 使用Python API创建文件夹
+          // 使用Python API创建文件夹，传递嵌入模型
           response = await apiService.post('/files/folders', {
-            name: knowledgeBaseName
+            name: knowledgeBaseName,
+            embedding_model: embeddingModel
           });
           
           // 通知事件总线知识库已创建
           eventBus.emit('knowledge-base-created', {
             id: response.id || null,
             name: response.name || knowledgeBaseName,
-            path: response.path || `resources/python/userData/rag/ragFiles/${knowledgeBaseName}`
+            path: response.path || `resources/python/userData/rag/ragFiles/${knowledgeBaseName}`,
+            embedding_model: response.embedding_model || embeddingModel
           });
           
           // 重新加载文件夹列表以确保同步

@@ -15,7 +15,7 @@ class VectorDBService(BaseService):
     _instances = {}
     _lock = threading.Lock()
     
-    def __new__(cls, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
+    def __new__(cls, vector_db_path, embedder_model, knowledge_base_name=None):
         """单例模式实现，按知识库名称和嵌入模型区分实例"""
         knowledge_base_name = knowledge_base_name or "default"
         instance_key = f"{knowledge_base_name}_{embedder_model}"
@@ -26,7 +26,7 @@ class VectorDBService(BaseService):
                 cls._instances[instance_key].__init__(vector_db_path, embedder_model, knowledge_base_name)
         return cls._instances[instance_key]
     
-    def __init__(self, vector_db_path=None, embedder_model='qwen3-embedding-0.6b', knowledge_base_name=None):
+    def __init__(self, vector_db_path, embedder_model, knowledge_base_name=None):
         """初始化向量数据库服务
         
         Args:
@@ -37,6 +37,12 @@ class VectorDBService(BaseService):
         if hasattr(self, '_initialized') and self._initialized:
             return
         
+        # 参数验证
+        if not vector_db_path:
+            raise ValueError("必须提供 vector_db_path 参数")
+        if not embedder_model:
+            raise ValueError("必须提供 embedder_model 参数")
+        
         # 使用配置管理器获取用户数据目录
         self.config_manager = config_manager
         self.user_data_dir = self.config_manager.get_user_data_dir()
@@ -45,21 +51,11 @@ class VectorDBService(BaseService):
         self.knowledge_base_name = knowledge_base_name or "default"
         
         # 设置向量数据库路径
-        if vector_db_path:
-            self.vector_db_path = vector_db_path
-        else:
-            # 从配置中获取知识库路径，如果不存在则使用默认路径
-            knowledge_bases = self.config_manager.get("vector.knowledge_bases", {})
-            if self.knowledge_base_name in knowledge_bases:
-                self.vector_db_path = knowledge_bases[self.knowledge_base_name]
-            else:
-                # 使用默认路径
-                self.vector_db_path = os.path.join(
-                    self.user_data_dir, 'Retrieval-Augmented Generation', 
-                    f'vectorDb_{self.knowledge_base_name}' if self.knowledge_base_name != "default" else 'vectorDb'
-                )
+        self.vector_db_path = vector_db_path
         
+        # 设置嵌入模型
         self.embedder_model = embedder_model
+        
         self._embeddings = None  # 嵌入模型实例
         self._vector_store = None  # 向量存储实例
         self._directories_ensured = False  # 目录是否已创建
@@ -73,7 +69,7 @@ class VectorDBService(BaseService):
         # 添加初始化锁，防止多线程环境下重复初始化
         self._init_lock = threading.Lock()
         
-        self.log_info(f"初始化向量数据库服务: 知识库='{self.knowledge_base_name}', 路径='{self.vector_db_path}'")
+        self.log_info(f"初始化向量数据库服务: 知识库='{self.knowledge_base_name}', 嵌入模型='{self.embedder_model}', 路径='{self.vector_db_path}'")
         self._initialized = True
     
     @property
@@ -138,25 +134,64 @@ class VectorDBService(BaseService):
         try:
             from app.llm.managers.embedding_model_manager import EmbeddingModelManager
             
+            # 根据模型名称确定模型类型
+            model_type = 'huggingface'  # 默认类型
+            model_name = self.embedder_model
+            
+            # 根据模型名称或关键词判断模型类型
+            import re
+            
+            # 移除供应商前缀（使用正则表达式，忽略大小写）
+            # 匹配格式：供应商名称-模型名称
+            prefix_pattern = r'^(Ollama|OpenAI|HuggingFace)-(.+)$'
+            match = re.match(prefix_pattern, model_name, re.IGNORECASE)
+            if match:
+                vendor = match.group(1)
+                model_name = match.group(2)
+                
+                # 根据供应商确定模型类型
+                if vendor.lower() == 'ollama':
+                    model_type = 'ollama'
+                elif vendor.lower() == 'openai':
+                    model_type = 'openai'
+                elif vendor.lower() == 'huggingface':
+                    model_type = 'huggingface'
+                
+                self.log_info(f"识别模型类型为: {model_type}")
+            else:
+                # 传统的关键词匹配方式作为 fallback
+                if 'ollama' in model_name.lower() or 'llama' in model_name.lower():
+                    model_type = 'ollama'
+                    self.log_info(f"识别模型类型为: {model_type}")
+                elif 'openai' in model_name.lower() or 'gpt' in model_name.lower():
+                    model_type = 'openai'
+                    self.log_info(f"识别模型类型为: {model_type}")
+                elif 'huggingface' in model_name.lower():
+                    model_type = 'huggingface'
+                    self.log_info(f"识别模型类型为: {model_type}")
+            
             # 使用嵌入模型管理器获取嵌入模型（支持缓存）
-            self.log_info(f"尝试加载嵌入模型: {self.embedder_model}")
+            self.log_info(f"尝试加载嵌入模型: {model_name} (类型: {model_type})")
             self._embeddings = EmbeddingModelManager.get_embedding_model(
-                self.embedder_model,
+                model_type,
+                model_name,
                 device='cpu',
                 normalize_embeddings=True
             )
             
             if self._embeddings:
-                self.log_info(f"嵌入模型初始化成功: {self.embedder_model}")
+                self.log_info(f"嵌入模型初始化成功: {model_name} (类型: {model_type})")
                 return True
             else:
                 # 模型加载失败，尝试使用默认模型
-                self.log_warning(f"未找到嵌入模型: {self.embedder_model}，尝试使用默认模型")
+                self.log_warning(f"未找到嵌入模型: {model_name}，尝试使用默认模型")
                 
                 # 尝试使用默认模型
                 default_model = 'all-MiniLM-L6-v2'
-                self.log_info(f"尝试加载默认嵌入模型: {default_model}")
+                default_model_type = 'huggingface'
+                self.log_info(f"尝试加载默认嵌入模型: {default_model} (类型: {default_model_type})")
                 self._embeddings = EmbeddingModelManager.get_embedding_model(
+                    default_model_type,
                     default_model,
                     device='cpu',
                     normalize_embeddings=True

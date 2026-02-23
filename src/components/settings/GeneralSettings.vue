@@ -383,27 +383,11 @@ onMounted(async () => {
   eventBus.on('modelsUpdated', handleModelsUpdated);
 });
 
-// 监听流式输出设置变化，自动保存
-watch(
-  () => settingsStore.systemSettings.streamingEnabled,
-  (_newValue) => {
-    settingsStore.saveSettings();
-  }
-);
-
-// 监听darkMode变化，立即应用
-watch(
-  () => settingsStore.systemSettings.darkMode,
-  (_newValue) => {
-    settingsStore.applyDarkMode();
-    settingsStore.saveSettings();
-  }
-);
-
-// 监听其他系统设置变化，自动保存
+// 监听系统设置变化，自动保存
 watch(
   () => settingsStore.systemSettings,
   (_newValue) => {
+    settingsStore.applyDarkMode(); // 确保深色模式立即应用
     settingsStore.saveSettings();
   },
   { deep: true }

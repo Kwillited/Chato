@@ -45,17 +45,28 @@ async def init_vector_system():
             # 确保目录存在
             os.makedirs(data_dir, exist_ok=True)
             
-            # 从配置中获取向量数据库路径
-            vector_db_path = config_manager.get('vector.vector_db_path', 
-                                           os.path.join(user_data_dir, 'Retrieval-Augmented Generation', 'vectorDb'))
+            # 从配置中获取必要的参数
+            vector_db_path = config_manager.get('vector.vector_db_path')
+            embedder_model = config_manager.get('vector.embedder_model')
             
-            # 创建向量存储服务实例（会自动从配置中获取嵌入模型）
-            vector_service = VectorStoreService(vector_db_path)
+            # 验证配置是否完整
+            if not vector_db_path:
+                logger.error("向量系统初始化失败: 缺少 vector.vector_db_path 配置")
+                return False
+            if not embedder_model:
+                logger.error("向量系统初始化失败: 缺少 vector.embedder_model 配置")
+                return False
+            
+            # 确保向量数据库目录存在
+            os.makedirs(os.path.dirname(vector_db_path), exist_ok=True)
+            
+            # 创建向量存储服务实例
+            vector_service = VectorStoreService(vector_db_path, embedder_model)
             
             # 注意：不再主动触发向量存储初始化，让它在首次使用时自动初始化
             # 这样嵌入模型会在真正需要时才加载，实现即用即加载
             
-            logger.info(f"向量系统初始化成功: 向量库={vector_db_path}")
+            logger.info(f"向量系统初始化成功: 向量库={vector_db_path}, 嵌入模型={embedder_model}")
             _initialized = True
             return True
         except Exception as e:
@@ -64,6 +75,22 @@ async def init_vector_system():
 
 def setup():
     """应用初始化"""
+    # 验证向量系统配置
+    from app.core.config import config_manager
+    is_valid, errors = config_manager.validate_vector_config()
+    if not is_valid:
+        logger.warning("向量系统配置不完整:")
+        for error in errors:
+            logger.warning(f"  - {error}")
+        logger.warning("请在使用向量系统前配置完整的参数")
+    else:
+        logger.info("向量系统配置验证通过")
+    
+    # 初始化数据库，更新表结构
+    from app.core.database import init_alembic_db
+    init_alembic_db()
+    logger.info("数据库初始化完成")
+    
     # 加载初始数据
     load_data()
     logger.info("应用数据加载完成")

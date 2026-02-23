@@ -17,11 +17,12 @@ class FolderRepository(BaseRepository):
         """根据名称获取文件夹"""
         return self.db.query(Folder).filter(Folder.name == folder_name).first()
     
-    def create_folder(self, folder_id, name, created_at, updated_at, description=""):
+    def create_folder(self, folder_id, name, embedding_model='qwen3-embedding-0.6b', created_at=None, updated_at=None, description=""):
         """创建新文件夹"""
         folder = Folder(
             id=folder_id,
             name=name,
+            embedding_model=embedding_model,
             created_at=created_at,
             updated_at=updated_at,
             description=description

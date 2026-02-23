@@ -32,7 +32,7 @@ class EmbeddingModelService(BaseService):
         self.log_info("嵌入模型服务初始化成功")
     
     def initialize_models(self, db_session) -> List[Dict[str, Any]]:
-        """初始化嵌入模型，将支持的模型添加到数据库
+        """初始化嵌入模型，创建默认的模型提供商
         
         Args:
             db_session: 数据库会话
@@ -41,45 +41,10 @@ class EmbeddingModelService(BaseService):
             List[Dict[str, Any]]: 初始化的模型列表
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            supported_models = self.embedding_model_manager.get_supported_models()
-            initialized_models = []
-            
-            for model_name, model_info in supported_models.items():
-                # 创建模型记录
-                model_data = {
-                    'name': model_name,
-                    'description': model_info['description'],
-                    'type': model_info['type'],
-                    'enabled': False,
-                    'configured': False
-                }
-                
-                # 设置默认模型
-                if model_name == 'qwen3-embedding-0.6b':
-                    model_data['enabled'] = True
-                    model_data['configured'] = True
-                
-                # 创建或更新模型
-                model = repo.create_model(model_data)
-                
-                # 创建默认版本
-                version_data = {
-                    'model_id': model.id,
-                    'version_name': 'default',
-                    'custom_name': f"{model_name} 默认版本"
-                }
-                repo.create_model_version(version_data)
-                
-                initialized_models.append({
-                    'id': model.id,
-                    'name': model.name,
-                    'type': model.type,
-                    'enabled': model.enabled
-                })
-            
-            self.log_info(f"成功初始化 {len(initialized_models)} 个嵌入模型")
-            return initialized_models
+            # 初始化逻辑已移至 insert_default_embedding_models 函数
+            # 此方法保留用于向后兼容
+            self.log_info("嵌入模型初始化完成")
+            return []
         except Exception as e:
             self.log_error(f"初始化嵌入模型失败: {str(e)}", exc_info=True)
             return []
@@ -283,10 +248,11 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"获取默认嵌入模型失败: {str(e)}", exc_info=True)
             return None
     
-    def load_embedding_model(self, model_name: str, **kwargs) -> Any:
+    def load_embedding_model(self, model_type: str, model_name: str, **kwargs) -> Any:
         """加载嵌入模型
         
         Args:
+            model_type (str): 模型类型 (huggingface, openai, ollama)
             model_name (str): 模型名称
             **kwargs: 额外参数
             
@@ -294,11 +260,11 @@ class EmbeddingModelService(BaseService):
             Any: 嵌入模型实例
         """
         try:
-            model = self.embedding_model_manager.get_embedding_model(model_name, **kwargs)
+            model = self.embedding_model_manager.get_embedding_model(model_type, model_name, **kwargs)
             if model:
-                self.log_info(f"成功加载嵌入模型: {model_name}")
+                self.log_info(f"成功加载嵌入模型: {model_name} (类型: {model_type})")
             else:
-                self.log_warning(f"加载嵌入模型失败: {model_name}")
+                self.log_warning(f"加载嵌入模型失败: {model_name} (类型: {model_type})")
             return model
         except Exception as e:
             self.log_error(f"加载嵌入模型异常: {str(e)}", exc_info=True)
@@ -317,3 +283,192 @@ class EmbeddingModelService(BaseService):
         except Exception as e:
             self.log_error(f"清空模型缓存失败: {str(e)}", exc_info=True)
             return 0
+
+    def configure_model(self, db_session, model_name, data):
+        """
+        配置特定嵌入模型
+        
+        Args:
+            db_session: 数据库会话
+            model_name: 模型名称
+            data: 配置数据
+            
+        Returns:
+            元组: (成功标志, 消息, 模型对象)
+        """
+        try:
+            repo = EmbeddingModelRepository(db_session)
+            
+            # 查找模型
+            model = repo.get_model_by_name(model_name)
+            if not model:
+                return False, '模型不存在', None
+            
+            # 获取要配置的版本名称
+            target_version_name = data.get('version_name', '')
+            
+            # 查找匹配的版本
+            versions = repo.get_model_versions(model.id)
+            version = next((v for v in versions if v.version_name == target_version_name), None)
+            
+            # 如果找不到匹配的版本，创建一个新的版本
+            if not version:
+                version_data = {
+                    'model_id': model.id,
+                    'version_name': target_version_name,
+                    'custom_name': data.get('custom_name', ''),
+                    'api_key': data.get('api_key', ''),
+                    'api_base_url': data.get('api_base_url', ''),
+                    'model_path': data.get('model_path', ''),
+                    'dimension': data.get('dimension', 0)
+                }
+                repo.create_model_version(version_data)
+            else:
+                # 更新现有版本
+                repo.update_model_version(
+                    version.id,
+                    {
+                        'custom_name': data.get('custom_name', version.custom_name),
+                        'api_key': data.get('api_key', version.api_key),
+                        'api_base_url': data.get('api_base_url', version.api_base_url),
+                        'model_path': data.get('model_path', version.model_path),
+                        'dimension': data.get('dimension', version.dimension)
+                    }
+                )
+            
+            # 更新模型状态
+            repo.update_model(
+                model.id,
+                {
+                    'configured': True,
+                    'enabled': True
+                }
+            )
+            
+            # 重新获取更新后的模型信息
+            updated_model = self.get_model_by_name(db_session, model_name)
+            
+            return True, f'嵌入模型 {model_name} 已配置', updated_model
+        except Exception as e:
+            self.log_error(f"配置嵌入模型失败: {str(e)}", exc_info=True)
+            return False, f'配置嵌入模型失败: {str(e)}', None
+
+    def delete_model(self, db_session, model_name):
+        """
+        删除特定嵌入模型配置
+        
+        Args:
+            db_session: 数据库会话
+            model_name: 模型名称
+            
+        Returns:
+            元组: (成功标志, 消息)
+        """
+        try:
+            repo = EmbeddingModelRepository(db_session)
+            
+            # 查找模型
+            model = repo.get_model_by_name(model_name)
+            if not model:
+                return False, '模型不存在'
+            
+            # 删除所有相关的模型版本
+            versions = repo.get_model_versions(model.id)
+            for version in versions:
+                repo.delete_model_version(version.id)
+            
+            # 更新模型状态
+            repo.update_model(
+                model.id,
+                {
+                    'configured': False,
+                    'enabled': False
+                }
+            )
+            
+            return True, f'嵌入模型 {model_name} 配置已删除'
+        except Exception as e:
+            self.log_error(f"删除嵌入模型配置失败: {str(e)}", exc_info=True)
+            return False, f'删除嵌入模型配置失败: {str(e)}'
+
+    def update_model_enabled(self, db_session, model_name, enabled):
+        """
+        更新嵌入模型启用状态
+        
+        Args:
+            db_session: 数据库会话
+            model_name: 模型名称
+            enabled: 是否启用
+            
+        Returns:
+            元组: (成功标志, 消息)
+        """
+        try:
+            repo = EmbeddingModelRepository(db_session)
+            
+            # 查找模型
+            model = repo.get_model_by_name(model_name)
+            if not model:
+                return False, '模型不存在'
+            
+            # 更新模型启用状态
+            repo.update_model(
+                model.id,
+                {
+                    'enabled': enabled
+                }
+            )
+            
+            return True, f'嵌入模型 {model_name} 启用状态已更新'
+        except Exception as e:
+            self.log_error(f"更新嵌入模型启用状态失败: {str(e)}", exc_info=True)
+            return False, f'更新嵌入模型启用状态失败: {str(e)}'
+
+    def delete_version(self, db_session, model_name, version_name):
+        """
+        删除特定嵌入模型的特定版本
+        
+        Args:
+            db_session: 数据库会话
+            model_name: 模型名称
+            version_name: 版本名称
+            
+        Returns:
+            元组: (成功标志, 消息, 模型对象)
+        """
+        try:
+            repo = EmbeddingModelRepository(db_session)
+            
+            # 查找模型
+            model = repo.get_model_by_name(model_name)
+            if not model:
+                return False, '模型不存在', None
+            
+            # 查找匹配的版本
+            versions = repo.get_model_versions(model.id)
+            version = next((v for v in versions if v.version_name == version_name), None)
+            if not version:
+                return False, '版本不存在', None
+            
+            # 删除版本
+            repo.delete_model_version(version.id)
+            
+            # 检查模型是否还有其他版本
+            remaining_versions = repo.get_model_versions(model.id)
+            if not remaining_versions:
+                # 如果没有其他版本，设置为未配置
+                repo.update_model(
+                    model.id,
+                    {
+                        'configured': False,
+                        'enabled': False
+                    }
+                )
+            
+            # 重新获取更新后的模型信息
+            updated_model = self.get_model_by_name(db_session, model_name)
+            
+            return True, f'版本 {version_name} 已成功删除', updated_model
+        except Exception as e:
+            self.log_error(f"删除嵌入模型版本失败: {str(e)}", exc_info=True)
+            return False, f'删除嵌入模型版本失败: {str(e)}', None

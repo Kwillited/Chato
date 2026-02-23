@@ -195,13 +195,7 @@ class ModelVersionResponse(ModelVersionBase):
 
 
 
-class BasicSettings(BaseModel):
-    """基本设置模型"""
-    theme: str = "light"
-    language: str = "zh-CN"
-    autoSave: bool = True
-    showPreview: bool = True
-    maxMessages: int = 100
+
 
 
 class SystemSettings(BaseModel):
@@ -280,6 +274,7 @@ class FolderCreateResponse(BaseModel):
     id: str
     name: str
     path: str
+    embedding_model: Optional[str] = "qwen3-embedding-0.6b"
 
 
 class FilesInFolderResponse(BaseModel):

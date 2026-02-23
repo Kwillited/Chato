@@ -40,6 +40,15 @@ class KnowledgeBaseManager:
         if not vector_db_path:
             vector_db_path = self._generate_default_path(name)
         
+        # 创建向量数据库目录
+        try:
+            import os
+            os.makedirs(vector_db_path, exist_ok=True)
+            logger.info(f"成功创建向量数据库目录: {vector_db_path}")
+        except Exception as e:
+            logger.error(f"创建向量数据库目录失败: {e}")
+            return False
+        
         # 保存到配置
         result = self.config_manager.add_knowledge_base(name, vector_db_path)
         

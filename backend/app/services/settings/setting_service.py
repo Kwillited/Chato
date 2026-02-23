@@ -31,49 +31,7 @@ class SettingService(BaseService):
         """
         return NamingUtils.convert_dict_keys(data_dict)
     
-    def get_basic_settings(self):
-        """获取基本设置"""
-        # 从内存缓存获取系统设置
-        system_setting = self.setting_repo.get_system_setting()
-        if system_setting:
-            return {
-                'theme': 'dark' if system_setting.dark_mode else 'light',
-                'autoSave': True,  # 默认值
-                'showPreview': True,  # 默认值
-                'maxMessages': 100  # 默认值
-            }
-        else:
-            # 返回默认值
-            return {
-                'theme': 'light',
-                'autoSave': True,
-                'showPreview': True,
-                'maxMessages': 100
-            }
-    
-    def save_basic_settings(self, data):
-        """保存基本设置"""
-        # 将驼峰命名转换为蛇形命名
-        snake_data = self.convert_dict_keys(data)
-        
-        # 构建系统设置数据
-        system_data = {
-            'dark_mode': (data.get('theme') == 'dark'),
-            'streaming_enabled': True,
-            'chat_style': 'bubble',
-            'view_mode': 'grid',
-            'default_model': "",
-            'new_message': True,
-            'sound': False,
-            'system': True,
-            'display_time': '5秒'
-        }
-        
-        # 保存设置
-        self.setting_repo.create_or_update_system_setting(system_data)
-        
-        # 返回更新后的设置
-        return self.get_basic_settings()
+
     
     def get_system_setting(self):
         """获取系统设置（包含通知设置）"""
@@ -81,16 +39,16 @@ class SettingService(BaseService):
         system_setting = self.setting_repo.get_system_setting()
         if system_setting:
             return {
-                'dark_mode': system_setting.dark_mode,
-                'streaming_enabled': system_setting.streaming_enabled,
-                'chat_style': system_setting.chat_style,
-                'view_mode': system_setting.view_mode,
-                'default_model': system_setting.default_model,
+                'dark_mode': getattr(system_setting, 'dark_mode', False) or False,
+                'streaming_enabled': getattr(system_setting, 'streaming_enabled', True) or True,
+                'chat_style': getattr(system_setting, 'chat_style', 'bubble') or 'bubble',
+                'view_mode': getattr(system_setting, 'view_mode', 'grid') or 'grid',
+                'default_model': getattr(system_setting, 'default_model', "") or "",
                 # 通知相关字段
-                'newMessage': system_setting.new_message,
-                'sound': system_setting.sound,
-                'system': system_setting.system,
-                'displayTime': system_setting.display_time
+                'newMessage': getattr(system_setting, 'new_message', True) or True,
+                'sound': getattr(system_setting, 'sound', False) or False,
+                'system': getattr(system_setting, 'system', True) or True,
+                'displayTime': getattr(system_setting, 'display_time', '5秒') or '5秒'
             }
         else:
             # 返回默认值

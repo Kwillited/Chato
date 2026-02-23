@@ -32,6 +32,7 @@ export const useUiStore = defineStore('ui', {
     activeSection: 'general', // 当前激活的设置部分
     previousContent: 'home', // 之前的内容视图，用于返回功能
     previousPanel: 'history', // 之前的面板，用于面板切换返回
+    previousRightPanelVisible: false, // 之前的右侧面板可见性，用于设置页面返回
 
     // 左侧导航栏状态
     leftNavVisible: false, // 左侧导航栏是否可见
@@ -298,9 +299,11 @@ export const useUiStore = defineStore('ui', {
       // 保存当前状态
       this.previousContent = this.activeContent;
       this.previousPanel = this.activePanel;
+      this.previousRightPanelVisible = this.rightPanelVisible;
       // 切换到设置面板
       this.activeContent = 'settings';
       this.activePanel = 'settings';
+      this.rightPanelVisible = false;
     },
 
     /**
@@ -314,6 +317,7 @@ export const useUiStore = defineStore('ui', {
       } else {
         this.activePanel = 'history';
       }
+      this.rightPanelVisible = this.previousRightPanelVisible;
     },
 
     /**

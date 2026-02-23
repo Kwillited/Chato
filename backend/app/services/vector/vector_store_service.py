@@ -17,14 +17,16 @@ class VectorStoreService(BaseService):
     _instances = {}
     _lock = threading.Lock()
     
-    def __new__(cls, vector_db_path=None, embedder_model=None, knowledge_base_name=None):
+    def __new__(cls, vector_db_path, embedder_model, knowledge_base_name=None):
         """单例模式实现，按知识库名称区分实例"""
         from app.core.data_manager import db
         knowledge_base_name = knowledge_base_name or "default"
         
-        # 如果未提供嵌入模型名称，从db['settings']获取
+        # 参数验证
+        if not vector_db_path:
+            raise ValueError("必须提供 vector_db_path 参数")
         if not embedder_model:
-            embedder_model = db['settings'].get('vector', {}).get('embedder_model', 'qwen3-embedding-0.6b')
+            raise ValueError("必须提供 embedder_model 参数")
         
         with cls._lock:
             if knowledge_base_name not in cls._instances:
@@ -32,7 +34,7 @@ class VectorStoreService(BaseService):
                 cls._instances[knowledge_base_name].__init__(vector_db_path, embedder_model, knowledge_base_name)
         return cls._instances[knowledge_base_name]
     
-    def __init__(self, vector_db_path=None, embedder_model=None, knowledge_base_name=None):
+    def __init__(self, vector_db_path, embedder_model, knowledge_base_name=None):
         """初始化向量存储服务
         
         Args:
@@ -44,12 +46,14 @@ class VectorStoreService(BaseService):
         if hasattr(self, '_initialized') and self._initialized:
             return
         
+        # 参数验证
+        if not vector_db_path:
+            raise ValueError("必须提供 vector_db_path 参数")
+        if not embedder_model:
+            raise ValueError("必须提供 embedder_model 参数")
+        
         # 设置知识库名称
         self.knowledge_base_name = knowledge_base_name or "default"
-        
-        # 如果未提供嵌入模型名称，从db['settings']获取
-        if not embedder_model:
-            embedder_model = db['settings'].get('vector', {}).get('embedder_model', 'qwen3-embedding-0.6b')
         
         # 初始化向量数据库服务（位于数据层）
         self.vector_db_service = VectorDBService(vector_db_path, embedder_model, self.knowledge_base_name)

@@ -52,16 +52,18 @@ export function useNavigation() {
   const handleRouteChange = async (newRoute, router) => {
     // 处理设置页面路由
     if (newRoute.path === ROUTES.SETTING) {
-      // 进入设置页面时，隐藏左右侧边栏
+      // 进入设置页面时，保存当前面板状态并隐藏左右侧边栏
+      uiStore.previousPanel = uiStore.activePanel;
+      uiStore.previousRightPanelVisible = uiStore.rightPanelVisible;
       uiStore.activePanel = 'settings';
       uiStore.rightPanelVisible = false;
       console.log('进入设置页面，隐藏左右侧边栏');
     } else {
-      // 离开设置页面时，恢复右侧面板可见性
+      // 离开设置页面时，恢复右侧面板可见性和之前的面板状态
       if (uiStore.activePanel === 'settings') {
-        uiStore.activePanel = 'history';
-        uiStore.rightPanelVisible = true;
-        console.log('离开设置页面，恢复右侧面板可见性');
+        uiStore.activePanel = uiStore.previousPanel || 'history';
+        uiStore.rightPanelVisible = uiStore.previousRightPanelVisible;
+        console.log('离开设置页面，恢复右侧面板可见性和之前的面板状态');
       }
     }
     

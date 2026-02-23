@@ -12,8 +12,8 @@ DEFAULT_CONFIG = {
         'retrieval_mode': 'vector',
         'top_k': 3,
         'score_threshold': 0.7,
-        'vector_db_path': '',  # 将在初始化时设置为用户数据目录中的路径
-        'embedder_model': 'qwen3-embedding-0.6b',
+        'vector_db_path': None,  # 不设置默认值
+        'embedder_model': None,  # 不设置默认值
         'chunk_size': 1000,
         'chunk_overlap': 200
     },
@@ -64,10 +64,7 @@ class ConfigManager:
         # 获取用户数据目录
         user_data_dir = self.get_user_data_dir()
         
-        # 设置默认的向量数据库路径
-        vector_dir = os.path.join(user_data_dir, 'Retrieval-Augmented Generation')
-        os.makedirs(vector_dir, exist_ok=True)
-        self._config['vector']['vector_db_path'] = os.path.join(vector_dir, 'vectorDb')
+        # 不自动设置默认向量数据库路径，由用户显式配置
         
         # 创建config子目录
         config_dir = os.path.join(user_data_dir, 'config')
@@ -165,6 +162,26 @@ class ConfigManager:
             return False
         except Exception as e:
             return False
+    
+    def validate_vector_config(self) -> tuple[bool, list[str]]:
+        """验证向量系统配置
+        
+        Returns:
+            tuple[bool, list[str]]: (是否验证通过, 错误信息列表)
+        """
+        errors = []
+        
+        # 检查向量数据库路径
+        vector_db_path = self.get('vector.vector_db_path')
+        if not vector_db_path:
+            errors.append("缺少 vector.vector_db_path 配置")
+        
+        # 检查嵌入模型
+        embedder_model = self.get('vector.embedder_model')
+        if not embedder_model:
+            errors.append("缺少 vector.embedder_model 配置")
+        
+        return len(errors) == 0, errors
 
 # 创建全局配置实例
 config_manager = ConfigManager.get_instance()

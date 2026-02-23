@@ -15,10 +15,7 @@
       </div>
 
       <div class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="configuredModelsContainer">
-        <template v-if="isLoading">
-          <div class="text-center py-6 text-neutral text-sm">加载中...</div>
-        </template>
-        <template v-else-if="filteredConfiguredModels.length === 0">
+        <template v-if="filteredConfiguredModels.length === 0">
           <div class="text-center py-6 text-neutral text-sm">暂无可用模型</div>
         </template>
         <template v-else>
@@ -123,10 +120,7 @@
 
       <!-- 推理模型内容 -->
       <div v-if="activeTab === 'inference'" class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1" id="unconfiguredModelsContainer">
-        <template v-if="isLoading">
-          <div class="text-center py-6 text-neutral text-sm">加载中...</div>
-        </template>
-        <template v-else-if="filteredUnconfiguredModels.length === 0">
+        <template v-if="filteredUnconfiguredModels.length === 0">
           <div class="text-center py-6 text-neutral text-sm">暂无可用模型</div>
         </template>
         <template v-else>
@@ -159,293 +153,29 @@
       
       <!-- 向量模型内容 -->
       <div v-else-if="activeTab === 'vector'" class="space-y-3 overflow-y-auto pr-2 scrollbar-thin flex-1">
-        <template v-if="isLoading">
-          <div class="text-center py-6 text-neutral text-sm">加载中...</div>
+        <template v-if="filteredUnconfiguredEmbeddingModels.length === 0">
+          <div class="text-center py-6 text-neutral text-sm">暂无可用向量模型</div>
         </template>
         <template v-else>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
+          <div
+            v-for="model in filteredUnconfiguredEmbeddingModels"
+            :key="model.name"
+            class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all"
+          >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-blue-500"></i>
+                  <img v-if="model.icon_url" :src="model.icon_url" :alt="model.name + ' 图标'" class="w-9 h-9 object-contain" />
+                  <i v-else :class="model.icon_class + ' text-xl'"></i>
                 </div>
                 <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">OpenAI</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">OpenAI的文本嵌入模型</div>
+                  <div class="font-medium text-sm text-gray-900 dark:text-white">{{ model.name }}</div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ model.description }}</div>
                 </div>
               </div>
               <button
                 class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-green-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Azure OpenAI</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Azure OpenAI的文本嵌入模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-purple-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Google Generative AI</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Google的生成式AI模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-orange-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Cohere</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Cohere的文本嵌入模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-red-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Amazon Bedrock</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Amazon的Bedrock模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-teal-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Voyage AI</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Voyage AI的文本嵌入模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-yellow-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Ollama</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Ollama的本地运行模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-indigo-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Hugging Face</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Hugging Face的开源模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-pink-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Sentence Transformers</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">句子转换模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-lime-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">FastEmbed</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">快速嵌入模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-amber-500"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">Llama.cpp</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Llama模型的C++实现</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-blue-400"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">百度文心</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">百度的文心模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-blue-600"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">百度千帆</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">百度的千帆模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-purple-400"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">智谱AI (ZhipuAI)</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">智谱AI的模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-orange-400"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">阿里巴巴通义</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">阿里巴巴的通义模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
-              >
-                配置
-              </button>
-            </div>
-          </div>
-          <div class="model-item p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-primary transition-all">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
-                  <i class="fa-solid fa-cube text-xl text-green-400"></i>
-                </div>
-                <div>
-                  <div class="font-medium text-sm text-gray-900 dark:text-white">腾讯混元</div>
-                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">腾讯的混元模型</div>
-                </div>
-              </div>
-              <button
-                class="btn btn-primary px-3 py-1 text-xs rounded-lg hover:bg-[#4338ca] hover:shadow-md transform hover:-translate-y-0.5 transition-all text-white"
+                @click="configEmbeddingModel(model)"
               >
                 配置
               </button>
@@ -478,6 +208,13 @@
   
   <!-- 模型版本编辑组件 -->
 
+  <!-- 向量模型配置抽屉 -->
+  <EmbeddingModelSettingsDrawer
+    :is-visible="isEmbeddingConfigDrawerVisible"
+    :model-title="currentEditingEmbeddingModel?.name || '向量模型配置'"
+    @close="closeEmbeddingConfigDrawer"
+    @save="saveEmbeddingModelConfig"
+  />
 </template>
 
 <script setup>
@@ -487,6 +224,7 @@ import { useUiStore } from '../../store/uiStore.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import ModelSettingsDrawer from '../models/ModelSettingsDrawer.vue';
+import EmbeddingModelSettingsDrawer from '../models/EmbeddingModelSettingsDrawer.vue';
 import ModelVersionForm from '../models/ModelVersionForm.vue';
 
 // 初始化store
@@ -501,28 +239,51 @@ const isConfigDrawerVisible = ref(false);
 const currentEditingModel = ref(null);
 const activeTab = ref('inference'); // inference 或 vector
 
+// 嵌入模型状态管理
+const embeddingModelsSearch = ref('');
+const isEmbeddingConfigDrawerVisible = ref(false);
+const currentEditingEmbeddingModel = ref(null);
+
 // ModelVersionForm 组件状态管理
 const modelVersionFormVisible = ref(false);
 const selectedModelName = ref('');
 const modelVersionFormMode = ref('add'); // add 或 edit
 const selectedModelData = ref(null);
 
-// 计算属性：筛选已配置模型 - 直接使用store中的getter
-const configuredModels = computed(() => modelStore.configuredModels);
+// 计算属性：筛选已配置模型 - 合并LLM模型和嵌入模型
+const configuredModels = computed(() => {
+  return [
+    ...modelStore.configuredModels,
+    ...modelStore.configuredEmbeddingModels
+  ];
+});
 
 // 计算属性：筛选未配置模型 - 直接使用store中的getter
 const unconfiguredModels = computed(() => modelStore.unconfiguredModels);
 
-// 计算属性：搜索后的已配置模型
+// 计算属性：搜索后的已配置模型，根据标签页状态过滤
 const filteredConfiguredModels = computed(() => {
-  if (!configuredModelsSearch.value.trim()) {
-    return configuredModels.value;
+  let models = configuredModels.value;
+  
+  // 根据当前标签页过滤模型类型
+  if (activeTab.value === 'inference') {
+    // 只显示推理模型
+    models = models.filter(model => model.type !== 'embedding');
+  } else if (activeTab.value === 'vector') {
+    // 只显示嵌入模型
+    models = models.filter(model => model.type === 'embedding');
   }
-  const searchTerm = configuredModelsSearch.value.toLowerCase();
-  return configuredModels.value.filter(model => 
-    (model.name.toLowerCase().includes(searchTerm) || 
-     (model.description && model.description.toLowerCase().includes(searchTerm)))
-  );
+  
+  // 应用搜索过滤
+  if (configuredModelsSearch.value.trim()) {
+    const searchTerm = configuredModelsSearch.value.toLowerCase();
+    models = models.filter(model => 
+      (model.name.toLowerCase().includes(searchTerm) || 
+       (model.description && model.description.toLowerCase().includes(searchTerm)))
+    );
+  }
+  
+  return models;
 });
 
 // 计算属性：搜索后的未配置模型
@@ -532,6 +293,36 @@ const filteredUnconfiguredModels = computed(() => {
   }
   const searchTerm = unconfiguredModelsSearch.value.toLowerCase();
   return unconfiguredModels.value.filter(model => 
+    model.name.toLowerCase().includes(searchTerm) || 
+    (model.description && model.description.toLowerCase().includes(searchTerm))
+  );
+});
+
+// 嵌入模型相关计算属性
+const embeddingModels = computed(() => modelStore.allEmbeddingModels);
+const configuredEmbeddingModels = computed(() => modelStore.configuredEmbeddingModels);
+const unconfiguredEmbeddingModels = computed(() => modelStore.unconfiguredEmbeddingModels);
+const isEmbeddingModelLoading = computed(() => modelStore.isEmbeddingModelLoading);
+
+// 计算属性：搜索后的未配置嵌入模型
+const filteredUnconfiguredEmbeddingModels = computed(() => {
+  if (!unconfiguredModelsSearch.value.trim()) {
+    return unconfiguredEmbeddingModels.value;
+  }
+  const searchTerm = unconfiguredModelsSearch.value.toLowerCase();
+  return unconfiguredEmbeddingModels.value.filter(model => 
+    model.name.toLowerCase().includes(searchTerm) || 
+    (model.description && model.description.toLowerCase().includes(searchTerm))
+  );
+});
+
+// 计算属性：搜索后的已配置嵌入模型
+const filteredConfiguredEmbeddingModels = computed(() => {
+  if (!configuredModelsSearch.value.trim()) {
+    return configuredEmbeddingModels.value;
+  }
+  const searchTerm = configuredModelsSearch.value.toLowerCase();
+  return configuredEmbeddingModels.value.filter(model => 
     model.name.toLowerCase().includes(searchTerm) || 
     (model.description && model.description.toLowerCase().includes(searchTerm))
   );
@@ -572,6 +363,27 @@ const loadModels = async () => {
   } catch (error) {
     console.error('加载模型列表失败:', error);
     showNotification('加载模型列表失败', 'error');
+  }
+};
+
+// 加载嵌入模型列表
+const loadEmbeddingModels = async () => {
+  try {
+    // 使用modelStore加载嵌入模型
+    await modelStore.loadEmbeddingModels();
+    
+    // 获取配置好的嵌入模型并添加图标URL
+    const configuredEmbeddingModelsWithIcons = addModelIconUrls(modelStore.configuredEmbeddingModels);
+    const unconfiguredEmbeddingModelsWithIcons = addModelIconUrls(modelStore.unconfiguredEmbeddingModels);
+    
+    // 更新嵌入模型数据，添加图标URL
+    modelStore.updateEmbeddingModelsWithIcons(configuredEmbeddingModelsWithIcons, unconfiguredEmbeddingModelsWithIcons);
+    
+    // 通知事件总线，嵌入模型列表已更新
+    eventBus.emit('embeddingModelsUpdated', { models: modelStore.allEmbeddingModels });
+  } catch (error) {
+    console.error('加载嵌入模型列表失败:', error);
+    showNotification('加载嵌入模型列表失败', 'error');
   }
 };
 
@@ -637,9 +449,14 @@ const handleModelVersionFormSuccess = () => {
 // 删除模型版本 - 使用modelStore中的方法
 const deleteModelVersion = async (model, version) => {
   try {
-    // 使用modelStore删除模型版本
-    // 只使用version_name字段
+    // 检查模型类型，调用相应的方法
+    if (model.type === 'embedding') {
+      // 嵌入模型
+      await modelStore.deleteEmbeddingModelVersion(model.name, version.version_name);
+    } else {
+      // LLM模型
       await modelStore.deleteModelVersion(model.name, version.version_name);
+    }
     // modelStore内部会处理通知和加载模型列表
   } catch (error) {
     // modelStore内部已处理错误通知
@@ -673,8 +490,14 @@ const saveModelConfig = async (config) => {
 // 删除模型配置 - 使用modelStore中的方法
 const deleteModelConfig = async (model) => {
   try {
-    // 使用modelStore删除模型配置
-    await modelStore.deleteModelConfig(model.name);
+    // 检查模型类型，调用相应的方法
+    if (model.type === 'embedding') {
+      // 嵌入模型
+      await modelStore.deleteEmbeddingModelConfig(model.name);
+    } else {
+      // LLM模型
+      await modelStore.deleteModelConfig(model.name);
+    }
     // modelStore内部会处理通知和加载模型列表
   } catch (error) {
     // modelStore内部已处理错误通知
@@ -687,14 +510,21 @@ const toggleModelEnabled = async (model) => {
   try {
     const newEnabledState = !model.enabled;
     
-    // 使用modelStore更新启用状态
-    await modelStore.toggleModelEnabled(model.name, newEnabledState);
+    // 检查模型类型，调用相应的方法
+    if (model.type === 'embedding') {
+      // 嵌入模型
+      await modelStore.toggleEmbeddingModelEnabled(model.name, newEnabledState);
+    } else {
+      // LLM模型
+      await modelStore.toggleModelEnabled(model.name, newEnabledState);
+    }
     // modelStore内部会处理通知和加载模型列表
   } catch (error) {
     // modelStore内部已处理错误通知
     console.error('更新模型启用状态失败:', error);
     // 恢复原始状态
     await loadModels();
+    await loadEmbeddingModels();
   }
 };
 
@@ -712,14 +542,17 @@ onMounted(() => {
   
   // 然后加载模型配置
   loadModels();
+  loadEmbeddingModels();
   
   // 监听模型更新事件
   eventBus.on('modelUpdated', loadModels);
+  eventBus.on('embeddingModelUpdated', loadEmbeddingModels);
 });
 
 // 组件卸载时清理事件监听器
 onUnmounted(() => {
   eventBus.off('modelUpdated', loadModels);
+  eventBus.off('embeddingModelUpdated', loadEmbeddingModels);
 });
 
 // 监听设置面板变化，刷新模型列表
@@ -738,6 +571,7 @@ watch(
   (newSection) => {
     if (uiStore.activePanel === 'settings' && newSection === 'models') {
       loadModels();
+      loadEmbeddingModels();
     }
   }
 );
@@ -750,6 +584,69 @@ watch(
 //   },
 //   { deep: true }
 // );
+
+// 打开嵌入模型配置抽屉
+const configEmbeddingModel = (model) => {
+  currentEditingEmbeddingModel.value = { ...model };
+  isEmbeddingConfigDrawerVisible.value = true;
+};
+
+// 关闭嵌入模型配置抽屉
+const closeEmbeddingConfigDrawer = () => {
+  isEmbeddingConfigDrawerVisible.value = false;
+  currentEditingEmbeddingModel.value = null;
+};
+
+// 保存嵌入模型配置
+const saveEmbeddingModelConfig = async (config) => {
+  try {
+    // 调用modelStore保存配置
+    await modelStore.saveEmbeddingModelConfig(currentEditingEmbeddingModel.value.name, {
+      customName: config.customName,
+      apiKey: config.apiKey,
+      apiBaseUrl: config.apiBaseUrl,
+      versionName: config.versionName,
+      streamingConfig: config.isStreamingEnabled
+    });
+    
+    // 关闭抽屉
+    closeEmbeddingConfigDrawer();
+    
+    // 显示成功提示
+    showNotification('嵌入模型配置保存成功', 'success');
+  } catch (error) {
+    // modelStore内部已处理错误通知
+    console.error('保存嵌入模型配置失败:', error);
+  }
+};
+
+// 删除嵌入模型配置
+const deleteEmbeddingModelConfig = async (model) => {
+  try {
+    // 使用modelStore删除嵌入模型配置
+    await modelStore.deleteEmbeddingModelConfig(model.name);
+    // modelStore内部会处理通知和加载模型列表
+  } catch (error) {
+    // modelStore内部已处理错误通知
+    console.error('删除嵌入模型配置失败:', error);
+  }
+};
+
+// 切换嵌入模型启用状态
+const toggleEmbeddingModelEnabled = async (model) => {
+  try {
+    const newEnabledState = !model.enabled;
+    
+    // 使用modelStore更新启用状态
+    await modelStore.toggleEmbeddingModelEnabled(model.name, newEnabledState);
+    // modelStore内部会处理通知和加载模型列表
+  } catch (error) {
+    // modelStore内部已处理错误通知
+    console.error('更新嵌入模型启用状态失败:', error);
+    // 恢复原始状态
+    await loadEmbeddingModels();
+  }
+};
 </script>
 
 <style scoped>

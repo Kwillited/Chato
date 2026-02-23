@@ -14,11 +14,11 @@ config_manager = ConfigManager.get_instance()
 
 print("=== 测试使用Ollama作为嵌入模型 ===")
 
-# 测试1: 查看当前支持的嵌入模型
-print("\n1. 当前支持的嵌入模型:")
-supported_models = EmbeddingModelManager.get_supported_models()
-for model_name, model_info in supported_models.items():
-    print(f"  - {model_name}: {model_info['description']} (类型: {model_info['type']})")
+# 测试1: 查看支持的嵌入模型类型
+print("\n1. 支持的嵌入模型类型:")
+print("  - huggingface: Hugging Face的开源嵌入模型")
+print("  - openai: OpenAI的嵌入模型")
+print("  - ollama: 本地运行的Ollama嵌入模型")
 
 # 测试2: 测试添加Ollama嵌入模型支持
 print("\n2. 测试添加Ollama嵌入模型支持:")
@@ -31,29 +31,22 @@ try:
     
     print(f"  测试模型: {ollama_embedding_model}")
     
-    # 创建向量存储服务实例（指定使用Ollama模型作为嵌入模型）
-    vector_service = VectorStoreService(embedder_model=ollama_embedding_model)
-    print(f"  向量存储服务初始化成功")
-    print(f"  使用的嵌入模型: {vector_service.vector_db_service.embedder_model}")
+    # 直接使用嵌入模型管理器加载Ollama模型
+    ollama_model = EmbeddingModelManager.get_embedding_model('ollama', ollama_embedding_model)
+    if ollama_model:
+        print(f"  Ollama模型加载成功: {ollama_model}")
+        
+        # 测试嵌入功能
+        test_text = "这是一个测试文本，用于测试Ollama嵌入模型"
+        embedding = ollama_model.embed_query(test_text)
+        print(f"  嵌入测试成功，向量维度: {len(embedding)}")
+        print(f"  嵌入向量示例: {embedding[:5]}...")
+    else:
+        print(f"  Ollama模型加载失败")
     
-    # 测试向量存储初始化
-    try:
-        vector_store = vector_service.vector_store
-        print(f"  向量存储初始化成功: {vector_store}")
-        
-        # 获取向量库统计信息
-        stats = vector_service.get_vector_statistics()
-        print(f"  向量库统计信息: {stats}")
-        
-    except Exception as e:
-        print(f"  向量存储初始化失败（可能是Ollama模型不可用）: {e}")
-        print("  注意: 这可能是因为Ollama未安装或指定的模型不存在")
-    
-    except Exception as e:
-        print(f"  测试失败: {e}")
-        
 except Exception as e:
     print(f"  测试失败: {e}")
+    print("  注意: 这可能是因为Ollama未安装或指定的模型不存在")
 
 # 测试3: 测试配置更新为使用Ollama
 print("\n3. 测试配置更新为使用Ollama:")

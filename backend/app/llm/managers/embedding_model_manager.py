@@ -7,50 +7,6 @@ from collections import OrderedDict
 class EmbeddingModelManager:
     """嵌入模型管理器，使用工厂模式管理不同供应商的嵌入模型"""
     
-    # 支持的嵌入模型列表
-    _supported_embedding_models = {
-        'qwen3-embedding-0.6b': {
-            'name': 'qwen3-embedding-0.6b',
-            'description': 'Qwen3 0.6B 嵌入模型',
-            'type': 'huggingface'
-        },
-        'text-embedding-3-small': {
-            'name': 'text-embedding-3-small',
-            'description': 'OpenAI Text Embedding 3 Small',
-            'type': 'openai'
-        },
-        'text-embedding-3-large': {
-            'name': 'text-embedding-3-large',
-            'description': 'OpenAI Text Embedding 3 Large',
-            'type': 'openai'
-        },
-        'text-embedding-ada-002': {
-            'name': 'text-embedding-ada-002',
-            'description': 'OpenAI Text Embedding Ada 002',
-            'type': 'openai'
-        },
-        'all-MiniLM-L6-v2': {
-            'name': 'all-MiniLM-L6-v2',
-            'description': 'Sentence-BERT MiniLM L6 v2',
-            'type': 'huggingface'
-        },
-        'all-mpnet-base-v2': {
-            'name': 'all-mpnet-base-v2',
-            'description': 'Sentence-BERT MPNet Base v2',
-            'type': 'huggingface'
-        },
-        'llama3': {
-            'name': 'llama3',
-            'description': 'Ollama Llama 3 模型',
-            'type': 'ollama'
-        },
-        'mistral': {
-            'name': 'mistral',
-            'description': 'Ollama Mistral 模型',
-            'type': 'ollama'
-        }
-    }
-    
     # 模型驱动映射表
     _model_drivers = None
     
@@ -75,43 +31,11 @@ class EmbeddingModelManager:
         return cls._model_drivers
     
     @classmethod
-    def get_supported_models(cls) -> Dict[str, Dict[str, Any]]:
-        """获取支持的嵌入模型列表
-        
-        Returns:
-            Dict[str, Dict[str, Any]]: 支持的嵌入模型字典
-        """
-        return cls._supported_embedding_models
-    
-    @classmethod
-    def is_model_supported(cls, model_name: str) -> bool:
-        """检查模型是否支持
-        
-        Args:
-            model_name: 模型名称
-            
-        Returns:
-            bool: 是否支持
-        """
-        return model_name in cls._supported_embedding_models
-    
-    @classmethod
-    def get_model_info(cls, model_name: str) -> Optional[Dict[str, Any]]:
-        """获取模型信息
-        
-        Args:
-            model_name: 模型名称
-            
-        Returns:
-            Optional[Dict[str, Any]]: 模型信息
-        """
-        return cls._supported_embedding_models.get(model_name)
-    
-    @classmethod
-    def get_embedding_model(cls, model_name: str, **kwargs) -> Any:
+    def get_embedding_model(cls, model_type: str, model_name: str, **kwargs) -> Any:
         """获取嵌入模型实例（支持缓存和即用即加载）
         
         Args:
+            model_type: 模型类型 (huggingface, openai, ollama)
             model_name: 模型名称
             **kwargs: 额外参数
             
@@ -119,7 +43,7 @@ class EmbeddingModelManager:
             Any: 嵌入模型实例
         """
         # 生成缓存键
-        cache_key = f"{model_name}:{hash(str(kwargs))}"
+        cache_key = f"{model_type}:{model_name}:{hash(str(kwargs))}"
         
         # 检查缓存中是否存在模型
         with cls._cache_lock:
@@ -127,20 +51,13 @@ class EmbeddingModelManager:
                 # 命中缓存，将模型移到缓存末尾（LRU策略）
                 model = cls._model_cache.pop(cache_key)
                 cls._model_cache[cache_key] = model
-                print(f"从缓存加载嵌入模型: {model_name}")
+                print(f"从缓存加载嵌入模型: {model_name} (类型: {model_type})")
                 return model
         
         # 缓存未命中，加载新模型
-        print(f"加载新的嵌入模型: {model_name}")
+        print(f"加载新的嵌入模型: {model_name} (类型: {model_type})")
         
-        model_info = cls.get_model_info(model_name)
-        if not model_info:
-            # 如果模型不在支持列表中，尝试作为自定义模型加载
-            # 默认使用HuggingFace模型加载方式
-            model = cls._load_model('huggingface', model_name, **kwargs)
-        else:
-            model_type = model_info['type']
-            model = cls._load_model(model_type, model_name, **kwargs)
+        model = cls._load_model(model_type, model_name, **kwargs)
         
         # 将模型添加到缓存
         if model:
@@ -150,7 +67,7 @@ class EmbeddingModelManager:
                     cls._model_cache.popitem(last=False)
                 # 添加新模型到缓存末尾
                 cls._model_cache[cache_key] = model
-                print(f"嵌入模型已缓存: {model_name}")
+                print(f"嵌入模型已缓存: {model_name} (类型: {model_type})")
         
         return model
     

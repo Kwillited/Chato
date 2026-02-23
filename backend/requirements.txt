@@ -15,7 +15,6 @@ langchain-huggingface>=0.1.0
 langchain-deepseek>=0.1.0
 sentence-transformers>=2.0.0
 platformdirs>=3.0.0
-pywebview>=5.0.0
 langchain-mcp-adapters
 langchain_chroma
 langgraph>=0.2.0

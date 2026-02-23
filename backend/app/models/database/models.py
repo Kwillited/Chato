@@ -142,6 +142,7 @@ class Folder(Base):
     created_at = Column(String, nullable=False)
     updated_at = Column(String, nullable=False)
     description = Column(Text)
+    embedding_model = Column(String, default="qwen3-embedding-0.6b")
     
     # 关系：一个文件夹包含多个文档
     documents = relationship("Document", back_populates="folder", cascade="all, delete-orphan")
@@ -196,14 +197,15 @@ class EmbeddingModel(Base):
     icon_class = Column(String)
     icon_bg = Column(String)
     icon_color = Column(String)
+    icon_url = Column(String)
     
     # 关系：一个嵌入模型可以有多个版本
-    versions = relationship("EmbeddingModelVersion", back_populates="model", cascade="all, delete-orphan")
+    versions = relationship("EmbeddingVersion", back_populates="model", cascade="all, delete-orphan")
 
 
-class EmbeddingModelVersion(Base):
+class EmbeddingVersion(Base):
     """嵌入模型版本表"""
-    __tablename__ = "embedding_model_versions"
+    __tablename__ = "embedding_versions"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     model_id = Column(Integer, ForeignKey("embedding_models.id", ondelete="CASCADE"), nullable=False)

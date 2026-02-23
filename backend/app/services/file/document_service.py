@@ -195,7 +195,7 @@ class DocumentService(BaseService):
             })
         return folders
     
-    def create_folder(self, folder_name):
+    def create_folder(self, folder_name, embedding_model='qwen3-embedding-0.6b'):
         """创建文件夹/知识库"""
         if not folder_name:
             raise ValueError('文件夹名称不能为空')
@@ -224,6 +224,7 @@ class DocumentService(BaseService):
         self.data_service.create_folder(
             folder_id=folder_id,
             name=folder_name,
+            embedding_model=embedding_model,
             created_at=now,
             updated_at=now
         )
@@ -232,6 +233,7 @@ class DocumentService(BaseService):
             'id': folder_id,
             'name': folder_name,
             'path': folder_path,
+            'embedding_model': embedding_model,
             'message': f'文件夹 {folder_name} 创建成功'
         }
     

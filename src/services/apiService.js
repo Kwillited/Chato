@@ -603,6 +603,29 @@ export const apiService = {
     },
   },
 
+  // 嵌入模型相关API
+  embeddingModels: {
+    getModels: async (enabledOnly = false) => {
+      return await requestWithRetry({
+        method: 'GET',
+        url: '/embedding-models',
+        params: { enabled_only: enabledOnly }
+      });
+    },
+    initializeModels: async () => {
+      return await requestWithRetry({
+        method: 'POST',
+        url: '/embedding-models/initialize'
+      });
+    },
+    getDefaultModel: async () => {
+      return await requestWithRetry({
+        method: 'GET',
+        url: '/embedding-models/default'
+      });
+    }
+  },
+
   // 通用请求方法
   get: async (url, params = {}) => {
     return await requestWithRetry({ method: 'GET', url, params });

@@ -9,7 +9,7 @@ from app.services.model.embedding_model_service import EmbeddingModelService
 router = APIRouter(prefix='/api/embedding-models')
 
 
-@router.get("/", tags=["embedding-models"])
+@router.get("", tags=["embedding-models"])
 async def get_embedding_models(
     enabled_only: bool = False,
     db: Session = Depends(get_db)
@@ -188,3 +188,133 @@ async def load_embedding_model(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"加载嵌入模型异常: {str(e)}")
+
+
+@router.post("/{model_name}", tags=["embedding-models"])
+async def configure_embedding_model(
+    model_name: str,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """配置特定嵌入模型
+    
+    Args:
+        model_name (str): 模型名称
+        data (dict): 配置数据
+        
+    Returns:
+        Dict[str, Any]: 配置结果
+    """
+    try:
+        embedding_model_service = EmbeddingModelService()
+        success, message, model = embedding_model_service.configure_model(db, model_name, data)
+        if not success:
+            if message == '模型不存在':
+                raise HTTPException(status_code=404, detail=message)
+            else:
+                raise HTTPException(status_code=500, detail=message)
+        return {
+            "success": True,
+            "message": message,
+            "model": model
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"配置嵌入模型失败: {str(e)}")
+
+
+@router.delete("/{model_name}", tags=["embedding-models"])
+async def delete_embedding_model(
+    model_name: str,
+    db: Session = Depends(get_db)
+):
+    """删除特定嵌入模型配置
+    
+    Args:
+        model_name (str): 模型名称
+        
+    Returns:
+        Dict[str, Any]: 删除结果
+    """
+    try:
+        embedding_model_service = EmbeddingModelService()
+        success, message = embedding_model_service.delete_model(db, model_name)
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        return {
+            "success": True,
+            "message": message
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除嵌入模型配置失败: {str(e)}")
+
+
+@router.post("/{model_name}/enabled", tags=["embedding-models"])
+async def update_embedding_model_enabled(
+    model_name: str,
+    data: dict,
+    db: Session = Depends(get_db)
+):
+    """更新嵌入模型启用状态
+    
+    Args:
+        model_name (str): 模型名称
+        data (dict): 包含enabled字段的数据集
+        
+    Returns:
+        Dict[str, Any]: 更新结果
+    """
+    try:
+        enabled = data.get('enabled', True)
+        embedding_model_service = EmbeddingModelService()
+        success, message = embedding_model_service.update_model_enabled(db, model_name, enabled)
+        if not success:
+            raise HTTPException(status_code=404, detail=message)
+        return {
+            "success": True,
+            "message": message,
+            "enabled": enabled
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"更新嵌入模型启用状态失败: {str(e)}")
+
+
+@router.delete("/{model_name}/versions/{version_name}", tags=["embedding-models"])
+async def delete_embedding_model_version(
+    model_name: str,
+    version_name: str,
+    db: Session = Depends(get_db)
+):
+    """删除特定嵌入模型的特定版本
+    
+    Args:
+        model_name (str): 模型名称
+        version_name (str): 版本名称
+        
+    Returns:
+        Dict[str, Any]: 删除结果
+    """
+    try:
+        embedding_model_service = EmbeddingModelService()
+        success, message, model = embedding_model_service.delete_version(db, model_name, version_name)
+        if not success:
+            if message == '模型不存在':
+                raise HTTPException(status_code=404, detail=message)
+            elif message == '版本不存在':
+                raise HTTPException(status_code=400, detail=message)
+            else:
+                raise HTTPException(status_code=500, detail=message)
+        return {
+            "success": True,
+            "message": message,
+            "model": model
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除嵌入模型版本失败: {str(e)}")

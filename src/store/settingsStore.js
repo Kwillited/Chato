@@ -32,11 +32,10 @@ const STORAGE_KEYS = {
 /**
  * @typedef {Object} SystemSettings
  * @property {boolean} darkMode - 深色模式
- * @property {number} fontSize - 字体大小
- * @property {string} fontFamily - 字体
- * @property {boolean} autoScroll - 自动滚动
  * @property {boolean} streamingEnabled - 启用流式输出
  * @property {string} chatStyle - 聊天样式，可选值：'bubble' 或 'document'
+ * @property {string} defaultModel - 默认模型
+ * @property {string} viewMode - 视图模式
  */
 
 // 定义模型参数的类型描述
@@ -62,13 +61,6 @@ export const useSettingsStore = defineStore('settings', {
     // 系统设置
     systemSettings: {
       darkMode: false,
-      fontSize: 16,
-      fontFamily: 'Inter, system-ui, sans-serif',
-      autoScroll: true,
-      graphLayout: 'force',
-      graphNodeSize: 40,
-      showGraphNodeLabels: true,
-      graphAnimations: true,
       streamingEnabled: true,
       chatStyle: 'bubble',
       defaultModel: '',
@@ -93,6 +85,11 @@ export const useSettingsStore = defineStore('settings', {
     modelLoading: false,
     // 模型错误信息
     modelError: null,
+
+    // 嵌入模型相关设置
+    embeddingModels: [],
+    embeddingModelLoading: false,
+    embeddingModelError: null,
   }),
 
   getters: {
@@ -125,6 +122,21 @@ export const useSettingsStore = defineStore('settings', {
 
     // 获取模型错误
     currentModelError: (state) => state.modelError,
+
+    // 获取所有嵌入模型
+    allEmbeddingModels: (state) => state.embeddingModels,
+    
+    // 获取已配置的嵌入模型
+    configuredEmbeddingModels: (state) => state.embeddingModels.filter(model => model.configured),
+    
+    // 获取未配置的嵌入模型
+    unconfiguredEmbeddingModels: (state) => state.embeddingModels.filter(model => !model.configured),
+    
+    // 获取嵌入模型加载状态
+    isEmbeddingModelLoading: (state) => state.embeddingModelLoading,
+    
+    // 获取嵌入模型错误
+    currentEmbeddingModelError: (state) => state.embeddingModelError,
   },
 
   actions: {
@@ -180,14 +192,6 @@ export const useSettingsStore = defineStore('settings', {
     applyImmediateSettings(settings) {
       // 总是应用darkMode设置，确保立即生效
       this.applyDarkMode();
-
-      if ('fontSize' in settings) {
-        document.documentElement.style.fontSize = `${this.systemSettings.fontSize}px`;
-      }
-
-      if ('fontFamily' in settings) {
-        document.body.style.fontFamily = this.systemSettings.fontFamily;
-      }
     },
 
     // 重置设置为默认值
@@ -201,12 +205,10 @@ export const useSettingsStore = defineStore('settings', {
 
       this.systemSettings = {
         darkMode: false,
-        fontSize: 16,
-        fontFamily: 'Inter, system-ui, sans-serif',
-        autoScroll: true,
         streamingEnabled: true,
         chatStyle: 'bubble',
         viewMode: 'grid',
+        defaultModel: '',
       };
 
       this.modelParams = {
@@ -287,12 +289,6 @@ export const useSettingsStore = defineStore('settings', {
 
         // 应用保存的设置
         this.applyDarkMode();
-        if (this.systemSettings.fontSize) {
-          document.documentElement.style.fontSize = `${this.systemSettings.fontSize}px`;
-        }
-        if (this.systemSettings.fontFamily) {
-          document.body.style.fontFamily = this.systemSettings.fontFamily;
-        }
 
         // 记录最后使用时间
         this.updateLastUsedTime();
@@ -320,12 +316,6 @@ export const useSettingsStore = defineStore('settings', {
 
         // 应用保存的设置
         this.applyDarkMode();
-        if (this.systemSettings.fontSize) {
-          document.documentElement.style.fontSize = `${this.systemSettings.fontSize}px`;
-        }
-        if (this.systemSettings.fontFamily) {
-          document.body.style.fontFamily = this.systemSettings.fontFamily;
-        }
 
         // 记录最后使用时间
         this.updateLastUsedTime();
@@ -777,6 +767,161 @@ export const useSettingsStore = defineStore('settings', {
     // 保存模型设置
     saveModelSettings: function() {
       return this._saveModelSettingsCore();
+    },
+
+    // 加载嵌入模型列表
+    async loadEmbeddingModels() {
+      try {
+        this.embeddingModelLoading = true;
+        this.embeddingModelError = null;
+        
+        // 从后端加载嵌入模型列表
+        const response = await apiService.embeddingModels.getModels();
+        // 确保models是数组
+        this.embeddingModels = Array.isArray(response.models) ? response.models : [];
+        
+        // 通知事件总线，嵌入模型列表已更新
+        eventBus.emit('embeddingModelsLoaded', { models: this.embeddingModels });
+      } catch (error) {
+        this.embeddingModelError = '加载嵌入模型列表失败';
+        console.error('加载嵌入模型列表失败:', error);
+      } finally {
+        this.embeddingModelLoading = false;
+      }
+    },
+
+    // 更新嵌入模型数据，添加图标URL和type属性
+    updateEmbeddingModelsWithIcons(configuredModels, unconfiguredModels) {
+      // 首先更新已配置模型
+      const updatedModels = [...this.embeddingModels];
+      
+      // 更新已配置模型，添加type: 'embedding'属性
+      configuredModels.forEach(configuredModel => {
+        const index = updatedModels.findIndex(m => m.name === configuredModel.name);
+        if (index !== -1) {
+          updatedModels[index] = {
+            ...configuredModel,
+            type: 'embedding' // 添加type属性，用于前端区分模型类型
+          };
+        }
+      });
+      
+      // 更新未配置模型，添加type: 'embedding'属性
+      unconfiguredModels.forEach(unconfiguredModel => {
+        const index = updatedModels.findIndex(m => m.name === unconfiguredModel.name);
+        if (index !== -1) {
+          updatedModels[index] = {
+            ...unconfiguredModel,
+            type: 'embedding' // 添加type属性，用于前端区分模型类型
+          };
+        }
+      });
+      
+      // 更新store中的embeddingModels状态
+      this.embeddingModels = updatedModels;
+    },
+
+    // 保存嵌入模型配置
+    async saveEmbeddingModelConfig(modelName, config) {
+      try {
+        // 调用后端API保存配置
+        await apiService.post(`/embedding-models/${modelName}`, {
+          custom_name: config.customName,
+          api_key: config.apiKey,
+          api_base_url: config.apiBaseUrl,
+          version_name: config.versionName,
+          model_path: config.modelPath,
+          dimension: config.dimension
+        });
+        
+        // 重新加载嵌入模型列表以更新状态
+        await this.loadEmbeddingModels();
+        
+        // 通过事件总线通知嵌入模型已更新
+        eventBus.emit('embeddingModelUpdated');
+        
+        return true;
+      } catch (error) {
+        console.error('保存嵌入模型配置失败:', error);
+        throw error;
+      }
+    },
+
+    // 删除嵌入模型配置
+    async deleteEmbeddingModelConfig(modelName) {
+      try {
+        this.embeddingModelLoading = true;
+        this.embeddingModelError = null;
+        
+        // 调用后端API删除配置
+        await apiService.delete(`/embedding-models/${modelName}`);
+        
+        // 重新加载嵌入模型列表以更新状态
+        await this.loadEmbeddingModels();
+        
+        // 通过事件总线通知嵌入模型已更新
+        eventBus.emit('embeddingModelUpdated');
+        
+        return true;
+      } catch (error) {
+        this.embeddingModelError = '删除嵌入模型配置失败';
+        console.error('删除嵌入模型配置失败:', error);
+        throw error;
+      } finally {
+        this.embeddingModelLoading = false;
+      }
+    },
+
+    // 切换嵌入模型启用状态
+    async toggleEmbeddingModelEnabled(modelName, enabled) {
+      try {
+        this.embeddingModelLoading = true;
+        this.embeddingModelError = null;
+        
+        // 调用后端API更新启用状态
+        await apiService.post(`/embedding-models/${modelName}/enabled`, {
+          enabled: enabled
+        });
+        
+        // 重新加载嵌入模型列表以更新状态
+        await this.loadEmbeddingModels();
+        
+        // 通过事件总线通知嵌入模型已更新
+        eventBus.emit('embeddingModelUpdated');
+        
+        return true;
+      } catch (error) {
+        this.embeddingModelError = '更新嵌入模型启用状态失败';
+        console.error('更新嵌入模型启用状态失败:', error);
+        throw error;
+      } finally {
+        this.embeddingModelLoading = false;
+      }
+    },
+
+    // 删除嵌入模型版本
+    async deleteEmbeddingModelVersion(modelName, versionName) {
+      try {
+        this.embeddingModelLoading = true;
+        this.embeddingModelError = null;
+        
+        // 调用后端API删除模型版本
+        await apiService.delete(`/embedding-models/${modelName}/versions/${versionName}`);
+        
+        // 重新加载嵌入模型列表以更新状态
+        await this.loadEmbeddingModels();
+        
+        // 通过事件总线通知嵌入模型已更新
+        eventBus.emit('embeddingModelUpdated');
+        
+        return true;
+      } catch (error) {
+        this.embeddingModelError = '删除嵌入模型版本失败';
+        console.error('删除嵌入模型版本失败:', error);
+        throw error;
+      } finally {
+        this.embeddingModelLoading = false;
+      }
     },
   },
 });

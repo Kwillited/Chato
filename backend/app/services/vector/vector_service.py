@@ -29,31 +29,49 @@ class VectorService(BaseService):
         super().__init__()
         self.chunk_repo = DocumentChunkRepository()
         
-        # 直接使用VectorStoreService，它已经包含了向量存储的初始化和缓存功能
-        self.vector_store_service = VectorStoreService()
+        # 向量存储服务实例字典，按知识库名称区分
+        self.vector_store_services = {}
         
-        self.log_info("向量服务初始化成功，使用VectorStoreService")
+        self.log_info("向量服务初始化成功，支持多知识库向量存储")
         self._initialized = True
     
-    def embed_document(self, doc_content: str, metadata: dict):
+    def get_vector_store_service(self, knowledge_base_name="default"):
+        """获取指定知识库的向量存储服务实例
+        
+        Args:
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            VectorStoreService: 向量存储服务实例
+        """
+        if knowledge_base_name not in self.vector_store_services:
+            # 创建新的向量存储服务实例
+            self.vector_store_services[knowledge_base_name] = VectorStoreService(knowledge_base_name=knowledge_base_name)
+            self.log_info(f"创建向量存储服务实例: 知识库='{knowledge_base_name}'")
+        return self.vector_store_services[knowledge_base_name]
+    
+    def embed_document(self, doc_content: str, metadata: dict, knowledge_base_name="default"):
         """将文档内容转换为向量表示并存储
         
         Args:
             doc_content (str): 文档内容
             metadata (dict): 文档元数据
+            knowledge_base_name: 知识库名称
             
         Returns:
             dict: 向量化结果
         """
         try:
-            self.log_info(f"📊 开始文档向量化处理: 内容长度={len(doc_content)} 字符")
+            self.log_info(f"📊 开始文档向量化处理: 内容长度={len(doc_content)} 字符, 知识库='{knowledge_base_name}'")
             
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
             # 从vector_store_service获取向量仓库实例
-            vector_repo = self.vector_store_service.vector_db_service.vector_repository
+            vector_repo = vector_store_service.vector_db_service.vector_repository
             # 执行文档向量化
             result = vector_repo.embed_document(doc_content, metadata)
             
-            self.log_info(f"✅ 文档向量化成功: 生成 {result.get('chunk_count', 0)} 个向量")
+            self.log_info(f"✅ 文档向量化成功: 生成 {result.get('chunk_count', 0)} 个向量, 知识库='{knowledge_base_name}'")
             
             return {
                 'success': True,
@@ -69,7 +87,7 @@ class VectorService(BaseService):
                 'chunk_count': 0
             }
     
-    def search_vectors(self, query: str, k: int = 5, filter: dict = None, score_threshold: float = None):
+    def search_vectors(self, query: str, k: int = 5, filter: dict = None, score_threshold: float = None, knowledge_base_name="default"):
         """根据查询向量检索相关文档
         
         Args:
@@ -77,19 +95,22 @@ class VectorService(BaseService):
             k (int): 返回结果数量
             filter (dict): 过滤条件
             score_threshold (float): 相似度分数阈值，低于该阈值的结果将被过滤
+            knowledge_base_name: 知识库名称
             
         Returns:
             dict: 向量检索结果
         """
         try:
-            self.log_info(f"🔍 开始向量检索: 查询='{query}', 结果数量={k}, 分数阈值={score_threshold}")
+            self.log_info(f"🔍 开始向量检索: 查询='{query}', 结果数量={k}, 分数阈值={score_threshold}, 知识库='{knowledge_base_name}'")
             
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
             # 从vector_store_service获取向量仓库实例
-            vector_repo = self.vector_store_service.vector_db_service.vector_repository
+            vector_repo = vector_store_service.vector_db_service.vector_repository
             # 执行向量检索
             results = vector_repo.search_vectors(query, k=k, filter=filter, score_threshold=score_threshold)
             
-            self.log_info(f"✅ 向量检索成功: 找到 {len(results.get('results', []))} 个相关结果")
+            self.log_info(f"✅ 向量检索成功: 找到 {len(results.get('results', []))} 个相关结果, 知识库='{knowledge_base_name}'")
             
             # 格式化结果
             formatted_results = VectorUtils.format_vector_results(results.get('results', []))
@@ -108,31 +129,34 @@ class VectorService(BaseService):
                 'result_count': 0
             }
     
-    def manage_vector_store(self, action: str, params: dict = None):
+    def manage_vector_store(self, action: str, params: dict = None, knowledge_base_name="default"):
         """向量数据库管理
         
         Args:
             action (str): 操作类型 (clear, stats, reload)
             params (dict): 操作参数
+            knowledge_base_name: 知识库名称
             
         Returns:
             dict: 管理操作结果
         """
         try:
-            self.log_info(f"🗄️  开始向量数据库管理操作: action='{action}'")
+            self.log_info(f"🗄️  开始向量数据库管理操作: action='{action}', 知识库='{knowledge_base_name}'")
             
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
             # 从vector_store_service获取向量仓库实例
-            vector_repo = self.vector_store_service.vector_db_service.vector_repository
+            vector_repo = vector_store_service.vector_db_service.vector_repository
             
             if action == 'clear':
                 # 清空向量数据库
                 vector_repo.clear_vector_store()
-                self.log_info("✅ 向量数据库已清空")
+                self.log_info(f"✅ 向量数据库已清空: 知识库='{knowledge_base_name}'")
                 return {'success': True, 'message': '向量数据库已清空'}
             elif action == 'stats':
                 # 获取向量数据库统计信息
                 stats = vector_repo.get_vector_store_stats()
-                self.log_info(f"✅ 获取向量数据库统计信息成功")
+                self.log_info(f"✅ 获取向量数据库统计信息成功: 知识库='{knowledge_base_name}'")
                 return {
                     'success': True,
                     'message': '获取统计信息成功',
@@ -140,14 +164,14 @@ class VectorService(BaseService):
                 }
             elif action == 'reload':
                 # 重新加载向量数据库
-                self.log_info("🔄 开始重新加载向量数据库...")
+                self.log_info(f"🔄 开始重新加载向量数据库: 知识库='{knowledge_base_name}'...")
                 # 调用vector_store_service的重新加载方法
-                success, message = self.vector_store_service.reload_vector_store()
+                success, message = vector_store_service.reload_vector_store()
                 if success:
-                    self.log_info("✅ 向量数据库重新加载成功")
+                    self.log_info(f"✅ 向量数据库重新加载成功: 知识库='{knowledge_base_name}'")
                     return {'success': True, 'message': message}
                 else:
-                    self.log_error(f"❌ 向量数据库重新加载失败: {message}")
+                    self.log_error(f"❌ 向量数据库重新加载失败: {message}, 知识库='{knowledge_base_name}'")
                     return {'success': False, 'message': f'向量数据库重新加载失败: {message}'}
             else:
                 self.log_warning(f"⚠️  不支持的向量数据库管理操作: {action}")
@@ -159,24 +183,27 @@ class VectorService(BaseService):
                 'message': f'向量数据库管理失败: {str(e)}'
             }
     
-    def delete_vectors_by_document_id(self, document_id: str):
+    def delete_vectors_by_document_id(self, document_id: str, knowledge_base_name="default"):
         """根据文档ID删除相关向量
         
         Args:
             document_id (str): 文档ID
+            knowledge_base_name: 知识库名称
             
         Returns:
             dict: 删除结果
         """
         try:
-            self.log_info(f"🗑️  开始删除文档相关向量: document_id='{document_id}'")
+            self.log_info(f"🗑️  开始删除文档相关向量: document_id='{document_id}', 知识库='{knowledge_base_name}'")
             
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
             # 从vector_store_service获取向量仓库实例
-            vector_repo = self.vector_store_service.vector_db_service.vector_repository
+            vector_repo = vector_store_service.vector_db_service.vector_repository
             # 删除相关向量
             result = vector_repo.delete_vectors_by_document_id(document_id)
             
-            self.log_info(f"✅ 删除文档相关向量成功: 删除 {result.get('deleted_count', 0)} 个向量")
+            self.log_info(f"✅ 删除文档相关向量成功: 删除 {result.get('deleted_count', 0)} 个向量, 知识库='{knowledge_base_name}'")
             
             return {
                 'success': True,
@@ -191,24 +218,27 @@ class VectorService(BaseService):
                 'deleted_count': 0
             }
     
-    def delete_vectors_by_folder_id(self, folder_id: str):
+    def delete_vectors_by_folder_id(self, folder_id: str, knowledge_base_name="default"):
         """根据文件夹ID删除相关向量
         
         Args:
             folder_id (str): 文件夹ID
+            knowledge_base_name: 知识库名称
             
         Returns:
             dict: 删除结果
         """
         try:
-            self.log_info(f"🗑️  开始删除文件夹相关向量: folder_id='{folder_id}'")
+            self.log_info(f"🗑️  开始删除文件夹相关向量: folder_id='{folder_id}', 知识库='{knowledge_base_name}'")
             
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
             # 从vector_store_service获取向量仓库实例
-            vector_repo = self.vector_store_service.vector_db_service.vector_repository
+            vector_repo = vector_store_service.vector_db_service.vector_repository
             # 删除相关向量
             result = vector_repo.delete_vectors_by_folder_id(folder_id)
             
-            self.log_info(f"✅ 删除文件夹相关向量成功: 删除 {result.get('deleted_count', 0)} 个向量")
+            self.log_info(f"✅ 删除文件夹相关向量成功: 删除 {result.get('deleted_count', 0)} 个向量, 知识库='{knowledge_base_name}'")
             
             return {
                 'success': True,
@@ -236,7 +266,21 @@ class VectorService(BaseService):
             dict: 向量化结果
         """
         try:
-            self.log_info(f"🔢 开始向量化文档: document_id='{document_id}', 文本块数量={len(split_documents)}")
+            # 根据folder_id获取知识库名称
+            knowledge_base_name = "default"
+            if folder_id:
+                try:
+                    from app.services.file.document_service import DocumentService
+                    doc_service = DocumentService()
+                    # 获取folder信息
+                    folder = doc_service.data_service.get_folder_by_id(folder_id)
+                    if folder and hasattr(folder, 'name'):
+                        knowledge_base_name = folder.name
+                        self.log_info(f"从folder_id获取知识库名称成功: {knowledge_base_name}")
+                except Exception as e:
+                    self.log_warning(f"获取folder信息失败，使用默认知识库: {e}")
+            
+            self.log_info(f"🔢 开始向量化文档: document_id='{document_id}', 文本块数量={len(split_documents)}, 知识库='{knowledge_base_name}'")
             
             # 为每个分块添加元数据
             for chunk in split_documents:
@@ -246,18 +290,20 @@ class VectorService(BaseService):
                     folder_id=folder_id
                 ))
             
-            # 直接使用vector_store_service的add_documents方法
-            success, message = self.vector_store_service.add_documents(split_documents)
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
+            # 使用vector_store_service的add_documents方法
+            success, message = vector_store_service.add_documents(split_documents)
             
             if success:
-                self.log_info(f"✅ 文档向量化成功: 生成 {len(split_documents)} 个向量")
+                self.log_info(f"✅ 文档向量化成功: 生成 {len(split_documents)} 个向量, 知识库='{knowledge_base_name}'")
                 return {
                     'vectorized': True,
                     'vector_count': len(split_documents),
                     'message': '文档向量化成功'
                 }
             else:
-                self.log_error(f"❌ 文档向量化失败: {message}")
+                self.log_error(f"❌ 文档向量化失败: {message}, 知识库='{knowledge_base_name}'")
                 return {
                     'vectorized': False,
                     'vector_count': 0,
@@ -273,7 +319,7 @@ class VectorService(BaseService):
                 'error': str(e)
             }
     
-    def search_documents(self, query: str, k: int = 3, score_threshold: float = 0.7, search_type: str = "similarity", filter: dict = None):
+    def search_documents(self, query: str, k: int = 3, score_threshold: float = 0.7, search_type: str = "similarity", filter: dict = None, knowledge_base_name="default"):
         """搜索相关文档
         
         Args:
@@ -282,15 +328,18 @@ class VectorService(BaseService):
             score_threshold (float): 相似度分数阈值
             search_type (str): 搜索类型
             filter (dict): 过滤条件
+            knowledge_base_name: 知识库名称
             
         Returns:
             list: 相关文档列表
         """
         try:
-            self.log_info(f"🔍 开始搜索相关文档: 查询='{query}', 结果数量={k}")
+            self.log_info(f"🔍 开始搜索相关文档: 查询='{query}', 结果数量={k}, 知识库='{knowledge_base_name}'")
             
-            # 直接使用vector_store_service的search_documents方法，利用其缓存功能
-            results = self.vector_store_service.search_documents(
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
+            # 使用vector_store_service的search_documents方法，利用其缓存功能
+            results = vector_store_service.search_documents(
                 query=query,
                 k=k,
                 score_threshold=score_threshold,
@@ -298,34 +347,40 @@ class VectorService(BaseService):
                 filter=filter
             )
             
-            self.log_info(f"✅ 找到 {len(results)} 个相关文档片段")
+            self.log_info(f"✅ 找到 {len(results)} 个相关文档片段, 知识库='{knowledge_base_name}'")
             
             return results
         except Exception as e:
             self.log_error(f"❌ 搜索文档失败: {str(e)}")
             return []
     
-    def clear_vector_store(self):
+    def clear_vector_store(self, knowledge_base_name="default"):
         """清空向量存储
         
+        Args:
+            knowledge_base_name: 知识库名称
+            
         Returns:
             bool: 是否成功清空
         """
         try:
-            self.log_info("🗑️  开始清空向量存储...")
-            success, message = self.vector_store_service.clear_vector_store()
-            self.log_info(f"✅ 向量存储已清空: {message}")
+            self.log_info(f"🗑️  开始清空向量存储: 知识库='{knowledge_base_name}'...")
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
+            success, message = vector_store_service.clear_vector_store()
+            self.log_info(f"✅ 向量存储已清空: {message}, 知识库='{knowledge_base_name}'")
             return success
         except Exception as e:
             self.log_error(f"❌ 清空向量存储失败: {str(e)}")
             return False
     
-    def get_enhanced_prompt(self, question, rag_config=None):
+    def get_enhanced_prompt(self, question, rag_config=None, knowledge_base_name="default"):
         """获取增强提示，将查询和检索到的上下文结合
         
         Args:
             question: 用户查询
             rag_config: RAG配置
+            knowledge_base_name: 知识库名称
             
         Returns:
             增强后的提示
@@ -342,9 +397,11 @@ class VectorService(BaseService):
             if rag_config:
                 config.update(rag_config)
             
-            # 获取向量存储
-            if not self.vector_store_service.vector_store:
-                self.log_error("向量存储未初始化")
+            # 获取指定知识库的向量存储服务实例
+            vector_store_service = self.get_vector_store_service(knowledge_base_name)
+            # 检查向量存储是否初始化
+            if not vector_store_service.vector_store:
+                self.log_error(f"向量存储未初始化: 知识库='{knowledge_base_name}'")
                 return question
             
             # 执行相似性搜索
@@ -354,7 +411,8 @@ class VectorService(BaseService):
             results = self.search_documents(
                 query=question,
                 k=k,
-                score_threshold=score_threshold
+                score_threshold=score_threshold,
+                knowledge_base_name=knowledge_base_name
             )
             
             if results:

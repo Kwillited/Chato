@@ -9,6 +9,7 @@ from app.utils.data import build_message_list
 db = {
     'chats': [],  # 存储所有对话
     'models': [],  # 存储所有模型信息，后续从SQLite加载
+    'embedding_models': [],  # 存储所有嵌入模型信息，后续从SQLite加载
     'settings': {},
     'agent_sessions': []  # 存储所有智能体会话
 }
@@ -17,6 +18,7 @@ db = {
 dirty_flags = {
     'chats': False,
     'models': False,
+    'embedding_models': False,
     'settings': False,
     'agent_sessions': False
 }
@@ -188,6 +190,7 @@ def load_data():
         
         # 使用Repository层检查模型表是否为空
         from app.repositories.model_repository import ModelRepository
+        from app.repositories.embedding_model_repository import EmbeddingModelRepository
         from app.core.database import get_db
         
         # 获取数据库会话
@@ -202,11 +205,24 @@ def load_data():
             # 从SQLite加载模型数据
             load_models_from_db()
         
+        # 检查嵌入模型表是否为空
+        embedding_model_repo = EmbeddingModelRepository(db_session)
+        if embedding_model_repo.is_embedding_model_table_empty():
+            # 嵌入模型表为空，插入默认嵌入模型数据
+            insert_default_embedding_models()
+        else:
+            # 从SQLite加载嵌入模型数据
+            load_embedding_models_from_db()
+        
         # 从SQLite加载对话数据
         load_chats_from_db()
         
         # 从SQLite加载设置数据
         load_settings_from_db()
+        
+        # 清除脏标记，避免启动时误删数据
+        for key in dirty_flags:
+            dirty_flags[key] = False
         
         # 启动自动保存功能
         start_auto_save()
@@ -218,6 +234,101 @@ def load_data():
         logger.error(f"加载数据时出错: {str(e)}")
 
 # 插入默认模型数据
+
+def insert_default_embedding_models():
+    """插入默认嵌入模型数据到SQLite数据库"""
+    from app.core.logging_config import logger
+    logger.info("正在插入默认嵌入模型数据...")
+    
+    default_embedding_providers = [
+        {
+            'name': 'HuggingFace',
+            'description': 'Hugging Face的开源嵌入模型',
+            'type': 'huggingface',
+            'configured': False,
+            'enabled': False,
+            'icon_class': 'fa-hug',
+            'icon_bg': 'bg-blue-100',
+            'icon_color': 'text-blue-600',
+            'icon_url': '/api/models/icons/Huggingface.png',
+            'versions': []
+        },
+        {
+            'name': 'OpenAI',
+            'description': 'OpenAI的嵌入模型',
+            'type': 'openai',
+            'configured': False,
+            'enabled': False,
+            'icon_class': 'fa-comment-o',
+            'icon_bg': 'bg-blue-100',
+            'icon_color': 'text-blue-500',
+            'icon_url': '/api/models/icons/OpenAI.png',
+            'versions': []
+        },
+        {
+            'name': 'Ollama',
+            'description': '本地运行的Ollama嵌入模型',
+            'type': 'ollama',
+            'configured': False,
+            'enabled': False,
+            'icon_class': 'fa-server',
+            'icon_bg': 'bg-green-100',
+            'icon_color': 'text-green-600',
+            'icon_url': '/api/models/icons/Ollama.png',
+            'versions': []
+        }
+    ]
+    
+    try:
+        # 使用Repository层插入默认嵌入模型数据
+        from app.repositories.embedding_model_repository import EmbeddingModelRepository
+        from app.core.database import get_db
+        
+        # 获取数据库会话
+        db_session = next(get_db())
+        embedding_model_repo = EmbeddingModelRepository(db_session)
+        
+        # 将模型数据插入到数据库
+        for provider in default_embedding_providers:
+            # 创建或更新模型
+            model_data = {
+                'name': provider['name'],
+                'description': provider['description'],
+                'type': provider['type'],
+                'configured': provider['configured'],
+                'enabled': provider['enabled'],
+                'icon_class': provider['icon_class'],
+                'icon_bg': provider['icon_bg'],
+                'icon_color': provider['icon_color'],
+                'icon_url': provider.get('icon_url', '')
+            }
+            
+            model_obj = embedding_model_repo.create_model(model_data)
+            
+            # 获取模型ID
+            model_id = model_obj.id
+            
+            # 插入模型版本
+            for version in provider.get('versions', []):
+                version_data = {
+                    'model_id': model_id,
+                    'version_name': version['version_name'],
+                    'custom_name': version.get('custom_name', ''),
+                    'api_key': version.get('api_key', ''),
+                    'api_base_url': version.get('api_base_url', ''),
+                    'model_path': version.get('model_path', ''),
+                    'dimension': version.get('dimension', 0)
+                }
+                embedding_model_repo.create_model_version(version_data)
+        
+        logger.info("默认嵌入模型数据插入完成")
+        
+        # 从数据库加载数据到内存
+        load_embedding_models_from_db()
+    except Exception as e:
+        logger.error(f"插入默认嵌入模型数据失败: {str(e)}")
+        raise
+
 
 def insert_default_models():
     """插入默认模型数据到SQLite数据库"""
@@ -444,6 +555,67 @@ def load_models_from_db():
         from app.core.logging_config import logger
         logger.error(f"从SQLite数据库加载模型数据失败: {str(e)}")
 
+# 从SQLite数据库加载嵌入模型数据到内存
+
+def load_embedding_models_from_db():
+    """从SQLite数据库加载嵌入模型数据到内存"""
+    global db
+    
+    try:
+        # 使用Repository层加载嵌入模型数据
+        from app.repositories.embedding_model_repository import EmbeddingModelRepository
+        from app.core.database import get_db
+        
+        # 获取数据库会话
+        db_session = next(get_db())
+        embedding_model_repo = EmbeddingModelRepository(db_session)
+        
+        # 清空内存中的嵌入模型数据
+        if 'embedding_models' not in db:
+            db['embedding_models'] = []
+        else:
+            db['embedding_models'] = []
+        
+        # 获取所有嵌入模型
+        models = embedding_model_repo.get_all_models()
+        
+        for model in models:
+            # 获取模型的所有版本
+            versions = embedding_model_repo.get_model_versions(model.id)
+            
+            # 构建版本列表
+            version_list = []
+            for version in versions:
+                version_list.append({
+                    'version_name': version.version_name,
+                    'custom_name': version.custom_name,
+                    'api_key': version.api_key,
+                    'api_base_url': version.api_base_url,
+                    'model_path': version.model_path,
+                    'dimension': version.dimension
+                })
+            
+            # 添加模型到内存数据库
+            db['embedding_models'].append({
+                'id': model.id,
+                'name': model.name,
+                'description': model.description,
+                'type': model.type,
+                'configured': bool(model.configured),
+                'enabled': bool(model.enabled),
+                'icon_class': model.icon_class,
+                'icon_bg': model.icon_bg,
+                'icon_color': model.icon_color,
+                'icon_url': model.icon_url,
+                'versions': version_list
+            })
+        
+        from app.core.logging_config import logger
+        logger.info(f"从SQLite数据库加载了 {len(db['embedding_models'])} 个嵌入模型")
+    except Exception as e:
+        from app.core.logging_config import logger
+        logger.error(f"从SQLite数据库加载嵌入模型数据失败: {str(e)}")
+
 # 从SQLite数据库加载设置数据到内存
 
 def load_settings_from_db():
@@ -472,32 +644,20 @@ def load_settings_from_db():
                 'chunk_size': vector_setting.chunk_size,
                 'chunk_overlap': vector_setting.chunk_overlap
             }
-        
 
-        
-
-        
         # 加载系统设置（包含通知设置）
         system_setting = setting_repo.get_system_setting()
         if system_setting:
             db['settings']['system'] = {
                 'dark_mode': system_setting.dark_mode,
-                'font_size': system_setting.font_size,
-                'font_family': system_setting.font_family,
-                'language': system_setting.language,
-                'auto_scroll': system_setting.auto_scroll,
-                'show_timestamps': system_setting.show_timestamps,
-                'confirm_delete': system_setting.confirm_delete,
                 'streaming_enabled': system_setting.streaming_enabled,
                 'chat_style': system_setting.chat_style,
                 'view_mode': system_setting.view_mode,
-                'default_model': system_setting.default_model,
-                'rag_view_mode': system_setting.rag_view_mode
+                'default_model': system_setting.default_model
             }
             
             # 加载通知设置（从系统设置中获取）
             db['settings']['notification'] = {
-                'enabled': system_setting.enabled,
                 'newMessage': system_setting.new_message,
                 'sound': system_setting.sound,
                 'system': system_setting.system,
@@ -538,17 +698,10 @@ def save_settings_to_db(conn=None):
             # 转换为数据库字段名（驼峰命名转换为下划线命名）
             system_db_data = {
                 'dark_mode': system_data.get('dark_mode', False),
-                'font_size': system_data.get('font_size', 16),
-                'font_family': system_data.get('font_family', 'Inter, system-ui, sans-serif'),
-                'language': system_data.get('language', 'zh-CN'),
-                'auto_scroll': system_data.get('auto_scroll', True),
-                'show_timestamps': system_data.get('show_timestamps', True),
-                'confirm_delete': system_data.get('confirm_delete', True),
                 'streaming_enabled': system_data.get('streaming_enabled', True),
                 'chat_style': system_data.get('chat_style', 'bubble'),
                 'view_mode': system_data.get('view_mode', 'grid'),
-                'default_model': system_data.get('default_model', ''),
-                'rag_view_mode': system_data.get('rag_view_mode', True)
+                'default_model': system_data.get('default_model', '')
             }
             setting_repo.create_or_update_system_setting(system_db_data)
         
@@ -574,6 +727,11 @@ def save_chats_to_db(conn=None):
         
         # 获取数据库会话
         db_session = next(get_db())
+        
+        # 检查内存中是否有对话数据
+        if not db['chats']:
+            logger.info("内存中没有对话数据，跳过保存")
+            return
         
         # 先删除所有现有聊天及其相关记录
         logger.info("清理现有对话数据")
@@ -672,6 +830,105 @@ def set_dirty_flag(data_type, is_dirty=True):
         dirty_flags[data_type] = is_dirty
 
 
+def save_embedding_models_to_db():
+    """将嵌入模型数据保存到SQLite数据库"""
+    try:
+        # 使用Repository层保存嵌入模型数据
+        from app.repositories.embedding_model_repository import EmbeddingModelRepository
+        from app.core.database import get_db
+        
+        # 获取数据库会话
+        db_session = next(get_db())
+        embedding_model_repo = EmbeddingModelRepository(db_session)
+        
+        # 获取SQLite中所有嵌入模型
+        all_models = embedding_model_repo.get_all_models()
+        sqlite_model_names = {model.name for model in all_models}
+        
+        # 获取内存中所有嵌入模型名称
+        memory_model_names = {model['name'] for model in db['embedding_models']}
+        
+        # 找出需要删除的模型名称
+        model_names_to_delete = sqlite_model_names - memory_model_names
+        
+        # 删除不再存在于内存中的模型
+        if model_names_to_delete:
+            from app.core.logging_config import logger
+            logger.info(f"删除不存在于内存的嵌入模型: {len(model_names_to_delete)} 个")
+            for model_name in model_names_to_delete:
+                model = embedding_model_repo.get_model_by_name(model_name)
+                if model:
+                    embedding_model_repo.delete_model(model.id)
+        
+        # 保存所有嵌入模型及其版本
+        for model in db['embedding_models']:
+            # 准备模型数据
+            model_data = {
+                'name': model['name'],
+                'description': model['description'],
+                'type': model['type'],
+                'configured': model['configured'],
+                'enabled': model['enabled'],
+                'icon_class': model['icon_class'],
+                'icon_bg': model['icon_bg'],
+                'icon_color': model['icon_color'],
+                'icon_url': model.get('icon_url', '')
+            }
+            
+            # 获取或创建模型
+            existing_model = embedding_model_repo.get_model_by_name(model['name'])
+            if existing_model:
+                # 更新现有模型
+                updated_model = embedding_model_repo.update_model(existing_model.id, model_data)
+                model_id = updated_model.id
+            else:
+                # 创建新模型
+                new_model = embedding_model_repo.create_model(model_data)
+                model_id = new_model.id
+            
+            # 获取现有版本名称列表
+            existing_versions = embedding_model_repo.get_model_versions(model_id)
+            existing_version_names = {version.version_name for version in existing_versions}
+            
+            # 要保存的版本名称集合
+            new_versions = model.get('versions', [])
+            new_version_names = {version['version_name'] for version in new_versions}
+            
+            # 删除不再存在的版本
+            versions_to_delete = existing_version_names - new_version_names
+            for version_name in versions_to_delete:
+                version = embedding_model_repo.get_version_by_name(model_id, version_name)
+                if version:
+                    embedding_model_repo.delete_model_version(version.id)
+            
+            # 插入或更新版本
+            for version in new_versions:
+                version_data = {
+                    'model_id': model_id,
+                    'version_name': version['version_name'],
+                    'custom_name': version.get('custom_name', ''),
+                    'api_key': version.get('api_key', ''),
+                    'api_base_url': version.get('api_base_url', ''),
+                    'model_path': version.get('model_path', ''),
+                    'dimension': version.get('dimension', 0)
+                }
+                
+                # 检查版本是否已存在
+                existing_version = embedding_model_repo.get_version_by_name(model_id, version['version_name'])
+                if existing_version:
+                    # 更新现有版本
+                    embedding_model_repo.update_model_version(existing_version.id, version_data)
+                else:
+                    # 创建新版本
+                    embedding_model_repo.create_model_version(version_data)
+        
+        from app.core.logging_config import logger
+        logger.info("嵌入模型数据已保存到SQLite数据库")
+    except Exception as e:
+        from app.core.logging_config import logger
+        logger.error(f"保存嵌入模型数据到SQLite失败: {str(e)}")
+        raise
+
 def save_data():
     """保存数据到SQLite数据库，只保存有脏标记的数据"""
     try:
@@ -688,6 +945,11 @@ def save_data():
             save_models_to_db()
             saved_types.append('models')
             dirty_flags['models'] = False
+        
+        if dirty_flags['embedding_models']:
+            save_embedding_models_to_db()
+            saved_types.append('embedding_models')
+            dirty_flags['embedding_models'] = False
         
         if dirty_flags['settings']:
             save_settings_to_db()

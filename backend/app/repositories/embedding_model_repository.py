@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from app.repositories.base_repository import BaseRepository
-from app.models.database.models import EmbeddingModel, EmbeddingModelVersion
+from app.models.database.models import EmbeddingModel, EmbeddingVersion
 
 
 class EmbeddingModelRepository(BaseRepository):
@@ -113,20 +113,20 @@ class EmbeddingModelRepository(BaseRepository):
         self.db.commit()
         return True
     
-    def get_model_versions(self, model_id: int) -> List[EmbeddingModelVersion]:
+    def get_model_versions(self, model_id: int) -> List[EmbeddingVersion]:
         """获取模型的所有版本
         
         Args:
             model_id (int): 模型ID
             
         Returns:
-            List[EmbeddingModelVersion]: 模型版本列表
+            List[EmbeddingVersion]: 模型版本列表
         """
-        return self.db.query(EmbeddingModelVersion).filter(
-            EmbeddingModelVersion.model_id == model_id
+        return self.db.query(EmbeddingVersion).filter(
+            EmbeddingVersion.model_id == model_id
         ).all()
     
-    def get_version_by_name(self, model_id: int, version_name: str) -> Optional[EmbeddingModelVersion]:
+    def get_version_by_name(self, model_id: int, version_name: str) -> Optional[EmbeddingVersion]:
         """根据版本名称获取模型版本
         
         Args:
@@ -134,23 +134,23 @@ class EmbeddingModelRepository(BaseRepository):
             version_name (str): 版本名称
             
         Returns:
-            Optional[EmbeddingModelVersion]: 模型版本实例
+            Optional[EmbeddingVersion]: 模型版本实例
         """
-        return self.db.query(EmbeddingModelVersion).filter(
+        return self.db.query(EmbeddingVersion).filter(
             and_(
-                EmbeddingModelVersion.model_id == model_id,
-                EmbeddingModelVersion.version_name == version_name
+                EmbeddingVersion.model_id == model_id,
+                EmbeddingVersion.version_name == version_name
             )
         ).first()
     
-    def create_model_version(self, version_data: Dict[str, Any]) -> EmbeddingModelVersion:
+    def create_model_version(self, version_data: Dict[str, Any]) -> EmbeddingVersion:
         """创建新的模型版本
         
         Args:
             version_data (Dict[str, Any]): 版本数据
             
         Returns:
-            EmbeddingModelVersion: 创建的模型版本实例
+            EmbeddingVersion: 创建的模型版本实例
         """
         # 检查版本是否已存在
         existing_version = self.get_version_by_name(
@@ -161,13 +161,13 @@ class EmbeddingModelRepository(BaseRepository):
             return existing_version
         
         # 创建新版本
-        version = EmbeddingModelVersion(**version_data)
+        version = EmbeddingVersion(**version_data)
         self.db.add(version)
         self.db.commit()
         self.db.refresh(version)
         return version
     
-    def update_model_version(self, version_id: int, version_data: Dict[str, Any]) -> Optional[EmbeddingModelVersion]:
+    def update_model_version(self, version_id: int, version_data: Dict[str, Any]) -> Optional[EmbeddingVersion]:
         """更新模型版本
         
         Args:
@@ -175,10 +175,10 @@ class EmbeddingModelRepository(BaseRepository):
             version_data (Dict[str, Any]): 版本数据
             
         Returns:
-            Optional[EmbeddingModelVersion]: 更新后的模型版本实例
+            Optional[EmbeddingVersion]: 更新后的模型版本实例
         """
-        version = self.db.query(EmbeddingModelVersion).filter(
-            EmbeddingModelVersion.id == version_id
+        version = self.db.query(EmbeddingVersion).filter(
+            EmbeddingVersion.id == version_id
         ).first()
         
         if not version:
@@ -201,8 +201,8 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             bool: 是否删除成功
         """
-        version = self.db.query(EmbeddingModelVersion).filter(
-            EmbeddingModelVersion.id == version_id
+        version = self.db.query(EmbeddingVersion).filter(
+            EmbeddingVersion.id == version_id
         ).first()
         
         if not version:
@@ -228,3 +228,11 @@ class EmbeddingModelRepository(BaseRepository):
         
         # 返回第一个模型
         return self.db.query(EmbeddingModel).first()
+    
+    def is_embedding_model_table_empty(self) -> bool:
+        """检查嵌入模型表是否为空
+        
+        Returns:
+            bool: 嵌入模型表是否为空
+        """
+        return self.db.query(EmbeddingModel).count() == 0

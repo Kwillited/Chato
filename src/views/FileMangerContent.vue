@@ -11,7 +11,7 @@
             type="text"
             v-model="searchQuery"
             placeholder="搜索文件..."
-            class="w-full pl-10 pr-4 py-1 border border-gray-300 rounded-[15px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            class="w-full pl-10 pr-4 py-0 h-6 text-sm border border-gray-300 rounded-[15px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             @input="handleSearch"
           >
           <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -240,10 +240,8 @@ const isLoading = ref(false);
 const selectedFolder = ref(null); // 当前选中的文件夹
 const currentFolder = ref('');
 const folders = ref([]);
-// 使用计算属性从settingsStore获取视图状态，默认true（文件列表视图）
-const isSliderActive = computed(() => {
-  return settingsStore.systemSettings.rag_view_mode !== false;
-});
+// 使用本地状态控制视图切换，默认true（文件列表视图）
+const isSliderActive = ref(true);
 const showDeleteModal = ref(false); // 确认删除模态框显示状态
 const fileIdToDelete = ref(null); // 要删除的文件ID
 
@@ -291,11 +289,9 @@ const filteredFiles = computed(() => {
 
 // 切换滑动控件状态（控制文件列表和知识图谱视图切换）
 const toggleSlider = () => {
-  // 更新settingsStore，会自动保存到后端
-  settingsStore.updateSystemSettings({
-    rag_view_mode: !isSliderActive.value
-  });
-  console.log('滑动控件状态切换:', !isSliderActive.value);
+  // 直接修改本地状态
+  isSliderActive.value = !isSliderActive.value;
+  console.log('滑动控件状态切换:', isSliderActive.value);
 };
 
 // 处理搜索

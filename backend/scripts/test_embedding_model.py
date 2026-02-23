@@ -14,11 +14,11 @@ config_manager = ConfigManager.get_instance()
 
 print("=== 测试嵌入模型动态加载功能 ===")
 
-# 测试1: 查看支持的嵌入模型
-print("\n1. 支持的嵌入模型:")
-supported_models = EmbeddingModelManager.get_supported_models()
-for model_name, model_info in supported_models.items():
-    print(f"  - {model_name}: {model_info['description']} (类型: {model_info['type']})")
+# 测试1: 查看支持的嵌入模型类型
+print("\n1. 支持的嵌入模型类型:")
+print("  - huggingface: Hugging Face的开源嵌入模型")
+print("  - openai: OpenAI的嵌入模型")
+print("  - ollama: 本地运行的Ollama嵌入模型")
 
 # 测试2: 测试默认嵌入模型加载
 print("\n2. 测试默认嵌入模型加载:")
@@ -39,21 +39,27 @@ try:
 except Exception as e:
     print(f"  测试失败: {e}")
 
-# 测试3: 测试特定嵌入模型加载
-print("\n3. 测试特定嵌入模型加载:")
-test_models = ['qwen3-embedding-0.6b', 'all-MiniLM-L6-v2']
+# 测试3: 测试直接加载嵌入模型
+print("\n3. 测试直接加载嵌入模型:")
+test_cases = [
+    ('huggingface', 'all-MiniLM-L6-v2', "HuggingFace 轻量级模型"),
+    ('huggingface', 'sentence-transformers/all-MiniLM-L6-v2', "HuggingFace 完整路径模型")
+]
 
-for model_name in test_models:
+for model_type, model_name, description in test_cases:
     try:
-        print(f"  测试模型: {model_name}")
-        # 创建向量存储服务实例（指定嵌入模型）
-        vector_service = VectorStoreService(embedder_model=model_name)
-        print(f"    向量存储服务初始化成功")
-        print(f"    使用的嵌入模型: {vector_service.vector_db_service.embedder_model}")
-        
-        # 测试向量存储初始化
-        vector_store = vector_service.vector_store
-        print(f"    向量存储初始化成功")
+        print(f"  测试模型: {description}")
+        print(f"    类型: {model_type}, 名称: {model_name}")
+        # 直接使用嵌入模型管理器加载模型
+        embedding_model = EmbeddingModelManager.get_embedding_model(model_type, model_name)
+        if embedding_model:
+            print(f"    模型加载成功: {embedding_model}")
+            # 测试嵌入功能
+            test_text = "这是一个测试文本"
+            embedding = embedding_model.embed_query(test_text)
+            print(f"    嵌入测试成功，向量维度: {len(embedding)}")
+        else:
+            print(f"    模型加载失败")
         
     except Exception as e:
         print(f"    测试失败: {e}")

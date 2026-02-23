@@ -28,29 +28,32 @@
       
       <!-- 向量模型选择 -->
       <div class="mb-4">
-        <label for="embeddingModel" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">向量模型</label>
-        <select
-          id="embeddingModel"
-          v-model="selectedEmbeddingModel"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-        >
-          <option value="qwen3-embedding-0.6b">Qwen3 Embedding (0.6B)</option>
-          <option value="all-MiniLM-L6-v2">Sentence-BERT MiniLM</option>
-          <option value="all-mpnet-base-v2">Sentence-BERT MPNet</option>
-          <option value="text-embedding-3-small">OpenAI Text Embedding 3 Small</option>
-          <option value="text-embedding-3-large">OpenAI Text Embedding 3 Large</option>
-          <option value="text-embedding-ada-002">OpenAI Ada 002</option>
-          <option value="llama3">Ollama Llama 3</option>
-          <option value="mistral">Ollama Mistral</option>
-        </select>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">向量模型</label>
+        <template v-if="hasAvailableEmbeddingModels">
+          <select
+            id="embeddingModel"
+            v-model="selectedEmbeddingModel"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+          >
+            <option v-for="option in embeddingModelOptions" :key="option.value" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </template>
+        <template v-else>
+          <div class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md text-center text-gray-500 dark:text-gray-400">
+            暂无可用模型
+          </div>
+        </template>
       </div>
     </template>
   </ConfirmationModal>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useFileStore } from '../../store/fileStore.js';
+import { useSettingsStore } from '../../store/settingsStore.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
@@ -67,16 +70,54 @@ const emit = defineEmits(['close', 'created']);
 
 // Store
 const fileStore = useFileStore();
+const settingsStore = useSettingsStore();
 
 // Refs
 const knowledgeBaseName = ref('');
-const selectedEmbeddingModel = ref('qwen3-embedding-0.6b'); // 默认使用Qwen3嵌入模型
+const selectedEmbeddingModel = ref(''); // 默认值将在计算属性中设置
 const error = ref('');
 const inputRef = ref(null);
 
-// 当模态框显示时，自动聚焦输入框
+// 计算属性：获取已配置的嵌入模型列表
+const configuredEmbeddingModels = computed(() => {
+  return settingsStore.configuredEmbeddingModels;
+});
+
+// 计算属性：构建嵌入模型选项列表
+const embeddingModelOptions = computed(() => {
+  const options = [];
+  
+  // 遍历已配置的嵌入模型
+  configuredEmbeddingModels.value.forEach(model => {
+    if (model.versions && model.versions.length > 0) {
+      // 为每个模型的每个版本创建选项
+      model.versions.forEach(version => {
+        const optionValue = `${model.name}-${version.version_name}`;
+        const optionLabel = `${model.name} ${version.custom_name || version.version_name}`;
+        options.push({ value: optionValue, label: optionLabel });
+      });
+    }
+  });
+  
+  return options;
+});
+
+// 计算属性：是否有可用的嵌入模型
+const hasAvailableEmbeddingModels = computed(() => {
+  return embeddingModelOptions.value.length > 0;
+});
+
+// 当模态框显示时，自动聚焦输入框并加载嵌入模型
 const focusInput = async () => {
   if (props.visible && inputRef.value) {
+    // 加载嵌入模型数据
+    await settingsStore.loadEmbeddingModels();
+    
+    // 设置默认嵌入模型
+    if (embeddingModelOptions.value.length > 0 && !selectedEmbeddingModel.value) {
+      selectedEmbeddingModel.value = embeddingModelOptions.value[0].value;
+    }
+    
     await nextTick();
     inputRef.value.focus();
   }
@@ -100,9 +141,15 @@ const handleCreate = async () => {
     return;
   }
   
+  // 验证嵌入模型选择
+  if (!hasAvailableEmbeddingModels.value || !selectedEmbeddingModel.value) {
+    error.value = '请先在设置页面配置嵌入模型';
+    return;
+  }
+  
   try {
-    // 通过fileStore创建知识库
-    const result = await fileStore.createFolder(knowledgeBaseName.value.trim());
+    // 通过fileStore创建知识库，传递选择的嵌入模型
+    const result = await fileStore.createFolder(knowledgeBaseName.value.trim(), selectedEmbeddingModel.value);
     if (result.success) {
       // 显示成功提示
       showNotification(`已成功创建知识库: ${knowledgeBaseName.value.trim()}`, 'success');
@@ -132,7 +179,12 @@ const handleCancel = () => {
 // 重置表单
 const resetForm = () => {
   knowledgeBaseName.value = '';
-  selectedEmbeddingModel.value = 'qwen3-embedding-0.6b'; // 重置为默认值
+  // 设置默认嵌入模型
+  if (embeddingModelOptions.value.length > 0) {
+    selectedEmbeddingModel.value = embeddingModelOptions.value[0].value;
+  } else {
+    selectedEmbeddingModel.value = 'qwen3-embedding-0.6b';
+  }
   error.value = '';
 };
 
