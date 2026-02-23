@@ -4,7 +4,7 @@ import json
 from platformdirs import PlatformDirs
 
 # 初始化平台目录管理
-dirs = PlatformDirs(appname="Chato", appauthor="Chato")
+dirs = PlatformDirs(appname="Chato", appauthor=False)
 
 # 默认配置
 DEFAULT_CONFIG = {
