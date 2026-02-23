@@ -52,7 +52,7 @@ def get_folders(document_service: DocumentService = Depends(get_document_service
 def create_folder(folder_data: dict, document_service: DocumentService = Depends(get_document_service)):
     """创建新的文件夹/知识库"""
     folder_name = folder_data.get('name')
-    embedding_model = folder_data.get('embedding_model', 'qwen3-embedding-0.6b')
+    embedding_model = folder_data.get('embedding_model')
     
     # 调用服务层方法
     result = document_service.create_folder(folder_name, embedding_model)
