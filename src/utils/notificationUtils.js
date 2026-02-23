@@ -1,5 +1,57 @@
 import { useSettingsStore } from '../store/settingsStore.js';
 
+// 通知管理
+const notificationManager = {
+    maxNotifications: 1,
+    notifications: [],
+    
+    // 添加通知
+    addNotification(notification) {
+        // 替换旧通知
+        if (this.notifications.length > 0) {
+            const oldNotification = this.notifications.shift();
+            if (oldNotification && oldNotification.parentNode) {
+                // 旧通知向下移动并消失
+                oldNotification.style.transition = 'all 0.3s ease-out';
+                oldNotification.style.transform = 'translateY(50px) scale(0.9)';
+                oldNotification.style.opacity = '0';
+                setTimeout(() => oldNotification.remove(), 300);
+            }
+        }
+        
+        // 新通知从上方进入
+        notification.style.transform = 'translateY(-50px) scale(0.9)';
+        notification.style.opacity = '0';
+        notification.style.transition = 'all 0.3s ease-out';
+        
+        this.notifications.push(notification);
+        
+        // 调整通知位置并触发进入动画
+        setTimeout(() => {
+            this.adjustNotificationPositions();
+            notification.style.transform = 'translateY(0) scale(1)';
+            notification.style.opacity = '1';
+        }, 50);
+    },
+    
+    // 移除通知
+    removeNotification(notification) {
+        const index = this.notifications.indexOf(notification);
+        if (index > -1) {
+            this.notifications.splice(index, 1);
+            this.adjustNotificationPositions();
+        }
+    },
+    
+    // 调整通知位置
+    adjustNotificationPositions() {
+        this.notifications.forEach((notification, index) => {
+            const topOffset = 16; // 固定在底部16px
+            notification.style.bottom = `${topOffset}px`;
+        });
+    }
+};
+
 /**
  * 创建并显示通知元素
  * @param {string} message - 消息内容
@@ -9,7 +61,7 @@ import { useSettingsStore } from '../store/settingsStore.js';
 function createNotificationElement(message, type, displayTime) {
     // 创建通知元素
     const notification = document.createElement('div');
-    notification.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-y-0 opacity-100`;
+    notification.className = `fixed right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-y-0 opacity-100`;
     
     // 根据类型设置样式
     if (type === 'success') {
@@ -21,10 +73,18 @@ function createNotificationElement(message, type, displayTime) {
     notification.textContent = message;
     document.body.appendChild(notification);
     
+    // 添加到通知管理器
+    notificationManager.addNotification(notification);
+    
     // 时间后自动消失
     setTimeout(() => {
-        notification.classList.add('translate-y-full', 'opacity-0');
-        setTimeout(() => notification.remove(), 300);
+        notification.style.transition = 'all 0.3s ease-out';
+        notification.style.transform = 'translateY(50px) scale(0.9)';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+            notificationManager.removeNotification(notification);
+            notification.remove();
+        }, 300);
     }, displayTime);
 }
 
