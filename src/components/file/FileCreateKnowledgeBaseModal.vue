@@ -141,15 +141,12 @@ const handleCreate = async () => {
     return;
   }
   
-  // 验证嵌入模型选择
-  if (!hasAvailableEmbeddingModels.value || !selectedEmbeddingModel.value) {
-    error.value = '请先在设置页面配置嵌入模型';
-    return;
-  }
-  
   try {
+    // 当没有可用模型时传递null，否则传递选择的嵌入模型
+    const embeddingModel = hasAvailableEmbeddingModels.value && selectedEmbeddingModel.value ? selectedEmbeddingModel.value : null;
+    
     // 通过fileStore创建知识库，传递选择的嵌入模型
-    const result = await fileStore.createFolder(knowledgeBaseName.value.trim(), selectedEmbeddingModel.value);
+    const result = await fileStore.createFolder(knowledgeBaseName.value.trim(), embeddingModel);
     if (result.success) {
       // 显示成功提示
       showNotification(`已成功创建知识库: ${knowledgeBaseName.value.trim()}`, 'success');
@@ -183,7 +180,7 @@ const resetForm = () => {
   if (embeddingModelOptions.value.length > 0) {
     selectedEmbeddingModel.value = embeddingModelOptions.value[0].value;
   } else {
-    selectedEmbeddingModel.value = 'qwen3-embedding-0.6b';
+    selectedEmbeddingModel.value = '';
   }
   error.value = '';
 };

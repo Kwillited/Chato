@@ -124,8 +124,7 @@ onMounted(() => {
   window.addEventListener('uploadToFolder', handleUploadToFolder);
   window.addEventListener('folderSelected', handleFolderSelected);
   window.addEventListener('searchKnowledgeBase', handleSearchKnowledgeBase);
-  // 监听知识库创建成功事件（可能包含ID信息）
-  window.addEventListener('knowledge-base-created', handleKnowledgeBaseCreated);
+  // 移除knowledge-base-created事件监听，已通过组件@created事件处理
 });
 
 // 组件卸载时移除事件监听器
@@ -192,9 +191,8 @@ const handleCreateKnowledgeBase = () => {
 // 处理知识库创建成功
 const handleKnowledgeBaseCreated = async (event) => {
   const data = event ? event.detail : null;
-  // 重新加载文件夹列表和文件列表
+  // 只重新加载文件夹列表，刚创建的知识库不会有文件
   await loadFolders();
-  await loadFiles();
   
   // 如果有新创建的文件夹信息，自动选中它
   if (data) {
@@ -468,8 +466,8 @@ const handleDeleteFolderConfirm = async () => {
       // 显示成功提示
       showSuccess(`已成功删除知识库文件夹: ${folder.name}`);
       
-      // 重新加载文件夹列表（fileStore内部已经处理，但为了确保同步，这里再加载一次）
-      await loadFolders();
+      // fileStore内部已经处理了文件夹和文件列表的重新加载
+      // 不需要再次调用loadFolders()，避免重复API请求
       
       // 如果删除的是当前文件夹，则返回上一级
       if (currentFolder.value === folder) {

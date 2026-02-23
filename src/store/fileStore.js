@@ -240,16 +240,11 @@ export const useFileStore = defineStore('file', {
             embedding_model: embeddingModel
           });
           
-          // 通知事件总线知识库已创建
-          eventBus.emit('knowledge-base-created', {
-            id: response.id || null,
-            name: response.name || knowledgeBaseName,
-            path: response.path || `resources/python/userData/rag/ragFiles/${knowledgeBaseName}`,
-            embedding_model: response.embedding_model || embeddingModel
-          });
+          // 移除事件总线触发，避免与组件事件重复
+          // 组件通过@created事件已经处理了创建成功的逻辑
           
-          // 重新加载文件夹列表以确保同步
-          await this.loadFolders();
+          // 移除loadFolders调用，避免与组件事件重复
+          // 组件在@created事件的handleKnowledgeBaseCreated中会调用loadFolders
           
           notifyUtils.showSuccess(`成功创建知识库: ${knowledgeBaseName}`);
           
