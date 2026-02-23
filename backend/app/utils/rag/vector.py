@@ -17,9 +17,12 @@ class VectorUtils:
         """
         formatted_results = []
         for result in results:
+            # 提取score属性（如果存在）
+            score = getattr(result, 'score', None)
             formatted_results.append({
                 'content': result.page_content,
-                'metadata': result.metadata
+                'metadata': result.metadata,
+                'score': score
             })
         return formatted_results
     

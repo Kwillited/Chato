@@ -139,6 +139,8 @@ class Folder(Base):
     
     id = Column(String, primary_key=True)  # 使用UUID前8位
     name = Column(String, nullable=False)
+    path = Column(String, nullable=False)  # 文件夹完整路径
+    vector_db_path = Column(String)  # 向量数据库完整路径
     created_at = Column(String, nullable=False)
     updated_at = Column(String, nullable=False)
     description = Column(Text)

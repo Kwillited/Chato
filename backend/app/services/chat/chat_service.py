@@ -141,16 +141,46 @@ class ChatService(BaseService):
         
         # 构建过滤器
         filter = None
+        knowledge_base_name = "default"
+        vector_db_path = None
+        embedder_model = None
+        
         if selected_folders:
             # 如果有选中的文件夹，构建filter条件
             filter = {'folder_id': {'$in': selected_folders}}
+            
+            # 尝试从第一个选中的文件夹获取知识库信息
+            try:
+                from app.services.file.document_service import DocumentService
+                doc_service = DocumentService()
+                
+                # 获取第一个选中的文件夹ID
+                first_folder_id = selected_folders[0]
+                # 获取文件夹信息
+                folder = doc_service.data_service.get_folder_by_id(first_folder_id)
+                
+                if folder:
+                    if hasattr(folder, 'name'):
+                        knowledge_base_name = folder.name
+                        vector_service.log_info(f"从selected_folders获取知识库名称成功: {knowledge_base_name}")
+                    if hasattr(folder, 'vector_db_path'):
+                        vector_db_path = folder.vector_db_path
+                        vector_service.log_info(f"从selected_folders获取向量数据库路径成功: {vector_db_path}")
+                    if hasattr(folder, 'embedding_model'):
+                        embedder_model = folder.embedding_model
+                        vector_service.log_info(f"从selected_folders获取嵌入模型成功: {embedder_model}")
+            except Exception as e:
+                vector_service.log_warning(f"获取folder信息失败，使用默认知识库: {e}")
         
         # 执行相似性搜索
         vector_results = vector_service.search_vectors(
             query=question,
             k=k,
             filter=filter,
-            score_threshold=score_threshold
+            score_threshold=score_threshold,
+            knowledge_base_name=knowledge_base_name,
+            vector_db_path=vector_db_path,
+            embedder_model=embedder_model
         )
         
         # 转换向量结果为文档列表
@@ -185,6 +215,29 @@ class ChatService(BaseService):
             context_docs, _ = self._perform_rag_search(question, selected_folders)
             
             logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
+            
+            # 打印找到的文档片段详细信息
+            if context_docs:
+                logger.debug("找到的文档片段详情:")
+                for i, doc in enumerate(context_docs):
+                    # 提取文档片段的关键信息（支持字典和对象两种格式）
+                    if isinstance(doc, dict):
+                        # 处理字典类型的文档片段
+                        doc_content = doc.get('content', '') or doc.get('page_content', '')
+                        doc_metadata = doc.get('metadata', {})
+                        doc_score = doc.get('score', None) or doc_metadata.get('score')
+                    else:
+                        # 处理对象类型的文档片段
+                        doc_content = getattr(doc, 'page_content', '') or getattr(doc, 'content', '')
+                        doc_metadata = getattr(doc, 'metadata', {})
+                        doc_score = getattr(doc, 'score', None) or doc_metadata.get('score')
+                    
+                    # 打印文档片段信息
+                    logger.debug(f"片段 {i+1}:")
+                    logger.debug(f"  内容: {doc_content[:100]}{'...' if len(doc_content) > 100 else ''}")
+                    logger.debug(f"  分数: {doc_score}")
+                    logger.debug(f"  元数据: {doc_metadata}")
+                    logger.debug(f"  文档类型: {type(doc).__name__}")
             
             # 使用生成服务的build_prompt方法构建提示
             from app.services.chat.generation_service import GenerationService

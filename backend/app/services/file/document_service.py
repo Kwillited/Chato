@@ -8,15 +8,13 @@ from app.core.config import config_manager
 from app.services.base_service import BaseService
 from app.services.data_service import DataService
 from app.services.vector.vector_service import VectorService
+from app.utils.path_manager import PathManager
 
-# 使用config_manager获取标准用户数据目录
-user_data_dir = config_manager.get_user_data_dir()
+# 使用PathManager获取目录路径
+DATA_DIR = PathManager.get_data_dir()
 
-RAG_DIR = os.path.join(user_data_dir, 'Retrieval-Augmented Generation')
-DATA_DIR = os.path.join(RAG_DIR, 'files')
-
-# 确保目录存在
-os.makedirs(DATA_DIR, exist_ok=True)
+# 确保所有必要的目录存在
+PathManager.ensure_rag_dirs()
 
 class DocumentService(BaseService):
     """文档管理服务类 - 封装所有与文档文件系统相关的操作"""
@@ -26,25 +24,45 @@ class DocumentService(BaseService):
         self.data_service = DataService()
         self.vector_service = VectorService()
     
+    def _get_folder_by_id(self, folder_id):
+        """根据folder_id获取文件夹对象"""
+        if not folder_id:
+            return None
+        
+        # 通过DataService获取文件夹信息
+        return self.data_service.get_folder_by_id(folder_id)
+    
     def _get_folder_name_by_id(self, folder_id):
         """根据folder_id查找对应的folder_name"""
-        if not folder_id:
-            return ''
-        
-        # 通过DataService获取文件夹名称
-        folder = self.data_service.get_folder_by_id(folder_id)
+        folder = self._get_folder_by_id(folder_id)
         return folder.name if folder else folder_id
     
-    def _get_file_save_path(self, filename, folder_name):
+    def _get_folder_path_by_id(self, folder_id):
+        """根据folder_id获取文件夹路径"""
+        folder = self._get_folder_by_id(folder_id)
+        return folder.path if folder else ''
+    
+    def _get_vector_db_path_by_id(self, folder_id):
+        """根据folder_id获取向量数据库路径"""
+        folder = self._get_folder_by_id(folder_id)
+        return folder.vector_db_path if folder else ''
+    
+    def _get_file_save_path(self, filename, folder_id=''):
         """构建文件保存路径"""
-        if folder_name:
-            # 如果指定了文件夹，保存到该文件夹
-            # 保留原始文件夹名称，确保中文文件夹名不被截断
-            # 注意：这里直接使用folder_name，不再使用secure_filename，确保中文文件夹名正确保存
-            folder_path = os.path.join(DATA_DIR, folder_name)
-            os.makedirs(folder_path, exist_ok=True)
-            # 直接使用原始文件名，确保包含中文
-            return os.path.join(folder_path, filename)
+        if folder_id:
+            # 如果指定了文件夹ID，从数据库获取文件夹路径
+            folder_path = self._get_folder_path_by_id(folder_id)
+            if folder_path:
+                # 确保文件夹存在
+                os.makedirs(folder_path, exist_ok=True)
+                # 直接使用原始文件名，确保包含中文
+                return os.path.join(folder_path, filename)
+            else:
+                # 如果获取路径失败，回退到原方法
+                folder_name = self._get_folder_name_by_id(folder_id)
+                folder_path = os.path.join(DATA_DIR, folder_name)
+                os.makedirs(folder_path, exist_ok=True)
+                return os.path.join(folder_path, filename)
         else:
             # 否则保存到根目录，直接使用原始文件名
             return os.path.join(DATA_DIR, filename)
@@ -58,11 +76,8 @@ class DocumentService(BaseService):
         # 保留原始文件名，确保中文文件名不被截断
         original_filename = file.filename
         
-        # 根据folder_id获取实际的folder_name
-        folder_name = self._get_folder_name_by_id(folder_id)
-        
         # 确定保存路径，使用原始文件名
-        file_path = self._get_file_save_path(original_filename, folder_name)
+        file_path = self._get_file_save_path(original_filename, folder_id)
         
         # 保存文件 - 处理FastAPI UploadFile对象
         with open(file_path, 'wb') as buffer:
@@ -131,11 +146,11 @@ class DocumentService(BaseService):
         if folder_name:
             # 如果指定了文件夹，构建完整路径
             # 保留原始文件夹名称，确保中文文件夹名不被截断
-            folder_path = os.path.join(DATA_DIR, folder_name)
-            file_path = os.path.join(folder_path, filename)
+            folder_path = PathManager.get_folder_path(folder_name)
+            file_path = PathManager.get_file_path(folder_path, filename)
         else:
             # 在根目录查找文件，直接使用原始文件名
-            file_path = os.path.join(DATA_DIR, filename)
+            file_path = PathManager.get_file_path(DATA_DIR, filename)
         
         # 1. 获取folder_id（如果提供了folder_name）
         folder_id = None
@@ -186,8 +201,8 @@ class DocumentService(BaseService):
         folders = []
         for folder in db_folders:
             if folder:
-                # 构建文件夹路径
-                folder_path = os.path.join(DATA_DIR, folder.name)
+                # 使用数据库中存储的路径
+                folder_path = folder.path if hasattr(folder, 'path') else PathManager.get_folder_path(folder.name)
                 
                 folders.append({
                     'id': folder.id,
@@ -214,14 +229,19 @@ class DocumentService(BaseService):
         # 获取当前时间
         now = datetime.now().isoformat()
         
-        # 创建文件夹（文件系统）
-        folder_path = os.path.join(DATA_DIR, folder_name)
-        os.makedirs(folder_path, exist_ok=True)
+        # 使用PathManager构建路径
+        folder_path = PathManager.get_folder_path(folder_name)
+        vector_db_path = PathManager.get_vector_db_path(folder_name)
+        
+        # 确保文件夹存在
+        PathManager.ensure_dir(folder_path)
         
         # 在数据库中创建文件夹记录，通过DataService层
         self.data_service.create_folder(
             folder_id=folder_id,
             name=folder_name,
+            path=folder_path,
+            vector_db_path=vector_db_path,
             embedding_model=embedding_model,
             created_at=now,
             updated_at=now
@@ -328,8 +348,48 @@ class DocumentService(BaseService):
                     self.log_error(f"删除目录 {dir_path} 时出错: {e}")
                     skipped_count += 1
         
-        # 4. 清空向量数据库
-        self.vector_service.manage_vector_store('clear')
+        # 4. 删除向量数据库文件夹
+        try:
+            from app.core.config import config_manager
+            import shutil
+            import time
+            
+            # 尝试释放向量服务连接
+            try:
+                from app.services.vector.vector_service import VectorService
+                from app.services.vector.vector_db_service import VectorDBService
+                # 清除向量服务实例缓存
+                if hasattr(VectorService, '_instance'):
+                    VectorService._instance = None
+                if hasattr(VectorService, 'vector_store_services'):
+                    VectorService.vector_store_services = {}
+                # 清除向量数据库服务实例缓存
+                VectorDBService._instances = {}
+                self.log_info("✅ 向量服务连接已释放")
+                # 等待连接完全释放
+                time.sleep(0.5)
+            except Exception as e:
+                self.log_warning(f"⚠️  释放向量服务连接失败: {e}")
+            
+            # 构建向量数据库根路径
+            vector_db_root = PathManager.get_vector_db_root()
+            if os.path.exists(vector_db_root) and os.path.isdir(vector_db_root):
+                # 尝试多次删除
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        shutil.rmtree(vector_db_root)
+                        # 重新创建空的vector_db目录
+                        PathManager.ensure_dir(vector_db_root)
+                        self.log_info(f"✅ 向量数据库文件夹已清空: {vector_db_root}")
+                        break
+                    except Exception as e:
+                        self.log_warning(f"⚠️  第 {attempt + 1} 次清空向量数据库失败: {e}")
+                        if attempt < max_retries - 1:
+                            time.sleep(1)
+        except Exception as e:
+            # 向量数据库删除失败不影响其他操作
+            self.log_warning(f"⚠️  向量数据库清空失败: {e}")
         
         # 5. 重新初始化DATA_DIR目录（如果被删除）
         os.makedirs(DATA_DIR, exist_ok=True)
@@ -353,60 +413,95 @@ class DocumentService(BaseService):
         if not folder_name or not folder_name.strip():
             raise ValueError('文件夹名称不能为空')
         
-        # 构建文件夹路径
-        folder_path = os.path.join(DATA_DIR, folder_name)
-        
-        # 检查文件夹是否存在（文件系统）
-        if not os.path.exists(folder_path) or not os.path.isdir(folder_path):
-            # 检查数据库中是否存在
-            folder = self.data_service.get_folder_by_name(folder_name)
-            if folder:
-                # 数据库中存在但文件系统中不存在，直接删除数据库记录
-                self.data_service.delete_folder(folder.id)
+        # 1. 获取文件夹信息（包括路径）
+        folder = self.data_service.get_folder_by_name(folder_name)
+        if not folder:
+            # 检查文件系统中是否存在
+            folder_path = os.path.join(DATA_DIR, folder_name)
+            if os.path.exists(folder_path) and os.path.isdir(folder_path):
+                # 文件夹在文件系统中存在但数据库中不存在，直接删除文件系统中的文件夹
+                shutil.rmtree(folder_path)
                 return {
                     'deleted_folder': folder_name,
-                    'message': f'文件夹 {folder_name} 已从数据库中删除',
+                    'message': f'文件夹 {folder_name} 已成功删除',
                     'success': True
                 }
             
-            self.log_warning(f"尝试删除不存在的文件夹: {folder_path}")
+            self.log_warning(f"尝试删除不存在的文件夹: {folder_name}")
             return {
                 'deleted_folder': folder_name,
                 'message': f'文件夹 {folder_name} 不存在',
                 'success': True  # 返回True，因为文件夹已经不存在
             }
         
-        # 1. 获取文件夹ID
-        folder = self.data_service.get_folder_by_name(folder_name)
-        if not folder:
-            # 文件夹在文件系统中存在但数据库中不存在，直接删除文件系统中的文件夹
-            shutil.rmtree(folder_path)
-            return {
-                'deleted_folder': folder_name,
-                'message': f'文件夹 {folder_name} 已成功删除',
-                'success': True
-            }
+        # 2. 从数据库获取路径信息
+        folder_path = folder.path
+        vector_db_path = folder.vector_db_path
         
-        # 2. 删除数据库中的文件夹（级联删除文件夹下的所有文档和分块）
+        # 3. 删除数据库中的文件夹（级联删除文件夹下的所有文档和分块）
         self.data_service.delete_folder(folder.id)
         
-        # 3. 删除相关向量
-        self.vector_service.delete_vectors_by_folder_id(folder.id)
+        # 4. 删除相关向量数据库文件
+        if vector_db_path:
+            try:
+                from app.core.config import config_manager
+                import shutil
+                import time
+                
+                # 尝试释放向量服务连接
+                try:
+                    from app.services.vector.vector_service import VectorService
+                    from app.services.vector.vector_db_service import VectorDBService
+                    # 清除向量服务实例缓存
+                    if hasattr(VectorService, '_instance'):
+                        VectorService._instance = None
+                    if hasattr(VectorService, 'vector_store_services'):
+                        VectorService.vector_store_services = {}
+                    # 清除向量数据库服务实例缓存
+                    VectorDBService._instances = {}
+                    self.log_info("✅ 向量服务连接已释放")
+                    # 等待连接完全释放
+                    time.sleep(0.5)
+                except Exception as e:
+                    self.log_warning(f"⚠️  释放向量服务连接失败: {e}")
+                
+                if os.path.exists(vector_db_path) and os.path.isdir(vector_db_path):
+                    # 尝试多次删除
+                    max_retries = 3
+                    for attempt in range(max_retries):
+                        try:
+                            shutil.rmtree(vector_db_path)
+                            self.log_info(f"✅ 向量数据库文件夹已删除: {vector_db_path}")
+                            break
+                        except Exception as e:
+                            self.log_warning(f"⚠️  第 {attempt + 1} 次删除向量数据库失败: {e}")
+                            if attempt < max_retries - 1:
+                                time.sleep(1)
+            except Exception as e:
+                # 向量数据库删除失败不影响文件夹删除
+                self.log_warning(f"⚠️  向量数据库删除失败: {e}")
         
-        # 4. 删除文件系统中的文件夹
-        try:
-            shutil.rmtree(folder_path)
+        # 5. 删除文件系统中的文件夹
+        if folder_path and os.path.exists(folder_path) and os.path.isdir(folder_path):
+            try:
+                shutil.rmtree(folder_path)
+                return {
+                    'deleted_folder': folder_name,
+                    'message': f'文件夹 {folder_name} 已成功删除',
+                    'success': True
+                }
+            except Exception as e:
+                self.log_error(f"删除文件夹 {folder_path} 时出错: {e}")
+                return {
+                    'deleted_folder': folder_name,
+                    'message': f'删除文件夹 {folder_name} 失败: {str(e)}',
+                    'success': False
+                }
+        else:
             return {
                 'deleted_folder': folder_name,
-                'message': f'文件夹 {folder_name} 已成功删除',
+                'message': f'文件夹 {folder_name} 已从数据库中删除',
                 'success': True
-            }
-        except Exception as e:
-            self.log_error(f"删除文件夹 {folder_path} 时出错: {e}")
-            return {
-                'deleted_folder': folder_name,
-                'message': f'删除文件夹 {folder_name} 失败: {str(e)}',
-                'success': False
             }
     
     def get_files_in_folder_by_id(self, folder_id):

@@ -128,9 +128,9 @@ class DataService(BaseService):
         """根据名称获取文件夹"""
         return self.folder_repo.get_folder_by_name(folder_name)
     
-    def create_folder(self, folder_id, name, embedding_model=None, created_at=None, updated_at=None):
+    def create_folder(self, folder_id, name, path, vector_db_path=None, embedding_model=None, created_at=None, updated_at=None, description=None):
         """创建文件夹"""
-        return self.folder_repo.create_folder(folder_id, name, embedding_model, created_at, updated_at)
+        return self.folder_repo.create_folder(folder_id, name, path, vector_db_path, embedding_model, created_at, updated_at, description)
     
     def delete_folder(self, folder_id):
         """删除文件夹"""

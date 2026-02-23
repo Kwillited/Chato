@@ -17,11 +17,13 @@ class FolderRepository(BaseRepository):
         """根据名称获取文件夹"""
         return self.db.query(Folder).filter(Folder.name == folder_name).first()
     
-    def create_folder(self, folder_id, name, embedding_model=None, created_at=None, updated_at=None, description=None):
+    def create_folder(self, folder_id, name, path, vector_db_path=None, embedding_model=None, created_at=None, updated_at=None, description=None):
         """创建新文件夹"""
         folder = Folder(
             id=folder_id,
             name=name,
+            path=path,
+            vector_db_path=vector_db_path,
             embedding_model=embedding_model,
             created_at=created_at,
             updated_at=updated_at,

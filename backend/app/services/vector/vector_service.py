@@ -35,19 +35,36 @@ class VectorService(BaseService):
         self.log_info("向量服务初始化成功，支持多知识库向量存储")
         self._initialized = True
     
-    def get_vector_store_service(self, knowledge_base_name="default"):
+    def get_vector_store_service(self, knowledge_base_name="default", vector_db_path=None, embedder_model=None):
         """获取指定知识库的向量存储服务实例
         
         Args:
             knowledge_base_name: 知识库名称
+            vector_db_path: 向量数据库路径
+            embedder_model: 嵌入模型名称
             
         Returns:
             VectorStoreService: 向量存储服务实例
         """
         if knowledge_base_name not in self.vector_store_services:
+            if not vector_db_path or not embedder_model:
+                # 如果没有提供路径和模型，尝试从配置或默认值获取
+                from app.core.config import config_manager
+                vector_db_path = vector_db_path or config_manager.get('vector.vector_db_path', '')
+                embedder_model = embedder_model or config_manager.get('vector.embedder_model', 'qwen3-embedding-0.6b')
+                
+                # 如果仍然没有路径，构建默认路径
+                if not vector_db_path:
+                    from app.utils.path_manager import PathManager
+                    vector_db_path = PathManager.get_vector_db_path(knowledge_base_name)
+            
             # 创建新的向量存储服务实例
-            self.vector_store_services[knowledge_base_name] = VectorStoreService(knowledge_base_name=knowledge_base_name)
-            self.log_info(f"创建向量存储服务实例: 知识库='{knowledge_base_name}'")
+            self.vector_store_services[knowledge_base_name] = VectorStoreService(
+                vector_db_path=vector_db_path,
+                embedder_model=embedder_model,
+                knowledge_base_name=knowledge_base_name
+            )
+            self.log_info(f"创建向量存储服务实例: 知识库='{knowledge_base_name}', 模型='{embedder_model}'")
         return self.vector_store_services[knowledge_base_name]
     
     def embed_document(self, doc_content: str, metadata: dict, knowledge_base_name="default"):
@@ -87,7 +104,7 @@ class VectorService(BaseService):
                 'chunk_count': 0
             }
     
-    def search_vectors(self, query: str, k: int = 5, filter: dict = None, score_threshold: float = None, knowledge_base_name="default"):
+    def search_vectors(self, query: str, k: int = 5, filter: dict = None, score_threshold: float = None, knowledge_base_name="default", vector_db_path=None, embedder_model=None):
         """根据查询向量检索相关文档
         
         Args:
@@ -96,6 +113,8 @@ class VectorService(BaseService):
             filter (dict): 过滤条件
             score_threshold (float): 相似度分数阈值，低于该阈值的结果将被过滤
             knowledge_base_name: 知识库名称
+            vector_db_path: 向量数据库路径
+            embedder_model: 嵌入模型名称
             
         Returns:
             dict: 向量检索结果
@@ -104,7 +123,22 @@ class VectorService(BaseService):
             self.log_info(f"🔍 开始向量检索: 查询='{query}', 结果数量={k}, 分数阈值={score_threshold}, 知识库='{knowledge_base_name}'")
             
             # 获取指定知识库的向量存储服务实例
-            vector_store_service = self.get_vector_store_service(knowledge_base_name)
+            vector_store_service = self.get_vector_store_service(
+                knowledge_base_name=knowledge_base_name,
+                vector_db_path=vector_db_path,
+                embedder_model=embedder_model
+            )
+            
+            # 触发向量存储初始化（懒加载）
+            try:
+                # 访问vector_store属性，触发初始化
+                if vector_store_service.vector_store:
+                    self.log_info(f"向量存储已初始化: 知识库='{knowledge_base_name}'")
+                else:
+                    self.log_warning(f"向量存储初始化失败: 知识库='{knowledge_base_name}'")
+            except Exception as e:
+                self.log_error(f"初始化向量存储时出错: {e}")
+            
             # 从vector_store_service获取向量仓库实例
             vector_repo = vector_store_service.vector_db_service.vector_repository
             # 执行向量检索
@@ -266,17 +300,26 @@ class VectorService(BaseService):
             dict: 向量化结果
         """
         try:
-            # 根据folder_id获取知识库名称
             knowledge_base_name = "default"
+            vector_db_path = None
+            embedder_model = None
+            
             if folder_id:
                 try:
                     from app.services.file.document_service import DocumentService
                     doc_service = DocumentService()
                     # 获取folder信息
                     folder = doc_service.data_service.get_folder_by_id(folder_id)
-                    if folder and hasattr(folder, 'name'):
-                        knowledge_base_name = folder.name
-                        self.log_info(f"从folder_id获取知识库名称成功: {knowledge_base_name}")
+                    if folder:
+                        if hasattr(folder, 'name'):
+                            knowledge_base_name = folder.name
+                            self.log_info(f"从folder_id获取知识库名称成功: {knowledge_base_name}")
+                        if hasattr(folder, 'vector_db_path'):
+                            vector_db_path = folder.vector_db_path
+                            self.log_info(f"从folder_id获取向量数据库路径成功: {vector_db_path}")
+                        if hasattr(folder, 'embedding_model'):
+                            embedder_model = folder.embedding_model
+                            self.log_info(f"从folder_id获取嵌入模型成功: {embedder_model}")
                 except Exception as e:
                     self.log_warning(f"获取folder信息失败，使用默认知识库: {e}")
             
@@ -291,7 +334,11 @@ class VectorService(BaseService):
                 ))
             
             # 获取指定知识库的向量存储服务实例
-            vector_store_service = self.get_vector_store_service(knowledge_base_name)
+            vector_store_service = self.get_vector_store_service(
+                knowledge_base_name=knowledge_base_name,
+                vector_db_path=vector_db_path,
+                embedder_model=embedder_model
+            )
             # 使用vector_store_service的add_documents方法
             success, message = vector_store_service.add_documents(split_documents)
             
