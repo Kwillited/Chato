@@ -3,7 +3,6 @@ import os
 import threading
 from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import config_manager
-from app.core.knowledge_base_manager import KnowledgeBaseManager
 from app.services.base_service import BaseService
 from app.repositories.vector_repository import VectorRepository
 from app.utils.error_handler import handle_vector_errors

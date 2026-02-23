@@ -29,12 +29,18 @@
       <!-- 向量模型选择 -->
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">向量模型</label>
-        <template v-if="hasAvailableEmbeddingModels">
+        <template v-if="settingsStore.embeddingModelLoading">
+          <div class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md text-center text-gray-500 dark:text-gray-400">
+            加载中...
+          </div>
+        </template>
+        <template v-else-if="hasAvailableEmbeddingModels">
           <select
             id="embeddingModel"
             v-model="selectedEmbeddingModel"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
           >
+            <option value="">选择向量模型(选填)</option>
             <option v-for="option in embeddingModelOptions" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
@@ -110,8 +116,10 @@ const hasAvailableEmbeddingModels = computed(() => {
 // 当模态框显示时，自动聚焦输入框并加载嵌入模型
 const focusInput = async () => {
   if (props.visible && inputRef.value) {
-    // 加载嵌入模型数据
-    await settingsStore.loadEmbeddingModels();
+    // 检查嵌入模型是否已加载，如果未加载则触发加载
+    if (settingsStore.embeddingModels.length === 0 && !settingsStore.embeddingModelLoading) {
+      await settingsStore.loadEmbeddingModels();
+    }
     
     // 设置默认嵌入模型
     if (embeddingModelOptions.value.length > 0 && !selectedEmbeddingModel.value) {

@@ -17,7 +17,7 @@ class FolderRepository(BaseRepository):
         """根据名称获取文件夹"""
         return self.db.query(Folder).filter(Folder.name == folder_name).first()
     
-    def create_folder(self, folder_id, name, embedding_model='qwen3-embedding-0.6b', created_at=None, updated_at=None, description=""):
+    def create_folder(self, folder_id, name, embedding_model=None, created_at=None, updated_at=None, description=None):
         """创建新文件夹"""
         folder = Folder(
             id=folder_id,

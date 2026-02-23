@@ -185,24 +185,22 @@ class DocumentService(BaseService):
         # 转换为前端需要的格式
         folders = []
         for folder in db_folders:
-            # 构建文件夹路径
-            folder_path = os.path.join(DATA_DIR, folder.name)
-            
-            folders.append({
-                'id': folder.id,
-                'name': folder.name,
-                'path': folder_path
-            })
+            if folder:
+                # 构建文件夹路径
+                folder_path = os.path.join(DATA_DIR, folder.name)
+                
+                folders.append({
+                    'id': folder.id,
+                    'name': folder.name,
+                    'path': folder_path
+                })
         return folders
     
-    def create_folder(self, folder_name, embedding_model='qwen3-embedding-0.6b'):
+    def create_folder(self, folder_name, embedding_model=None):
         """创建文件夹/知识库"""
-        if not folder_name:
-            raise ValueError('文件夹名称不能为空')
-        
         # 保留原始文件夹名称，确保中文文件夹名不被截断
         # 只对文件夹名进行基本验证，不使用secure_filename（会移除中文等非ASCII字符）
-        if not folder_name.strip():
+        if not folder_name or not folder_name.strip():
             raise ValueError('文件夹名称不能为空')
         
         # 检查文件夹是否已存在（数据库中）
@@ -228,6 +226,30 @@ class DocumentService(BaseService):
             created_at=now,
             updated_at=now
         )
+        
+        # 只有当embedding_model不为空时才初始化向量数据库
+        if embedding_model:
+            try:
+                from app.services.vector.vector_service import VectorService
+                from app.services.vector.vector_store_service import VectorStoreService
+                from app.services.vector.vector_db_service import VectorDBService
+                from app.core.config import config_manager
+                
+                # 获取向量数据库配置
+                vector_db_path = os.path.join(config_manager.get_user_data_dir(), 'Retrieval-Augmented Generation', 'vector_db', folder_name)
+                
+                # 初始化向量数据库服务
+                vector_db_service = VectorDBService(vector_db_path, embedding_model, folder_name)
+                
+                # 触发向量存储初始化
+                # 这里会创建空的Chroma实例
+                vector_store = vector_db_service.vector_store
+                
+                # 记录初始化成功
+                self.log_info(f"✅ 知识库向量数据库初始化成功: {folder_name}, 嵌入模型: {embedding_model}")
+            except Exception as e:
+                # 向量数据库初始化失败不影响文件夹创建
+                self.log_warning(f"⚠️  知识库向量数据库初始化失败: {e}")
         
         return {
             'id': folder_id,
@@ -326,12 +348,9 @@ class DocumentService(BaseService):
     
     def delete_folder(self, folder_name):
         """删除文件夹/知识库"""
-        if not folder_name:
-            raise ValueError('文件夹名称不能为空')
-        
         # 保留原始文件夹名称，确保中文文件夹名不被截断
         # 只对文件夹名进行基本验证，不使用secure_filename（会移除中文等非ASCII字符）
-        if not folder_name.strip():
+        if not folder_name or not folder_name.strip():
             raise ValueError('文件夹名称不能为空')
         
         # 构建文件夹路径
@@ -467,112 +486,19 @@ class DocumentService(BaseService):
             file_path = save_result['full_path']
             self.log_info(f"✅ 文档已保存到: {file_path}")
             
-            # 2. 初始化LangChain组件
-            from langchain_community.document_loaders import TextLoader, PyPDFLoader, Docx2txtLoader
-            from langchain_text_splitters import RecursiveCharacterTextSplitter
+            # 2. 加载文档
+            documents = self._load_document(file_path)
             
-            # 创建加载器映射
-            loader_mapping = {
-                '.txt': TextLoader,
-                '.pdf': PyPDFLoader,
-                '.doc': Docx2txtLoader,
-                '.docx': Docx2txtLoader
-            }
+            # 3. 分割文档
+            split_documents, chunk_size, chunk_overlap = self._split_document(documents)
             
-            # 创建文本分割器
-            chunk_size = config_manager.get('vector.chunk_size', 1000)
-            chunk_overlap = config_manager.get('vector.chunk_overlap', 200)
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=chunk_size,
-                chunk_overlap=chunk_overlap
-            )
-            
-            # 3. 使用LangChain加载器加载文档
-            file_ext = os.path.splitext(file_path)[1].lower()
-            self.log_info(f"📄 加载文档，文件类型: {file_ext}")
-            
-            loader_class = loader_mapping.get(file_ext)
-            
-            if not loader_class:
-                error_msg = f"不支持的文件类型: {file_ext}"
-                self.log_error(f"❌ {error_msg}")
-                return {
-                    'success': False,
-                    'error': error_msg,
-                    'file_path': original_filename
-                }
-            
-            # 处理TextLoader的编码问题
-            documents = []
-            try:
-                if loader_class.__name__ == 'TextLoader':
-                    # 尝试使用utf-8编码，如果失败则使用其他编码
-                    loader = loader_class(file_path, encoding='utf-8')
-                    self.log_info("📑 使用utf-8编码加载文本文件")
-                    documents = loader.load()
-                else:
-                    loader = loader_class(file_path)
-                    documents = loader.load()
-                self.log_info(f"✅ 成功加载文档，共 {len(documents)} 个文档对象")
-            except UnicodeDecodeError:
-                # 如果utf-8失败，尝试使用gbk编码（常见中文编码）
-                if loader_class.__name__ == 'TextLoader':
-                    loader = loader_class(file_path, encoding='gbk')
-                    self.log_info("📑 utf-8编码失败，尝试使用gbk编码加载文本文件")
-                    documents = loader.load()
-                    self.log_info(f"✅ 使用gbk编码成功加载文档，共 {len(documents)} 个文档对象")
-                else:
-                    raise
-            
-            # 4. 使用LangChain文本分割器分割文档
-            self.log_info("✂️  开始分割文档...")
-            split_documents = text_splitter.split_documents(documents)
-            self.log_info(f"✅ 文档分割完成，生成 {len(split_documents)} 个文本块")
-            
-            # 5. 向量化并存储到向量数据库
-            self.log_info("🔢 开始向量化文档...")
-            # 使用save_result中的document_id，保持一致性
+            # 4. 向量化文档
             document_id = save_result.get('id', str(uuid.uuid4()))
-            vector_result = self.vector_service.vectorize_documents(
-                split_documents,
-                document_id,
-                file_path,
-                folder_id=folder_id
-            )
+            vector_result = self._vectorize_document(split_documents, document_id, file_path, folder_id)
             
-            if vector_result['vectorized']:
-                self.log_info(f"✅ 向量化成功，生成 {vector_result['vector_count']} 个向量")
-            else:
-                self.log_warning(f"⚠️  向量化部分失败: {vector_result.get('error', '未知错误')}")
+            # 5. 准备返回信息
+            return self._prepare_response(save_result, original_filename, file_path, folder_id, document_id, split_documents, chunk_size, chunk_overlap, vector_result)
             
-            # 6. 准备返回信息
-            document_info = {
-                'document_id': document_id,
-                'file_path': file_path,
-                'filename': save_result['filename'],
-                'split_documents_count': len(split_documents),
-                'chunk_size': chunk_size,
-                'chunk_overlap': chunk_overlap
-            }
-            
-            chunk_info = {
-                'total_chunks': len(split_documents),
-                'chunk_size': chunk_size,
-                'chunk_overlap': chunk_overlap
-            }
-            
-            self.log_info(f"📊 文档处理完成: 文件='{original_filename}', 文本块={len(split_documents)}, 向量={vector_result['vector_count']}")
-            
-            return {
-                'filename': save_result['filename'],
-                'message': f'文件 {save_result['filename']} 上传成功',
-                'file_path': save_result['filename'],
-                'document_info': document_info,
-                'full_path': file_path,
-                'folder_name': folder_id,
-                'chunk_info': chunk_info,
-                'vector_info': vector_result
-            }
         except Exception as e:
             self.log_error(f"❌ 文件 {file.filename} 处理失败: {str(e)}")
             return {
@@ -585,6 +511,95 @@ class DocumentService(BaseService):
                 'chunk_info': {},
                 'vector_info': {}
             }
+    
+    def _load_document(self, file_path):
+        """加载文档内容"""
+        from app.utils.rag.document_loader import DocumentLoader
+        
+        self.log_info(f"📄 加载文档: {file_path}")
+        load_result = DocumentLoader.load_document(file_path)
+        
+        # 检查是否有错误
+        if 'error' in load_result:
+            error_msg = load_result.get('error', '文档加载失败')
+            self.log_error(f"❌ {error_msg}")
+            raise Exception(error_msg)
+        
+        # 检查是否有文档
+        documents = load_result.get('documents', [])
+        if not documents:
+            error_msg = '文档加载失败：未找到文档内容'
+            self.log_error(f"❌ {error_msg}")
+            raise Exception(error_msg)
+        
+        self.log_info(f"✅ 成功加载文档，共 {len(documents)} 个文档对象")
+        return documents
+    
+    def _split_document(self, documents):
+        """分割文档为文本块"""
+        from app.utils.rag.text_splitter import TextSplitter
+        
+        chunk_size = config_manager.get('vector.chunk_size', 1000)
+        chunk_overlap = config_manager.get('vector.chunk_overlap', 200)
+        
+        self.log_info("✂️  开始分割文档...")
+        split_result = TextSplitter.split_documents(documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+        
+        if not split_result['success']:
+            error_msg = f"文档分割失败: {split_result['error']}"
+            self.log_error(f"❌ {error_msg}")
+            raise Exception(error_msg)
+        
+        split_documents = split_result['split_documents']
+        self.log_info(f"✅ 文档分割完成，生成 {len(split_documents)} 个文本块")
+        return split_documents, chunk_size, chunk_overlap
+    
+    def _vectorize_document(self, split_documents, document_id, file_path, folder_id):
+        """向量化文档并存储"""
+        self.log_info("🔢 开始向量化文档...")
+        vector_result = self.vector_service.vectorize_documents(
+            split_documents,
+            document_id,
+            file_path,
+            folder_id=folder_id
+        )
+        
+        if vector_result['vectorized']:
+            self.log_info(f"✅ 向量化成功，生成 {vector_result['vector_count']} 个向量")
+        else:
+            self.log_warning(f"⚠️  向量化部分失败: {vector_result.get('error', '未知错误')}")
+        
+        return vector_result
+    
+    def _prepare_response(self, save_result, original_filename, file_path, folder_id, document_id, split_documents, chunk_size, chunk_overlap, vector_result):
+        """准备返回信息"""
+        document_info = {
+            'document_id': document_id,
+            'file_path': file_path,
+            'filename': save_result['filename'],
+            'split_documents_count': len(split_documents),
+            'chunk_size': chunk_size,
+            'chunk_overlap': chunk_overlap
+        }
+        
+        chunk_info = {
+            'total_chunks': len(split_documents),
+            'chunk_size': chunk_size,
+            'chunk_overlap': chunk_overlap
+        }
+        
+        self.log_info(f"📊 文档处理完成: 文件='{original_filename}', 文本块={len(split_documents)}, 向量={vector_result['vector_count']}")
+        
+        return {
+            'filename': save_result['filename'],
+            'message': f'文件 {save_result['filename']} 上传成功',
+            'file_path': save_result['filename'],
+            'document_info': document_info,
+            'full_path': file_path,
+            'folder_name': folder_id,
+            'chunk_info': chunk_info,
+            'vector_info': vector_result
+        }
     
     def search_file_content(self, query):
         """搜索文件内容"""

@@ -360,7 +360,7 @@ class ModelService(BaseService):
             model_name = filename.replace('.png', '')
             
             # 首先尝试从内存缓存获取模型
-            from app.core.data_manager import DataService
+            from app.services.data_service import DataService
             memory_model = DataService.get_model_by_name(model_name)
             
             # 如果内存中有模型，且有图标数据，直接返回

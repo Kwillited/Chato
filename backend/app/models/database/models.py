@@ -142,7 +142,7 @@ class Folder(Base):
     created_at = Column(String, nullable=False)
     updated_at = Column(String, nullable=False)
     description = Column(Text)
-    embedding_model = Column(String, default="qwen3-embedding-0.6b")
+    embedding_model = Column(String)
     
     # 关系：一个文件夹包含多个文档
     documents = relationship("Document", back_populates="folder", cascade="all, delete-orphan")

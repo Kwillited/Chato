@@ -213,18 +213,19 @@ class VectorRepository(BaseRepository):
                 raise ValueError("向量存储未初始化")
             
             # 导入文档分块工具
-            from langchain_text_splitters import RecursiveCharacterTextSplitter
+            from app.utils.rag.text_splitter import TextSplitter
+            from langchain_core.documents import Document
             
-            # 文档分块
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=1000,
-                chunk_overlap=200
-            )
-            chunks = text_splitter.create_documents([doc_content])
+            # 创建Document对象
+            document = Document(page_content=doc_content, metadata=metadata.copy())
             
-            # 为每个分块添加元数据
-            for chunk in chunks:
-                chunk.metadata.update(metadata)
+            # 使用统一的文本分割器
+            split_result = TextSplitter.split_documents([document])
+            
+            if not split_result['success']:
+                raise Exception(f"文档分割失败: {split_result['error']}")
+            
+            chunks = split_result['split_documents']
             
             # 向量化并存储
             self._vector_store.add_documents(chunks)

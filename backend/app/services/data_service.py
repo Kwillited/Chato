@@ -128,7 +128,7 @@ class DataService(BaseService):
         """根据名称获取文件夹"""
         return self.folder_repo.get_folder_by_name(folder_name)
     
-    def create_folder(self, folder_id, name, embedding_model='qwen3-embedding-0.6b', created_at=None, updated_at=None):
+    def create_folder(self, folder_id, name, embedding_model=None, created_at=None, updated_at=None):
         """创建文件夹"""
         return self.folder_repo.create_folder(folder_id, name, embedding_model, created_at, updated_at)
     

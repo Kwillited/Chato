@@ -112,56 +112,7 @@ class ConfigManager:
         config[keys[-1]] = value
         return True
     
-    def add_knowledge_base(self, name: str, path: str) -> bool:
-        """添加知识库配置
-        
-        Args:
-            name: 知识库名称
-            path: 知识库路径
-            
-        Returns:
-            bool: 是否成功添加
-        """
-        try:
-            # 获取知识库配置
-            knowledge_bases = self.get("vector.knowledge_bases", {})
-            
-            # 添加或更新知识库
-            knowledge_bases[name] = path
-            
-            # 保存配置
-            self.set("vector.knowledge_bases", knowledge_bases)
-            
-            return True
-        except Exception as e:
-            return False
-    
-    def remove_knowledge_base(self, name: str) -> bool:
-        """删除知识库配置
-        
-        Args:
-            name: 知识库名称
-            
-        Returns:
-            bool: 是否成功删除
-        """
-        try:
-            # 获取知识库配置
-            knowledge_bases = self.get("vector.knowledge_bases", {})
-            
-            # 检查知识库是否存在
-            if name in knowledge_bases:
-                # 删除知识库
-                del knowledge_bases[name]
-                
-                # 保存配置
-                self.set("vector.knowledge_bases", knowledge_bases)
-                
-                return True
-            
-            return False
-        except Exception as e:
-            return False
+
     
     def validate_vector_config(self) -> tuple[bool, list[str]]:
         """验证向量系统配置

@@ -256,6 +256,9 @@ export const useSettingsStore = defineStore('settings', {
         // 加载模型列表
         await this.loadModels();
         
+        // 加载嵌入模型列表（新增）
+        await this.loadEmbeddingModels();
+        
         // 保存初始设置值，用于后续比较修改
         this.initialSettings = {
           // 系统设置
