@@ -60,7 +60,9 @@ const isScrollToBottomVisible = ref(false);
 
 // 统一检查和跳转逻辑
 const checkAndRedirectToHome = () => {
-  if (!chatStore.currentChatId || chatStore.currentChatMessages.length === 0) {
+  // 只有当不在加载状态且没有当前对话时才跳转到首页
+  // 避免在加载对话历史时误跳转
+  if (!uiStore.isLoading && (!chatStore.currentChatId || chatStore.currentChatMessages.length === 0)) {
     console.log('没有当前对话或消息为空，跳转到首页');
     router.push('/');
     return true;

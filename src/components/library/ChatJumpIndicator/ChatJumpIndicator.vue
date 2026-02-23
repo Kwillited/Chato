@@ -87,31 +87,71 @@ const updateCurrentHighlightedMessage = () => {
   
   const scrollTop = props.scrollContainer.scrollTop;
   const scrollBottom = scrollTop + props.scrollContainer.clientHeight;
+  const scrollHeight = props.scrollContainer.scrollHeight;
   
-  // 找到视口内最上方的用户消息
-  const messages = props.chatMessages;
-  let currentUserMessage = null;
+  // 检查是否滚动到了底部（或接近底部）
+  const isAtBottom = scrollHeight - scrollBottom < 100; // 100px的阈值
   
-  // 从前往后遍历，找到第一个完全或部分在视口内的用户消息
-  for (let i = 0; i < messages.length; i++) {
-    const message = messages[i];
-    const messageElement = document.getElementById(`message-${i}`);
-    
-    // 处理ref包装的消息对象
-    const msgValue = message?.value || message;
-    if (messageElement && msgValue.role === 'user') {
-      const rect = messageElement.getBoundingClientRect();
-      const containerRect = props.scrollContainer.getBoundingClientRect();
-      const messageTop = rect.top - containerRect.top + props.scrollContainer.scrollTop;
-      const messageBottom = messageTop + rect.height;
-      
-      // 检查消息是否在视口内
-      if (messageTop < scrollBottom && messageBottom > scrollTop) {
-        currentUserMessage = message;
-        break;
+  // 如果滚动到了底部，直接使用最后一个用户消息
+  if (isAtBottom) {
+    const lastUserMessage = userMessages.value[userMessages.value.length - 1];
+    if (lastUserMessage) {
+      const lastUserMsgValue = lastUserMessage?.value || lastUserMessage;
+      const userMessageIndex = userMessages.value.findIndex(um => {
+        const umValue = um?.value || um;
+        return umValue.timestamp === lastUserMsgValue.timestamp;
+      });
+      if (userMessageIndex !== -1) {
+        currentHighlightedMessage.value = userMessageIndex;
       }
+      return;
     }
   }
+  
+  // 找到视口内最上方的用户消息
+  let currentUserMessage = null;
+  let currentUserMessageTop = Infinity;
+  
+  // 遍历所有用户消息，找到视口内最上方的那个
+  userMessages.value.forEach(userMessage => {
+    // 处理ref包装的消息对象
+    const userMsgValue = userMessage?.value || userMessage;
+    
+    // 查找对应的消息元素（通过timestamp匹配）
+    const messages = props.chatMessages;
+    for (let groupIndex = 0; groupIndex < messages.length; groupIndex++) {
+      const group = messages[groupIndex];
+      // 处理可能的分组消息
+      const groupMessages = Array.isArray(group.messages) ? group.messages : [group];
+      
+      for (let msgIndex = 0; msgIndex < groupMessages.length; msgIndex++) {
+        const msg = groupMessages[msgIndex];
+        const msgValue = msg?.value || msg;
+        
+        if (msgValue.timestamp === userMsgValue.timestamp) {
+          // 构建正确的消息ID
+          const messageId = `message-${groupIndex}-${msgIndex}`;
+          const messageElement = document.getElementById(messageId);
+          
+          if (messageElement) {
+            const rect = messageElement.getBoundingClientRect();
+            const containerRect = props.scrollContainer.getBoundingClientRect();
+            const messageTop = rect.top - containerRect.top + props.scrollContainer.scrollTop;
+            const messageBottom = messageTop + rect.height;
+            
+            // 检查消息是否在视口内
+            if (messageTop < scrollBottom && messageBottom > scrollTop) {
+              // 找到视口内最上方的消息
+              if (messageTop < currentUserMessageTop) {
+                currentUserMessageTop = messageTop;
+                currentUserMessage = userMessage;
+              }
+            }
+          }
+        }
+      }
+    }
+  });
   
   // 如果没有找到在视口内的用户消息，就使用最后一个用户消息
   if (!currentUserMessage) {
