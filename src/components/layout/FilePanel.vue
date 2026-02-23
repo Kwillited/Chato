@@ -87,8 +87,10 @@ const ragStore = useVectorStore();
 const fileStore = useFileStore();
 
 // 状态管理
-// 文件夹列表
-const folders = ref([]);
+// 文件夹列表 - 使用计算属性，自动同步fileStore.folders的变化
+const folders = computed(() => {
+  return fileStore.folders || [];
+});
 // 当前选中的文件夹
 const currentFolder = ref(null);
 // 当前文件夹中的文件列表
@@ -106,8 +108,10 @@ const isDeletingAll = ref(false);
 const showDeleteFolderModal = ref(false);
 // 当前要删除的文件夹数据
 const deleteFolderData = ref(null);
-// 文件夹ID到名称的映射
-const folderIdMap = ref({});
+// 文件夹ID到名称的映射 - 使用计算属性
+const folderIdMap = computed(() => {
+  return fileStore.folderIdMap || {};
+});
 
 // 组件挂载时加载数据
 onMounted(() => {
@@ -162,10 +166,7 @@ const loadFolders = async () => {
   try {
     // 通过fileStore加载文件夹列表
     await fileStore.loadFolders();
-    folders.value = fileStore.folders || [];
-    
-    // 建立文件夹ID到名称的映射，方便通过ID获取名称
-    folderIdMap.value = fileStore.folderIdMap || {};
+    // 不再需要手动赋值，computed会自动同步fileStore.folders的变化
   } catch (error) {
     console.error('加载文件夹失败:', error);
     showError(`加载文件夹失败: ${error.message || String(error)}`);
@@ -191,8 +192,8 @@ const handleCreateKnowledgeBase = () => {
 // 处理知识库创建成功
 const handleKnowledgeBaseCreated = async (event) => {
   const data = event ? event.detail : null;
-  // 只重新加载文件夹列表，刚创建的知识库不会有文件
-  await loadFolders();
+  // fileStore.createFolder内部会更新fileStore.folders
+  // 计算属性会自动同步这些变化，UI会自动更新
   
   // 如果有新创建的文件夹信息，自动选中它
   if (data) {
@@ -466,8 +467,8 @@ const handleDeleteFolderConfirm = async () => {
       // 显示成功提示
       showSuccess(`已成功删除知识库文件夹: ${folder.name}`);
       
-      // fileStore内部已经处理了文件夹和文件列表的重新加载
-      // 不需要再次调用loadFolders()，避免重复API请求
+      // fileStore.deleteFolder内部会调用loadFolders()，更新fileStore.folders
+      // 计算属性会自动同步这些变化，UI会自动更新
       
       // 如果删除的是当前文件夹，则返回上一级
       if (currentFolder.value === folder) {

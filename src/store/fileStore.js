@@ -240,11 +240,9 @@ export const useFileStore = defineStore('file', {
             embedding_model: embeddingModel
           });
           
-          // 移除事件总线触发，避免与组件事件重复
-          // 组件通过@created事件已经处理了创建成功的逻辑
-          
-          // 移除loadFolders调用，避免与组件事件重复
-          // 组件在@created事件的handleKnowledgeBaseCreated中会调用loadFolders
+          // 重新加载文件夹列表，更新fileStore.folders
+          // 这样计算属性会自动同步这些变化，UI会自动更新
+          await this.loadFolders();
           
           notifyUtils.showSuccess(`成功创建知识库: ${knowledgeBaseName}`);
           
