@@ -84,8 +84,6 @@ class BaseModel(ABC):
 
             # 3. 异步流式调用
             async for chunk in self.llm.astream(langchain_messages, **call_kwargs):
-                # 打印原始数据块
-                print(f"[BaseModel.chat_stream] 原始数据块: type={type(chunk).__name__}, content={str(chunk)[:200]}...")
                 
                 content = None
                 reasoning_content = None

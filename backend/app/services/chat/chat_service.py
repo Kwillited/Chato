@@ -379,10 +379,8 @@ class ChatService(BaseService):
                     
                     # ！！！核心改进 2：直接异步遍历生成器
                     # 不要再手动去写 while __anext__，那是 asyncio.run 的死穴
-                    print(f"[chat_with_model_stream] 开始接收智能体流式响应")
                     async for chunk in agent_wrapper.chat_stream(messages, model_params):
                         # 这里的 chunk 已经是 AgentWrapper 处理好的 dict 或 str
-                        print(f"[chat_with_model_stream] 接收到智能体响应块: {type(chunk).__name__}, content={str(chunk)[:100]}...")
                         yield chunk
                     
                 except Exception as e:
@@ -402,19 +400,13 @@ class ChatService(BaseService):
                     stream = ModelManager.chat(model_name, model, version_config, messages, model_params)
 
                     # 开始接收LLM流式响应
-                    print(f"[chat_with_model_stream] 开始接收LLM流式响应")
-                    
                     # 如果 stream 是同步迭代器
                     if hasattr(stream, '__next__'):
                         for chunk in stream:
-                            # 打印接收到的响应块
-                            print(f"[chat_with_model_stream] 接收到LLM响应块: {type(chunk).__name__}, content={str(chunk)[:100]}...")
                             yield chunk
                     # 如果 stream 是异步迭代器 (推荐)
                     else:
                         async for chunk in stream:
-                            # 打印接收到的响应块
-                            print(f"[chat_with_model_stream] 接收到LLM响应块: {type(chunk).__name__}, content={str(chunk)[:100]}...")
                             yield chunk
 
                 except Exception as e:

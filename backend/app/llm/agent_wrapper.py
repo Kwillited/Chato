@@ -121,9 +121,6 @@ class AgentWrapper:
         
         try:
             async for event in self.graph.astream_events(initial_state, version="v2"):
-                # 打印原始数据块
-                print(f"[AgentWrapper.chat_stream] 原始数据块 (智能体模式): type={type(event).__name__}, content={str(event)[:200]}...")
-                
                 kind = event.get('event')
                 metadata = event.get('metadata', {})
                 node = metadata.get('langgraph_node', '')
