@@ -194,64 +194,10 @@ class ChatService(BaseService):
         return context_docs, vector_results
 
     def get_rag_enhanced_prompt(self, question, rag_config=None):
-        """RAG增强提示 - 直接使用生成服务的build_prompt方法"""
-        # 只使用前端传递的enabled状态，其余配置从系统获取
-        enabled = False
-        selected_folders = []
-        if rag_config and isinstance(rag_config, dict):
-            enabled = rag_config.get('enabled', False)
-            # 从前端传递的rag_config中获取selectedFolders
-            selected_folders = rag_config.get('selectedFolders', [])
-        
+        """RAG增强提示 - 现在直接返回原始问题，因为RAG上下文会在构建消息列表时添加到SystemMessage中"""
         from app.core.logging_config import logger
-        logger.debug(f"RAG功能状态: enabled={enabled}")
-        
-        if not enabled:
-            logger.debug("RAG功能未启用，返回原始问题")
-            return question
-        
-        try:
-            logger.debug("RAG功能已启用，开始执行RAG增强")
-            # 执行RAG搜索
-            context_docs, _ = self._perform_rag_search(question, selected_folders)
-            
-            logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
-            
-            # 打印找到的文档片段详细信息
-            if context_docs:
-                logger.debug("找到的文档片段详情:")
-                for i, doc in enumerate(context_docs):
-                    # 提取文档片段的关键信息（支持字典和对象两种格式）
-                    if isinstance(doc, dict):
-                        # 处理字典类型的文档片段
-                        doc_content = doc.get('content', '') or doc.get('page_content', '')
-                        doc_metadata = doc.get('metadata', {})
-                        doc_score = doc.get('score', None) or doc_metadata.get('score')
-                    else:
-                        # 处理对象类型的文档片段
-                        doc_content = getattr(doc, 'page_content', '') or getattr(doc, 'content', '')
-                        doc_metadata = getattr(doc, 'metadata', {})
-                        doc_score = getattr(doc, 'score', None) or doc_metadata.get('score')
-                    
-                    # 打印文档片段信息
-                    logger.debug(f"片段 {i+1}:")
-                    logger.debug(f"  内容: {doc_content[:100]}{'...' if len(doc_content) > 100 else ''}")
-                    logger.debug(f"  分数: {doc_score}")
-                    logger.debug(f"  元数据: {doc_metadata}")
-                    logger.debug(f"  文档类型: {type(doc).__name__}")
-            
-            # 使用生成服务的build_prompt方法构建提示
-            from app.services.chat.generation_service import GenerationService
-            generation_service = GenerationService()
-            enhanced_prompt = generation_service.build_prompt(question, context_docs)
-            logger.debug(f"RAG增强提示构建完成，长度: {len(enhanced_prompt)} 字符")
-            
-            return enhanced_prompt
-        except Exception as e:
-            # 使用logger记录错误
-            self.log_error(f"RAG调用失败: {str(e)}")
-            # 确保即使RAG失败，原始问题也能正常返回
-            return question
+        logger.debug("RAG增强提示: 直接返回原始问题，RAG上下文会在构建消息列表时添加到SystemMessage中")
+        return question
     
     def generate_rag_response(self, query: str, chat_history: list, k=5):
         """生成增强响应
@@ -364,10 +310,6 @@ class ChatService(BaseService):
         chats = DataService.get_chats()
         chat_in_db = any(c['id'] == chat_id for c in chats)
         logger.info(f"对话是否在内存数据库中: {chat_in_db}, 内存数据库中对话数量: {len(chats)}")
-        
-        # 强制保存数据，不依赖自动保存
-        logger.info(f"强制保存数据到数据库")
-        DataService.save_data()
         
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
         logger.info(f"对话更新成功，消息已保存: chat_id={chat_id}, 消息总数: {len(chat.get('messages', []))}")
@@ -881,16 +823,15 @@ class ChatService(BaseService):
         # 调用RAG系统构造增强提示，传递完整的ragConfig
         context_docs = None
         if rag_enabled:
-            logger.debug("准备调用get_rag_enhanced_prompt方法")
+            logger.debug("准备执行RAG搜索")
             # 执行RAG搜索获取上下文文档
             context_docs, _ = self._perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
             logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
-            # 传递完整的ragConfig给RAG增强方法
-            enhanced_question = self.get_rag_enhanced_prompt(full_message_text, rag_config)
-            logger.debug(f"RAG增强完成，原始长度: {len(full_message_text)}, 增强后长度: {len(enhanced_question)}")
         else:
-            logger.debug("RAG未启用，使用原始问题")
-            enhanced_question = full_message_text
+            logger.debug("RAG未启用")
+        
+        # 使用原始消息文本，RAG上下文会在构建消息列表时添加到SystemMessage中
+        enhanced_question = full_message_text
         
         # 创建用户消息，使用增强后的问题作为内容
         user_message = {

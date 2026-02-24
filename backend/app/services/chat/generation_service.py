@@ -22,14 +22,37 @@ class GenerationService(BaseService):
         Returns:
             str: 构建好的提示
         """
-        # 使用prompt_manager构建人类消息，然后提取内容作为提示
-        human_message = prompt_manager.build_human_message(
-            query=query,
-            context_docs=context_docs,
-            chat_history=chat_history,
-            prompt_template=prompt_template
-        )
-        return human_message['content']
+        # 构建RAG提示，包含上下文信息
+        if context_docs:
+            # 构建上下文字符串
+            context_str = ""
+            for i, doc in enumerate(context_docs):
+                if isinstance(doc, dict):
+                    doc_content = doc.get('content', '') or doc.get('page_content', '')
+                else:
+                    doc_content = getattr(doc, 'page_content', '') or getattr(doc, 'content', '')
+                context_str += f"参考文档{i+1}：{doc_content}\n\n"
+            
+            # 构建聊天历史字符串
+            chat_history_str = ""
+            if chat_history:
+                chat_history_str = "\n".join([f"{'用户' if msg['role'] == 'user' else '助手'}: {msg['content']}" for msg in chat_history])
+            
+            # 使用自定义提示模板或默认模板
+            if prompt_template:
+                prompt = prompt_template.format(
+                    context=context_str,
+                    chat_history=chat_history_str,
+                    query=query
+                )
+            else:
+                # 使用默认的RAG提示模板
+                prompt = f"你是一个AI助手，使用以下上下文信息来回答用户问题。请严格基于提供的上下文信息进行回答，不要添加任何外部信息。如果你不知道答案，就说你不知道。保持回答简洁明了。\n\n{context_str}{chat_history_str}\n\n用户问题：{query}"
+        else:
+            # 没有上下文时，直接返回原始查询
+            prompt = query
+        
+        return prompt
     
     def generate_response(self, prompt, llm=None):
         """调用LLM生成响应
