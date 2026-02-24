@@ -210,7 +210,7 @@ class DocumentService(BaseService):
                 })
         return folders
     
-    def create_folder(self, folder_name, embedding_model=None):
+    def create_folder(self, folder_name, embedding_model=None, description=''):
         """创建文件夹/知识库"""
         # 保留原始文件夹名称，确保中文文件夹名不被截断
         # 只对文件夹名进行基本验证，不使用secure_filename（会移除中文等非ASCII字符）
@@ -243,7 +243,8 @@ class DocumentService(BaseService):
             vector_db_path=vector_db_path,
             embedding_model=embedding_model,
             created_at=now,
-            updated_at=now
+            updated_at=now,
+            description=description
         )
         
         # 只有当embedding_model不为空时才初始化向量数据库

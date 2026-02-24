@@ -82,7 +82,7 @@
             <textarea 
     v-model="configInput"
     :placeholder="configInput ? '' : '输入JSON配置，例如：{key: value}'"
-    class="w-full flex-1 p-3 rounded-lg focus:outline-none text-sm font-mono config-textarea"
+    class="w-full min-h-24 p-3 rounded-lg focus:outline-none text-sm font-mono config-textarea"
   ></textarea>
           </div>
         </div>
@@ -758,13 +758,26 @@ onMounted(() => {
 
 /* 配置输入textarea样式 */
 .config-textarea {
-  border: 2px solid #6B7280 !important;
+  border: 1px solid #d1d5db !important;
+  background-color: white !important;
+  color: #374151 !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
+.dark .config-textarea {
+  border: 1px solid #4b5563 !important;
+  background-color: #1f2937 !important;
+  color: white !important;
+}
+
 .config-textarea:focus {
-  border-color: #4F46E5 !important;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+  border: 1px solid #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .config-textarea:focus {
+  border: 1px solid #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
 }
 </style>

@@ -53,9 +53,10 @@ def create_folder(folder_data: dict, document_service: DocumentService = Depends
     """创建新的文件夹/知识库"""
     folder_name = folder_data.get('name')
     embedding_model = folder_data.get('embedding_model')
+    description = folder_data.get('description', '')
     
     # 调用服务层方法
-    result = document_service.create_folder(folder_name, embedding_model)
+    result = document_service.create_folder(folder_name, embedding_model, description)
     
     return FolderCreateResponse(
         success=True,

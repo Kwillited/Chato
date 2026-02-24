@@ -229,15 +229,16 @@ export const useFileStore = defineStore('file', {
     },
     
     // 创建文件夹/知识库
-    async createFolder(knowledgeBaseName, embeddingModel) {
+    async createFolder(knowledgeBaseName, embeddingModel, description = '') {
       try {
         const result = await apiUtils.wrapApiCall(this, async () => {
           let response;
           
-          // 使用Python API创建文件夹，传递嵌入模型
+          // 使用Python API创建文件夹，传递嵌入模型和描述
           response = await apiService.post('/files/folders', {
             name: knowledgeBaseName,
-            embedding_model: embeddingModel
+            embedding_model: embeddingModel,
+            description: description
           });
           
           // 重新加载文件夹列表，更新fileStore.folders

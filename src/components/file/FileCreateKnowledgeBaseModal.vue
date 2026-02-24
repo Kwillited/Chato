@@ -26,6 +26,19 @@
         <p v-if="error" class="text-red-500 text-xs mt-1">{{ error }}</p>
       </div>
       
+      <!-- 知识库描述 -->
+      <div class="mb-4">
+        <label for="knowledgeBaseDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">知识库描述</label>
+        <textarea
+          id="knowledgeBaseDescription"
+          v-model="knowledgeBaseDescription"
+          type="text"
+          placeholder="请输入知识库描述（可选）"
+          class="w-full min-h-24 px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors knowledge-base-description"
+          rows="3"
+        ></textarea>
+      </div>
+      
       <!-- 向量模型选择 -->
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">向量模型</label>
@@ -80,6 +93,7 @@ const settingsStore = useSettingsStore();
 
 // Refs
 const knowledgeBaseName = ref('');
+const knowledgeBaseDescription = ref('');
 const selectedEmbeddingModel = ref(''); // 默认值将在计算属性中设置
 const error = ref('');
 const inputRef = ref(null);
@@ -153,8 +167,8 @@ const handleCreate = async () => {
     // 当没有可用模型时传递null，否则传递选择的嵌入模型
     const embeddingModel = hasAvailableEmbeddingModels.value && selectedEmbeddingModel.value ? selectedEmbeddingModel.value : null;
     
-    // 通过fileStore创建知识库，传递选择的嵌入模型
-    const result = await fileStore.createFolder(knowledgeBaseName.value.trim(), embeddingModel);
+    // 通过fileStore创建知识库，传递选择的嵌入模型和描述
+    const result = await fileStore.createFolder(knowledgeBaseName.value.trim(), embeddingModel, knowledgeBaseDescription.value.trim());
     if (result.success) {
       // 显示成功提示
       showNotification(`已成功创建知识库: ${knowledgeBaseName.value.trim()}`, 'success');
@@ -184,6 +198,7 @@ const handleCancel = () => {
 // 重置表单
 const resetForm = () => {
   knowledgeBaseName.value = '';
+  knowledgeBaseDescription.value = '';
   // 设置默认嵌入模型
   if (embeddingModelOptions.value.length > 0) {
     selectedEmbeddingModel.value = embeddingModelOptions.value[0].value;
@@ -214,4 +229,26 @@ const handleKeyDown = (event) => {
 
 <style scoped>
 /* 动画效果已移至通用模态框组件 */
+
+/* 确保知识库描述textarea有边框 */
+.knowledge-base-description {
+  outline: none !important;
+  border: 1px solid #d1d5db !important;
+  box-shadow: none !important;
+}
+
+.dark .knowledge-base-description {
+  border: 1px solid #4b5563 !important;
+}
+
+.knowledge-base-description:focus {
+  outline: none !important;
+  border: 1px solid #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.dark .knowledge-base-description:focus {
+  border: 1px solid #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
+}
 </style>

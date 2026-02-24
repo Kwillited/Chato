@@ -41,15 +41,6 @@
           </span>
         </div>
         
-        <!-- 上传文件按钮 -->
-        <Button 
-          shape="full"
-          size="md"
-          icon="fa-upload" 
-          tooltip="上传文件" 
-          @click="handleUploadClick"
-        />
-        
         <!-- 刷新按钮 -->
         <Button 
           shape="full"
@@ -57,6 +48,15 @@
           icon="fa-arrows-rotate" 
           tooltip="刷新" 
           @click="refreshFiles"
+        />
+        
+        <!-- 文件属性按钮 -->
+        <Button 
+          shape="full"
+          size="md"
+          icon="fa-info-circle" 
+          tooltip="文件属性" 
+          @click="handleFileProperties"
         />
       </div>
     </div>
@@ -497,6 +497,14 @@ const handleDeleteConfirm = async () => {
   }
 };
 
+// 处理文件属性
+const handleFileProperties = () => {
+  console.log('查看文件属性');
+  // 这里可以添加显示文件属性的逻辑
+  // 例如，打开一个模态框显示选中文件的属性
+  showError('文件属性功能正在开发中');
+};
+
 // 处理文件夹点击
 const handleFolderClick = async (folder) => {
   console.log(`尝试加载文件夹: ${JSON.stringify(folder)}`);
@@ -510,7 +518,7 @@ const handleFolderClick = async (folder) => {
     const folderFiles = await fileStore.loadFilesInFolder(folder);
     // 更新store中的文件列表
     if (folderFiles && Array.isArray(folderFiles)) {
-      fileStore.files = folderFiles.map((file) => ({
+      const formattedFiles = folderFiles.map((file) => ({
         id: generateId('file'),
         name: file.name,
         path: file.path || '',
@@ -518,6 +526,9 @@ const handleFolderClick = async (folder) => {
         type: file.type || (file.name ? file.name.split('.').pop()?.toLowerCase() : 'unknown'),
         uploadedAt: file.uploadedAt || Date.now()
       }));
+      fileStore.files = formattedFiles;
+      // 同时更新ragStore.files，确保文件列表正确显示
+      ragStore.files = formattedFiles;
     }
     
     // 打印文件列表用于调试
@@ -526,6 +537,7 @@ const handleFolderClick = async (folder) => {
     console.error('读取文件夹内容失败:', error);
     // 发生错误时清空文件列表
     ragStore.files = [];
+    fileStore.files = [];
   } finally {
     // 使用nextTick确保数据更新完成后再隐藏加载状态
     await nextTick();
