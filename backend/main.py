@@ -1,5 +1,6 @@
 """Chato应用入口"""
 import os
+from contextlib import asynccontextmanager
 from app import create_app
 from app.core.config import ConfigManager
 from app.core.data_manager import load_data
@@ -27,12 +28,6 @@ def setup():
     load_data()
     logger.info("应用数据加载完成")
 
-# 创建应用实例
-app = create_app()
-
-# 在应用启动前执行初始化
-setup()
-
 async def init_mcp_adapter():
     """初始化 MCP 适配器"""
     try:
@@ -45,10 +40,11 @@ async def init_mcp_adapter():
         logger.error(f"MCP 适配器初始化失败: {e}")
         return False
 
-# 使用FastAPI的后台任务机制，在应用启动后异步初始化系统组件
-@app.on_event("startup")
-async def startup_event():
-    """应用启动事件，用于异步初始化系统组件"""
+# 使用FastAPI的 lifespan event handlers 替代 deprecated 的 on_event
+@asynccontextmanager
+async def lifespan(app):
+    """应用生命周期管理"""
+    # 启动时的初始化操作
     logger.info("应用启动，开始异步初始化系统组件")
     import asyncio
     
@@ -56,8 +52,18 @@ async def startup_event():
     await asyncio.gather(
         init_mcp_adapter()
     )
+    
+    yield
+    
+    # 关闭时的清理操作（如果需要）
+    logger.info("应用关闭，开始清理资源")
+
+# 创建应用实例，传入 lifespan
+app = create_app(lifespan=lifespan)
 
 if __name__ == '__main__':
+    # 在应用启动前执行初始化
+    setup()
     # 从配置中获取应用设置
     debug = config_manager.get('app.debug', True)
     host = config_manager.get('app.host', '0.0.0.0')

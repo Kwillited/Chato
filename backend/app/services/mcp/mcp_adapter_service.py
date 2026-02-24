@@ -18,7 +18,7 @@ class MCPAdapterService(BaseService):
     
     def __init__(self):
         """初始化 MCP 适配器服务"""
-        if hasattr(self, '_initialized') and self._initialized:
+        if hasattr(self, '_initialized'):
             return
         
         super().__init__()

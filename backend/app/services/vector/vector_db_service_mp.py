@@ -84,6 +84,10 @@ class VectorDBProcess(multiprocessing.Process):
             )
             # 初始化向量存储
             _ = self.vector_service.vector_store
+            # 子进程只输出必要的初始化成功日志
+            import logging
+            logger = logging.getLogger('chato')
+            logger.info(f"[子进程:{multiprocessing.current_process().pid}] 进程隔离的向量服务初始化成功")
             return (True, "初始化成功")
         except Exception as e:
             return (False, str(e))
@@ -178,7 +182,9 @@ class VectorDBServiceMP(BaseService):
         # 初始化向量服务
         self._init_service()
         
-        self.log_info(f"初始化进程隔离的向量数据库服务: 知识库='{self.knowledge_base_name}', 嵌入模型='{self.embedder_model}', 路径='{self.vector_db_path}'")
+        # 只在主进程输出初始化日志
+        if multiprocessing.current_process().name == 'MainProcess':
+            self.log_info(f"初始化进程隔离的向量数据库服务: 知识库='{self.knowledge_base_name}', 嵌入模型='{self.embedder_model}', 路径='{self.vector_db_path}'")
         self._initialized = True
     
     def _init_service(self):
@@ -287,11 +293,7 @@ class VectorDBServiceMP(BaseService):
         # 这个属性只是为了保持兼容性，返回 self 以便调用相关方法
         return self
     
-    def clear_vector_store(self):
-        """清空向量库"""
-        # 调用已有的清空向量库方法
-        result = self._send_task('clear_vector_store')
-        return result[0]
+
     
     def get_vector_store_stats(self):
         """获取向量库统计信息"""

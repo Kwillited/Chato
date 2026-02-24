@@ -16,7 +16,7 @@ from app.services.file.document_service import DocumentService
 from app.services.settings.setting_service import SettingService
 from app.services.mcp.mcp_service import MCPService
 from app.services.vector.vector_store_service import VectorStoreService
-from app.services.vector.vector_db_service import VectorDBService
+from app.services.vector.vector_db_service_mp import VectorDBServiceMP
 from app.services.vector.vector_service import VectorService
 from app.repositories.embedding_model_repository import EmbeddingModelRepository
 from app.core.memory_cache import MemoryCache

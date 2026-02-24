@@ -264,8 +264,7 @@ class DocumentService(BaseService):
                 # 这里会创建空的Chroma实例
                 vector_store = vector_db_service.vector_store
                 
-                # 关闭服务，释放资源
-                vector_db_service.close()
+                # 不要关闭服务，保持运行状态以便后续使用
                 
                 # 记录初始化成功
                 self.log_info(f"✅ 知识库向量数据库初始化成功: {folder_name}, 嵌入模型: {embedding_model}")
@@ -359,7 +358,6 @@ class DocumentService(BaseService):
             # 尝试释放向量服务连接
             try:
                 from app.services.vector.vector_service import VectorService
-                from app.services.vector.vector_db_service import VectorDBService
                 from app.services.vector.vector_db_service_mp import VectorDBServiceMP
                 
                 # 先获取并关闭所有 VectorStoreService 实例
@@ -386,8 +384,6 @@ class DocumentService(BaseService):
                     VectorService._instance = None
                 if hasattr(VectorService, 'vector_store_services'):
                     VectorService.vector_store_services = {}
-                # 清除向量数据库服务实例缓存
-                VectorDBService._instances = {}
                 # 清除进程隔离的向量数据库服务实例缓存
                 VectorDBServiceMP._instances = {}
                 
@@ -477,7 +473,6 @@ class DocumentService(BaseService):
                 # 尝试释放向量服务连接
                 try:
                     from app.services.vector.vector_service import VectorService
-                    from app.services.vector.vector_db_service import VectorDBService
                     from app.services.vector.vector_db_service_mp import VectorDBServiceMP
                     
                     # 先获取并关闭所有 VectorStoreService 实例
@@ -504,8 +499,6 @@ class DocumentService(BaseService):
                         VectorService._instance = None
                     if hasattr(VectorService, 'vector_store_services'):
                         VectorService.vector_store_services = {}
-                    # 清除向量数据库服务实例缓存
-                    VectorDBService._instances = {}
                     # 清除进程隔离的向量数据库服务实例缓存
                     VectorDBServiceMP._instances = {}
                     
