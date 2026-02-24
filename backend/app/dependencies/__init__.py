@@ -88,7 +88,8 @@ def get_mcp_service(setting_service: SettingService = Depends(get_setting_servic
 
 def get_vector_db_service():
     """获取向量数据库服务实例"""
-    return VectorDBService()
+    from app.services.vector.vector_db_service_mp import VectorDBServiceMP
+    return VectorDBServiceMP(vector_db_path='', embedder_model='')
 
 
 def get_vector_store_service():

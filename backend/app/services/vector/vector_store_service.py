@@ -4,7 +4,7 @@ import threading
 from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import config_manager
 from app.services.base_service import BaseService
-from app.services.vector.vector_db_service import VectorDBService
+from app.services.vector.vector_db_service_mp import VectorDBServiceMP
 
 class VectorStoreService(BaseService):
     """向量存储服务类 - 作为向量数据库服务的上层包装，处理缓存等高级功能"""
@@ -55,8 +55,8 @@ class VectorStoreService(BaseService):
         # 设置知识库名称
         self.knowledge_base_name = knowledge_base_name or "default"
         
-        # 初始化向量数据库服务（位于数据层）
-        self.vector_db_service = VectorDBService(vector_db_path, embedder_model, self.knowledge_base_name)
+        # 初始化向量数据库服务（位于数据层，使用进程隔离）
+        self.vector_db_service = VectorDBServiceMP(vector_db_path, embedder_model, self.knowledge_base_name)
         
         # 初始化查询缓存
         self._query_cache = {}  # 缓存字典：key为查询特征，value为(结果, 时间戳)
@@ -144,8 +144,8 @@ class VectorStoreService(BaseService):
             self.log_info(f"[{self.knowledge_base_name}] 已清空查询缓存")
             
             # 重新初始化向量数据库服务
-            from app.services.vector.vector_db_service import VectorDBService
-            self._vector_db_service = VectorDBService(None, None, self.knowledge_base_name)
+            from app.services.vector.vector_db_service_mp import VectorDBServiceMP
+            self._vector_db_service = VectorDBServiceMP(self.vector_db_path, self.embedder_model, self.knowledge_base_name)
             self.log_info(f"[{self.knowledge_base_name}] 已重新初始化向量数据库服务")
             
             return True, "向量库重新加载成功"

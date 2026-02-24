@@ -51,12 +51,4 @@ class PathManager:
         """标准化路径"""
         return os.path.normpath(path)
     
-    @staticmethod
-    def ensure_rag_dirs():
-        """确保所有RAG相关目录存在"""
-        # 确保RAG根目录存在
-        PathManager.ensure_dir(PathManager.get_rag_dir())
-        # 确保文件数据目录存在
-        PathManager.ensure_dir(PathManager.get_data_dir())
-        # 确保向量数据库根目录存在
-        PathManager.ensure_dir(PathManager.get_vector_db_root())
+
