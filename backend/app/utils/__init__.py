@@ -12,8 +12,9 @@ from .file_utils import FileUtils
 # 统一日志工具
 from .logging_utils import LoggingUtils
 
-# 提示词构建工具
-from .prompt_utils import PromptUtils
+# 提示词管理工具
+from .prompt_manager import prompt_manager, PromptManager
+from .message_builder import MessageBuilder
 
 # 回调管理器
 from .callback_manager import CallbackManager, register_callback, trigger_callback, get_callback_manager
@@ -66,8 +67,10 @@ __all__ = [
     # 统一日志工具
     'LoggingUtils',
     
-    # 提示词构建工具
-    'PromptUtils',
+    # 提示词管理工具
+    'prompt_manager',
+    'PromptManager',
+    'MessageBuilder',
     
     # 回调管理器
     'CallbackManager',

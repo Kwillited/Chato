@@ -8,6 +8,7 @@ from app.services.base_service import BaseService
 from app.utils.response_strategy.handler import ResponseHandler
 from app.utils import FileUtils
 from app.utils.model import ModelUtils
+from app.utils.message_builder import MessageBuilder
 
 class ChatService(BaseService):
     """对话服务类，封装所有对话相关的业务逻辑"""
@@ -321,20 +322,23 @@ class ChatService(BaseService):
         chat_id = chat['id']
         user_msg_id = user_message['id']
         
-        logger.debug(f"开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
+        logger.info(f"开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
+        logger.info(f"对话当前消息数: {len(chat.get('messages', []))}")
+        logger.info(f"用户消息内容: {user_message['content'][:50]}{'...' if len(user_message['content']) > 50 else ''}")
         
         # 先设置脏标记，确保数据会被保存
         DataService.set_dirty_flag('chats', True)
-        logger.debug(f"设置脏标记: chats=True")
+        logger.info(f"设置脏标记: chats=True")
         
         # 更新内存中的对话
         # 更新对话的更新时间
         chat['updatedAt'] = now
+        logger.info(f"更新对话时间: chat_id={chat_id}, updatedAt={now}")
         
         # 更新对话预览（使用消息的前50个字符）
         preview_text = message_text[:50] + (message_text[50:] and '...')
         chat['preview'] = preview_text
-        logger.debug(f"更新对话预览: chat_id={chat_id}, preview={preview_text}")
+        logger.info(f"更新对话预览: chat_id={chat_id}, preview={preview_text}")
         
         # 自动更新对话标题（如果是首次消息且标题还是默认的"新对话"）
         new_title = chat['title']
@@ -347,7 +351,7 @@ class ChatService(BaseService):
                 # 使用用户的第一条消息作为标题（截取前30个字符）
                 new_title = message_text[:30] + (message_text[30:] and '...')
                 chat['title'] = new_title
-                logger.debug(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
+                logger.info(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
         
         # 保存AI消息到内存（如果存在）
         if ai_message:
@@ -356,10 +360,19 @@ class ChatService(BaseService):
             chat['messages'].append(ai_message)
             logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, agent_node={ai_message.get('agent_node')}")
         
+        # 检查chat对象是否在db['chats']中
+        chats = DataService.get_chats()
+        chat_in_db = any(c['id'] == chat_id for c in chats)
+        logger.info(f"对话是否在内存数据库中: {chat_in_db}, 内存数据库中对话数量: {len(chats)}")
+        
+        # 强制保存数据，不依赖自动保存
+        logger.info(f"强制保存数据到数据库")
+        DataService.save_data()
+        
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
-        logger.info(f"对话更新成功，等待自动保存: chat_id={chat_id}")
+        logger.info(f"对话更新成功，消息已保存: chat_id={chat_id}, 消息总数: {len(chat.get('messages', []))}")
 
-    def _prepare_messages_for_model(self, chat_id, enhanced_question, selected_message_ids=None):
+    def _prepare_messages_for_model(self, chat_id, enhanced_question, selected_message_ids=None, rag_enabled=False, agent_enabled=False, context_docs=None):
         """
         准备发送给模型的消息格式
         
@@ -367,29 +380,36 @@ class ChatService(BaseService):
             chat_id: 对话ID
             enhanced_question: 增强后的问题
             selected_message_ids: 用户选择的消息ID列表
+            rag_enabled: 是否启用RAG模式
+            agent_enabled: 是否启用智能体模式
+            context_docs: RAG上下文文档列表
         
         返回:
             格式化的消息列表
         """
-        # 获取对话上下文历史，传递selected_message_ids
-        context_messages = self.get_chat_context(chat_id, selected_message_ids=selected_message_ids)
-        
-        # 准备消息格式，如果有上下文则使用上下文，否则使用当前问题
-        if context_messages and len(context_messages) > 0:
-            # 替换最后一条消息（即当前消息）的内容为增强后的问题
-            messages = context_messages.copy()
-            if messages:
-                messages[-1]['content'] = enhanced_question
-        else:
-            # 如果没有上下文历史，只发送当前问题
-            messages = [{'role': 'user', 'content': enhanced_question}]
-        
-        return messages
+        # 使用MessageBuilder构建消息列表
+        return MessageBuilder.build_messages_from_chat(
+            chat_id=chat_id,
+            query=enhanced_question,
+            rag_enabled=rag_enabled,
+            agent_enabled=agent_enabled,
+            context_docs=context_docs,
+            selected_message_ids=selected_message_ids
+        )
     
     async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False, model=None):
             """
             异步流式模型回复函数
             """
+            # 打印传递的消息
+            print(f"[chat_with_model_stream] 传递的消息: model_name={model_name}, use_agent={use_agent}")
+            print(f"[chat_with_model_stream] 消息数量: {len(messages)}")
+            for i, msg in enumerate(messages):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                content_preview = content[:100] + ('...' if len(content) > 100 else '')
+                print(f"[chat_with_model_stream] 消息{i+1} (role={role}): {content_preview}")
+            
             # 1. 验证模型 (如果传入了 model，则直接使用)
             if not model:
                 model, error_response, _ = ModelUtils.validate_model(model_name, DataService)
@@ -859,8 +879,12 @@ class ChatService(BaseService):
         logger.debug(f"RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
         
         # 调用RAG系统构造增强提示，传递完整的ragConfig
+        context_docs = None
         if rag_enabled:
             logger.debug("准备调用get_rag_enhanced_prompt方法")
+            # 执行RAG搜索获取上下文文档
+            context_docs, _ = self._perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
+            logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
             # 传递完整的ragConfig给RAG增强方法
             enhanced_question = self.get_rag_enhanced_prompt(full_message_text, rag_config)
             logger.debug(f"RAG增强完成，原始长度: {len(full_message_text)}, 增强后长度: {len(enhanced_question)}")
@@ -879,7 +903,7 @@ class ChatService(BaseService):
         chat['messages'].append(user_message)
         
         # 构建模型输入
-        model_messages = self._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids=selected_message_ids)
+        model_messages = self._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids=selected_message_ids, rag_enabled=rag_enabled, agent_enabled=use_agent, context_docs=context_docs)
         
         # 根据stream和agent的值决定返回类型
         if stream:

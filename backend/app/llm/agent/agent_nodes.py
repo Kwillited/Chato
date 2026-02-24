@@ -29,13 +29,21 @@ class AgentNodes:
         """核心节点：负责思考、规划并决定下一步行动"""
         logger.info(f"[Agent] 正在进行第 {state['loop_count']+1} 轮推理...")
         
-        system_prompt = (
-            "你是一个拥有强大自主能力的通用智能体。请按以下流程思考：\n"
+        # 从配置文件获取基础系统消息
+        from app.utils.prompt_manager import prompt_manager
+        agent_message = prompt_manager.get_system_message(mode='agent')
+        base_system_prompt = agent_message['content']
+        
+        # 添加智能体特定的思考流程要求
+        agent_specific_prompt = (
+            "\n\n请按以下流程思考：\n"
             "1. 分析用户意图和当前状态。\n"
             "2. 如果信息不足，决定调用什么工具，并在 <thought> 标签中说明理由。\n"
             "3. 如果信息足够，直接给出最终回答。\n"
             "请始终先在 <thought> 标签内进行内心独白，再输出结果或调用工具。"
         )
+        
+        system_prompt = base_system_prompt + agent_specific_prompt
         
         msgs = state["messages"]
         # 确保系统提示词存在

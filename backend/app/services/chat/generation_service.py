@@ -1,7 +1,7 @@
 """生成服务 - 负责基于检索到的上下文生成响应"""
 from app.core.config import config_manager
 from app.services.base_service import BaseService
-from app.utils.prompt_utils import PromptUtils
+from app.utils.prompt_manager import prompt_manager
 
 class GenerationService(BaseService):
     """生成服务类 - 封装所有与LLM推理相关的操作"""
@@ -22,7 +22,14 @@ class GenerationService(BaseService):
         Returns:
             str: 构建好的提示
         """
-        return PromptUtils.build_prompt(query, context_docs, chat_history, prompt_template)
+        # 使用prompt_manager构建人类消息，然后提取内容作为提示
+        human_message = prompt_manager.build_human_message(
+            query=query,
+            context_docs=context_docs,
+            chat_history=chat_history,
+            prompt_template=prompt_template
+        )
+        return human_message['content']
     
     def generate_response(self, prompt, llm=None):
         """调用LLM生成响应
@@ -117,7 +124,11 @@ class GenerationService(BaseService):
         Returns:
             str: 构建好的系统提示词
         """
-        return PromptUtils.build_agent_prompt(system_prompt)
+        if system_prompt:
+            return system_prompt
+        # 使用prompt_manager获取智能体系统消息
+        agent_message = prompt_manager.get_system_message(mode='agent')
+        return agent_message['content']
     
     def get_agent_prompt_template(self, system_prompt=None):
         """获取智能体提示词模板
@@ -128,4 +139,22 @@ class GenerationService(BaseService):
         Returns:
             ChatPromptTemplate: 智能体提示词模板
         """
-        return PromptUtils.get_agent_prompt_template(system_prompt)
+        try:
+            from langchain_core.prompts import ChatPromptTemplate
+            
+            # 构建系统提示词
+            final_system_prompt = self.build_agent_prompt(system_prompt)
+            
+            # 创建提示词模板
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", final_system_prompt),
+                ("placeholder", "{chat_history}"),
+                ("human", "{input}"),
+                ("placeholder", "{agent_scratchpad}"),
+            ])
+            
+            return prompt
+        except Exception as e:
+            # 简化错误处理，避免循环导入
+            print(f"创建智能体提示词模板失败: {str(e)}")
+            return None
