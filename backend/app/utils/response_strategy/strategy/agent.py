@@ -38,7 +38,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
             try:
                 # 使用工具类创建智能体会话
                 agent_session_id = AgentSystem.create_agent_session(chat_service, chat['id'])
-                print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
                 
                 # 累积每个节点的响应
                 node_content = {}
@@ -55,13 +54,11 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                 node_tool_info = {}
                 
                 # 处理流式响应
-                print(f"[AgentResponseStrategy] 开始接收智能体流式响应")
                 async for chunk in StreamSystem.handle_streaming_response(
                     chat_service, parsed_model_name, model_messages, 
                     parsed_version_name, model_params, True, model
                 ):
                     if isinstance(chunk, dict):
-                        print(f"[AgentResponseStrategy] 接收到智能体响应块: event={chunk.get('event')}, node={chunk.get('node')}, step={chunk.get('agent_step')}, tool_index={chunk.get('tool_index')}")
                         # 添加 agent 标记
                         chunk['agent'] = True
                         yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
@@ -112,12 +109,10 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                             node_metadata, node_tool_info, agent_state
                         )
                     else:
-                        print(f"[AgentResponseStrategy] 接收到非字典响应: {str(chunk)[:50]}...")
                         # 添加 agent 标记
                         yield f"data: {json.dumps({'chunk': str(chunk), 'agent': True}, ensure_ascii=False)}\n\n"
                 
                 # 保存当前节点的响应
-                print(f"[AgentResponseStrategy] 开始保存当前节点的响应")
                 if current_node:
                     # 处理工具信息
                     tool_content = AgentSystem.process_tool_info(node_tool_info, current_node)
@@ -132,13 +127,11 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                     )
                 
                 # 保存所有消息
-                print(f"[AgentResponseStrategy] 智能体流程完成，开始保存所有消息")
                 # 先添加所有AI消息
                 for ai_message in responses:
                     chat['messages'].append(ai_message)
                 # 调用update_chat_and_save方法更新对话其他属性，但不传递ai_message参数
                 chat_service.update_chat_and_save(chat, message_text, user_message, None, now)
-                print(f"[AgentResponseStrategy] 所有消息保存完成")
                 
                 # 发送完成信号
                 yield f'data: {json.dumps({"agent": True, "done": True, "saved_messages": responses}, ensure_ascii=False)}\n\n'
@@ -156,7 +149,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         """处理非流式智能体响应"""
         # 使用工具类创建智能体会话
         agent_session_id = AgentSystem.create_agent_session(chat_service, chat['id'])
-        print(f"[AgentResponseStrategy] 创建智能体会话: session_id={agent_session_id}")
         
         # 调用智能体
         from app.llm.agent_wrapper import AgentWrapper
@@ -164,7 +156,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         
         # 获取基础模型驱动
         version_config = chat_service.get_version_config(model, parsed_version_name)
-        base_driver = ModelManager.get_model_driver(parsed_model_name, model, version_config)
+        base_driver = ModelManager.get_model_driver(parsed_version_name, model, version_config)
         
         # 创建并初始化智能体
         agent_wrapper = AgentWrapper(base_driver)
@@ -174,11 +166,9 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         agent_state = AgentSystem.create_agent_state()
         
         # 非流式调用智能体
-        print(f"[AgentResponseStrategy] 开始非流式智能体调用")
         response = await agent_wrapper.chat(model_messages, model_params)
         
         # 处理智能体响应
-        print(f"[AgentResponseStrategy] 智能体响应完成: {type(response)}")
         
         # 提取内容
         content = response.get('content', response) if isinstance(response, dict) else response
@@ -194,9 +184,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         )
         
         # 保存消息
-        print(f"[AgentResponseStrategy] 智能体流程完成，开始保存消息")
         chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)
-        print(f"[AgentResponseStrategy] 消息保存完成")
         
         return {
             'success': True,
@@ -213,7 +201,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
             content = AgentSystem.get_node_content(node_content, node)
             
             metadata = node_metadata.get(node, {})
-            print(f"[AgentResponseStrategy] 准备节点消息: node={node}, content={content[:50]}...")
             
             # 获取节点的思考内容
             node_reasoning_content = node_reasoning.get(node, None)
@@ -227,10 +214,8 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                 reasoning_content=node_reasoning_content
             )
             
-            print(f"[AgentResponseStrategy] 准备智能体消息: message_id={ai_message['id']}, session_id={agent_session_id}, node={node}, step={step}")
-            
+            # 存储AI消息
             responses.append(ai_message)
-            print(f"[AgentResponseStrategy] 智能体消息已添加到待保存列表: message_id={ai_message['id']}, node={node}")
             
             # 清空已处理节点的内容
             if node in node_content:
@@ -245,14 +230,12 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
             # 处理聊天模型流
             content = chunk.get('data', {}).get('content', '')
             reasoning_content = chunk.get('data', {}).get('reasoning_content', None)
-            print(f"[AgentResponseStrategy] 提取到内容: {content[:50]}..., 思考内容: {reasoning_content[:50]}..." if reasoning_content else f"[AgentResponseStrategy] 提取到内容: {content[:50]}...")
             
             # 累积内容
             if content:
                 if node not in node_content:
                     node_content[node] = ''
                 node_content[node] += content
-                print(f"[AgentResponseStrategy] 累积节点内容: node={node}, length={len(node_content[node])}")
                 # 更新智能体状态中的消息
                 agent_state["messages"].append({
                     "role": "assistant",
@@ -266,7 +249,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                 if node not in node_reasoning:
                     node_reasoning[node] = ''
                 node_reasoning[node] += reasoning_content
-                print(f"[AgentResponseStrategy] 累积节点思考内容: node={node}, length={len(node_reasoning[node])}")
                 # 如果没有 content，也更新智能体状态中的消息
                 if not content:
                     agent_state["messages"].append({
@@ -287,7 +269,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                         node_content[node] = ''
                     # 添加工具调用计划到节点内容
                     node_content[node] += f"\n[工具调用计划] 工具: {tool_name}, 参数: {str(tool_args)}"
-                    print(f"[AgentResponseStrategy] 累积工具调用计划: node={node}, tool={tool_name}")
                     # 更新智能体状态中的消息
                     agent_state["messages"].append({
                         "role": "assistant",
