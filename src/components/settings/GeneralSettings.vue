@@ -15,10 +15,11 @@
     </div>
 
     <!-- 导出和删除按钮 -->
-    <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 bg-white dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-gray-600">
-      <div class="flex justify-between items-center">
-        <h3 class="font-medium text-sm text-gray-700 dark:text-gray-200">对话管理</h3>
-        <div class="flex gap-2">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- 导出对话卡片 -->
+      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 bg-white dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-gray-600">
+        <div class="flex justify-between items-center">
+          <h3 class="font-medium text-sm text-gray-700 dark:text-gray-200">导出对话</h3>
           <Button
             id="exportAllBtn"
             shape="full"
@@ -28,6 +29,12 @@
             @click="handleExportAll"
             class="w-8 h-8 p-1.5 text-gray-500 dark:text-gray-300 hover:text-primary hover:bg-primary/10 rounded-full transition-colors duration-200"
           />
+        </div>
+      </div>
+      <!-- 删除对话卡片 -->
+      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 bg-white dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-gray-600">
+        <div class="flex justify-between items-center">
+          <h3 class="font-medium text-sm text-gray-700 dark:text-gray-200">删除对话</h3>
           <Button
             id="deleteAllBtn"
             shape="full"

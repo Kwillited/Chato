@@ -1242,42 +1242,11 @@ export const useChatStore = defineStore('chat', {
         this.chats = this.chats.map(c => 
           c.id === chat.id ? { ...c, hasUnreadMessage: true } : c
         );
-        // 获取通知显示时间设置
-        const settingsStore = useSettingsStore();
-        let displayTimeMs = 3000; // 默认3秒
-        const displayTimeSetting = settingsStore.notificationsConfig?.displayTime;
-        if (displayTimeSetting === '2秒') {
-          displayTimeMs = 2000;
-        } else if (displayTimeSetting === '5秒') {
-          displayTimeMs = 5000;
-        } else if (displayTimeSetting === '10秒') {
-          displayTimeMs = 10000;
-        }
         // 使用通知组合式函数
         const { showNotificationWithSound } = useNotification();
         // 显示新消息通知并播放声音
-        showNotificationWithSound(`新消息: ${chat.title}`, displayTimeMs);
+        showNotificationWithSound(`新消息: ${chat.title}`);
       }
     },
-    
-    // 播放未读消息通知声音
-playNotificationSound() {
-  try {
-    const settingsStore = useSettingsStore();
-    const notificationsConfig = settingsStore.currentNotificationsConfig;
-    
-    // 检查是否启用了通知声音，并且在浏览器环境中
-    if (notificationsConfig && notificationsConfig.sound && typeof window !== 'undefined' && typeof window.Audio !== 'undefined') {
-      // 使用项目中已有的通知音频文件
-      const audio = new window.Audio('/src/assets/notice.mp3');
-      // 播放声音，并捕获可能的错误
-      audio.play().catch(err => {
-        console.warn('播放通知声音失败:', err);
-      });
-    }
-  } catch (error) {
-    console.error('处理通知声音时出错:', error);
-  }
-},
   },
 });
