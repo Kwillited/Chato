@@ -5,20 +5,24 @@ from app.services.base_service import BaseService
 import json
 from app.utils.data import NamingUtils
 from app.utils.logging_utils import LoggingUtils
-from app.core.memory_cache import MemoryCache
+from app.core.database import get_db
+from app.core.cache import cache_manager
 
 class SettingService(BaseService):
     """设置服务类，封装所有设置相关的业务逻辑"""
     
-    def __init__(self, setting_repo=None, memory_cache=None):
+    def __init__(self, setting_repo=None):
         """初始化设置服务
         
         Args:
             setting_repo: 设置仓库实例，用于依赖注入
-            memory_cache: 内存缓存实例，用于依赖注入
         """
-        self.setting_repo = setting_repo or SettingRepository()
-        self.memory_cache = memory_cache or MemoryCache()
+        if setting_repo:
+            self.setting_repo = setting_repo
+        else:
+            # 创建默认的设置仓库实例
+            db_session = next(get_db())
+            self.setting_repo = SettingRepository(db_session)
     
     def convert_dict_keys(self, data_dict):
         """将字典的所有键从驼峰命名转换为蛇形命名
@@ -35,7 +39,29 @@ class SettingService(BaseService):
     
     def get_system_setting(self):
         """获取系统设置（包含通知设置）"""
-        # 从设置仓库获取系统设置
+        # 优先从内存缓存获取设置
+        settings = cache_manager.get('settings') or {}
+        system_settings = settings.get('system', {})
+        
+        if system_settings:
+            # 从内存缓存返回设置，转换为前端期望的格式
+            return {
+                'dark_mode': system_settings.get('darkMode', False),
+                'streaming_enabled': system_settings.get('streamingEnabled', True),
+                'chat_style': system_settings.get('chatStyle', 'bubble'),
+                'view_mode': system_settings.get('viewMode', 'grid'),
+                'default_model': system_settings.get('defaultModel', ""),
+                # 通知相关字段
+                'newMessage': system_settings.get('newMessage', True),
+                'sound': system_settings.get('sound', False),
+                'system': system_settings.get('system', True),
+                'displayTime': system_settings.get('displayTime', '5秒'),
+                'vector_db_path': system_settings.get('vector_db_path', ''),
+                'default_top_k': system_settings.get('default_top_k', 3),
+                'default_score_threshold': system_settings.get('default_score_threshold', 0.7)
+            }
+        
+        # 如果内存缓存中没有设置，从数据库获取
         system_setting = self.setting_repo.get_system_setting()
         if system_setting:
             return {
@@ -48,7 +74,10 @@ class SettingService(BaseService):
                 'newMessage': getattr(system_setting, 'new_message', True) or True,
                 'sound': getattr(system_setting, 'sound', False) or False,
                 'system': getattr(system_setting, 'system', True) or True,
-                'displayTime': getattr(system_setting, 'display_time', '5秒') or '5秒'
+                'displayTime': getattr(system_setting, 'display_time', '5秒') or '5秒',
+                'vector_db_path': getattr(system_setting, 'vector_db_path', ''),
+                'default_top_k': getattr(system_setting, 'default_top_k', 3),
+                'default_score_threshold': getattr(system_setting, 'default_score_threshold', 0.7)
             }
         else:
             # 返回默认值
@@ -62,45 +91,63 @@ class SettingService(BaseService):
                 'newMessage': True,
                 'sound': False,
                 'system': True,
-                'displayTime': '5秒'
+                'displayTime': '5秒',
+                'vector_db_path': '',
+                'default_top_k': 3,
+                'default_score_threshold': 0.7
             }
     
     def save_system_setting(self, data):
         """保存系统设置（包含通知设置）"""
-        # 将驼峰命名转换为蛇形命名
-        snake_data = self.convert_dict_keys(data)
+        # 1. 获取当前的设置数据
+        current_settings = cache_manager.get('settings') or {}
+        system_settings = current_settings.get('system', {})
         
-        # 只保留SystemSetting模型中存在的字段
-        valid_fields = {
-            'dark_mode', 'streaming_enabled', 'chat_style',
-            'view_mode', 'default_model',
-            # 通知相关字段
-            'new_message', 'sound', 'system', 'display_time'
+        # 2. 更新内存缓存中的设置
+        # 处理前端发送的蛇形命名格式数据
+        # 直接映射蛇形命名到驼峰命名
+        field_mapping = {
+            'dark_mode': 'darkMode',
+            'streaming_enabled': 'streamingEnabled',
+            'chat_style': 'chatStyle',
+            'view_mode': 'viewMode',
+            'default_model': 'defaultModel',
+            'new_message': 'newMessage',
+            'display_time': 'displayTime'
         }
         
-        # 过滤掉无效字段
-        filtered_data = {k: v for k, v in snake_data.items() if k in valid_fields}
+        for key, value in data.items():
+            # 检查是否需要转换命名格式
+            if key in field_mapping:
+                # 蛇形命名转驼峰命名
+                system_settings[field_mapping[key]] = value
+            else:
+                # 不需要转换的字段直接使用
+                system_settings[key] = value
         
-        # 使用设置仓库保存设置
-        system_setting = self.setting_repo.create_or_update_system_setting(filtered_data)
+        # 更新内存缓存
+        current_settings['system'] = system_settings
+        cache_manager.set('settings', current_settings)
         
-        # 如果保存成功，返回更新后的设置
-        if system_setting:
-            return {
-                'dark_mode': system_setting.dark_mode,
-                'streaming_enabled': system_setting.streaming_enabled,
-                'chat_style': system_setting.chat_style,
-                'view_mode': system_setting.view_mode,
-                'default_model': system_setting.default_model,
-                # 通知相关字段
-                'newMessage': system_setting.new_message,
-                'sound': system_setting.sound,
-                'system': system_setting.system,
-                'displayTime': system_setting.display_time
-            }
-        else:
-            # 如果保存失败，返回原始数据
-            return data
+        # 3. 设置脏标记，触发自动保存
+        cache_manager.set_dirty_flag('settings')
+        
+        # 4. 从内存缓存返回更新后的数据
+        # 直接返回内存中最新的设置数据，转换为前端期望的格式
+        return {
+            'dark_mode': system_settings.get('darkMode', False),
+            'streaming_enabled': system_settings.get('streamingEnabled', True),
+            'chat_style': system_settings.get('chatStyle', 'bubble'),
+            'view_mode': system_settings.get('viewMode', 'grid'),
+            'default_model': system_settings.get('defaultModel', ''),
+            'newMessage': system_settings.get('newMessage', True),
+            'sound': system_settings.get('sound', False),
+            'system': system_settings.get('system', True),
+            'displayTime': system_settings.get('displayTime', '5秒'),
+            'vector_db_path': system_settings.get('vector_db_path', ''),
+            'default_top_k': system_settings.get('default_top_k', 3),
+            'default_score_threshold': system_settings.get('default_score_threshold', 0.7)
+        }
     
     def get_all_settings(self):
         """获取所有设置"""

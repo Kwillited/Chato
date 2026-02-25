@@ -48,6 +48,9 @@ async def lifespan(app):
     logger.info("应用启动，开始异步初始化系统组件")
     import asyncio
     
+    # 执行同步初始化操作
+    setup()
+
     # 只初始化 MCP 适配器，向量系统采用按需初始化
     await asyncio.gather(
         init_mcp_adapter()
@@ -62,8 +65,7 @@ async def lifespan(app):
 app = create_app(lifespan=lifespan)
 
 if __name__ == '__main__':
-    # 在应用启动前执行初始化
-    setup()
+
     # 从配置中获取应用设置
     debug = config_manager.get('app.debug', True)
     host = config_manager.get('app.host', '0.0.0.0')

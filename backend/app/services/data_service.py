@@ -1,7 +1,7 @@
 """数据服务层 - 封装内存数据管理和脏标记机制"""
-from app.core.data_manager import db, save_data
+from app.core.data_manager import save_data, set_dirty_flag
+from app.core.cache import cache_manager
 from app.services.base_service import BaseService
-from app.services.cache_service import cache_manager
 from app.repositories.folder_repository import FolderRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
@@ -19,44 +19,50 @@ class DataService(BaseService):
     @staticmethod
     def get_chats():
         """获取所有对话"""
-        return db['chats']
+        return cache_manager.get('chats')
     
     @staticmethod
     def get_chat_by_id(chat_id):
         """根据ID获取对话"""
-        return next((c for c in db['chats'] if c['id'] == chat_id), None)
+        chats = cache_manager.get('chats') or []
+        return next((c for c in chats if c['id'] == chat_id), None)
     
     @staticmethod
     def add_chat(chat):
         """添加对话"""
-        db['chats'].insert(0, chat)
-        DataService.set_dirty_flag('chats')
+        chats = cache_manager.get('chats') or []
+        chats.insert(0, chat)
+        cache_manager.set('chats', chats)
     
     @staticmethod
     def remove_chat(chat_id):
         """移除对话"""
-        chat_index = next((i for i, c in enumerate(db['chats']) if c['id'] == chat_id), None)
+        chats = cache_manager.get('chats') or []
+        chat_index = next((i for i, c in enumerate(chats) if c['id'] == chat_id), None)
         if chat_index is not None:
             # 移除聊天
-            db['chats'].pop(chat_index)
-            DataService.set_dirty_flag('chats')
+            chats.pop(chat_index)
+            cache_manager.set('chats', chats)
+            cache_manager.set_dirty_flag('chats')
             
             # 移除相关的智能体会话
-            sessions_to_remove = [s for s in db['agent_sessions'] if s['chat_id'] == chat_id]
-            for session in sessions_to_remove:
-                db['agent_sessions'].remove(session)
+            sessions = cache_manager.get('agent_sessions') or []
+            sessions_to_remove = [s for s in sessions if s['chat_id'] == chat_id]
             if sessions_to_remove:
-                DataService.set_dirty_flag('agent_sessions')
+                for session in sessions_to_remove:
+                    sessions.remove(session)
+                cache_manager.set('agent_sessions', sessions)
+                cache_manager.set_dirty_flag('agent_sessions')
     
     @staticmethod
     def clear_chats():
         """清空对话"""
-        db['chats'] = []
-        DataService.set_dirty_flag('chats')
+        cache_manager.set('chats', [])
+        cache_manager.set_dirty_flag('chats')
         
         # 清空所有智能体会话
-        db['agent_sessions'] = []
-        DataService.set_dirty_flag('agent_sessions')
+        cache_manager.set('agent_sessions', [])
+        cache_manager.set_dirty_flag('agent_sessions')
     
     @staticmethod
     def update_chat(chat_id, updated_data):
@@ -64,7 +70,8 @@ class DataService(BaseService):
         chat = DataService.get_chat_by_id(chat_id)
         if chat:
             chat.update(updated_data)
-            DataService.set_dirty_flag('chats')
+            # 由于chat是引用，直接设置脏标记即可
+            cache_manager.set_dirty_flag('chats')
     
     @staticmethod
     def add_message_to_chat(chat_id, message):
@@ -74,7 +81,8 @@ class DataService(BaseService):
             if 'messages' not in chat:
                 chat['messages'] = []
             chat['messages'].append(message)
-            DataService.set_dirty_flag('chats')
+            # 由于chat是引用，直接设置脏标记即可
+            cache_manager.set_dirty_flag('chats')
     
     @staticmethod
     def update_chat_pin(chat_id, pinned):
@@ -82,18 +90,20 @@ class DataService(BaseService):
         chat = DataService.get_chat_by_id(chat_id)
         if chat:
             chat['pinned'] = bool(pinned)
-            DataService.set_dirty_flag('chats')
+            # 由于chat是引用，直接设置脏标记即可
+            cache_manager.set_dirty_flag('chats')
     
     # 模型相关方法
     @staticmethod
     def get_models():
         """获取所有模型"""
-        return db['models']
+        return cache_manager.get('models')
     
     @staticmethod
     def get_model_by_name(model_name):
         """根据名称获取模型"""
-        return next((m for m in db['models'] if m['name'] == model_name), None)
+        models = cache_manager.get('models') or []
+        return next((m for m in models if m['name'] == model_name), None)
     
     @staticmethod
     def update_model(model_name, updated_model):
@@ -101,19 +111,21 @@ class DataService(BaseService):
         model = DataService.get_model_by_name(model_name)
         if model:
             model.update(updated_model)
-            DataService.set_dirty_flag('models')
+            # 由于model是引用，直接设置脏标记即可
+            cache_manager.set_dirty_flag('models')
     
     # 设置相关方法
     @staticmethod
     def get_settings():
         """获取所有设置"""
-        return db['settings']
+        return cache_manager.get('settings')
     
     @staticmethod
     def update_setting(key, value):
         """更新设置"""
-        db['settings'][key] = value
-        DataService.set_dirty_flag('settings')
+        settings = cache_manager.get('settings') or {}
+        settings[key] = value
+        cache_manager.set('settings', settings)
     
     # 文件管理相关方法
     def get_folders(self):
@@ -171,9 +183,7 @@ class DataService(BaseService):
     @staticmethod
     def set_dirty_flag(data_type, is_dirty=True):
         """设置脏标记"""
-        from app.core.data_manager import dirty_flags
-        if data_type in dirty_flags:
-            dirty_flags[data_type] = is_dirty
+        cache_manager.set_dirty_flag(data_type, is_dirty)
     
     @staticmethod
     def save_data():
@@ -184,18 +194,20 @@ class DataService(BaseService):
     @staticmethod
     def get_agent_sessions():
         """获取所有智能体会话"""
-        return db['agent_sessions']
+        return cache_manager.get('agent_sessions')
     
     @staticmethod
     def get_agent_session_by_id(session_id):
         """根据ID获取智能体会话"""
-        return next((s for s in db['agent_sessions'] if s['id'] == session_id), None)
+        sessions = cache_manager.get('agent_sessions') or []
+        return next((s for s in sessions if s['id'] == session_id), None)
     
     @staticmethod
     def add_agent_session(session):
         """添加智能体会话"""
-        db['agent_sessions'].insert(0, session)
-        DataService.set_dirty_flag('agent_sessions')
+        sessions = cache_manager.get('agent_sessions') or []
+        sessions.insert(0, session)
+        cache_manager.set('agent_sessions', sessions)
     
     @staticmethod
     def update_agent_session(session_id, updated_session):
@@ -203,26 +215,28 @@ class DataService(BaseService):
         session = DataService.get_agent_session_by_id(session_id)
         if session:
             session.update(updated_session)
-            DataService.set_dirty_flag('agent_sessions')
+            # 由于session是引用，直接设置脏标记即可
+            cache_manager.set_dirty_flag('agent_sessions')
     
     @staticmethod
     def remove_agent_session(session_id):
         """移除智能体会话"""
-        session_index = next((i for i, s in enumerate(db['agent_sessions']) if s['id'] == session_id), None)
+        sessions = cache_manager.get('agent_sessions') or []
+        session_index = next((i for i, s in enumerate(sessions) if s['id'] == session_id), None)
         if session_index is not None:
-            db['agent_sessions'].pop(session_index)
-            DataService.set_dirty_flag('agent_sessions')
+            sessions.pop(session_index)
+            cache_manager.set('agent_sessions', sessions)
     
     @staticmethod
     def clear_agent_sessions():
         """清空智能体会话"""
-        db['agent_sessions'] = []
-        DataService.set_dirty_flag('agent_sessions')
+        cache_manager.set('agent_sessions', [])
     
     @staticmethod
     def get_agent_sessions_by_chat_id(chat_id):
         """根据对话ID获取智能体会话"""
-        return [s for s in db['agent_sessions'] if s['chat_id'] == chat_id]
+        sessions = cache_manager.get('agent_sessions') or []
+        return [s for s in sessions if s['chat_id'] == chat_id]
     
     @staticmethod
     def get_latest_agent_session(chat_id):

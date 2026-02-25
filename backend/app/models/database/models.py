@@ -103,18 +103,7 @@ class Message(Base):
     # 关系：属于一个智能体会话
     agent_session = relationship("AgentSession", back_populates="messages")
 
-class VectorSetting(Base):
-    """向量设置表"""
-    __tablename__ = "vector_settings"
-    
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    retrieval_mode = Column(String, default="vector")
-    top_k = Column(Integer, default=3)
-    score_threshold = Column(Float, default=0.7)
-    vector_db_path = Column(String, default="")
-    embedder_model = Column(String, default="qwen3-embedding-0.6b")
-    chunk_size = Column(Integer, default=1000)
-    chunk_overlap = Column(Integer, default=200)
+
 
 class SystemSetting(Base):
     """系统设置表"""
@@ -131,6 +120,10 @@ class SystemSetting(Base):
     sound = Column(Boolean, default=False)
     system = Column(Boolean, default=True)
     display_time = Column(String, default="5秒")
+    # 向量相关设置
+    vector_db_path = Column(String, default="")
+    default_top_k = Column(Integer, default=3)
+    default_score_threshold = Column(Float, default=0.7)
 
 
 class Folder(Base):
