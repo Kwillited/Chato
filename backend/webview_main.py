@@ -14,57 +14,6 @@ config_manager = ConfigManager.get_instance()
 # 更新日志配置
 update_log_config(config_manager)
 
-# 初始化标志，防止重复初始化
-_initialized = False
-_initialization_lock = threading.Lock()
-
-async def init_vector_system():
-    """初始化向量系统"""
-    global _initialized
-    
-    # 防止重复初始化
-    if _initialized:
-        logger.info("向量系统已初始化，跳过重复初始化")
-        return True
-    
-    with _initialization_lock:
-        if _initialized:
-            logger.info("向量系统已初始化，跳过重复初始化")
-            return True
-        
-        try:
-            from app.services.vector.vector_store_service import VectorStoreService
-            
-            # 使用标准的用户数据目录
-            user_data_dir = config_manager.get_user_data_dir()
-            data_dir = os.path.join(user_data_dir, 'Retrieval-Augmented Generation', 'files')  # 文档目录
-            
-            # 确保目录存在
-            os.makedirs(data_dir, exist_ok=True)
-            
-            # 从配置中获取向量数据库路径
-            vector_db_path = config_manager.get('vector.vector_db_path', 
-                                           os.path.join(user_data_dir, 'Retrieval-Augmented Generation', 'vectorDb'))
-            
-            # 创建向量存储服务实例（会自动从配置中获取嵌入模型）
-            vector_service = VectorStoreService(vector_db_path)
-            
-            # 注意：不再主动触发向量存储初始化，让它在首次使用时自动初始化
-            # 这样嵌入模型会在真正需要时才加载，实现即用即加载
-            
-            logger.info(f"向量系统初始化成功: 向量库={vector_db_path}")
-            _initialized = True
-            return True
-        except Exception as e:
-            logger.error(f"向量系统初始化失败: {e}")
-            return False
-
-def setup():
-    """应用初始化"""
-    # 加载初始数据
-    load_data()
-    logger.info("应用数据加载完成")
-
 # 使用FastAPI的lifespan事件处理机制
 from contextlib import asynccontextmanager
 
@@ -72,9 +21,7 @@ from contextlib import asynccontextmanager
 async def lifespan(app):
     """应用生命周期管理"""
     # 启动时执行
-    logger.info("应用启动，开始异步初始化向量系统")
-    import asyncio
-    asyncio.create_task(init_vector_system())
+    logger.info("应用启动")
     yield
     # 关闭时执行
     logger.info("应用关闭")

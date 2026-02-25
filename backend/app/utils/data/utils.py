@@ -263,8 +263,8 @@ def build_message_list(messages):
             # 智能体相关字段
             message_type = msg.message_type
             agent_session_id = msg.agent_session_id
-            agent_node = msg.agent_node
-            agent_step = msg.agent_step
+            agent_node = msg.agent_node or ""
+            agent_step = msg.agent_step or 0
             agent_metadata = msg.agent_metadata
         # 处理元组
         else:

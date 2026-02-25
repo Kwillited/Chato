@@ -59,9 +59,6 @@ export default defineConfig({
           if (id.includes('src/components/chat')) return 'chat';
           if (id.includes('src/components/rag')) return 'rag';
           if (id.includes('src/components/settings')) return 'settings';
-          if (id.includes('src/store/chatStore')) return 'chat';
-          if (id.includes('src/store/ragStore')) return 'rag';
-          if (id.includes('src/store/settingsStore')) return 'settings';
         }
       }
     },
