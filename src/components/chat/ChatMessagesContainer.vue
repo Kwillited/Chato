@@ -182,6 +182,8 @@ onMounted(() => {
 // 监听消息变化
 watch(chatMessages, () => {
   console.log('ChatMessages变化，消息数量:', chatMessages.value.length);
+  // 消息变化时自动滚动到底部
+  scrollToBottom();
 }, { deep: true });
 </script>
 

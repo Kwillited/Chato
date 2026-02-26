@@ -2,7 +2,7 @@
   <div class="relative flex justify-center">
     <button
       v-if="isVisible"
-      class="absolute bottom-full mb-3 bg-primary text-white w-8 h-8 rounded-full shadow-lg flex items-center justify-center hover:bg-primary/80 transition-all duration-300 z-10"
+      class="absolute bottom-full mb-2 bg-primary text-white w-6 h-6 rounded-full shadow-lg flex items-center justify-center hover:bg-primary/80 transition-all duration-300 z-10"
       @click="handleScrollToBottom"
     >
       <i class="fa-solid fa-chevron-down"></i>

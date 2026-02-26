@@ -35,8 +35,7 @@ export const useVectorStore = defineStore('vector', {
       },
       // 检索范围
       scope: {
-        selectedFolders: [],
-        selectedKnowledgeBases: []
+        selectedFolders: []
       }
     },
     // 操作状态
@@ -46,8 +45,7 @@ export const useVectorStore = defineStore('vector', {
     // 向量库状态
     vectorStores: [], // 支持多向量库
     currentVectorStore: null,
-    // 当前选中的文件夹（用于RAG检索范围）
-    currentSelectedFolder: null,
+
     // 兼容ragStore的files属性，用于存储当前文件夹中的文件列表
     files: [],
     // 扩展预留
@@ -121,10 +119,7 @@ export const useVectorStore = defineStore('vector', {
       this.config.scope = { ...this.config.scope, ...scopeConfig };
     },
     
-    // 设置当前选中的文件夹（用于RAG检索范围）
-    setCurrentSelectedFolder(folder) {
-      this.currentSelectedFolder = folder;
-    },
+
     
     // ========== 兼容ragStore的API ==========
     

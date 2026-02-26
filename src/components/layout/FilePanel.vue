@@ -83,7 +83,7 @@ import SkeletonLoader from '../common/SkeletonLoader.vue';
 import { ConfirmationModal } from '../library/index.js';
 import FileCreateKnowledgeBaseModal from '../file/FileCreateKnowledgeBaseModal.vue';
 
-const ragStore = useVectorStore();
+const vectorStore = useVectorStore();
 const fileStore = useFileStore();
 
 // 状态管理
@@ -271,8 +271,8 @@ const loadFilesInFolder = async (folder) => {
 const handleFolderDoubleClick = async (event) => {
   const folder = event.detail;
   currentFolder.value = folder;
-  // 设置当前文件夹为选中的文件夹，用于RAG检索范围
-  ragStore.setCurrentSelectedFolder(folder);
+  // 设置当前文件夹为选中的文件夹，用于RAG检索范围和UI显示
+  fileStore.currentFolder = folder;
   // 保存选中的文件夹到localStorage，包含ID信息
   localStorage.setItem('ragSelectedFolder', JSON.stringify(folder));
   await loadFilesInFolder(folder);
@@ -383,7 +383,17 @@ const handleUploadToFolder = async (event) => {
         for (const file of files) {
           try {
             // 验证文件
-            const validation = ragStore.validateFile(file);
+            // 直接使用文件验证逻辑
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            const supportedTypes = ['pdf', 'docx', 'txt', 'csv', 'xlsx', 'pptx', 'md'];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            
+            let validation = { valid: true };
+            if (file.size > maxSize) {
+              validation = { valid: false, message: `文件太大: ${file.name} - 最大支持50MB` };
+            } else if (!supportedTypes.includes(fileExtension)) {
+              validation = { valid: false, message: `不支持的文件类型: ${file.name} - 支持类型: ${supportedTypes.join(', ')}` };
+            }
             if (!validation.valid) {
               console.error('文件验证失败:', validation.message);
               failedFiles.push(file.name);
@@ -492,8 +502,8 @@ const handleFolderSelected = (event) => {
   const selectedFolder = event.detail;
   // 保存选中的文件夹到localStorage，包含ID信息
   localStorage.setItem('ragSelectedFolder', JSON.stringify(selectedFolder));
-  // 更新ragStore的currentSelectedFolder状态
-  ragStore.setCurrentSelectedFolder(selectedFolder);
+  // 更新fileStore的currentFolder状态
+  fileStore.currentFolder = selectedFolder;
   // 发送事件到eventBus通知其他组件
   eventBus.emit('folderSelected', selectedFolder);
 };

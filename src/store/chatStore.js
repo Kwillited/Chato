@@ -4,6 +4,7 @@ import { generateId } from '../utils/data.js';
 import { useSettingsStore } from './settingsStore.js';
 import { useVectorStore } from './vectorStore.js';
 import { useUiStore } from './uiStore.js';
+import { useFileStore } from './fileStore.js';
 import { useNotification } from '../composables/useNotification.js';
 import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils, stateUtils } from '../utils/storeUtils.js';
 import { ref } from 'vue'; // 引入 ref
@@ -279,19 +280,21 @@ export const useChatStore = defineStore('chat', {
         topK: vectorConfig.retrieval.topK,
         scoreThreshold: vectorConfig.retrieval.threshold,
         searchType: vectorConfig.retrieval.mode,
-        selectedFolders: [],
-        selectedKnowledgeBases: []
+        selectedFolders: []
       };
       
+      // 获取fileStore实例
+      const fileStore = useFileStore();
+      
       // 如果有选中的文件夹，设置检索范围为该文件夹
-      if (vectorStore.currentSelectedFolder) {
-        const targetFolder = vectorStore.currentSelectedFolder;
+      if (fileStore.currentFolder) {
+        const targetFolder = fileStore.currentFolder;
         ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
       }
       
       // 添加调试日志，查看实际发送给后端的ragConfig
       console.log('🔍 RAG配置调试:', {
-        currentSelectedFolder: vectorStore.currentSelectedFolder,
+        currentFolder: fileStore.currentFolder,
         selectedFolders: ragConfigToUse.selectedFolders,
         ragEnabled: ragConfigToUse.enabled
       });

@@ -11,7 +11,7 @@
       :class="{
         // 拖拽状态样式优化
         'border-primary bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800/50 transform scale-[1.02]': draggingFolder === folder,
-        'bg-gray-200 dark:bg-dark-bg-secondary border-gray-500 dark:border-gray-200': selectedFolder === folder && draggingFolder !== folder
+        'bg-gray-200 dark:bg-dark-bg-secondary border-gray-500 dark:border-gray-200': selectedFolder && selectedFolder.id === folder.id && draggingFolder !== folder
       }"
     >
       <div class="folder-header flex items-center justify-between">
@@ -37,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Button } from '../library/index.js';
 import { useFileStore } from '../../store/fileStore.js';
 
@@ -53,8 +53,8 @@ defineProps({
 
 // 当前悬停的文件夹
 const draggingFolder = ref(null);
-// 选中的文件夹
-const selectedFolder = ref(null);
+// 选中的文件夹 - 从fileStore获取
+const selectedFolder = computed(() => fileStore.currentFolder);
 // 用于区分单击和双击的定时器
 let clickTimer = null;
 // 上次点击的文件夹
@@ -101,11 +101,11 @@ const handleFolderDragOver = (event, folder) => {
 // 处理文件夹点击事件
 const handleFolderClick = (folder) => {
   // 每次点击都处理选中状态切换
-  // 立即处理选中状态切换
-  if (selectedFolder.value === folder) {
-    selectedFolder.value = null;
+  let newSelectedFolder = null;
+  if (selectedFolder.value && selectedFolder.value.id === folder.id) {
+    newSelectedFolder = null;
   } else {
-    selectedFolder.value = folder;
+    newSelectedFolder = folder;
   }
   
   // 清除之前的定时器
@@ -119,7 +119,7 @@ const handleFolderClick = (folder) => {
   // 设置定时器处理事件发送（延迟以区分双击）
   clickTimer = setTimeout(() => {
     // 触发folderSelected事件，让FilePanel处理
-    const event = new CustomEvent('folderSelected', { detail: selectedFolder.value });
+    const event = new CustomEvent('folderSelected', { detail: newSelectedFolder });
     window.dispatchEvent(event);
     
     clickTimer = null;
@@ -149,6 +149,20 @@ const handleDeleteFolder = (folder) => {
   window.dispatchEvent(event);
 };
 
+// 组件挂载时从localStorage恢复选中状态
+onMounted(() => {
+  const savedFolder = localStorage.getItem('ragSelectedFolder');
+  if (savedFolder) {
+    try {
+      const folder = JSON.parse(savedFolder);
+      // 直接设置保存的文件夹对象到fileStore
+      // 这样即使folders还没加载完成，也能正确恢复状态
+      fileStore.currentFolder = folder;
+    } catch (e) {
+      console.error('Failed to parse saved folder:', e);
+    }
+  }
+});
 
 </script>
 

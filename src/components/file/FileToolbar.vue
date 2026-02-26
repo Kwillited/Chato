@@ -39,6 +39,7 @@ import { useNavigation } from '../../composables/useNavigation.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useUiStore } from '../../store/uiStore.js';
 import { useVectorStore } from '../../store/vectorStore.js';
+import { useFileStore } from '../../store/fileStore.js';
 import { Button, SearchBar } from '../library/index.js';
 
 defineProps({
@@ -51,7 +52,8 @@ defineProps({
 // 初始化store
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
-const ragStore = useVectorStore();
+const vectorStore = useVectorStore();
+const fileStore = useFileStore();
 
 // 导航管理
 const { navigateToHome, navigateToFileManager } = useNavigation();
@@ -110,7 +112,7 @@ onMounted(() => {
 // 处理搜索
 const handleSearch = () => {
   // 直接调用store方法进行搜索
-  ragStore.searchKnowledgeBase(searchQuery.value);
+  vectorStore.searchKnowledgeBase(searchQuery.value);
 };
 </script>
 

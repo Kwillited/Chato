@@ -215,7 +215,7 @@ const uiStore = useUiStore();
 
 // 使用通知组合式函数
 const { showError } = useNotification();
-const ragStore = useVectorStore();
+const vectorStore = useVectorStore();
 const fileStore = useFileStore();
 const chatStore = useChatStore();
 
@@ -259,8 +259,8 @@ const loadFolders = async () => {
 // 获取文件列表
 const files = computed(() => {
   // 从store获取文件列表
-  if (ragStore.files && ragStore.files.length > 0) {
-    return ragStore.files.map(file => ({
+  if (fileStore.files && fileStore.files.length > 0) {
+    return fileStore.files.map(file => ({
       ...file,
       type: getFileExtension(file.name),
       path: file.path || '',
@@ -390,7 +390,7 @@ const refreshFiles = async () => {
   isLoading.value = true;
   try {
     // 实际项目中应该从后端或store重新加载文件
-    await ragStore.loadFiles();
+    await fileStore.loadFiles();
     // 模拟加载延迟
     await new Promise(resolve => setTimeout(resolve, 500));
   } catch (error) {
@@ -425,8 +425,8 @@ const handleUploadClick = async () => {
     
     if (files && files.length > 0) {
       
-      // 调用ragStore的批量上传方法
-      await ragStore.batchUploadFiles(files);
+      // 调用fileStore的批量上传方法
+      await fileStore.batchUploadFiles(files);
       
       // 上传完成后刷新文件列表
       await refreshFiles();
@@ -476,7 +476,7 @@ const handleDeleteConfirm = async () => {
     // 获取当前文件夹ID（如果有）
     const folderId = selectedFolder.value?.id || '';
     // 传递文件夹ID给deleteFile方法
-    await ragStore.deleteFile(fileIdToDelete.value, folderId);
+    await fileStore.deleteDocument(fileToDelete.name, folderId);
     // 删除后刷新文件列表
     // 根据当前是否有选中的文件夹决定如何刷新
     if (currentFolder.value && selectedFolder.value) {
@@ -526,17 +526,15 @@ const handleFolderClick = async (folder) => {
         type: file.type || (file.name ? file.name.split('.').pop()?.toLowerCase() : 'unknown'),
         uploadedAt: file.uploadedAt || Date.now()
       }));
+      // 更新fileStore.files，确保文件列表正确显示
       fileStore.files = formattedFiles;
-      // 同时更新ragStore.files，确保文件列表正确显示
-      ragStore.files = formattedFiles;
     }
     
     // 打印文件列表用于调试
-    console.log(`加载的文件列表: ${ragStore.files?.length || 0} 个文件`);
+    console.log(`加载的文件列表: ${fileStore.files?.length || 0} 个文件`);
   } catch (error) {
     console.error('读取文件夹内容失败:', error);
     // 发生错误时清空文件列表
-    ragStore.files = [];
     fileStore.files = [];
   } finally {
     // 使用nextTick确保数据更新完成后再隐藏加载状态
@@ -583,7 +581,7 @@ onMounted(() => {
         // 解析失败时重置状态
         selectedFolder.value = null;
         currentFolder.value = '';
-        ragStore.files = [];
+        fileStore.files = [];
       }
     }
   });
@@ -636,7 +634,7 @@ const handleContentChanged = async (event) => {
         // 解析失败时重置状态
         selectedFolder.value = null;
         currentFolder.value = '';
-        ragStore.files = [];
+        fileStore.files = [];
       }
     } else {
       // 如果没有存储的选中状态，重置当前组件的状态

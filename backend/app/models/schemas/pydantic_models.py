@@ -116,7 +116,6 @@ class RAGConfig(BaseModel):
     retrievalMode: str = "vector"
     scoreThreshold: float = 0.7
     selectedFolders: List[str] = Field(default_factory=list)
-    selectedKnowledgeBases: List[str] = Field(default_factory=list)
     topK: int = 3
     vectorDbPath: str = ""
     embedderModel: str = "qwen3-embedding-0.6b"
