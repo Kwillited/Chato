@@ -1,18 +1,12 @@
 {
-  "filesystem": {
+  "open-websearch": {
     "transport": "stdio",
     "command": "npx",
     "args": [
-      "-y",
-      "@modelcontextprotocol/server-filesystem",
-      "H:\\ChaTo"
-    ]
-  },
-  "freesearch": {
-    "transport": "stdio",
-    "command": "npx",
-    "args": [
-      "freesearch-mcpserver@latest"
-    ]
+      "open-websearch@latest"
+    ],
+    "env": {
+      "mode": "stdio"
+    }
   }
 }

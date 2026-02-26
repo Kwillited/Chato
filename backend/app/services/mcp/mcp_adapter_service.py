@@ -1,7 +1,7 @@
 """MCP 适配器服务 - 管理 MCP 客户端生命周期"""
 from typing import Dict, List, Optional, Any
 from app.services.base_service import BaseService
-from app.utils.mcp.mcp_adapter import MCPAdapter
+from app.utils.mcp.mcp_adapter import mcp_adapter
 
 
 class MCPAdapterService(BaseService):
@@ -22,7 +22,7 @@ class MCPAdapterService(BaseService):
             return
         
         super().__init__()
-        self.mcp_adapter = MCPAdapter()
+        self.mcp_adapter = mcp_adapter
         self._initialized = False
         self.log_info("MCP 适配器服务初始化")
     

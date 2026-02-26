@@ -315,7 +315,7 @@ class ChatService(BaseService):
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
         logger.info(f"对话更新成功，消息已保存: chat_id={chat_id}, 消息总数: {len(chat.get('messages', []))}")
 
-    def _prepare_messages_for_model(self, chat_id, enhanced_question, selected_message_ids=None, rag_enabled=False, agent_enabled=False, context_docs=None):
+    def _prepare_messages_for_model(self, chat_id, enhanced_question, selected_message_ids=None, rag_enabled=False, agent_enabled=False, context_docs=None, web_search_enabled=False, web_search_results=None):
         """
         准备发送给模型的消息格式
         
@@ -326,6 +326,8 @@ class ChatService(BaseService):
             rag_enabled: 是否启用RAG模式
             agent_enabled: 是否启用智能体模式
             context_docs: RAG上下文文档列表
+            web_search_enabled: 是否启用网络搜索
+            web_search_results: 网络搜索结果
         
         返回:
             格式化的消息列表
@@ -337,21 +339,27 @@ class ChatService(BaseService):
             rag_enabled=rag_enabled,
             agent_enabled=agent_enabled,
             context_docs=context_docs,
-            selected_message_ids=selected_message_ids
+            selected_message_ids=selected_message_ids,
+            web_search_enabled=web_search_enabled,
+            web_search_results=web_search_results
         )
     
     async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False, model=None):
             """
             异步流式模型回复函数
             """
-            # 打印传递的消息
-            print(f"[chat_with_model_stream] 传递的消息: model_name={model_name}, use_agent={use_agent}")
-            print(f"[chat_with_model_stream] 消息数量: {len(messages)}")
+            # 记录传递的消息
+            self.log_info(f"[chat_with_model_stream] 传递的消息: model_name={model_name}, use_agent={use_agent}")
+            self.log_info(f"[chat_with_model_stream] 消息数量: {len(messages)}")
             for i, msg in enumerate(messages):
                 role = msg.get('role', 'unknown')
                 content = msg.get('content', '')
-                content_preview = content[:100] + ('...' if len(content) > 100 else '')
-                print(f"[chat_with_model_stream] 消息{i+1} (role={role}): {content_preview}")
+                # 增加截断长度，显示更多内容
+                content_preview = content[:500] + ('...' if len(content) > 500 else '')
+                self.log_info(f"[chat_with_model_stream] 消息{i+1} (role={role}): {content_preview}")
+                # 对于长消息，也记录完整内容到日志文件
+                if len(content) > 500:
+                    self.log_debug(f"[chat_with_model_stream] 消息{i+1} 完整内容: {content}")
             
             # 1. 验证模型 (如果传入了 model，则直接使用)
             if not model:
@@ -622,6 +630,7 @@ class ChatService(BaseService):
         stream = data.get('stream', False)
         deep_thinking = data.get('deepThinking', False)
         use_agent = data.get('agent', False)
+        web_search_enabled = data.get('webSearchEnabled', False)
         files = data.get('files', [])
         # 新增：获取用户选择的消息ID列表
         selected_message_ids = data.get('selectedMessageIds', None)
@@ -629,7 +638,7 @@ class ChatService(BaseService):
         # 添加调试日志，显示后端接收的参数
         from app.core.logging_config import logger
         logger.debug(f"完整请求数据: {data}")
-        logger.debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件, selectedMessageIds={selected_message_ids}")
+        logger.debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件, selectedMessageIds={selected_message_ids}, webSearchEnabled={web_search_enabled}")
         
         return {
             'message_text': message_text,
@@ -640,6 +649,7 @@ class ChatService(BaseService):
             'stream': stream,
             'deep_thinking': deep_thinking,
             'use_agent': use_agent,
+            'web_search_enabled': web_search_enabled,
             'files': files,
             # 新增：返回用户选择的消息ID列表
             'selected_message_ids': selected_message_ids
@@ -721,6 +731,7 @@ class ChatService(BaseService):
         stream = parsed_data['stream']
         deep_thinking = parsed_data['deep_thinking']
         use_agent = parsed_data['use_agent']
+        web_search_enabled = parsed_data['web_search_enabled']
         files = parsed_data['files']
         # 新增：获取用户选择的消息ID列表
         selected_message_ids = parsed_data.get('selected_message_ids', None)
@@ -770,6 +781,52 @@ class ChatService(BaseService):
         else:
             logger.debug("RAG未启用")
         
+        # 处理网络搜索
+        web_search_results = None
+        if web_search_enabled:
+            logger.debug("准备执行网络搜索")
+            try:
+                from app.utils.mcp.mcp_adapter import mcp_adapter
+                # 初始化MCP适配器
+                await mcp_adapter.initialize()
+                if mcp_adapter.is_available():
+                    # 获取工具列表
+                    tools = mcp_adapter.get_tools()
+                    # 查找搜索工具
+                    search_tool = None
+                    for tool in tools:
+                        try:
+                            tool_name = getattr(tool, 'name', '').lower()
+                            if 'search' in tool_name:
+                                search_tool = tool
+                                break
+                        except Exception:
+                            pass
+                    
+                    if search_tool:
+                        logger.debug(f"找到搜索工具: {getattr(search_tool, 'name', 'unknown')}")
+                        # 执行搜索
+                        try:
+                            # 构建搜索参数
+                            search_params = {
+                                "query": full_message_text,
+                                "max_results": 3
+                            }
+                            # 调用搜索工具（使用异步调用）
+                            search_result = await search_tool.arun(search_params)
+                            logger.debug(f"网络搜索结果: {search_result}")
+                            web_search_results = search_result
+                        except Exception as e:
+                            logger.error(f"执行网络搜索失败: {str(e)}")
+                    else:
+                        logger.warning("未找到搜索工具")
+                else:
+                    logger.warning("MCP 不可用，跳过网络搜索")
+            except Exception as e:
+                logger.error(f"网络搜索初始化失败: {str(e)}")
+        else:
+            logger.debug("网络搜索未启用")
+        
         # 使用原始消息文本，RAG上下文会在构建消息列表时添加到SystemMessage中
         enhanced_question = full_message_text
         
@@ -784,7 +841,7 @@ class ChatService(BaseService):
         chat['messages'].append(user_message)
         
         # 构建模型输入
-        model_messages = self._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids=selected_message_ids, rag_enabled=rag_enabled, agent_enabled=use_agent, context_docs=context_docs)
+        model_messages = self._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids=selected_message_ids, rag_enabled=rag_enabled, agent_enabled=use_agent, context_docs=context_docs, web_search_enabled=web_search_enabled, web_search_results=web_search_results)
         
         # 根据stream和agent的值决定返回类型
         if stream:

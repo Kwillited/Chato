@@ -64,12 +64,13 @@ class PromptManager:
         except Exception as e:
             print(f"加载配置文件失败: {str(e)}")
     
-    def get_system_message(self, mode='normal', context_docs=None):
+    def get_system_message(self, mode='normal', context_docs=None, web_search_results=None):
         """获取系统消息
         
         Args:
             mode: 模式，可选值：'normal', 'rag', 'agent'
             context_docs: RAG上下文文档列表（仅在rag模式下使用）
+            web_search_results: 网络搜索结果
             
         Returns:
             dict: 系统消息对象，格式为 {'role': 'system', 'content': '...'}
@@ -100,6 +101,30 @@ class PromptManager:
         else:
             content = self._config.get('system_message', self._default_templates['chat'])
         
+        # 添加网络搜索结果
+        if web_search_results:
+            search_str = "\n\n网络搜索结果：\n"
+            try:
+                # 处理不同格式的搜索结果
+                if isinstance(web_search_results, dict):
+                    if 'results' in web_search_results:
+                        for i, result in enumerate(web_search_results['results']):
+                            if isinstance(result, dict):
+                                title = result.get('title', '未命名')
+                                snippet = result.get('snippet', '')
+                                url = result.get('url', '')
+                                search_str += f"{i+1}. {title}\n{snippet}\n{url}\n\n"
+                    else:
+                        search_str += str(web_search_results)
+                elif isinstance(web_search_results, list):
+                    for i, result in enumerate(web_search_results):
+                        search_str += f"{i+1}. {str(result)}\n\n"
+                else:
+                    search_str += str(web_search_results)
+                content += search_str
+            except Exception:
+                pass
+        
         return {
             'role': 'system',
             'content': content
@@ -123,7 +148,7 @@ class PromptManager:
             'content': query
         }
     
-    def build_messages(self, query, context_docs=None, chat_history=None, mode='normal', prompt_template=None):
+    def build_messages(self, query, context_docs=None, chat_history=None, mode='normal', prompt_template=None, web_search_results=None):
         """构建完整的消息列表
         
         Args:
@@ -132,6 +157,7 @@ class PromptManager:
             chat_history: 聊天历史记录
             mode: 模式，可选值：'normal', 'rag', 'agent'
             prompt_template: 自定义提示模板
+            web_search_results: 网络搜索结果
             
         Returns:
             List[dict]: 消息列表，包含SystemMessage和HumanMessage
@@ -139,7 +165,7 @@ class PromptManager:
         messages = []
         
         # 添加系统消息
-        system_message = self.get_system_message(mode=mode, context_docs=context_docs if mode == 'rag' else None)
+        system_message = self.get_system_message(mode=mode, context_docs=context_docs if mode == 'rag' else None, web_search_results=web_search_results)
         messages.append(system_message)
         
         # 添加聊天历史（如果有）

@@ -138,6 +138,7 @@ class SendMessageRequest(BaseModel):
     stream: Optional[bool] = False
     deepThinking: Optional[bool] = False
     agent: Optional[bool] = False
+    webSearchEnabled: Optional[bool] = False
     files: Optional[List[FileInfo]] = Field(default_factory=list)
     selectedMessageIds: Optional[List[str]] = Field(default_factory=list)
 

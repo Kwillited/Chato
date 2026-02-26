@@ -7,13 +7,14 @@ class MessageBuilder:
     """消息构建器，负责构建各种类型的消息列表"""
     
     @staticmethod
-    def build_normal_messages(query: str, chat_history: List[Dict[str, str]] = None, prompt_template: str = None):
+    def build_normal_messages(query: str, chat_history: List[Dict[str, str]] = None, prompt_template: str = None, web_search_results: Any = None):
         """构建普通模式的消息列表
         
         Args:
             query: 用户查询
             chat_history: 聊天历史记录
             prompt_template: 自定义提示模板
+            web_search_results: 网络搜索结果
             
         Returns:
             List[dict]: 消息列表
@@ -23,11 +24,12 @@ class MessageBuilder:
             context_docs=None,
             chat_history=chat_history,
             mode='normal',
-            prompt_template=prompt_template
+            prompt_template=prompt_template,
+            web_search_results=web_search_results
         )
     
     @staticmethod
-    def build_rag_messages(query: str, context_docs: List[Any], chat_history: List[Dict[str, str]] = None, prompt_template: str = None):
+    def build_rag_messages(query: str, context_docs: List[Any], chat_history: List[Dict[str, str]] = None, prompt_template: str = None, web_search_results: Any = None):
         """构建RAG模式的消息列表
         
         Args:
@@ -35,6 +37,7 @@ class MessageBuilder:
             context_docs: 检索到的上下文文档列表
             chat_history: 聊天历史记录
             prompt_template: 自定义提示模板
+            web_search_results: 网络搜索结果
             
         Returns:
             List[dict]: 消息列表
@@ -44,17 +47,19 @@ class MessageBuilder:
             context_docs=context_docs,
             chat_history=chat_history,
             mode='rag',
-            prompt_template=prompt_template
+            prompt_template=prompt_template,
+            web_search_results=web_search_results
         )
     
     @staticmethod
-    def build_agent_messages(query: str, chat_history: List[Dict[str, str]] = None, prompt_template: str = None):
+    def build_agent_messages(query: str, chat_history: List[Dict[str, str]] = None, prompt_template: str = None, web_search_results: Any = None):
         """构建智能体模式的消息列表
         
         Args:
             query: 用户查询
             chat_history: 聊天历史记录
             prompt_template: 自定义提示模板
+            web_search_results: 网络搜索结果
             
         Returns:
             List[dict]: 消息列表
@@ -64,11 +69,12 @@ class MessageBuilder:
             context_docs=None,
             chat_history=chat_history,
             mode='agent',
-            prompt_template=prompt_template
+            prompt_template=prompt_template,
+            web_search_results=web_search_results
         )
     
     @staticmethod
-    def build_messages_from_chat(chat_id: str, query: str, rag_enabled: bool = False, agent_enabled: bool = False, context_docs: List[Any] = None, selected_message_ids: List[str] = None):
+    def build_messages_from_chat(chat_id: str, query: str, rag_enabled: bool = False, agent_enabled: bool = False, context_docs: List[Any] = None, selected_message_ids: List[str] = None, web_search_enabled: bool = False, web_search_results: Any = None):
         """从对话构建消息列表
         
         Args:
@@ -78,6 +84,8 @@ class MessageBuilder:
             agent_enabled: 是否启用智能体模式
             context_docs: RAG上下文文档列表
             selected_message_ids: 用户选择的消息ID列表
+            web_search_enabled: 是否启用网络搜索
+            web_search_results: 网络搜索结果
             
         Returns:
             List[dict]: 消息列表
@@ -122,15 +130,18 @@ class MessageBuilder:
             return MessageBuilder.build_rag_messages(
                 query=query,
                 context_docs=context_docs,
-                chat_history=chat_history
+                chat_history=chat_history,
+                web_search_results=web_search_results
             )
         elif agent_enabled:
             return MessageBuilder.build_agent_messages(
                 query=query,
-                chat_history=chat_history
+                chat_history=chat_history,
+                web_search_results=web_search_results
             )
         else:
             return MessageBuilder.build_normal_messages(
                 query=query,
-                chat_history=chat_history
+                chat_history=chat_history,
+                web_search_results=web_search_results
             )

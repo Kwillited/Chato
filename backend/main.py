@@ -52,9 +52,8 @@ async def lifespan(app):
     setup()
 
     # 只初始化 MCP 适配器，向量系统采用按需初始化
-    await asyncio.gather(
-        init_mcp_adapter()
-    )
+    # 使用后台任务执行 MCP 初始化，不阻塞应用启动
+    asyncio.create_task(init_mcp_adapter())
     
     yield
     

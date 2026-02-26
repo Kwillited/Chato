@@ -19,7 +19,6 @@ class VectorStoreService(BaseService):
     
     def __new__(cls, vector_db_path, embedder_model, knowledge_base_name=None):
         """单例模式实现，按知识库名称区分实例"""
-        from app.core.data_manager import db
         knowledge_base_name = knowledge_base_name or "default"
         
         # 参数验证
@@ -42,7 +41,6 @@ class VectorStoreService(BaseService):
             embedder_model: 使用的嵌入模型名称
             knowledge_base_name: 知识库名称，用于标识不同的知识库实例
         """
-        from app.core.data_manager import db
         if hasattr(self, '_initialized') and self._initialized:
             return
         
