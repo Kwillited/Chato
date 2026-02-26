@@ -628,6 +628,7 @@ class ChatService(BaseService):
         
         # 添加调试日志，显示后端接收的参数
         from app.core.logging_config import logger
+        logger.debug(f"完整请求数据: {data}")
         logger.debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件, selectedMessageIds={selected_message_ids}")
         
         return {

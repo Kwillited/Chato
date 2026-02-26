@@ -140,6 +140,7 @@ class SendMessageRequest(BaseModel):
     deepThinking: Optional[bool] = False
     agent: Optional[bool] = False
     files: Optional[List[FileInfo]] = Field(default_factory=list)
+    selectedMessageIds: Optional[List[str]] = Field(default_factory=list)
 
 
 class ModelBase(BaseModel):
