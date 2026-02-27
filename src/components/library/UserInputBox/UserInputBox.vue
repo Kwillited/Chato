@@ -22,7 +22,7 @@
               </Tooltip>
               <div
                 ref="agentDropdown"
-                class="absolute left-0 bottom-full mb-1 w-48 bg-white dark:bg-dark-700 z-50 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md"
+                class="absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-dark-700 z-50 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md"
                 :class="{ 'hidden': !showAgentDropdown }"
                 style="z-index: 1000 !important"
               >
@@ -30,8 +30,8 @@
                   <button
                     v-for="agent in availableAgents"
                     :key="agent.value"
-                    class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors rounded-lg"
-                  :class="{ 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30': agent.value === currentAgent }"
+                    class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors border-l-2 border-transparent"
+                  :class="{ 'border-l-3 border-gray-800 dark:border-gray-200 font-medium': agent.value === currentAgent }"
                     @click="selectAgent(agent.value)"
                   >
                     <i :class="['fa-solid', agent.icon, 'mr-2 text-sm']"></i>
@@ -574,8 +574,8 @@
                   <button
                     v-for="model in orderedModels"
                     :key="model.value"
-                    class="model-option w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors"
-                    :class="{ 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30': model.value === currentModel }"
+                    class="model-option w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors border-l-2 border-transparent"
+                    :class="{ 'border-l-3 border-gray-800 dark:border-gray-200 font-medium': model.value === currentModel }"
                     @click="selectModel(model.value)"
                   >
                     {{ model.displayName }}
@@ -878,26 +878,10 @@ const handleSendMessage = async () => {
     const webSearchEnabled = isWebSearchEnabled.value;
     const agent = isAgentEnabled.value; // 根据当前状态设置agent字段
     
-    // 立即发送消息，不等待Ollama服务检查
+    // 立即发送消息
     emit('messageSubmitted', messageToSend, modelToUse, deepThinking, webSearchEnabled, agent);
     // 发送消息后立即检查是否有流式输出
     checkForActiveStreaming();
-    
-    // 如果是Ollama模型，在后台异步检查和启动服务
-    if (modelToUse.includes('Ollama')) {
-      // 使用setTimeout将检查操作放入事件队列，避免阻塞UI
-      setTimeout(async () => {
-        try {
-          // 这里可以通过 API 调用 Python 后端来检查和启动 Ollama 服务
-          // 暂时显示提示信息
-          showSuccess('Ollama服务检查功能已迁移到 Python 后端');
-        } catch (error) {
-          console.error('Ollama服务管理失败:', error);
-          // 显示更具体的错误信息
-          showError(`Ollama服务管理失败: ${error.message || error}`);
-        }
-      }, 0);
-    }
   }
 };
 

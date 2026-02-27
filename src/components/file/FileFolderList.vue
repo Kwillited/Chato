@@ -2,7 +2,7 @@
   <div v-if="folders.length > 0" class="folders-list mt-3">
     <h3 class="text-sm font-medium text-gray-700 dark:text-white mb-2 px-2">知识库文件夹 ({{ folders.length }})</h3>
     <div v-for="folder in folders" :key="folder.id || folder.path"
-      class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-dark-bg-secondary transition-all duration-300"
+      class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-500 transition-all duration-300"
       @dragover.prevent="handleFolderDragOver($event, folder)"
       @dragleave.prevent="handleFolderDragLeave"
       @drop.prevent="handleFolderDrop($event, folder)"
@@ -11,7 +11,7 @@
       :class="{
         // 拖拽状态样式优化
         'border-primary bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800/50 transform scale-[1.02]': draggingFolder === folder,
-        'bg-gray-200 dark:bg-dark-bg-secondary border-gray-500 dark:border-gray-200': selectedFolder && selectedFolder.id === folder.id && draggingFolder !== folder
+        'bg-gray-300 dark:bg-dark-400 border-gray-500 dark:border-gray-200': (localSelectedFolder ? localSelectedFolder.id === folder.id : selectedFolder && selectedFolder.id === folder.id) && draggingFolder !== folder
       }"
     >
       <div class="folder-header flex items-center justify-between">
@@ -55,6 +55,8 @@ defineProps({
 const draggingFolder = ref(null);
 // 选中的文件夹 - 从fileStore获取
 const selectedFolder = computed(() => fileStore.currentFolder);
+// 本地选中状态，用于即时视觉反馈
+const localSelectedFolder = ref(null);
 // 用于区分单击和双击的定时器
 let clickTimer = null;
 // 上次点击的文件夹
@@ -108,6 +110,10 @@ const handleFolderClick = (folder) => {
     newSelectedFolder = folder;
   }
   
+  // 立即更新本地状态，提供即时视觉反馈
+  // 这会立即取消之前选中的文件夹的激活状态
+  localSelectedFolder.value = newSelectedFolder;
+  
   // 清除之前的定时器
   if (clickTimer) {
     clearTimeout(clickTimer);
@@ -122,6 +128,8 @@ const handleFolderClick = (folder) => {
     const event = new CustomEvent('folderSelected', { detail: newSelectedFolder });
     window.dispatchEvent(event);
     
+    // 清除本地状态，让computed属性接管
+    localSelectedFolder.value = null;
     clickTimer = null;
   }, 300); // 300ms是一个常用的双击判断阈值
 };
@@ -133,6 +141,9 @@ const handleFolderDoubleClick = (folder) => {
     clearTimeout(clickTimer);
     clickTimer = null;
   }
+  
+  // 清除本地选中状态
+  localSelectedFolder.value = null;
   
   // 重置上次点击的文件夹
   _lastClickedFolder = null;
@@ -197,7 +208,6 @@ onMounted(() => {
 }
 
 .folder-item.cursor-pointer:hover {
-  transform: translateY(-1px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 

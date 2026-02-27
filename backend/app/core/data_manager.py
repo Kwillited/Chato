@@ -116,16 +116,17 @@ def load_chats_from_db():
         cache_manager.set('chats', {})
         
         # 获取所有对话，加载必要的字段
-        chats = db_session.query(Chat.id, Chat.title, Chat.created_at, Chat.updated_at).order_by(Chat.updated_at.desc()).all()
+        chats = db_session.query(Chat.id, Chat.title, Chat.created_at, Chat.updated_at, Chat.pinned).order_by(Chat.updated_at.desc()).all()
         
         chat_dict = {}
-        for chat_id, title, created_at, updated_at in chats:
+        for chat_id, title, created_at, updated_at, pinned in chats:
             # 构建对话字典，包含必要的字段
             chat_data = {
                 'id': chat_id,
                 'title': title,
                 'createdAt': created_at,
                 'updatedAt': updated_at,
+                'pinned': bool(pinned),
                 'messages': []
             }
             # 添加对话到字典

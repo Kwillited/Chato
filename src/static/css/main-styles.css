@@ -294,39 +294,56 @@ h2, h3 {
   /* Markdown 样式美化 */
   .markdown-content {
     line-height: 1.6;
+    font-size: 0.95rem;
   }
 
   .markdown-content h1 {
     font-size: 1.8rem;
     font-weight: 700;
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
+    margin-top: 3rem !important;
+    margin-bottom: 0 !important;
     color: #1e293b;
   }
 
   .markdown-content h2 {
     font-size: 1.5rem;
     font-weight: 600;
-    margin-top: 1.25rem;
-    margin-bottom: 0.75rem;
+    margin-top: 2.5rem !important;
+    margin-bottom: 0 !important;
     color: #1e293b;
   }
 
   .markdown-content h3 {
     font-size: 1.25rem;
     font-weight: 600;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
+    margin-top: 2rem !important;
+    margin-bottom: 0 !important;
     color: #1e293b;
   }
 
+  /* 深色模式标题颜色 */
+  .dark .markdown-content h1,
+  .dark .markdown-content h2,
+  .dark .markdown-content h3 {
+    color: #fff;
+  }
+
+  /* 连续标题间距 */
+  .markdown-content h1 + h2,
+  .markdown-content h2 + h3,
+  .markdown-content h3 + h3 {
+    margin-top: 2.5rem !important;
+  }
+
   .markdown-content p {
-    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0;
   }
 
   .markdown-content ul, 
   .markdown-content ol {
-    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0;
     padding-left: 1.5rem;
   }
 
@@ -338,7 +355,8 @@ h2, h3 {
 
   /* 优化的ul列表样式 */
   .markdown-content ul li {
-    margin-bottom: 0.5rem; /* 增加列表项间距 */
+    margin-top: 0.5rem; /* 增加列表项间距 */
+    margin-bottom: 0;
     padding-left: 1.75rem; /* 为自定义标记留出空间 */
     position: relative;
     transition: all 0.2s ease; /* 添加过渡效果 */
@@ -350,22 +368,19 @@ h2, h3 {
     content: "•";
     position: absolute;
     left: 0;
-    color: #4f46e5; /* 与链接颜色一致 */
+    color: #000; /* 黑色 */
     font-size: 1.5rem;
     line-height: 1;
     top: 0.15rem;
     transition: transform 0.2s ease;
   }
 
-  /* 列表项悬停效果 */
-  .markdown-content ul li:hover {
-    color: #4f46e5;
-    transform: translateX(4px);
+  /* 深色模式列表项标记 */
+  .dark .markdown-content ul li::before {
+    color: #fff; /* 白色 */
   }
 
-  .markdown-content ul li:hover::before {
-    transform: scale(1.2);
-  }
+
 
   /* 有序列表样式 - 优化版 */
   .markdown-content ol {
@@ -375,59 +390,71 @@ h2, h3 {
 
   /* 优化的ol列表样式 */
   .markdown-content ol li {
-    margin-bottom: 0.5rem; /* 增加列表项间距 */
+    margin-top: 0.5rem; /* 增加列表项间距 */
+    margin-bottom: 0;
     padding-left: 1.75rem; /* 为序号留出空间 */
     position: relative;
     transition: all 0.2s ease; /* 添加过渡效果 */
     line-height: 1.6; /* 优化行高 */
   }
 
-  /* 有序列表悬停效果 */
-  .markdown-content ol li:hover {
-    color: #4f46e5; /* 与链接颜色一致 */
-    transform: translateX(4px);
+  /* 深色模式有序列表 */
+  .dark .markdown-content ol {
+    color: #fff;
   }
+
+
 
   /* 嵌套有序列表样式优化 */
   .markdown-content ol ol {
     margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
     padding-left: 0;
   }
 
   .markdown-content ol ol li {
-    margin-bottom: 0.25rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0;
     padding-left: 1.5rem;
   }
 
-  .markdown-content ol ol li:hover {
-    transform: translateX(3px);
-  }
+  
 
   /* 嵌套列表样式优化 */
   .markdown-content ul ul {
     margin-top: 0.5rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0;
   }
 
   .markdown-content ul ul li {
-    margin-bottom: 0.25rem;
+    margin-top: 0.25rem;
+    margin-bottom: 0;
   }
 
   .markdown-content ul ul li::before {
     font-size: 1.25rem;
-    color: #6366f1;
+    color: #000;
   }
 
-  /* hr标签样式 - 添加上下边距 (增强优先级确保生效) */
+  /* 深色模式嵌套列表项标记 */
+  .dark .markdown-content ul ul li::before {
+    color: #fff;
+  }
+
+  /* hr标签样式 - 恢复上margin */
   .markdown-content hr {
-    margin-top: 20px !important;
-    margin-bottom: 20px !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 0 !important;
     border: 0 !important;
     height: 1px !important;
-    background-color: #e2e8f0 !important;
+    background-color: #000 !important;
     display: block !important;
     width: 100% !important;
+  }
+
+  /* 深色模式hr标签 */
+  .dark .markdown-content hr {
+    background-color: #fff !important;
   }
 
   .markdown-content a {
@@ -435,9 +462,7 @@ h2, h3 {
     text-decoration: underline;
   }
 
-  .markdown-content a:hover {
-    color: #4338ca;
-  }
+  
 
   .markdown-content blockquote {
     border-left: 4px solid #e2e8f0;
@@ -488,10 +513,7 @@ h2, h3 {
     font-size: 0.75rem;
   }
 
-  .markdown-content .copy-code-btn:hover {
-    color: #374151;
-    background-color: rgba(0, 0, 0, 0.05);
-  }
+  
 
   .markdown-content .copy-code-btn.text-green-400 {
     color: #34d399;
@@ -559,117 +581,43 @@ h2, h3 {
     border: 1px solid #e2e8f0;
   }
 
-  /* 优化的表格样式 - 现代化设计 */
-  .markdown-content table {
+  /* 简约表格样式 - 水平黑色分割线 */
+  table {
     width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
+    border-collapse: collapse;
     margin-top: 15px;
     margin-bottom: 25px;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    background-color: white;
   }
 
-  .markdown-content th,
-  .markdown-content td {
+  table th,
+  table td {
     padding: 0.75rem 1rem;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-    transition: all 0.2s ease;
+    border-bottom: 1px solid #000 !important;
   }
 
-  .markdown-content th {
-    background-color: #4f46e5;
-    color: white;
+  table th {
     font-weight: 600;
-    position: sticky;
-    top: 0;
-    z-index: 20;
     text-transform: none;
     font-size: 0.875rem;
   }
 
-  .markdown-content th:first-child {
-    border-top-left-radius: 0.5rem;
-  }
-
-  .markdown-content th:last-child {
-    border-top-right-radius: 0.5rem;
-  }
-
-  .markdown-content td {
-    border-right: 1px solid #e2e8f0;
-  }
-
-  .markdown-content td:last-child {
-    border-right: none;
-  }
-
-  /* 斑马纹效果 */
-  .markdown-content tr:nth-child(even) {
-    background-color: #f8fafc;
-  }
-
-  /* 行悬停效果 */
-  .markdown-content tr:hover {
-    background-color: #f5f3ff;
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  /* 最后一行样式 */
-  .markdown-content tr:last-child td {
-    border-bottom: none;
-  }
-
   /* 表格响应式处理 */
   @media (max-width: 640px) {
-    .markdown-content table {
+    table {
       display: block;
       overflow-x: auto;
       white-space: nowrap;
     }
-    
-    .markdown-content table::-webkit-scrollbar {
-      height: 6px;
-    }
-    
-    .markdown-content table::-webkit-scrollbar-track {
-      background: #f1f5f9;
-      border-radius: 3px;
-    }
-    
-    .markdown-content table::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 3px;
-    }
-    
-    .markdown-content table::-webkit-scrollbar-thumb:hover {
-      background: #94a3b8;
-    }
   }
 
-  /* 表格单元格内的链接样式优化 */
-  .markdown-content td a {
-    color: #4f46e5;
-    text-decoration: none;
-    border-bottom: 1px dashed rgba(79, 70, 229, 0.4);
-    transition: all 0.2s ease;
+  /* 深色模式表格样式 */
+  .dark table th,
+  .dark table td {
+    border-bottom: 1px solid #fff !important;
   }
 
-  .markdown-content td a:hover {
-    color: #4338ca;
-    border-bottom-style: solid;
-    border-bottom-color: #4338ca;
-  }
 
-  /* 表格单元格内的代码样式优化 */
-  .markdown-content td code {
-    font-size: 0.8125rem;
-    padding: 0.125rem 0.25rem;
-  }
 }
 .dropdown-content {
   animation: dropdownFade 0.2s ease-in-out;
