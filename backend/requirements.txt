@@ -19,3 +19,4 @@ langchain-mcp-adapters
 langchain_chroma
 langgraph>=0.2.0
 werkzeug
+screeninfo>=0.8.1

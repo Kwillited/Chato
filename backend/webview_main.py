@@ -51,12 +51,22 @@ def start_webview():
     # 构建前端URL，使用127.0.0.1而不是0.0.0.0
     frontend_url = f"http://127.0.0.1:{port}"
     
+    # 计算屏幕中间位置
+    import screeninfo
+    screen = screeninfo.get_monitors()[0]
+    window_width = 800
+    window_height = 600
+    x = (screen.width - window_width) // 2
+    y = (screen.height - window_height) // 2
+    
     # 创建webview窗口
     window = webview.create_window(
         "Chato",
         frontend_url,
-        width=800,
-        height=600,
+        width=window_width,
+        height=window_height,
+        x=x,
+        y=y,
         resizable=True,
         fullscreen=False,
         min_size=(600, 400),
