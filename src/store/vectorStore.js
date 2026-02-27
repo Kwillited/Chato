@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService.js';
 import { errorUtils, loadingUtils, apiUtils } from '../utils/storeUtils.js';
+import { useFileStore } from './fileStore.js';
 
 export const useVectorStore = defineStore('vector', {
   persist: {
@@ -285,7 +286,7 @@ export const useVectorStore = defineStore('vector', {
         loadingUtils.startLoading(this);
         
         // 调用fileStore的loadFiles方法
-        const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
+        const fileStore = useFileStore();
         await fileStore.loadFiles();
         
         // 将fileStore的文件列表同步到vectorStore的files属性
@@ -308,7 +309,7 @@ export const useVectorStore = defineStore('vector', {
         loadingUtils.startLoading(this);
         
         // 调用fileStore的batchUploadFiles方法
-        const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
+        const fileStore = useFileStore();
         const result = await fileStore.batchUploadFiles(files);
         
         // 重新加载文件列表
@@ -336,7 +337,7 @@ export const useVectorStore = defineStore('vector', {
         }
         
         // 调用fileStore的deleteDocument方法
-        const fileStore = await import('./fileStore.js').then(m => m.useFileStore());
+        const fileStore = useFileStore();
         await fileStore.deleteDocument(fileToDelete.name, folderId);
         
         // 重新加载文件列表

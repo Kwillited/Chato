@@ -2,6 +2,7 @@ import { useRouter } from 'vue-router';
 import { useUiStore } from '../store/uiStore';
 import { useChatStore } from '../store/chatStore';
 import { ROUTES, ACTIVE_CONTENT } from '../router/constants.js';
+import { apiService } from '../services/apiService.js';
 
 export function useNavigation() {
   const router = useRouter();
@@ -86,8 +87,7 @@ export function useNavigation() {
           console.log('对话未找到或消息为空，从后端获取完整对话:', uuid);
           try {
             // 从后端获取完整的对话数据
-            const apiService = await import('../services/apiService.js');
-            const chatData = await apiService.apiService.chat.getChat(uuid);
+            const chatData = await apiService.chat.getChat(uuid);
             if (chatData && chatData.chat) {
               // 检查对话是否已存在于本地
               const existingChatIndex = chatStore.chats.findIndex(c => c.id === uuid);
