@@ -20,8 +20,6 @@ def get_chats(chat_service: ChatService = Depends(get_chat_service)):
     chats = chat_service.get_chats()
     return ChatListResponse(chats=chats)
 
-
-
 # 获取单个对话记录（按ID）
 @router.get('/{chat_id}', response_model=ChatResponse)
 @handle_api_errors()
@@ -30,7 +28,6 @@ def get_chat(chat_id: str = Path(...), chat_service: ChatService = Depends(get_c
     chat = chat_service.get_chat(chat_id)
     if not chat:
         raise HTTPException(status_code=404, detail='对话不存在')
-    
     return ChatResponse(chat=chat)
 
 # 删除所有对话记录

@@ -259,10 +259,6 @@ class ChatService(BaseService):
                 'response': '抱歉，我无法生成响应。'
             }
     
-
-
-
-    
     def update_chat_and_save(self, chat, message_text, user_message, ai_message, now):
         """更新对话并保存"""
         from app.core.logging_config import logger

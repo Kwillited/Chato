@@ -21,14 +21,14 @@ class CacheManager:
     def _init(self):
         """初始化缓存管理器"""
         self._cache: Dict[str, Any] = {
-            'chats': [],
+            'chats': {},
             'models': [],
             'embedding_models': [],
             'settings': {},
             'agent_sessions': []
         }
-        self._dirty_flags: Dict[str, bool] = {
-            'chats': False,
+        self._dirty_flags: Dict[str, Any] = {
+            'chats': {},
             'models': False,
             'embedding_models': False,
             'settings': False,
@@ -61,7 +61,22 @@ class CacheManager:
         try:
             with self._lock:
                 self._cache[key] = value
-                self._dirty_flags[key] = True
+                if key == 'chats':
+                    # 对于chats键，保留之前标记为脏的被删除对话ID
+                    if isinstance(value, dict):
+                        # 获取之前的脏标记
+                        old_dirty_flags = self._dirty_flags.get(key, {})
+                        # 创建新的脏标记，包含剩余对话ID和之前的脏标记
+                        new_dirty_flags = {chat_id: True for chat_id in value.keys()}
+                        # 保留之前标记为脏的被删除对话ID
+                        for chat_id, is_dirty in old_dirty_flags.items():
+                            if is_dirty and chat_id not in new_dirty_flags:
+                                new_dirty_flags[chat_id] = True
+                        self._dirty_flags[key] = new_dirty_flags
+                    else:
+                        self._dirty_flags[key] = {}
+                else:
+                    self._dirty_flags[key] = True
             return True
         except Exception as e:
             print(f"设置缓存数据失败: {e}")
@@ -154,7 +169,15 @@ class CacheManager:
             value: 是否为脏数据，默认为True
         """
         with self._lock:
-            self._dirty_flags[key] = value
+            if key == 'chats':
+                # 对于chats键，value为True表示所有对话都脏，设置为一个包含所有对话ID的字典
+                if value:
+                    chats = self._cache.get('chats', {})
+                    self._dirty_flags[key] = {chat_id: True for chat_id in chats.keys()}
+                else:
+                    self._dirty_flags[key] = {}
+            else:
+                self._dirty_flags[key] = value
     
     def is_dirty(self, key: str) -> bool:
         """检查是否有脏标记
@@ -166,7 +189,11 @@ class CacheManager:
             是否有脏标记
         """
         with self._lock:
-            return self._dirty_flags.get(key, False)
+            value = self._dirty_flags.get(key, False)
+            # 对于chats键，检查字典是否为空
+            if key == 'chats' and isinstance(value, dict):
+                return len(value) > 0
+            return value
     
     def clear_dirty_flag(self, key: str) -> None:
         """清除脏标记
@@ -176,7 +203,206 @@ class CacheManager:
         """
         with self._lock:
             if key in self._dirty_flags:
-                self._dirty_flags[key] = False
+                if key == 'chats':
+                    self._dirty_flags[key] = {}
+                else:
+                    self._dirty_flags[key] = False
     
+    def get_chat(self, chat_id: str) -> Optional[Dict[str, Any]]:
+        """获取单个对话
+        
+        Args:
+            chat_id: 对话ID
+            
+        Returns:
+            对话数据，如果不存在返回None
+        """
+        with self._lock:
+            chats = self._cache.get('chats', {})
+            return chats.get(chat_id)
+    
+    def set_chat(self, chat_id: str, chat_data: Dict[str, Any]) -> bool:
+        """设置单个对话
+        
+        Args:
+            chat_id: 对话ID
+            chat_data: 对话数据
+            
+        Returns:
+            操作是否成功
+        """
+        try:
+            with self._lock:
+                chats = self._cache.get('chats', {})
+                chats[chat_id] = chat_data
+                self._cache['chats'] = chats
+                self._dirty_flags['chats'][chat_id] = True
+            return True
+        except Exception as e:
+            print(f"设置对话数据失败: {e}")
+            return False
+    
+    def update_message(self, chat_id: str, message_id: str, message_data: Dict[str, Any]) -> bool:
+        """更新单条消息
+        
+        Args:
+            chat_id: 对话ID
+            message_id: 消息ID
+            message_data: 消息数据
+            
+        Returns:
+            操作是否成功
+        """
+        try:
+            with self._lock:
+                chats = self._cache.get('chats', {})
+                if chat_id not in chats:
+                    return False
+                
+                chat = chats[chat_id]
+                messages = chat.get('messages', [])
+                
+                # 查找并更新消息
+                for msg in messages:
+                    if msg.get('id') == message_id:
+                        msg.update(message_data)
+                        self._dirty_flags['chats'][chat_id] = True
+                        break
+                
+                chats[chat_id] = chat
+                self._cache['chats'] = chats
+            return True
+        except Exception as e:
+            print(f"更新消息数据失败: {e}")
+            return False
+    
+    def add_message(self, chat_id: str, message_data: Dict[str, Any]) -> bool:
+        """添加新消息
+        
+        Args:
+            chat_id: 对话ID
+            message_data: 消息数据
+            
+        Returns:
+            操作是否成功
+        """
+        try:
+            with self._lock:
+                chats = self._cache.get('chats', {})
+                if chat_id not in chats:
+                    return False
+                
+                chat = chats[chat_id]
+                messages = chat.get('messages', [])
+                messages.append(message_data)
+                chat['messages'] = messages
+                
+                self._dirty_flags['chats'][chat_id] = True
+                
+                chats[chat_id] = chat
+                self._cache['chats'] = chats
+            return True
+        except Exception as e:
+            print(f"添加消息数据失败: {e}")
+            return False
+    
+    def update_chat_no_dirty(self, chat_id: str, chat_data: Dict[str, Any]) -> bool:
+        """更新单个对话但不设置脏标记
+        
+        Args:
+            chat_id: 对话ID
+            chat_data: 对话数据
+            
+        Returns:
+            操作是否成功
+        """
+        try:
+            with self._lock:
+                chats = self._cache.get('chats', {})
+                chats[chat_id] = chat_data
+                self._cache['chats'] = chats
+            return True
+        except Exception as e:
+            print(f"更新对话数据失败: {e}")
+            return False
+    
+    def is_chat_dirty(self, chat_id: str) -> bool:
+        """检查对话是否有脏标记
+        
+        Args:
+            chat_id: 对话ID
+            
+        Returns:
+            是否有脏标记
+        """
+        with self._lock:
+            return self._dirty_flags['chats'].get(chat_id, False)
+    
+    def clear_chat_dirty_flag(self, chat_id: str) -> None:
+        """清除对话脏标记
+        
+        Args:
+            chat_id: 对话ID
+        """
+        with self._lock:
+            if chat_id in self._dirty_flags['chats']:
+                del self._dirty_flags['chats'][chat_id]
+    
+    def get_dirty_chats(self) -> List[str]:
+        """获取所有脏对话的ID
+        
+        Returns:
+            脏对话ID列表
+        """
+        with self._lock:
+            return [chat_id for chat_id, is_dirty in self._dirty_flags['chats'].items() if is_dirty]
+    
+    def clear(self, key: Optional[str] = None) -> bool:
+        """清除缓存
+        
+        Args:
+            key: 缓存键名，如果为None则清除所有缓存
+            
+        Returns:
+            操作是否成功
+        """
+        try:
+            with self._lock:
+                if key:
+                    if key in self._cache:
+                        if key == 'chats':
+                            self._cache[key] = {}
+                            self._dirty_flags[key] = {}
+                        elif key in ['models', 'embedding_models', 'agent_sessions']:
+                            self._cache[key] = []
+                            self._dirty_flags[key] = False
+                        elif key == 'settings':
+                            self._cache[key] = {}
+                            self._dirty_flags[key] = False
+                        else:
+                            self._cache[key] = None
+                            self._dirty_flags[key] = False
+                else:
+                    # 重置所有缓存
+                    self._cache = {
+                        'chats': {},
+                        'models': [],
+                        'embedding_models': [],
+                        'settings': {},
+                        'agent_sessions': []
+                    }
+                    # 重置所有脏标记
+                    self._dirty_flags = {
+                        'chats': {},
+                        'models': False,
+                        'embedding_models': False,
+                        'settings': False,
+                        'agent_sessions': False
+                    }
+            return True
+        except Exception as e:
+            print(f"清除缓存失败: {e}")
+            return False
+
 # 创建全局缓存管理器实例
 cache_manager = CacheManager()

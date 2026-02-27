@@ -119,15 +119,6 @@
               
               <!-- 操作按钮 -->
               <div class="flex justify-end space-x-2 p-2 border-t border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 rounded-b-lg">
-                <Button
-                  shape="rounded"
-                  size="md"
-                  variant="secondary"
-                  :icon="uiStore.activeView === 'chat' ? 'fa-sitemap' : 'fa-comments'"
-                  :tooltip="`切换到${uiStore.activeView === 'chat' ? '上下文工程可视化' : '对话'}视图`"
-                  @click="toggleView"
-                />
-
               </div>
             </div>
           </div>
@@ -382,10 +373,7 @@ const clearAllSelections = () => {
 
 
 
-// 切换视图模式
-const toggleView = () => {
-  uiStore.setActiveView(uiStore.activeView === 'chat' ? 'Graph' : 'chat');
-};
+
 
 // 保存提示词模板
 const savePromptTemplate = (type) => {

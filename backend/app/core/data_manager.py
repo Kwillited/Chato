@@ -106,41 +106,38 @@ def load_chats_from_db():
     try:
         # 使用Repository层加载对话数据
         from app.repositories.chat_repository import ChatRepository
-        from app.repositories.message_repository import MessageRepository
         from app.models.database.models import Chat
         
         # 获取数据库会话
         db_session = next(get_db())
         chat_repo = ChatRepository(db_session)
-        message_repo = MessageRepository(db_session)
         
         # 清空内存中的对话数据
-        cache_manager.set('chats', [])
+        cache_manager.set('chats', {})
         
-        # 获取所有对话
-        chats = chat_repo.get_all_chats()
+        # 获取所有对话，加载必要的字段
+        chats = db_session.query(Chat.id, Chat.title, Chat.created_at, Chat.updated_at).order_by(Chat.updated_at.desc()).all()
         
-        chat_list = []
-        for chat in chats:
-            # 获取对话的所有消息
-            messages = message_repo.get_messages_by_chat_id(chat.id)
-            
-            # 使用公共函数构建消息列表
-            formatted_messages = build_message_list(messages)
-            
-            # 使用公共函数构建对话字典
-            chat_dict = build_chat_dict(chat, formatted_messages)
-            
-            # 添加对话到列表
-            chat_list.append(chat_dict)
+        chat_dict = {}
+        for chat_id, title, created_at, updated_at in chats:
+            # 构建对话字典，包含必要的字段
+            chat_data = {
+                'id': chat_id,
+                'title': title,
+                'createdAt': created_at,
+                'updatedAt': updated_at,
+                'messages': []
+            }
+            # 添加对话到字典
+            chat_dict[chat_id] = chat_data
         
         # 更新缓存
-        cache_manager.set('chats', chat_list)
-        # 清除脏标记
-        cache_manager.clear_dirty_flag('chats')
+        cache_manager.set('chats', chat_dict)
+        # 清除所有对话脏标记
+        cache_manager._dirty_flags['chats'] = {}
         
-        logger.info(f"从SQLite数据库加载了 {len(chat_list)} 个对话")
-        return len(chat_list) > 0
+        logger.info(f"从SQLite数据库加载了 {len(chat_dict)} 个对话")
+        return len(chat_dict) > 0
     except Exception as e:
         logger.error(f"从SQLite数据库加载对话数据失败: {str(e)}")
         return False
@@ -575,111 +572,108 @@ def save_chats_to_db():
         db_session = next(get_db())
         
         # 获取内存中的对话数据
-        chats = cache_manager.get('chats') or []
+        chats = cache_manager.get('chats') or {}
+        
+        # 获取所有脏对话ID
+        dirty_chat_ids = cache_manager.get_dirty_chats()
+        
+        if not dirty_chat_ids:
+            logger.info("没有脏对话需要保存")
+            return True
         
         # 获取数据库中的所有对话
         db_chats = db_session.query(Chat).all()
         db_chat_dict = {chat.id: chat for chat in db_chats}
         
-        # 获取数据库中的所有消息
-        db_messages = db_session.query(Message).all()
-        db_message_dict = {(msg.chat_id, msg.id): msg for msg in db_messages}
-        
         # 处理对话的增量更新
-        memory_chat_ids = set()
         added_chats = 0
         updated_chats = 0
         deleted_chats = 0
         
-        for chat in chats:
-            chat_id = chat['id']
-            memory_chat_ids.add(chat_id)
-            
-            # 检查对话是否已存在
-            if chat_id in db_chat_dict:
-                # 更新现有对话
-                db_chat = db_chat_dict[chat_id]
-                db_chat.title = chat['title']
-                db_chat.preview = chat.get('preview', '')
-                db_chat.updated_at = chat['updatedAt']
-                db_chat.pinned = chat.get('pinned', 0)
-                updated_chats += 1
-            else:
-                # 添加新对话
-                new_chat = Chat(
-                    id=chat_id,
-                    title=chat['title'],
-                    preview=chat.get('preview', ''),
-                    created_at=chat['createdAt'],
-                    updated_at=chat['updatedAt'],
-                    pinned=chat.get('pinned', 0)
-                )
-                db_session.add(new_chat)
-                added_chats += 1
-            
-            # 处理消息的增量更新
-            memory_message_ids = set()
-            messages = chat.get('messages', [])
-            
-            for msg in messages:
-                msg_id = msg['id']
-                memory_message_ids.add(msg_id)
-                
-                # 检查消息是否已存在
-                msg_key = (chat_id, msg_id)
-                if msg_key in db_message_dict:
-                    # 更新现有消息
-                    db_msg = db_message_dict[msg_key]
-                    db_msg.role = msg['role']
-                    db_msg.content = msg['content']
-                    db_msg.reasoning_content = msg.get('reasoning_content', None)
-                    db_msg.created_at = msg.get('createdAt') or datetime.now().isoformat()
-                    db_msg.model = msg.get('model', None)
-                    db_msg.files = json.dumps(msg.get('files', []))
-                    db_msg.message_type = msg.get('message_type', 'normal')
-                    db_msg.agent_session_id = msg.get('agent_session_id')
-                    db_msg.agent_node = msg.get('agent_node')
-                    db_msg.agent_step = msg.get('agent_step')
-                    db_msg.agent_metadata = msg.get('agent_metadata')
+        for chat_id in dirty_chat_ids:
+            # 检查对话是否在内存中存在
+            if chat_id in chats:
+                chat = chats[chat_id]
+                # 检查对话是否已存在
+                if chat_id in db_chat_dict:
+                    # 更新现有对话
+                    db_chat = db_chat_dict[chat_id]
+                    db_chat.title = chat['title']
+                    db_chat.preview = chat.get('preview', '')
+                    db_chat.updated_at = chat['updatedAt']
+                    db_chat.pinned = chat.get('pinned', 0)
+                    updated_chats += 1
                 else:
-                    # 添加新消息
-                    new_message = Message(
-                        id=msg_id,
-                        chat_id=chat_id,
-                        role=msg['role'],
-                        message_type=msg.get('message_type', 'normal'),
-                        content=msg['content'],
-                        reasoning_content=msg.get('reasoning_content', None),
-                        created_at=msg.get('createdAt') or datetime.now().isoformat(),
-                        model=msg.get('model', None),
-                        files=json.dumps(msg.get('files', [])),
-                        agent_session_id=msg.get('agent_session_id'),
-                        agent_node=msg.get('agent_node'),
-                        agent_step=msg.get('agent_step'),
-                        agent_metadata=msg.get('agent_metadata')
+                    # 添加新对话
+                    new_chat = Chat(
+                        id=chat_id,
+                        title=chat['title'],
+                        preview=chat.get('preview', ''),
+                        created_at=chat['createdAt'],
+                        updated_at=chat['updatedAt'],
+                        pinned=chat.get('pinned', 0)
                     )
-                    db_session.add(new_message)
-            
-            # 删除对话中不再存在的消息
-            for (db_chat_id, db_msg_id), db_msg in list(db_message_dict.items()):
-                if db_chat_id == chat_id and db_msg_id not in memory_message_ids:
-                    db_session.delete(db_msg)
-                    del db_message_dict[(db_chat_id, db_msg_id)]
-        
-        # 删除不再存在的对话
-        for chat_id, db_chat in db_chat_dict.items():
-            if chat_id not in memory_chat_ids:
-                # 删除相关的消息
-                for (db_chat_id, db_msg_id), db_msg in list(db_message_dict.items()):
-                    if db_chat_id == chat_id:
-                        db_session.delete(db_msg)
-                        del db_message_dict[(db_chat_id, db_msg_id)]
-                # 删除对话
-                db_session.delete(db_chat)
-                deleted_chats += 1
+                    db_session.add(new_chat)
+                    added_chats += 1
+                
+                # 处理消息的增量更新
+                messages = chat.get('messages', [])
+                
+                for msg in messages:
+                    msg_id = msg['id']
+                    
+                    # 检查消息是否已存在
+                    existing_msg = db_session.query(Message).filter(
+                        Message.chat_id == chat_id,
+                        Message.id == msg_id
+                    ).first()
+                    
+                    if existing_msg:
+                        # 更新现有消息
+                        existing_msg.role = msg['role']
+                        existing_msg.content = msg['content']
+                        existing_msg.reasoning_content = msg.get('reasoning_content', None)
+                        existing_msg.created_at = msg.get('createdAt') or datetime.now().isoformat()
+                        existing_msg.model = msg.get('model', None)
+                        existing_msg.files = json.dumps(msg.get('files', []))
+                        existing_msg.message_type = msg.get('message_type', 'normal')
+                        existing_msg.agent_session_id = msg.get('agent_session_id')
+                        existing_msg.agent_node = msg.get('agent_node')
+                        existing_msg.agent_step = msg.get('agent_step')
+                        existing_msg.agent_metadata = msg.get('agent_metadata')
+                    else:
+                        # 添加新消息
+                        new_message = Message(
+                            id=msg_id,
+                            chat_id=chat_id,
+                            role=msg['role'],
+                            message_type=msg.get('message_type', 'normal'),
+                            content=msg['content'],
+                            reasoning_content=msg.get('reasoning_content', None),
+                            created_at=msg.get('createdAt') or datetime.now().isoformat(),
+                            model=msg.get('model', None),
+                            files=json.dumps(msg.get('files', [])),
+                            agent_session_id=msg.get('agent_session_id'),
+                            agent_node=msg.get('agent_node'),
+                            agent_step=msg.get('agent_step'),
+                            agent_metadata=msg.get('agent_metadata')
+                        )
+                        db_session.add(new_message)
+            else:
+                # 处理删除操作：对话在脏标记中但不在内存中
+                if chat_id in db_chat_dict:
+                    # 删除相关的消息
+                    db_session.query(Message).filter(Message.chat_id == chat_id).delete()
+                    # 删除对话
+                    db_session.delete(db_chat_dict[chat_id])
+                    deleted_chats += 1
         
         # 提交所有操作
         db_session.commit()
+        
+        # 清除脏标记
+        for chat_id in dirty_chat_ids:
+            cache_manager.clear_chat_dirty_flag(chat_id)
         
         logger.info(f"对话数据已保存到SQLite数据库: 添加{added_chats}个对话, 更新{updated_chats}个对话, 删除{deleted_chats}个对话")
         return True
@@ -1023,41 +1017,16 @@ def load_data():
         # 初始化数据库
         init_db()
         
-        # 使用Repository层检查模型表是否为空
-        from app.repositories.model_repository import ModelRepository
-        from app.repositories.embedding_model_repository import EmbeddingModelRepository
-        
-        # 获取数据库会话
-        db_session = next(get_db())
-        model_repo = ModelRepository(db_session)
-        
-        # 检查模型表是否为空
-        if model_repo.is_model_table_empty():
-            # 数据库为空，插入默认模型数据
-            insert_default_models()
-        else:
-            # 从SQLite加载模型数据
-            load_models_from_db()
-        
-        # 检查嵌入模型表是否为空
-        embedding_model_repo = EmbeddingModelRepository(db_session)
-        if embedding_model_repo.is_embedding_model_table_empty():
-            # 嵌入模型表为空，插入默认嵌入模型数据
-            insert_default_embedding_models()
-        else:
-            # 从SQLite加载嵌入模型数据
-            load_embedding_models_from_db()
-        
-        # 从SQLite加载对话数据
+        # 从SQLite加载对话数据（只加载id和title字段）
         load_chats_from_db()
         
-        # 从SQLite加载设置数据（包含系统设置和向量相关设置）
+        # 从SQLite加载设置数据（包含系统设置）
         load_settings_from_db()
         
         # 启动自动保存功能
         start_auto_save()
         
-        logger.info("所有数据加载成功")
+        logger.info("必要数据加载成功")
     except Exception as e:
         logger.error(f"加载数据时出错: {str(e)}")
 
@@ -1113,7 +1082,9 @@ def save_data():
         # 只保存有脏标记的数据
         sync_tasks = []
         
-        if cache_manager.is_dirty('chats'):
+        # 检查是否有脏对话
+        dirty_chat_ids = cache_manager.get_dirty_chats()
+        if dirty_chat_ids:
             sync_tasks.append({'key': 'chats', 'sync_func': save_chats_to_db})
         
         if cache_manager.is_dirty('models'):

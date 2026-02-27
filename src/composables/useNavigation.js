@@ -77,11 +77,41 @@ export function useNavigation() {
         // 首先尝试选择对话
         let success = chatStore.selectChat(uuid);
         
-        // 如果找不到对话，重新加载对话历史并再次尝试
-        if (!success) {
-          console.log('对话未找到，重新加载对话历史:', uuid);
-          await chatStore.loadChatHistory();
-          success = chatStore.selectChat(uuid);
+        // 检查对话是否存在且消息是否为空
+        const currentChat = chatStore.currentChat;
+        const hasEmptyMessages = currentChat && (!currentChat.messages || currentChat.messages.length === 0);
+        
+        // 如果找不到对话，或者对话存在但消息为空
+        if (!success || hasEmptyMessages) {
+          console.log('对话未找到或消息为空，从后端获取完整对话:', uuid);
+          try {
+            // 从后端获取完整的对话数据
+            const apiService = await import('../services/apiService.js');
+            const chatData = await apiService.apiService.chat.getChat(uuid);
+            if (chatData && chatData.chat) {
+              // 如果对话不存在于本地，添加到本地状态
+              if (!success) {
+                chatStore.chats.unshift(chatData.chat);
+                success = chatStore.selectChat(uuid);
+              } else {
+                // 如果对话存在于本地但消息为空，更新消息
+                const chatIndex = chatStore.chats.findIndex(c => c.id === uuid);
+                if (chatIndex !== -1) {
+                  chatStore.chats[chatIndex].messages = chatData.chat.messages || [];
+                  // 强制更新currentChatId，确保计算属性重新计算
+                  chatStore.currentChatId = uuid;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('从后端获取对话失败:', error);
+            // 如果从后端获取失败，尝试加载整个对话历史
+            if (!success) {
+              console.log('从后端获取对话失败，尝试加载对话历史:', uuid);
+              await chatStore.loadChatHistory();
+              success = chatStore.selectChat(uuid);
+            }
+          }
         }
         
         if (!success) {
@@ -93,7 +123,7 @@ export function useNavigation() {
           uiStore.setActiveContent(ACTIVE_CONTENT.CHAT);
         }
       } catch (error) {
-        console.error('加载对话历史失败:', error);
+        console.error('加载对话失败:', error);
         // 加载失败时，切换到首页
         router.push(ROUTES.HOME);
       }

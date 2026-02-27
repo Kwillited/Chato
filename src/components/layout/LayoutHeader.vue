@@ -48,6 +48,16 @@
     
     <!-- 右侧：历史对话按钮 -->
     <div class="flex space-x-2">
+      <!-- 视图切换按钮 -->
+      <div v-if="activeContent === 'chat'" class="relative flex items-center justify-center">
+        <Button 
+          shape="full"
+          size="md"
+          :icon="uiStore.activeView === 'chat' ? 'fa-sitemap' : 'fa-comments'"
+          :tooltip="`切换到${uiStore.activeView === 'chat' ? '上下文工程可视化' : '对话'}视图`"
+          @click="toggleView"
+        />
+      </div>
       <!-- 历史对话按钮（带下拉菜单） - 只在非设置页面显示 -->
       <div v-if="activeContent !== 'settings'" class="relative hover-scale">
         <Button 
@@ -256,6 +266,11 @@ const selectChatFromHistory = (chatId) => {
   chatStore.selectChat(chatId);
   // 添加路由跳转逻辑
   navigateToChat(chatId);
+};
+
+// 切换视图模式
+const toggleView = () => {
+  uiStore.setActiveView(uiStore.activeView === 'chat' ? 'Graph' : 'chat');
 };
 
 // 处理设置选项卡点击事件

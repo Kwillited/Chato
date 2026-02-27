@@ -552,6 +552,14 @@ export const apiService = {
         data: { pinned },
       });
     },
+    
+    // 获取单个对话
+    getChat: async (chatId) => {
+      return await requestWithRetry({
+        method: 'GET',
+        url: `/chats/${chatId}`,
+      });
+    },
   },
 
   // RAG相关API
