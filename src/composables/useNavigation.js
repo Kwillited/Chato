@@ -89,18 +89,19 @@ export function useNavigation() {
             const apiService = await import('../services/apiService.js');
             const chatData = await apiService.apiService.chat.getChat(uuid);
             if (chatData && chatData.chat) {
+              // 检查对话是否已存在于本地
+              const existingChatIndex = chatStore.chats.findIndex(c => c.id === uuid);
+              
               // 如果对话不存在于本地，添加到本地状态
-              if (!success) {
+              if (!success && existingChatIndex === -1) {
                 chatStore.chats.unshift(chatData.chat);
                 success = chatStore.selectChat(uuid);
-              } else {
-                // 如果对话存在于本地但消息为空，更新消息
-                const chatIndex = chatStore.chats.findIndex(c => c.id === uuid);
-                if (chatIndex !== -1) {
-                  chatStore.chats[chatIndex].messages = chatData.chat.messages || [];
-                  // 强制更新currentChatId，确保计算属性重新计算
-                  chatStore.currentChatId = uuid;
-                }
+              } else if (existingChatIndex !== -1) {
+                // 如果对话存在于本地，更新消息
+                chatStore.chats[existingChatIndex].messages = chatData.chat.messages || [];
+                // 强制更新currentChatId，确保计算属性重新计算
+                chatStore.currentChatId = uuid;
+                success = true;
               }
             }
           } catch (error) {

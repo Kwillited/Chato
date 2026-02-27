@@ -73,7 +73,7 @@
               </div>
             </div>
             
-            <div class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700 h-[calc(100vh-350px)] overflow-hidden flex flex-col">
+            <div class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700 h-[calc(100vh-360px)] overflow-hidden flex flex-col mb-4">
               <div class="flex-1 overflow-y-auto p-2">
                 <!-- 消息列表 -->
                 <div v-if="chatStore.currentChat && chatStore.currentChat.messages && chatStore.currentChat.messages.length > 0">
@@ -117,9 +117,7 @@
                 </div>
               </div>
               
-              <!-- 操作按钮 -->
-              <div class="flex justify-end space-x-2 p-2 border-t border-gray-200 dark:border-dark-700 bg-gray-50 dark:bg-dark-900 rounded-b-lg">
-              </div>
+
             </div>
           </div>
         </div>
