@@ -441,20 +441,24 @@ h2, h3 {
     color: #fff;
   }
 
-  /* hr标签样式 - 恢复上margin */
+  /* hr标签样式 - 仅占位 */
   .markdown-content hr {
-    margin-top: 1.5rem !important;
-    margin-bottom: 0 !important;
-    border: 0 !important;
-    height: 1px !important;
-    background-color: #000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    height: 0 !important;
+    background: none !important;
     display: block !important;
     width: 100% !important;
   }
 
   /* 深色模式hr标签 */
   .dark .markdown-content hr {
-    background-color: #fff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    height: 0 !important;
+    background: none !important;
   }
 
   .markdown-content a {
