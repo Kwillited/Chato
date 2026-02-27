@@ -19,7 +19,10 @@ class LogConfig:
     def __init__(self):
         """初始化日志配置"""
         self.log_level = logging.INFO
-        self.log_dir = os.path.join(os.getcwd(), 'logs')
+        
+        # 直接使用用户数据目录作为默认日志位置
+        from .config import config_manager
+        self.log_dir = os.path.join(config_manager.get_user_data_dir(), 'logs')
         self.log_file = os.path.join(self.log_dir, 'chato.log')
         self.max_bytes = 10 * 1024 * 1024  # 10MB
         self.backup_count = 5
@@ -88,7 +91,7 @@ class LogConfig:
         log_level_str = config_manager.get('app.log_level', 'debug' if debug_mode else 'info')
         self.log_level = self.LOG_LEVEL_MAP.get(log_level_str.lower(), logging.INFO)
         
-        # 更新日志目录
+        # 保持日志目录为用户数据目录（已经在初始化时设置）
         self.log_dir = os.path.join(config_manager.get_user_data_dir(), 'logs')
         os.makedirs(self.log_dir, exist_ok=True)
         
