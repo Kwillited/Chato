@@ -56,7 +56,13 @@ export const useChatStore = defineStore('chat', {
 
     // 获取对话历史列表（按更新时间排序）
     chatHistory: (state) => {
-      return [...state.chats].sort((a, b) => b.updatedAt - a.updatedAt);
+      return [...state.chats].sort((a, b) => {
+        // 先按置顶状态排序
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // 再按updatedAt降序排列
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
+      });
     },
 
     // 获取过滤后的对话列表
@@ -65,16 +71,26 @@ export const useChatStore = defineStore('chat', {
       const uiStore = useUiStore();
       const searchQuery = uiStore.searchQuery;
       
+      let filteredChats;
       if (!searchQuery.trim()) {
-        return state.chats;
+        filteredChats = state.chats;
+      } else {
+        const query = searchQuery.toLowerCase();
+        filteredChats = state.chats.filter(
+          (chat) =>
+            chat.title.toLowerCase().includes(query) ||
+            chat.messages.some((message) => message.content.toLowerCase().includes(query))
+        );
       }
-
-      const query = searchQuery.toLowerCase();
-      return state.chats.filter(
-        (chat) =>
-          chat.title.toLowerCase().includes(query) ||
-          chat.messages.some((message) => message.content.toLowerCase().includes(query))
-      );
+      
+      // 对过滤后的对话列表进行排序，与chatHistory保持一致
+      return [...filteredChats].sort((a, b) => {
+        // 先按置顶状态排序
+        if (a.pinned && !b.pinned) return -1;
+        if (!a.pinned && b.pinned) return 1;
+        // 再按updatedAt降序排列
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
+      });
     },
   },
 
@@ -984,7 +1000,18 @@ export const useChatStore = defineStore('chat', {
         
         if (response && response.chats) {
           // 确保chats是数组
-          this.chats = Array.isArray(response.chats) ? response.chats : [];
+          let chats = Array.isArray(response.chats) ? response.chats : [];
+          
+          // 对chats数组进行排序，按updatedAt降序排列（最新的在前面）
+          chats.sort((a, b) => {
+            // 先按置顶状态排序
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            // 再按updatedAt降序排列
+            return new Date(b.updatedAt) - new Date(a.updatedAt);
+          });
+          
+          this.chats = chats;
           
           // 确保数据一致性
           this.ensureDataIntegrity();

@@ -20,7 +20,10 @@ class DataService(BaseService):
     def get_chats():
         """获取所有对话"""
         chats = cache_manager.get('chats') or {}
-        return list(chats.values())
+        # 对对话列表进行排序，先按置顶状态排序，再按updatedAt降序排列
+        chat_list = list(chats.values())
+        chat_list.sort(key=lambda x: (not x.get('pinned', False), x.get('updatedAt', '')) , reverse=True)
+        return chat_list
     
     @staticmethod
     def get_chat_by_id(chat_id):
