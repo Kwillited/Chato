@@ -179,9 +179,6 @@ def load_models_from_db():
                 'description': model.description,
                 'configured': bool(model.configured),
                 'enabled': bool(model.enabled),
-                'icon_class': model.icon_class,
-                'icon_bg': model.icon_bg,
-                'icon_color': model.icon_color,
                 'icon_url': model.icon_url,
                 'icon_blob': model.icon_blob,
                 'versions': version_list
@@ -235,9 +232,6 @@ def load_embedding_models_from_db():
                 'type': model.type,
                 'configured': bool(model.configured),
                 'enabled': bool(model.enabled),
-                'icon_class': model.icon_class,
-                'icon_bg': model.icon_bg,
-                'icon_color': model.icon_color,
                 'icon_url': model.icon_url,
                 'versions': version_list
             })
@@ -311,9 +305,6 @@ def insert_default_embedding_models():
             'type': 'huggingface',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-hug',
-            'icon_bg': 'bg-blue-100',
-            'icon_color': 'text-blue-600',
             'icon_url': '/api/models/icons/Huggingface.svg',
             'versions': []
         },
@@ -323,9 +314,6 @@ def insert_default_embedding_models():
             'type': 'openai',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-comment-o',
-            'icon_bg': 'bg-blue-100',
-            'icon_color': 'text-blue-500',
             'icon_url': '/api/models/icons/OpenAI.svg',
             'versions': []
         },
@@ -335,9 +323,6 @@ def insert_default_embedding_models():
             'type': 'ollama',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-server',
-            'icon_bg': 'bg-green-100',
-            'icon_color': 'text-green-600',
             'icon_url': '/api/models/icons/Ollama.svg',
             'versions': []
         }
@@ -360,9 +345,6 @@ def insert_default_embedding_models():
                 'type': provider['type'],
                 'configured': provider['configured'],
                 'enabled': provider['enabled'],
-                'icon_class': provider['icon_class'],
-                'icon_bg': provider['icon_bg'],
-                'icon_color': provider['icon_color'],
                 'icon_url': provider.get('icon_url', '')
             }
             
@@ -404,9 +386,6 @@ def insert_default_models():
             'description': 'OpenAI的AI模型，性价比高',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-comment-o',
-            'icon_bg': 'bg-blue-100',
-            'icon_color': 'text-blue-500',
             'icon_url': '/api/models/icons/OpenAI.svg',
             'versions': []
         },
@@ -415,9 +394,6 @@ def insert_default_models():
             'description': 'Anthropic的Claude模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-comments',
-            'icon_bg': 'bg-purple-100',
-            'icon_color': 'text-purple-600',
             'icon_url': '/api/models/icons/Anthropic.svg',
             'versions': []
         },
@@ -426,9 +402,6 @@ def insert_default_models():
             'description': '本地运行的Ollama模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-server',
-            'icon_bg': 'bg-green-100',
-            'icon_color': 'text-green-600',
             'icon_url': '/api/models/icons/Ollama.svg',
             'versions': []
         },
@@ -437,9 +410,6 @@ def insert_default_models():
             'description': 'GitHub的AI模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-github',
-            'icon_bg': 'bg-gray-100',
-            'icon_color': 'text-gray-600',
             'icon_url': '/api/models/icons/GitHubModel.svg',
             'versions': []
         },
@@ -448,9 +418,6 @@ def insert_default_models():
             'description': '深度求索的Deepseek模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-code',
-            'icon_bg': 'bg-orange-100',
-            'icon_color': 'text-orange-600',
             'icon_url': '/api/models/icons/DeepSeek.svg',
             'versions': []
         },
@@ -459,9 +426,6 @@ def insert_default_models():
             'description': '字节跳动的豆包模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-robot',
-            'icon_bg': 'bg-red-100',
-            'icon_color': 'text-red-600',
             'icon_url': '/api/models/icons/Doubao.svg',
             'versions': []
         },
@@ -470,9 +434,6 @@ def insert_default_models():
             'description': 'Google的AI模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-google',
-            'icon_bg': 'bg-blue-100',
-            'icon_color': 'text-blue-600',
             'icon_url': '/api/models/icons/GoogleAI.svg',
             'versions': []
         },
@@ -481,9 +442,6 @@ def insert_default_models():
             'description': 'Hugging Face的开源模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-hug',
-            'icon_bg': 'bg-blue-100',
-            'icon_color': 'text-blue-600',
             'icon_url': '/api/models/icons/Huggingface.svg',
             'versions': []
         },
@@ -492,9 +450,6 @@ def insert_default_models():
             'description': '阿里巴巴的通义千问模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-comment-alt',
-            'icon_bg': 'bg-orange-100',
-            'icon_color': 'text-orange-600',
             'icon_url': '/api/models/icons/Qwen.svg',
             'versions': []
         },
@@ -503,9 +458,6 @@ def insert_default_models():
             'description': '百度的文心一言模型',
             'configured': False,
             'enabled': False,
-            'icon_class': 'fa-comment-dots',
-            'icon_bg': 'bg-red-100',
-            'icon_color': 'text-red-600',
             'icon_url': '/api/models/icons/文心一言.svg',
             'versions': []
         }
@@ -527,9 +479,6 @@ def insert_default_models():
                 description=model['description'],
                 configured=model['configured'],
                 enabled=model['enabled'],
-                icon_class=model['icon_class'],
-                icon_bg=model['icon_bg'],
-                icon_color=model['icon_color'],
                 icon_url=model.get('icon_url', ''),
                 icon_blob=model.get('icon_blob', None)
             )
@@ -730,9 +679,6 @@ def save_models_to_db():
                 description=model['description'],
                 configured=model['configured'],
                 enabled=model['enabled'],
-                icon_class=model['icon_class'],
-                icon_bg=model['icon_bg'],
-                icon_color=model['icon_color'],
                 icon_url=model.get('icon_url', ''),
                 icon_blob=model.get('icon_blob', None)
             )
@@ -823,9 +769,6 @@ def save_embedding_models_to_db():
                 'type': model['type'],
                 'configured': model['configured'],
                 'enabled': model['enabled'],
-                'icon_class': model['icon_class'],
-                'icon_bg': model['icon_bg'],
-                'icon_color': model['icon_color'],
                 'icon_url': model.get('icon_url', '')
             }
             

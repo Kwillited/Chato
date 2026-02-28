@@ -28,7 +28,7 @@
               <div class="flex items-center gap-2">
                 <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
                   <img v-if="model.icon_url" :src="model.icon_url" :alt="model.name + ' 图标'" class="w-9 h-9 object-contain" />
-                  <i v-else :class="model.icon_class + ' text-xl'"></i>
+                  <i v-else class="fa-robot text-xl"></i>
                 </div>
                 <div>
                   <div class="font-medium text-sm text-gray-900 dark:text-white">
@@ -133,7 +133,7 @@
               <div class="flex items-center gap-2">
                 <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
                   <img v-if="model.icon_url" :src="model.icon_url" :alt="model.name + ' 图标'" class="w-9 h-9 object-contain" />
-                  <i v-else :class="model.icon_class + ' text-xl'"></i>
+                  <i v-else class="fa-robot text-xl"></i>
                 </div>
                 <div>
                   <div class="font-medium text-sm text-gray-900 dark:text-white">{{ model.name }}</div>
@@ -166,7 +166,7 @@
               <div class="flex items-center gap-2">
                 <div class="p-1 rounded-full w-11 h-11 flex items-center justify-center overflow-hidden">
                   <img v-if="model.icon_url" :src="model.icon_url" :alt="model.name + ' 图标'" class="w-9 h-9 object-contain" />
-                  <i v-else :class="model.icon_class + ' text-xl'"></i>
+                  <i v-else class="fa-robot text-xl"></i>
                 </div>
                 <div>
                   <div class="font-medium text-sm text-gray-900 dark:text-white">{{ model.name }}</div>

@@ -73,9 +73,6 @@ class EmbeddingModelService(BaseService):
                     'type': model.type,
                     'enabled': model.enabled,
                     'configured': model.configured,
-                    'icon_class': model.icon_class,
-                    'icon_bg': model.icon_bg,
-                    'icon_color': model.icon_color,
                     'versions': [
                         {
                             'id': version.id,
@@ -120,9 +117,6 @@ class EmbeddingModelService(BaseService):
                 'type': model.type,
                 'enabled': model.enabled,
                 'configured': model.configured,
-                'icon_class': model.icon_class,
-                'icon_bg': model.icon_bg,
-                'icon_color': model.icon_color,
                 'versions': [
                     {
                         'id': version.id,
@@ -166,9 +160,6 @@ class EmbeddingModelService(BaseService):
                 'type': updated_model.type,
                 'enabled': updated_model.enabled,
                 'configured': updated_model.configured,
-                'icon_class': updated_model.icon_class,
-                'icon_bg': updated_model.icon_bg,
-                'icon_color': updated_model.icon_color,
                 'versions': [
                     {
                         'id': version.id,

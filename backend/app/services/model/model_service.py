@@ -70,9 +70,6 @@ class ModelService(BaseService):
             description=model['description'],
             configured=model['configured'],
             enabled=model['enabled'],
-            icon_class=model['icon_class'],
-            icon_bg=model['icon_bg'],
-            icon_color=model['icon_color'],
             icon_url=model['icon_url'],
             icon_blob=model.get('icon_blob', None)
         )

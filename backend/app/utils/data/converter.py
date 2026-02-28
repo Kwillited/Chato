@@ -74,9 +74,6 @@ class ModelConverter:
             'description': model_row.description,
             'configured': bool(model_row.configured),
             'enabled': bool(model_row.enabled),
-            'icon_class': model_row.icon_class,
-            'icon_bg': model_row.icon_bg,
-            'icon_color': model_row.icon_color,
             'icon_url': model_row.icon_url,
             'icon_blob': getattr(model_row, 'icon_blob', None),
             'versions': version_list

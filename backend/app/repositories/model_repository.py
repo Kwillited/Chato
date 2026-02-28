@@ -14,31 +14,25 @@ class ModelRepository(BaseRepository):
         """根据名称获取模型"""
         return self.db.query(Model).filter(Model.name == model_name).first()
     
-    def create_model(self, name, description, configured, enabled, icon_class, icon_bg, icon_color, icon_url, icon_blob):
+    def create_model(self, name, description, configured, enabled, icon_url, icon_blob):
         """创建新模型"""
         model = Model(
             name=name,
             description=description,
             configured=configured,
             enabled=enabled,
-            icon_class=icon_class,
-            icon_bg=icon_bg,
-            icon_color=icon_color,
             icon_url=icon_url,
             icon_blob=icon_blob
         )
         return self.add(model)
     
-    def update_model(self, name, description, configured, enabled, icon_class, icon_bg, icon_color, icon_url, icon_blob):
+    def update_model(self, name, description, configured, enabled, icon_url, icon_blob):
         """更新模型"""
         model = self.get_model_by_name(name)
         if model:
             model.description = description
             model.configured = configured
             model.enabled = enabled
-            model.icon_class = icon_class
-            model.icon_bg = icon_bg
-            model.icon_color = icon_color
             model.icon_url = icon_url
             model.icon_blob = icon_blob
             return self.update(model)
@@ -101,13 +95,13 @@ class ModelRepository(BaseRepository):
         """检查模型表是否为空"""
         return self.db.query(Model).count() == 0
     
-    def create_or_update_model(self, name, description, configured, enabled, icon_class, icon_bg, icon_color, icon_url, icon_blob):
+    def create_or_update_model(self, name, description, configured, enabled, icon_url, icon_blob):
         """创建或更新模型"""
         model = self.get_model_by_name(name)
         if model:
-            return self.update_model(name, description, configured, enabled, icon_class, icon_bg, icon_color, icon_url, icon_blob)
+            return self.update_model(name, description, configured, enabled, icon_url, icon_blob)
         else:
-            return self.create_model(name, description, configured, enabled, icon_class, icon_bg, icon_color, icon_url, icon_blob)
+            return self.create_model(name, description, configured, enabled, icon_url, icon_blob)
     
     def create_or_update_model_version(self, model_id, version_name, custom_name, api_key, api_base_url, streaming_config):
         """创建或更新模型版本"""

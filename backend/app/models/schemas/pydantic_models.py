@@ -149,9 +149,6 @@ class ModelBase(BaseModel):
     description: Optional[str] = None
     configured: bool = False
     enabled: bool = False
-    icon_class: Optional[str] = None
-    icon_bg: Optional[str] = None
-    icon_color: Optional[str] = None
     icon_url: Optional[str] = None
     icon_blob: Optional[str] = None
 

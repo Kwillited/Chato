@@ -13,9 +13,6 @@ class Model(Base):
     description = Column(Text)
     configured = Column(Boolean, default=False)
     enabled = Column(Boolean, default=False)
-    icon_class = Column(String)
-    icon_bg = Column(String)
-    icon_color = Column(String)
     icon_url = Column(String)
     icon_blob = Column(Text)  # SQLite中使用TEXT存储二进制数据
     
@@ -189,9 +186,6 @@ class EmbeddingModel(Base):
     type = Column(String, default="huggingface")  # huggingface, openai, ollama
     configured = Column(Boolean, default=False)
     enabled = Column(Boolean, default=False)
-    icon_class = Column(String)
-    icon_bg = Column(String)
-    icon_color = Column(String)
     icon_url = Column(String)
     
     # 关系：一个嵌入模型可以有多个版本
