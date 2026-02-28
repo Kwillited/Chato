@@ -15,11 +15,7 @@
       </transition>
     </router-view>
 
-    <!-- 模型版本表单（支持添加和编辑） -->
-    <ModelVersionForm />
 
-    <!-- 模型配置抽屉 -->
-    <ModelSettingsDrawer />
   </div>
 </template>
 
@@ -27,8 +23,7 @@
 import { ref, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNavigation } from './composables/useNavigation.js';
-import ModelVersionForm from './components/models/ModelVersionForm.vue';
-import ModelSettingsDrawer from './components/models/ModelSettingsDrawer.vue';
+
 import MainLayout from './layout/MainLayout.vue';
 import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';

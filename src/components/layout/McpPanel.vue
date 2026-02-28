@@ -84,6 +84,7 @@ const { showSuccess, showError } = useNotification();
 import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 import SkeletonLoader from '../common/SkeletonLoader.vue';
+import SearchBar from '../common/SearchBar.vue';
 import { useUiStore } from '../../store/uiStore.js';
 
 // 状态管理
