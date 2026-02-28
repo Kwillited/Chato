@@ -57,7 +57,7 @@
               <div class="flex space-x-1">
                 <Button 
                   shape="rounded"
-                  size="xs"
+                  size="sm"
                   class="flex-1 whitespace-nowrap"
                   @click="saveConfig"
                   :loading="isSavingConfig"
@@ -65,14 +65,14 @@
                 />
                 <Button 
                   shape="rounded"
-                  size="xs"
+                  size="sm"
                   class="flex-1 whitespace-nowrap"
                   @click="clearConfig"
                   content="清空"
                 />
                 <Button 
                   shape="rounded"
-                  size="xs"
+                  size="sm"
                   class="flex-1 whitespace-nowrap"
                   @click="exportConfig"
                   content="导出"
