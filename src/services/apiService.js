@@ -161,9 +161,14 @@ async function requestWithRetry(config, options = {}) {
         // 网络错误或超时
         (!error.response && (error.code === 'ECONNABORTED' || error.message.includes('Network Error') || error.message.includes('fetch failed'))) ||
         // 重试状态码
-        (error.response && defaultOptions.retryableStatusCodes.includes(error.response.status)) ||
-        // 请求方法允许重试
-        defaultOptions.retryableMethods.includes(config.method);
+        (error.response && defaultOptions.retryableStatusCodes.includes(error.response.status));
+      
+      // 对于404错误，直接返回，不进行重试
+      if (error.response && error.response.status === 404) {
+        console.log('收到404错误，不进行重试:', config.method?.toUpperCase(), config.url);
+        lastError = error;
+        break;
+      }
       
       if (!isRetryable || attempt > defaultOptions.maxRetries) {
         console.error(`API请求失败，已达到最大重试次数 (${defaultOptions.maxRetries}): ${config.method?.toUpperCase()} ${config.url} (耗时: ${Date.now() - startTime}ms)`);

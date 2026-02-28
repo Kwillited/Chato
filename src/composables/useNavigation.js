@@ -106,12 +106,10 @@ export function useNavigation() {
             }
           } catch (error) {
             console.error('从后端获取对话失败:', error);
-            // 如果从后端获取失败，尝试加载整个对话历史
-            if (!success) {
-              console.log('从后端获取对话失败，尝试加载对话历史:', uuid);
-              await chatStore.loadChatHistory();
-              success = chatStore.selectChat(uuid);
-            }
+            // 如果从后端获取失败，说明数据库中没有这个对话，直接返回根路径
+            console.log('对话不存在于数据库，返回根路径:', uuid);
+            router.push(ROUTES.HOME);
+            return;
           }
         }
         

@@ -60,6 +60,14 @@ const isScrollToBottomVisible = ref(false);
 
 // 统一检查和跳转逻辑
 const checkAndRedirectToHome = () => {
+  // 检查当前路由是否为聊天路由
+  const currentRoute = router.currentRoute.value;
+  if (currentRoute.name === 'Chat') {
+    // 如果是聊天路由，即使没有当前对话ID，也不跳转到首页
+    // 因为handleRouteChange正在处理加载对话的逻辑
+    return false;
+  }
+  
   // 只有当不在加载状态且没有当前对话时才跳转到首页
   // 避免在加载对话历史时误跳转
   // 同时，当有当前对话ID但消息为空时，不跳转到首页，因为可能正在从后端加载消息
