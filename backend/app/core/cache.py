@@ -62,15 +62,14 @@ class CacheManager:
             with self._lock:
                 self._cache[key] = value
                 if key == 'chats':
-                    # 对于chats键，保留之前标记为脏的被删除对话ID
+                    # 对于chats键，保留之前标记为脏的对话ID（包括已删除的对话）
                     if isinstance(value, dict):
                         # 获取之前的脏标记
                         old_dirty_flags = self._dirty_flags.get(key, {})
-                        # 创建新的脏标记，包含剩余对话ID和之前的脏标记
-                        new_dirty_flags = {chat_id: True for chat_id in value.keys()}
-                        # 保留之前标记为脏的被删除对话ID
+                        # 保留所有之前标记为脏的对话ID，包括已删除的对话
+                        new_dirty_flags = {}
                         for chat_id, is_dirty in old_dirty_flags.items():
-                            if is_dirty and chat_id not in new_dirty_flags:
+                            if is_dirty:
                                 new_dirty_flags[chat_id] = True
                         self._dirty_flags[key] = new_dirty_flags
                     else:

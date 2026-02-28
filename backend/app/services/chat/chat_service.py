@@ -262,16 +262,13 @@ class ChatService(BaseService):
     def update_chat_and_save(self, chat, message_text, user_message, ai_message, now):
         """更新对话并保存"""
         from app.core.logging_config import logger
+        from app.core.cache import cache_manager
         chat_id = chat['id']
         user_msg_id = user_message['id']
         
         logger.info(f"开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
         logger.info(f"对话当前消息数: {len(chat.get('messages', []))}")
         logger.info(f"用户消息内容: {user_message['content'][:50]}{'...' if len(user_message['content']) > 50 else ''}")
-        
-        # 先设置脏标记，确保数据会被保存
-        DataService.set_dirty_flag('chats', True)
-        logger.info(f"设置脏标记: chats=True")
         
         # 更新内存中的对话
         # 更新对话的更新时间
@@ -302,6 +299,10 @@ class ChatService(BaseService):
             # 添加AI回复到对话（内存）
             chat['messages'].append(ai_message)
             logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, agent_node={ai_message.get('agent_node')}")
+        
+        # 更新缓存并只标记当前对话为脏
+        cache_manager.set_chat(chat_id, chat)
+        logger.info(f"更新缓存并标记对话为脏: chat_id={chat_id}")
         
         # 检查chat对象是否在db['chats']中
         chats = DataService.get_chats()
