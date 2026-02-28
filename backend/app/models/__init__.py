@@ -10,11 +10,6 @@ from app.models.database.models import (
     Document,
     DocumentChunk
 )
-from app.models.database.mcp_models import (
-    MCPConfig,
-    MCPTool,
-    MCPServer
-)
 
 from app.models.schemas.pydantic_models import (
     MessageBase,
@@ -89,10 +84,6 @@ __all__ = [
     'Folder',
     'Document',
     'DocumentChunk',
-    # MCP models
-    'MCPConfig',
-    'MCPTool',
-    'MCPServer',
     # Pydantic models
     'MessageBase',
     'MessageCreate',
