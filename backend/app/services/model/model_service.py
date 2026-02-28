@@ -365,6 +365,7 @@ class ModelService(BaseService):
             
             # 如果内存中有模型，且有图标数据，直接返回
             if memory_model and memory_model.get('icon_blob'):
+                # 直接返回SVG内容
                 return True, memory_model['icon_blob'], '从内存缓存获取图标成功'
             
             # 尝试不同大小写的模型名称
@@ -392,7 +393,7 @@ class ModelService(BaseService):
                 return True, result[0], '从数据库获取图标成功'
             else:
                 # 从文件系统返回图片（向后兼容）
-                ICONS_DIR = r'C:\Users\admin\AppData\Local\Chato\Chato\icon'
+                ICONS_DIR = r'h:\ChaTo\icon'
                 
                 # 尝试不同大小写的文件名
                 possible_filenames = [
@@ -405,7 +406,7 @@ class ModelService(BaseService):
                 for possible_filename in possible_filenames:
                     icon_path = os.path.join(ICONS_DIR, possible_filename)
                     if os.path.exists(icon_path):
-                        with open(icon_path, 'rb') as f:
+                        with open(icon_path, 'r', encoding='utf-8') as f:
                             icon_data = f.read()
                         return True, icon_data, '从文件系统获取图标成功'
                 

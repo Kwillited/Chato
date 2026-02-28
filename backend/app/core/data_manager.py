@@ -298,6 +298,27 @@ def insert_default_embedding_models():
     """插入默认嵌入模型数据到SQLite数据库"""
     logger.info("正在插入默认嵌入模型数据...")
     
+    # 读取图标文件
+    import os
+    import base64
+    icon_dir = r'h:\ChaTo\icon'
+    
+    def get_icon_blob(icon_name):
+        """获取图标文件的内容"""
+        # 尝试不同的文件名格式
+        possible_filenames = [
+            f'{icon_name}.svg',
+            f'{icon_name.lower()}.svg',
+            f'{icon_name.capitalize()}.svg'
+        ]
+        
+        for filename in possible_filenames:
+            icon_path = os.path.join(icon_dir, filename)
+            if os.path.exists(icon_path):
+                with open(icon_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+        return None
+    
     default_embedding_providers = [
         {
             'name': 'HuggingFace',
@@ -306,6 +327,7 @@ def insert_default_embedding_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/Huggingface.svg',
+            'icon_blob': get_icon_blob('Huggingface'),
             'versions': []
         },
         {
@@ -315,6 +337,7 @@ def insert_default_embedding_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/OpenAI.svg',
+            'icon_blob': get_icon_blob('OpenAI'),
             'versions': []
         },
         {
@@ -324,6 +347,7 @@ def insert_default_embedding_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/Ollama.svg',
+            'icon_blob': get_icon_blob('Ollama'),
             'versions': []
         }
     ]
@@ -379,6 +403,42 @@ def insert_default_models():
     """插入默认模型数据到SQLite数据库"""
     logger.info("正在插入默认模型数据...")
     
+    # 读取图标文件
+    import os
+    import base64
+    icon_dir = r'h:\ChaTo\icon'
+    
+    def get_icon_blob(icon_name):
+        """获取图标文件的内容"""
+        # 映射模型名称到图标文件名
+        icon_name_mapping = {
+            'Anthropic': 'claude',
+            'GitHubModel': 'github',
+            'DeepSeek': 'deepseek',
+            'Doubao': 'doubao',
+            'GoogleAI': 'gemini',
+            'Huggingface': 'huggingface',
+            'Qwen': 'qwen',
+            '文心一言': '文心一言'
+        }
+        
+        # 获取实际的图标文件名
+        actual_icon_name = icon_name_mapping.get(icon_name, icon_name)
+        
+        # 尝试不同的文件名格式
+        possible_filenames = [
+            f'{actual_icon_name}.svg',
+            f'{actual_icon_name.lower()}.svg',
+            f'{actual_icon_name.capitalize()}.svg'
+        ]
+        
+        for filename in possible_filenames:
+            icon_path = os.path.join(icon_dir, filename)
+            if os.path.exists(icon_path):
+                with open(icon_path, 'r', encoding='utf-8') as f:
+                    return f.read()
+        return None
+    
     # 默认模型列表
     default_models = [
         {
@@ -387,6 +447,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/OpenAI.svg',
+            'icon_blob': get_icon_blob('OpenAI'),
             'versions': []
         },
         {
@@ -395,6 +456,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/Anthropic.svg',
+            'icon_blob': get_icon_blob('Anthropic'),
             'versions': []
         },
         {
@@ -403,6 +465,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/Ollama.svg',
+            'icon_blob': get_icon_blob('Ollama'),
             'versions': []
         },
         {
@@ -411,6 +474,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/GitHubModel.svg',
+            'icon_blob': get_icon_blob('GitHubModel'),
             'versions': []
         },
         {
@@ -419,6 +483,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/DeepSeek.svg',
+            'icon_blob': get_icon_blob('DeepSeek'),
             'versions': []
         },
         {
@@ -427,6 +492,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/Doubao.svg',
+            'icon_blob': get_icon_blob('Doubao'),
             'versions': []
         },
         {
@@ -435,6 +501,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/GoogleAI.svg',
+            'icon_blob': get_icon_blob('GoogleAI'),
             'versions': []
         },
         {
@@ -443,6 +510,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/Huggingface.svg',
+            'icon_blob': get_icon_blob('Huggingface'),
             'versions': []
         },
         {
@@ -451,6 +519,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/Qwen.svg',
+            'icon_blob': get_icon_blob('Qwen'),
             'versions': []
         },
         {
@@ -459,6 +528,7 @@ def insert_default_models():
             'configured': False,
             'enabled': False,
             'icon_url': '/api/models/icons/文心一言.svg',
+            'icon_blob': get_icon_blob('文心一言'),
             'versions': []
         }
     ]
@@ -960,6 +1030,12 @@ def load_data():
     try:
         # 初始化数据库
         init_db()
+        
+        # 插入默认模型数据
+        insert_default_models()
+        
+        # 插入默认嵌入模型数据
+        insert_default_embedding_models()
         
         # 从SQLite加载对话数据（只加载id和title字段）
         load_chats_from_db()
