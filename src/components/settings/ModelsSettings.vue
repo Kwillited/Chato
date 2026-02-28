@@ -330,20 +330,19 @@ const filteredConfiguredEmbeddingModels = computed(() => {
 
 
 
+// 导入图标服务
+import iconService from '../../services/iconService';
+
 // 加载模型列表 - 使用modelStore中的方法
 // 为模型添加图标URL
 const addModelIconUrls = (models) => {
-  return models.map(model => {
-    // 生成图标URL，包含/api前缀
-    // 例如：OpenAI -> OpenAI.png
-    const iconFileName = `${model.name.replace(/\s+/g, '_')}.png`;
-    const iconUrl = `/api/models/icons/${iconFileName}`;
-    
-    return {
-      ...model,
-      icon_url: iconUrl
-    };
-  });
+  return iconService.addIconUrls(models);
+};
+
+// 预加载图标
+const preloadIcons = (models) => {
+  const modelNames = models.map(model => model.name);
+  iconService.preloadIcons(modelNames);
 };
 
 const loadModels = async () => {
@@ -357,6 +356,9 @@ const loadModels = async () => {
     
     // 更新模型数据，添加图标URL
     modelStore.updateModelsWithIcons(configuredModelsWithIcons, unconfiguredModelsWithIcons);
+    
+    // 预加载图标
+    preloadIcons([...configuredModelsWithIcons, ...unconfiguredModelsWithIcons]);
     
     // 通知事件总线，模型列表已更新
     eventBus.emit('modelsUpdated', { models: modelStore.models });
@@ -378,6 +380,9 @@ const loadEmbeddingModels = async () => {
     
     // 更新嵌入模型数据，添加图标URL
     modelStore.updateEmbeddingModelsWithIcons(configuredEmbeddingModelsWithIcons, unconfiguredEmbeddingModelsWithIcons);
+    
+    // 预加载图标
+    preloadIcons([...configuredEmbeddingModelsWithIcons, ...unconfiguredEmbeddingModelsWithIcons]);
     
     // 通知事件总线，嵌入模型列表已更新
     eventBus.emit('embeddingModelsUpdated', { models: modelStore.allEmbeddingModels });

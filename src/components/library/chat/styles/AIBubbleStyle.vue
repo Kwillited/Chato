@@ -1,10 +1,12 @@
 <template>
   <div class="flex items-start max-w-[85%]">
     <!-- 头像 -->
-    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-2 mt-1 flex-shrink-0">
-      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707-.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-      </svg>
+    <div class="w-8 h-8 rounded-full flex items-center justify-center mr-2 mt-1 flex-shrink-0">
+      <img 
+        :src="modelIconUrl" 
+        :alt="modelVendor + ' 图标'" 
+        class="w-full h-full object-contain"
+      />
     </div>
     <div class="relative group">
       <!-- 模型名称 -->
@@ -114,11 +116,13 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { Tooltip, ToolExecutionStatus } from '../../index.js'
 import NormalAIMessage from '../AIChat/NormalAIMessage.vue'
 import AgentMessage from '../AIChat/AgentMessage.vue'
 import { formatTime } from '../../../../utils/time.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
+import iconService from '../../../../services/iconService'
 
 const props = defineProps({
   message: {
@@ -139,6 +143,20 @@ const {
   toggleReasoningExpanded,
   reasoningContentHeightClass
 } = useChatBubble(props)
+
+// 从模型名称中提取供应商名称
+const modelVendor = computed(() => {
+  const modelName = messageValue.value.model || 'Chato';
+  return iconService.extractVendor(modelName);
+});
+
+// 生成模型图标 URL
+const modelIconUrl = computed(() => {
+  const modelName = messageValue.value.model || 'Chato';
+  return iconService.getIconUrl(modelName);
+});
+
+
 </script>
 
 <style scoped>

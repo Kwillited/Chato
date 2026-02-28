@@ -357,7 +357,10 @@ class ModelService(BaseService):
         
         try:
             # 提取模型名称（去掉文件扩展名）
-            model_name = filename.replace('.png', '')
+            if filename.lower().endswith('.svg'):
+                model_name = filename.replace('.svg', '')
+            else:
+                model_name = filename.replace('.png', '')
             
             # 首先尝试从内存缓存获取模型
             from app.services.data_service import DataService

@@ -314,7 +314,7 @@ def insert_default_embedding_models():
             'icon_class': 'fa-hug',
             'icon_bg': 'bg-blue-100',
             'icon_color': 'text-blue-600',
-            'icon_url': '/api/models/icons/Huggingface.png',
+            'icon_url': '/api/models/icons/Huggingface.svg',
             'versions': []
         },
         {
@@ -326,7 +326,7 @@ def insert_default_embedding_models():
             'icon_class': 'fa-comment-o',
             'icon_bg': 'bg-blue-100',
             'icon_color': 'text-blue-500',
-            'icon_url': '/api/models/icons/OpenAI.png',
+            'icon_url': '/api/models/icons/OpenAI.svg',
             'versions': []
         },
         {
@@ -338,7 +338,7 @@ def insert_default_embedding_models():
             'icon_class': 'fa-server',
             'icon_bg': 'bg-green-100',
             'icon_color': 'text-green-600',
-            'icon_url': '/api/models/icons/Ollama.png',
+            'icon_url': '/api/models/icons/Ollama.svg',
             'versions': []
         }
     ]
@@ -407,7 +407,7 @@ def insert_default_models():
             'icon_class': 'fa-comment-o',
             'icon_bg': 'bg-blue-100',
             'icon_color': 'text-blue-500',
-            'icon_url': '/api/models/icons/OpenAI.png',
+            'icon_url': '/api/models/icons/OpenAI.svg',
             'versions': []
         },
         {
@@ -418,7 +418,7 @@ def insert_default_models():
             'icon_class': 'fa-comments',
             'icon_bg': 'bg-purple-100',
             'icon_color': 'text-purple-600',
-            'icon_url': '/api/models/icons/Anthropic.png',
+            'icon_url': '/api/models/icons/Anthropic.svg',
             'versions': []
         },
         {
@@ -429,7 +429,7 @@ def insert_default_models():
             'icon_class': 'fa-server',
             'icon_bg': 'bg-green-100',
             'icon_color': 'text-green-600',
-            'icon_url': '/api/models/icons/Ollama.png',
+            'icon_url': '/api/models/icons/Ollama.svg',
             'versions': []
         },
         {
@@ -440,7 +440,7 @@ def insert_default_models():
             'icon_class': 'fa-github',
             'icon_bg': 'bg-gray-100',
             'icon_color': 'text-gray-600',
-            'icon_url': '/api/models/icons/GitHubModel.png',
+            'icon_url': '/api/models/icons/GitHubModel.svg',
             'versions': []
         },
         {
@@ -451,7 +451,7 @@ def insert_default_models():
             'icon_class': 'fa-code',
             'icon_bg': 'bg-orange-100',
             'icon_color': 'text-orange-600',
-            'icon_url': '/api/models/icons/DeepSeek.png',
+            'icon_url': '/api/models/icons/DeepSeek.svg',
             'versions': []
         },
         {
@@ -462,7 +462,7 @@ def insert_default_models():
             'icon_class': 'fa-robot',
             'icon_bg': 'bg-red-100',
             'icon_color': 'text-red-600',
-            'icon_url': '/api/models/icons/Doubao.png',
+            'icon_url': '/api/models/icons/Doubao.svg',
             'versions': []
         },
         {
@@ -473,7 +473,7 @@ def insert_default_models():
             'icon_class': 'fa-google',
             'icon_bg': 'bg-blue-100',
             'icon_color': 'text-blue-600',
-            'icon_url': '/api/models/icons/GoogleAI.png',
+            'icon_url': '/api/models/icons/GoogleAI.svg',
             'versions': []
         },
         {
@@ -484,7 +484,7 @@ def insert_default_models():
             'icon_class': 'fa-hug',
             'icon_bg': 'bg-blue-100',
             'icon_color': 'text-blue-600',
-            'icon_url': '/api/models/icons/Huggingface.png',
+            'icon_url': '/api/models/icons/Huggingface.svg',
             'versions': []
         },
         {
@@ -495,7 +495,7 @@ def insert_default_models():
             'icon_class': 'fa-comment-alt',
             'icon_bg': 'bg-orange-100',
             'icon_color': 'text-orange-600',
-            'icon_url': '/api/models/icons/Qwen.png',
+            'icon_url': '/api/models/icons/Qwen.svg',
             'versions': []
         },
         {
@@ -506,7 +506,7 @@ def insert_default_models():
             'icon_class': 'fa-comment-dots',
             'icon_bg': 'bg-red-100',
             'icon_color': 'text-red-600',
-            'icon_url': '/api/models/icons/文心一言.png',
+            'icon_url': '/api/models/icons/文心一言.svg',
             'versions': []
         }
     ]

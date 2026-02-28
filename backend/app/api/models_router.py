@@ -31,7 +31,17 @@ def get_model_icon(filename: str = Path(...), model_service: ModelService = Depe
     success, icon_data, message = model_service.get_model_icon(filename)
     
     if success and icon_data:
-        return Response(content=icon_data, media_type='image/png')
+        # 根据文件扩展名设置正确的媒体类型
+        if filename.lower().endswith('.svg'):
+            media_type = 'image/svg+xml'
+        else:
+            media_type = 'image/png'
+        # 设置缓存头，缓存时间为1周
+        response = Response(content=icon_data, media_type=media_type)
+        response.headers["Cache-Control"] = "public, max-age=604800"  # 7 days
+        response.headers["ETag"] = f"{hash(icon_data)}"
+        response.headers["Last-Modified"] = "Mon, 01 Jan 2024 00:00:00 GMT"  # 固定的修改时间
+        return response
     else:
         raise HTTPException(status_code=404, detail=message)
 
