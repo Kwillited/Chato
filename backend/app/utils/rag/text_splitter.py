@@ -37,24 +37,6 @@ class TextSplitter:
             return result
         
         try:
-            # 打印传入的默认参数
-            print(f"[TextSplitter] 传入的默认参数: chunk_size={chunk_size}, chunk_overlap={chunk_overlap}")
-            
-            # 检查文档对象的属性
-            if documents:
-                print(f"[TextSplitter] 文档对象类型: {type(documents[0])}")
-                print(f"[TextSplitter] 文档对象属性: {[attr for attr in dir(documents[0]) if not attr.startswith('_')]}")
-                if hasattr(documents[0], 'folder_id'):
-                    print(f"[TextSplitter] 文档folder_id: {documents[0].folder_id}")
-                if hasattr(documents[0], 'chunk_size'):
-                    print(f"[TextSplitter] 文档chunk_size: {documents[0].chunk_size}")
-                else:
-                    print(f"[TextSplitter] 文档没有chunk_size属性")
-                if hasattr(documents[0], 'chunk_overlap'):
-                    print(f"[TextSplitter] 文档chunk_overlap: {documents[0].chunk_overlap}")
-                else:
-                    print(f"[TextSplitter] 文档没有chunk_overlap属性")
-            
             # 从文档对象中获取分块参数，优先使用文档自身的参数
             # 如果文档没有参数，则使用传入的默认值
             doc_chunk_size = chunk_size
@@ -63,44 +45,27 @@ class TextSplitter:
             # 检查第一个文档是否有分块参数
             if documents and hasattr(documents[0], 'chunk_size') and documents[0].chunk_size:
                 doc_chunk_size = documents[0].chunk_size
-                print(f"[TextSplitter] 从文档获取的参数: chunk_size={doc_chunk_size}")
             if documents and hasattr(documents[0], 'chunk_overlap') and documents[0].chunk_overlap:
                 doc_chunk_overlap = documents[0].chunk_overlap
-                print(f"[TextSplitter] 从文档获取的参数: chunk_overlap={doc_chunk_overlap}")
             
             # 如果文档没有参数，检查是否有folder_id并从文件夹获取
             if (not doc_chunk_size or not doc_chunk_overlap) and documents and hasattr(documents[0], 'folder_id') and documents[0].folder_id:
-                print(f"[TextSplitter] 尝试从文件夹获取参数，folder_id: {documents[0].folder_id}")
                 from app.services.data_service import DataService
                 data_service = DataService()
                 folder = data_service.get_folder_by_id(documents[0].folder_id)
                 if folder:
-                    print(f"[TextSplitter] 找到文件夹对象: {folder}")
-                    print(f"[TextSplitter] 文件夹对象属性: {[attr for attr in dir(folder) if not attr.startswith('_')]}")
-                    if hasattr(folder, 'chunk_size'):
-                        print(f"[TextSplitter] 文件夹chunk_size: {folder.chunk_size}")
-                    else:
-                        print(f"[TextSplitter] 文件夹没有chunk_size属性")
-                    if hasattr(folder, 'chunk_overlap'):
-                        print(f"[TextSplitter] 文件夹chunk_overlap: {folder.chunk_overlap}")
-                    else:
-                        print(f"[TextSplitter] 文件夹没有chunk_overlap属性")
-                    
                     if hasattr(folder, 'chunk_size') and folder.chunk_size:
                         doc_chunk_size = folder.chunk_size
-                        print(f"[TextSplitter] 从文件夹获取的参数: chunk_size={doc_chunk_size}")
                     if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap:
                         doc_chunk_overlap = folder.chunk_overlap
-                        print(f"[TextSplitter] 从文件夹获取的参数: chunk_overlap={doc_chunk_overlap}")
-                else:
-                    print(f"[TextSplitter] 未找到文件夹对象")
-            
-            # 打印最终使用的参数
-            print(f"[TextSplitter] 最终使用的参数: chunk_size={doc_chunk_size}, chunk_overlap={doc_chunk_overlap}")
             
             # 更新结果中的分块参数
             result['chunk_size'] = doc_chunk_size
             result['chunk_overlap'] = doc_chunk_overlap
+            
+            # 打印分块参数
+            import logging
+            logging.info(f"📏 使用分块参数: chunk_size={doc_chunk_size}, chunk_overlap={doc_chunk_overlap}")
             
             # 创建文本分割器
             text_splitter = RecursiveCharacterTextSplitter(
