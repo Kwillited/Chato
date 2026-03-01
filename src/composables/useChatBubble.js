@@ -1,7 +1,5 @@
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { marked } from 'marked'
-import hljs from 'highlight.js'
-import 'highlight.js/styles/github.css'
 import { copyToClipboard } from '../utils/browser.js'
 import { useNotification } from './useNotification.js'
 

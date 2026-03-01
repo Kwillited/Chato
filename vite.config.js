@@ -44,8 +44,7 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('pinia')) {
               return 'pinia';
-            } else if (id.includes('katex')) {
-              return 'katex';
+
             } else if (id.includes('highlight')) {
               return 'highlight';
             } else if (id.includes('marked')) {
