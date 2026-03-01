@@ -64,8 +64,7 @@ class TextSplitter:
             result['chunk_overlap'] = doc_chunk_overlap
             
             # 打印分块参数
-            import logging
-            logging.info(f"📏 使用分块参数: chunk_size={doc_chunk_size}, chunk_overlap={doc_chunk_overlap}")
+            print(f"📏 使用分块参数: chunk_size={doc_chunk_size}, chunk_overlap={doc_chunk_overlap}")
             
             # 创建文本分割器
             text_splitter = RecursiveCharacterTextSplitter(
