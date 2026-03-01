@@ -31,9 +31,9 @@
 
 <script setup>
 import { computed } from 'vue'
-import { marked } from 'marked'
 import { Loading } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
+import { useMarkdown } from '../../../../composables/useMarkdown.js'
 
 const props = defineProps({
   message: {
@@ -73,14 +73,17 @@ const updateKey = computed(() => {
   return `${messageContent.value.length}-${localMessageValue.value.lastUpdate || Date.now()}`
 })
 
-// 使用marked函数解析Markdown
+// 使用Markdown组合式函数
+const { renderMarkdown } = useMarkdown()
+
+// 使用Markdown插件解析
 const parsedContent = computed(() => {
   const content = messageContent.value
   if (!content) return ''
   
   try {
     console.log('解析Markdown内容:', content);
-    const result = marked(content);
+    const result = renderMarkdown(content);
     console.log('解析结果:', result);
     return result;
   } catch (error) {

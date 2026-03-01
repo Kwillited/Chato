@@ -45,9 +45,9 @@
 
 <script setup>
 import { computed } from 'vue'
-import { marked } from 'marked'
 import { ToolExecutionStatus } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
+import { useMarkdown } from '../../../../composables/useMarkdown.js'
 
 const props = defineProps({
   message: {
@@ -103,6 +103,9 @@ const contentWithoutTools = computed(() => {
   return extractNonToolContent(content)
 })
 
+// 使用Markdown组合式函数
+const { renderMarkdown } = useMarkdown()
+
 // 解析Markdown内容
 const parsedContent = computed(() => {
   const content = contentWithoutTools.value
@@ -110,8 +113,8 @@ const parsedContent = computed(() => {
   
   try {
     console.log('AgentMessage解析Markdown内容:', content);
-    // 直接使用marked函数解析
-    const result = marked(content);
+    // 使用Markdown插件解析
+    const result = renderMarkdown(content);
     console.log('AgentMessage解析结果:', result);
     return result;
   } catch (error) {
