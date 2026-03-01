@@ -1036,8 +1036,6 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-
-
     // 确保数据一致性
     ensureDataIntegrity() {
       // 获取settingsStore实例

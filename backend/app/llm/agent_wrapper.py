@@ -65,15 +65,18 @@ class AgentWrapper:
         """
         builder = StateGraph(AgentState)
         builder.add_node("reasoning", self.agent_nodes.reasoning_node)
-        builder.add_node("execute", self.agent_nodes.execute_tools_node)
+        builder.add_node("execute_linear", self.agent_nodes.execute_linear_node)
+        builder.add_node("execute_nonlinear", self.agent_nodes.execute_nonlinear_node)
         builder.add_node("reflect", self.agent_nodes.reflect_node)
         
         builder.set_entry_point("reasoning")
         builder.add_conditional_edges("reasoning", self.agent_nodes.should_continue, {
-            "execute": "execute",
+            "execute_linear": "execute_linear",
+            "execute_nonlinear": "execute_nonlinear",
             END: END
         })
-        builder.add_edge("execute", "reflect")
+        builder.add_edge("execute_linear", "reflect")
+        builder.add_edge("execute_nonlinear", "reflect")
         builder.add_edge("reflect", "reasoning")
         
         return builder.compile()
@@ -108,6 +111,7 @@ class AgentWrapper:
         self.graph = self._build_graph()
 
         prepared_messages = self._prepare_messages(messages)
+        logger.debug(f"[Agent] 初始消息: {[msg.content[:100] + '...' if len(msg.content) > 100 else msg.content for msg in prepared_messages]}")
         
         # 智能体模式
         initial_state = {

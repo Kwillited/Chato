@@ -1,6 +1,7 @@
-from typing import Dict, Any, List, Optional, AsyncIterator
 import asyncio
-
+import json
+import re
+from typing import Dict, Any, List, Optional, Literal
 from langchain_core.messages import (
     BaseMessage, SystemMessage, ToolMessage, AIMessage
 )
@@ -12,137 +13,172 @@ from app.core.logging_config import logger
 
 
 class AgentNodes:
-    """智能体节点逻辑集合"""
+    """智能体节点逻辑集合：支持线性/非线性自动分流"""
     
     def __init__(self, llm_with_tools, tool_manager: ToolManager):
-        """
-        初始化智能体节点
-        
-        Args:
-            llm_with_tools: 绑定了工具的语言模型
-            tool_manager: 工具管理器实例
-        """
         self.llm_with_tools = llm_with_tools
         self.tool_manager = tool_manager
-    
+
     async def reasoning_node(self, state: AgentState) -> Dict[str, Any]:
-        """核心节点：负责思考、规划并决定下一步行动"""
+        """核心推理节点：决定行动方案"""
         logger.info(f"[Agent] 正在进行第 {state['loop_count']+1} 轮推理...")
+        logger.debug(f"[Agent] reasoning_node 输入消息: {[msg.content[:10000] + '...' if len(msg.content) > 1000 else msg.content for msg in state['messages']]}")
         
-        # 从配置文件获取基础系统消息
         from app.utils.prompt_manager import prompt_manager
         agent_message = prompt_manager.get_system_message(mode='agent')
         base_system_prompt = agent_message['content']
         
-        # 添加智能体特定的思考流程要求
+        # 核心改进：明确告知模型如何处理任务依赖
         agent_specific_prompt = (
-            "\n\n请按以下流程思考：\n"
-            "1. 分析用户意图和当前状态。\n"
-            "2. 如果信息不足，决定调用什么工具，并在 <thought> 标签中说明理由。\n"
-            "3. 如果信息足够，直接给出最终回答。\n"
-            "请始终先在 <thought> 标签内进行内心独白，再输出结果或调用工具。"
+            "\n\n### 任务执行规范：\n"
+            "1. **并行执行**：如果多个工具调用互不干扰，请同时输出它们。\n"
+            "2. **线性执行（依赖）**：如果工具B依赖工具A的结果，请在工具B的参数中使用 '{{tool_N}}' 作为占位符。"
+            "例如：工具0返回了用户ID，工具1需要该ID，则工具1参数写为：'user_id': '{{tool_0}}'。\n"
+            "3. **思考流程**：始终先在 <thought> 标签内分析逻辑，再输出工具调用或最终回答。"
         )
         
         system_prompt = base_system_prompt + agent_specific_prompt
         
-        msgs = state["messages"]
-        # 确保系统提示词存在
+        # 创建消息副本，避免修改原始状态
+        msgs = state["messages"].copy()
         if not any(isinstance(m, SystemMessage) for m in msgs):
             msgs = [SystemMessage(content=system_prompt)] + msgs
 
-        # 一次性调用：获取 [思考 + 工具调用] 或 [思考 + 最终回答]
         response = await self.llm_with_tools.ainvoke(msgs)
         
+        # 只返回新生成的消息，让 LangGraph 通过 operator.add 自动累加
         return {
             "messages": [response],
             "loop_count": state["loop_count"]
         }
-    
-    async def execute_tools_node(self, state: AgentState) -> Dict[str, Any]:
-        """执行工具调用"""
+
+    async def execute_linear_node(self, state: AgentState) -> Dict[str, Any]:
+        """线性任务节点：支持【结果动态注入】的顺序执行"""
         last_msg = state["messages"][-1]
         tool_calls = getattr(last_msg, 'tool_calls', [])
         
-        # 存储工具调用索引和名称的映射
-        tool_call_map = {}
-        for i, tc in enumerate(tool_calls):
-            tool_name = tc.get('name', '')
-            if tool_name:
-                tool_call_map[tool_name] = i
+        results = []
+        # 维护一个当前轮次的工具执行结果映射表
+        execution_context = {}
         
-        # 执行工具调用
+        logger.info(f"[Agent] 进入线性执行模式，共 {len(tool_calls)} 个任务")
+        logger.debug(f"[Agent] execute_linear_node 输入消息: {[msg.content[:1000] + '...' if len(msg.content) > 1000 else msg.content for msg in state['messages']]}")
+
+        for i, tc in enumerate(tool_calls):
+            # 1. 动态注入：将之前工具的结果替换到当前参数中
+            original_args = tc.get('args', {})
+            injected_args = self._inject_variables(original_args, execution_context)
+            tc['args'] = injected_args
+            
+            # 2. 执行工具
+            result_msg = await self.tool_manager.run_tool(tc, tool_index=i)
+            results.append(result_msg)
+            
+            # 3. 更新上下文：存入 tool_0, tool_1 等供后续引用
+            execution_context[f"tool_{i}"] = result_msg.content
+            
+        # 只返回新生成的消息，让 LangGraph 通过 operator.add 自动累加
+        return {
+            "messages": results,
+            "loop_count": state["loop_count"] + 1
+        }
+
+    async def execute_nonlinear_node(self, state: AgentState) -> Dict[str, Any]:
+        """非线性任务节点：真正的并发并行执行"""
+        last_msg = state["messages"][-1]
+        tool_calls = getattr(last_msg, 'tool_calls', [])
+        
+        logger.info(f"[Agent] 进入非线性模式，并行执行 {len(tool_calls)} 个任务")
+        logger.debug(f"[Agent] execute_nonlinear_node 输入消息: {[msg.content[:1000] + '...' if len(msg.content) > 1000 else msg.content for msg in state['messages']]}")
+        
         tasks = []
         for i, tc in enumerate(tool_calls):
             tasks.append(self.tool_manager.run_tool(tc, tool_index=i))
         
         results = await asyncio.gather(*tasks)
         
+        # 只返回新生成的消息，让 LangGraph 通过 operator.add 自动累加
         return {
             "messages": results,
             "loop_count": state["loop_count"] + 1
         }
-    
-    async def reflect_node(self, state: AgentState) -> Dict[str, Any]:
-        """反思节点：观察结果并整理信息"""
-        logger.info(f"[Agent] 正在进行结果反思...")
+
+    def _inject_variables(self, args: Dict, context: Dict) -> Dict:
+        """将参数中的占位符 {{tool_N}} 替换为 context 中的实际值"""
+        if not context:
+            return args
         
-        # 获取最近的工具执行结果
+        # 将 Dict 转为字符串进行全局替换，处理嵌套结构
+        args_str = json.dumps(args, ensure_ascii=False)
+        
+        for key, value in context.items():
+            placeholder = "{{" + key + "}}"
+            if placeholder in args_str:
+                # 如果结果是简单的字符串，直接替换；如果是复杂对象，可以考虑更复杂的逻辑
+                # 这里简单处理：将结果转为字符串注入
+                args_str = args_str.replace(placeholder, str(value))
+        
+        return json.loads(args_str)
+
+    def should_continue(self, state: AgentState) -> Literal["execute_linear", "execute_nonlinear", "end"]:
+        """决策路由：根据任务特征分流执行路径"""
+        logger.debug(f"[Agent] should_continue 输入消息: {[msg.content[:1000] + '...' if len(msg.content) > 1000 else msg.content for msg in state['messages']]}")
+        # 从后往前查找，找到最近的包含 tool_calls 的消息（即 reasoning_node 产生的决策）
+        tool_calls_msg = None
+        for msg in reversed(state["messages"]):
+            if hasattr(msg, 'tool_calls') and msg.tool_calls:
+                tool_calls_msg = msg
+                break
+        
+        # 如果找不到包含 tool_calls 的消息，或者循环次数达到上限，返回 end
+        if not tool_calls_msg or state["loop_count"] >= 10:
+            return "end"
+        
+        tool_calls = tool_calls_msg.tool_calls
+
+        # 判断是否需要线性执行
+        # 场景1：只有一个工具调用 -> 线性执行即可
+        if len(tool_calls) == 1:
+            return "execute_linear"
+        
+        # 场景2：检查工具参数中是否存在 {{tool_N}} 占位符引用
+        has_dependency = False
+        for tc in tool_calls:
+            args_str = json.dumps(tc.get('args', {}))
+            if re.search(r"\{\{tool_\d+\}\}", args_str):
+                has_dependency = True
+                break
+        
+        if has_dependency:
+            return "execute_linear"
+        
+        # 场景3：无依赖且有多个调用 -> 并行执行
+        return "execute_nonlinear"
+
+    async def reflect_node(self, state: AgentState) -> Dict[str, Any]:
+        """反思节点：提取关键信息并评估任务完成度"""
+        logger.info(f"[Agent] 正在进行结果反思...")
+        logger.debug(f"[Agent] reflect_node 输入消息: {[msg.content[:1000] + '...' if len(msg.content) > 1000 else msg.content for msg in state['messages']]}")
+        
         tool_results = []
         for msg in reversed(state["messages"]):
             if isinstance(msg, ToolMessage):
                 tool_results.append(msg)
             elif hasattr(msg, 'tool_calls') and msg.tool_calls:
-                # 找到对应的工具调用消息后停止
                 break
         
-        # 整理工具执行结果
         if tool_results:
-            # 分析结果，提取关键信息
             reflection_content = self._analyze_tool_results(tool_results)
-            
-            # 创建反思消息
             reflection_msg = AIMessage(
-                content=f"<reflection>分析工具执行结果：{reflection_content}</reflection>"
+                content=f"<reflection>\n{reflection_content}\n</reflection>"
             )
-            
-            return {
-                "messages": [reflection_msg],
-                "loop_count": state["loop_count"]
-            }
+            # 只返回新生成的消息，让 LangGraph 通过 operator.add 自动累加
+            return {"messages": [reflection_msg], "loop_count": state["loop_count"]}
         
-        # 无工具执行结果时直接返回
-        return {
-            "messages": [],
-            "loop_count": state["loop_count"]
-        }
-    
+        return {"messages": [], "loop_count": state["loop_count"]}
+
     def _analyze_tool_results(self, tool_results: List[ToolMessage]) -> str:
-        """分析工具执行结果"""
-        if not tool_results:
-            return "无工具执行结果"
-        
-        # 提取工具执行结果内容
-        results_content = []
-        for i, result in enumerate(tool_results):
-            results_content.append(f"工具 {i+1}: {result.content}")
-        
-        # 生成反思内容
-        reflection_parts = [
-            f"共获取 {len(tool_results)} 个工具执行结果",
-            "\n工具执行结果摘要：",
-            "\n".join(results_content),
-            "\n分析：",
-            "1. 所有工具均已成功执行",
-            "2. 结果包含了所需的关键信息",
-            "3. 信息完整，可以基于此生成最终回答"
-        ]
-        
-        return "\n".join(reflection_parts)
-    
-    def should_continue(self, state: AgentState) -> str:
-        """判断是否继续执行"""
-        last_msg = state["messages"][-1]
-        # 如果模型输出了工具调用，且循环次数未超限
-        if getattr(last_msg, 'tool_calls', []) and state["loop_count"] < 10:
-            return "execute"
-        return END
+        """分析工具执行结果的内部逻辑（保持原逻辑，可按需微调）"""
+        # ... 原有的结果统计代码 ...
+        success_count = sum(1 for r in tool_results if "error" not in r.content.lower())
+        return f"本轮成功执行 {success_count}/{len(tool_results)} 个工具，信息{'已更新' if success_count > 0 else '获取失败'}。"
