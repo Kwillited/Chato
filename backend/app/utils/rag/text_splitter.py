@@ -49,29 +49,20 @@ class TextSplitter:
                 
                 # 如果有folder_id，从数据库获取文件夹信息
                 if folder_id:
-                    print(f"📁 从文件夹获取参数，folder_id: {folder_id}")
                     from app.services.data_service import DataService
                     data_service = DataService()
                     folder = data_service.get_folder_by_id(folder_id)
                     if folder:
-                        print(f"📁 文件夹对象: {folder}")
                         if hasattr(folder, 'chunk_size') and folder.chunk_size:
                             doc_chunk_size = folder.chunk_size
-                            print(f"📁 文件夹chunk_size: {doc_chunk_size}")
                         if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap:
                             doc_chunk_overlap = folder.chunk_overlap
-                            print(f"📁 文件夹chunk_overlap: {doc_chunk_overlap}")
-                    else:
-                        print("📁 未找到文件夹")
-                else:
-                    print("� 文档metadata中没有folder_id")
             
             # 更新结果中的分块参数
             result['chunk_size'] = doc_chunk_size
             result['chunk_overlap'] = doc_chunk_overlap
             
-            # 打印分块参数
-            print(f"📏 使用分块参数: chunk_size={doc_chunk_size}, chunk_overlap={doc_chunk_overlap}")
+
             
             # 创建文本分割器
             text_splitter = RecursiveCharacterTextSplitter(
