@@ -629,6 +629,34 @@ class DocumentService(BaseService):
         # 调用现有的delete_folder方法
         return self.delete_folder(folder.name)
     
+    def get_folder_by_id(self, folder_id):
+        """通过folder_id获取文件夹详细信息"""
+        if not folder_id:
+            raise ValueError('文件夹ID不能为空')
+        
+        # 通过DataService获取文件夹信息
+        folder = self.data_service.get_folder_by_id(folder_id)
+        if not folder:
+            raise ValueError('指定ID的文件夹不存在')
+        
+        # 获取文件夹中的文件数量
+        file_count = len(self.data_service.get_documents_by_folder_id(folder_id))
+        
+        # 转换为前端需要的格式
+        folder_info = {
+            'id': folder.id,
+            'name': folder.name,
+            'path': folder.path,
+            'embedding_model': folder.embedding_model if hasattr(folder, 'embedding_model') else None,
+            'description': folder.description if hasattr(folder, 'description') else '',
+            'created_at': folder.created_at if hasattr(folder, 'created_at') else None,
+            'chunk_size': folder.chunk_size if hasattr(folder, 'chunk_size') else 1000,
+            'chunk_overlap': folder.chunk_overlap if hasattr(folder, 'chunk_overlap') else 200,
+            'file_count': file_count
+        }
+        
+        return folder_info
+    
     def upload_document(self, file, folder_id=''):
         """上传文件到文件系统并进行向量化处理"""
         try:

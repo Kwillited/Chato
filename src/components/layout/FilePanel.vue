@@ -553,6 +553,8 @@ const handleSearchKnowledgeBase = async (event) => {
     showError(`搜索知识库失败: ${error.message || String(error)}`);
   }
 };
+
+
 </script>
 
 <style scoped>

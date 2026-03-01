@@ -319,6 +319,24 @@ export const useFileStore = defineStore('file', {
       } catch (error) {
         return null;
       }
+    },
+    
+    // 获取文件夹详细信息
+    async getFolderInfo(folderId) {
+      try {
+        const folderInfo = await apiUtils.wrapApiCall(this, async () => {
+          // 调用后端API获取文件夹详情
+          const response = await apiService.get(`/files/folders/by-id/${encodeURIComponent(folderId)}`);
+          // 确保正确处理响应格式
+          const folderInfo = response.success && response.folder ? response.folder : null;
+          
+          return folderInfo;
+        }, '获取文件夹信息失败');
+        
+        return folderInfo;
+      } catch (error) {
+        return null;
+      }
     }
   },
 });

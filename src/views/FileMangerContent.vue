@@ -50,12 +50,12 @@
           @click="refreshFiles"
         />
         
-        <!-- 文件属性按钮 -->
+        <!-- 文件夹信息按钮 -->
         <Button 
           shape="full"
           size="md"
           icon="fa-info-circle" 
-          tooltip="文件属性" 
+          tooltip="文件夹信息" 
           @click="handleFileProperties"
         />
       </div>
@@ -191,6 +191,14 @@
     @confirm="handleDeleteConfirm"
     @cancel="showDeleteModal = false"
   />
+  
+  <!-- 文件夹信息模态框 -->
+  <FolderInfoModal
+    :visible="showFolderInfoModal"
+    :title="`文件夹信息 - ${folderInfoData?.name || ''}`"
+    :folder-info="folderInfoData"
+    @close="showFolderInfoModal = false"
+  />
 </template>
 
 <script setup>
@@ -207,6 +215,7 @@ import { Button } from '../components/library/index.js';
 import { KnowledgeGraphVisualization } from '../components/library';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
+import FolderInfoModal from '../components/file/FolderInfoModal.vue';
 import { useNotification } from '../composables/useNotification.js';
 
 // 初始化stores
@@ -214,7 +223,7 @@ const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 
 // 使用通知组合式函数
-const { showError } = useNotification();
+const { showError, showSuccess } = useNotification();
 const vectorStore = useVectorStore();
 const fileStore = useFileStore();
 const chatStore = useChatStore();
@@ -244,6 +253,8 @@ const folders = ref([]);
 const isSliderActive = ref(true);
 const showDeleteModal = ref(false); // 确认删除模态框显示状态
 const fileIdToDelete = ref(null); // 要删除的文件ID
+const showFolderInfoModal = ref(false); // 文件夹信息模态框显示状态
+const folderInfoData = ref(null); // 文件夹信息数据
 
 // 初始化时加载文件夹
 const loadFolders = async () => {
@@ -497,12 +508,31 @@ const handleDeleteConfirm = async () => {
   }
 };
 
-// 处理文件属性
-const handleFileProperties = () => {
-  console.log('查看文件属性');
-  // 这里可以添加显示文件属性的逻辑
-  // 例如，打开一个模态框显示选中文件的属性
-  showError('文件属性功能正在开发中');
+// 处理文件夹信息
+const handleFileProperties = async () => {
+  try {
+    if (!selectedFolder.value) {
+      showError('请先选择一个文件夹');
+      return;
+    }
+    
+    // 调用fileStore获取文件夹详细信息
+    const folderInfo = await fileStore.getFolderInfo(selectedFolder.value.id);
+    
+    if (folderInfo) {
+      // 显示文件夹详细信息
+      console.log('文件夹详细信息:', folderInfo);
+      // 设置文件夹信息数据
+      folderInfoData.value = folderInfo;
+      // 显示模态框
+      showFolderInfoModal.value = true;
+    } else {
+      showError('获取文件夹信息失败');
+    }
+  } catch (error) {
+    console.error('获取文件夹信息失败:', error);
+    showError(`获取文件夹信息失败: ${error.message || String(error)}`);
+  }
 };
 
 // 处理文件夹点击

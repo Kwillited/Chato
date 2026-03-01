@@ -96,6 +96,19 @@ def get_document_details(file_id: str = Path(...), document_service: DocumentSer
         details=details
     )
 
+# 获取文件夹详情
+@router.get('/folders/by-id/{folder_id}')
+@handle_exception()
+def get_folder_by_id(folder_id: str = Path(...), document_service: DocumentService = Depends(get_document_service)):
+    """通过文件夹ID获取文件夹详细信息"""
+    # 调用服务层方法
+    folder_info = document_service.get_folder_by_id(folder_id)
+    
+    return {
+        'success': True,
+        'folder': folder_info
+    }
+
 # 删除所有文档
 @router.delete('/documents/delete-all', response_model=DeleteAllResponse)
 @handle_exception()

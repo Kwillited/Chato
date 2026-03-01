@@ -160,6 +160,8 @@ const handleDeleteFolder = (folder) => {
   window.dispatchEvent(event);
 };
 
+
+
 // 组件挂载时从localStorage恢复选中状态
 onMounted(() => {
   const savedFolder = localStorage.getItem('ragSelectedFolder');
