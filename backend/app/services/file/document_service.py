@@ -644,7 +644,7 @@ class DocumentService(BaseService):
             documents = self._load_document(file_path)
             
             # 3. 分割文档
-            split_documents, chunk_size, chunk_overlap = self._split_document(documents)
+            split_documents, chunk_size, chunk_overlap = self._split_document(documents, folder_id)
             
             # 4. 向量化文档
             document_id = save_result.get('id', str(uuid.uuid4()))
@@ -689,14 +689,30 @@ class DocumentService(BaseService):
         self.log_info(f"✅ 成功加载文档，共 {len(documents)} 个文档对象")
         return documents
     
-    def _split_document(self, documents):
+    def _split_document(self, documents, folder_id=''):
         """分割文档为文本块"""
         from app.utils.rag.text_splitter import TextSplitter
         
-        chunk_size = config_manager.get('vector.chunk_size', 1000)
-        chunk_overlap = config_manager.get('vector.chunk_overlap', 200)
+        # 将folder_id添加到文档的metadata中
+        if folder_id:
+            for doc in documents:
+                if hasattr(doc, 'metadata'):
+                    doc.metadata['folder_id'] = folder_id
         
-        self.log_info("✂️  开始分割文档...")
+        # 从文件夹获取分块参数
+        chunk_size = 1000
+        chunk_overlap = 200
+        if folder_id:
+            folder = self.data_service.get_folder_by_id(folder_id)
+            if folder:
+                chunk_size = folder.chunk_size if hasattr(folder, 'chunk_size') and folder.chunk_size else 1000
+                chunk_overlap = folder.chunk_overlap if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap else 200
+        else:
+            # 如果没有folder_id，使用配置中的默认值
+            chunk_size = config_manager.get('vector.chunk_size', 1000)
+            chunk_overlap = config_manager.get('vector.chunk_overlap', 200)
+        
+        self.log_info(f"✂️  开始分割文档... 使用参数: chunk_size={chunk_size}, chunk_overlap={chunk_overlap}")
         split_result = TextSplitter.split_documents(documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
         
         if not split_result['success']:
