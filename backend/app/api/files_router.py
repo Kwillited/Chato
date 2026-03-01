@@ -54,9 +54,11 @@ def create_folder(folder_data: dict, document_service: DocumentService = Depends
     folder_name = folder_data.get('name')
     embedding_model = folder_data.get('embedding_model')
     description = folder_data.get('description', '')
+    chunk_size = folder_data.get('chunk_size', 1000)
+    chunk_overlap = folder_data.get('chunk_overlap', 200)
     
     # 调用服务层方法
-    result = document_service.create_folder(folder_name, embedding_model, description)
+    result = document_service.create_folder(folder_name, embedding_model, description, chunk_size, chunk_overlap)
     
     return FolderCreateResponse(
         success=True,

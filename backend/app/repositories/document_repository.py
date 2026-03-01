@@ -25,7 +25,7 @@ class DocumentRepository(BaseRepository):
         """根据文件夹名称获取文档"""
         return self.db.query(Document).join(Document.folder).filter(folder_name == Document.folder.name).all()
     
-    def create_document(self, document_id, name, path, size, type, uploaded_at, folder_id=None, extra_metadata=None):
+    def create_document(self, document_id, name, path, size, type, uploaded_at, folder_id=None, extra_metadata=None, chunk_size=1000, chunk_overlap=200):
         """创建新文档"""
         document = Document(
             id=document_id,
@@ -35,7 +35,9 @@ class DocumentRepository(BaseRepository):
             type=type,
             uploaded_at=uploaded_at,
             folder_id=folder_id,
-            extra_metadata=extra_metadata
+            extra_metadata=extra_metadata,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
         )
         return self.add(document)
     

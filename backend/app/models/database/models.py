@@ -135,6 +135,8 @@ class Folder(Base):
     updated_at = Column(String, nullable=False)
     description = Column(Text)
     embedding_model = Column(String)
+    chunk_size = Column(Integer, default=1000)  # 文本分块大小
+    chunk_overlap = Column(Integer, default=200)  # 文本分块重叠大小
     
     # 关系：一个文件夹包含多个文档
     documents = relationship("Document", back_populates="folder", cascade="all, delete-orphan")
@@ -152,6 +154,8 @@ class Document(Base):
     uploaded_at = Column(String, nullable=False)
     folder_id = Column(String, ForeignKey("folders.id", ondelete="SET NULL"))
     extra_metadata = Column(Text)  # JSON格式的扩展元数据
+    chunk_size = Column(Integer, default=1000)  # 文本分块大小
+    chunk_overlap = Column(Integer, default=200)  # 文本分块重叠大小
     
     # 关系：属于一个文件夹
     folder = relationship("Folder", back_populates="documents")

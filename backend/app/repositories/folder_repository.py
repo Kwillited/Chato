@@ -17,7 +17,7 @@ class FolderRepository(BaseRepository):
         """根据名称获取文件夹"""
         return self.db.query(Folder).filter(Folder.name == folder_name).first()
     
-    def create_folder(self, folder_id, name, path, vector_db_path=None, embedding_model=None, created_at=None, updated_at=None, description=None):
+    def create_folder(self, folder_id, name, path, vector_db_path=None, embedding_model=None, created_at=None, updated_at=None, description=None, chunk_size=1000, chunk_overlap=200):
         """创建新文件夹"""
         folder = Folder(
             id=folder_id,
@@ -27,7 +27,9 @@ class FolderRepository(BaseRepository):
             embedding_model=embedding_model,
             created_at=created_at,
             updated_at=updated_at,
-            description=description
+            description=description,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
         )
         return self.add(folder)
     

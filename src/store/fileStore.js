@@ -229,16 +229,18 @@ export const useFileStore = defineStore('file', {
     },
     
     // 创建文件夹/知识库
-    async createFolder(knowledgeBaseName, embeddingModel, description = '') {
+    async createFolder(knowledgeBaseName, embeddingModel, description = '', chunkSize = 1000, chunkOverlap = 200) {
       try {
         const result = await apiUtils.wrapApiCall(this, async () => {
           let response;
           
-          // 使用Python API创建文件夹，传递嵌入模型和描述
+          // 使用Python API创建文件夹，传递嵌入模型、描述和分块参数
           response = await apiService.post('/files/folders', {
             name: knowledgeBaseName,
             embedding_model: embeddingModel,
-            description: description
+            description: description,
+            chunk_size: chunkSize,
+            chunk_overlap: chunkOverlap
           });
           
           // 重新加载文件夹列表，更新fileStore.folders

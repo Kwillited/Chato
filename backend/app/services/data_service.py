@@ -267,9 +267,9 @@ class DataService(BaseService):
         """根据名称获取文件夹"""
         return self.folder_repo.get_folder_by_name(folder_name)
     
-    def create_folder(self, folder_id, name, path, vector_db_path=None, embedding_model=None, created_at=None, updated_at=None, description=None):
+    def create_folder(self, folder_id, name, path, vector_db_path=None, embedding_model=None, created_at=None, updated_at=None, description=None, chunk_size=1000, chunk_overlap=200):
         """创建文件夹"""
-        return self.folder_repo.create_folder(folder_id, name, path, vector_db_path, embedding_model, created_at, updated_at, description)
+        return self.folder_repo.create_folder(folder_id, name, path, vector_db_path, embedding_model, created_at, updated_at, description, chunk_size, chunk_overlap)
     
     def delete_folder(self, folder_id):
         """删除文件夹"""
@@ -287,9 +287,9 @@ class DataService(BaseService):
         """根据名称获取文档"""
         return self.document_repo.get_document_by_name(name)
     
-    def create_document(self, document_id, name, path, size, type, uploaded_at, folder_id):
+    def create_document(self, document_id, name, path, size, type, uploaded_at, folder_id, chunk_size=1000, chunk_overlap=200):
         """创建文档"""
-        return self.document_repo.create_document(document_id, name, path, size, type, uploaded_at, folder_id)
+        return self.document_repo.create_document(document_id, name, path, size, type, uploaded_at, folder_id, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     
     def delete_document(self, document_id):
         """删除文档"""

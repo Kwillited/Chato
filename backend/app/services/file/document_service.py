@@ -95,6 +95,15 @@ class DocumentService(BaseService):
         # 获取当前时间
         now = datetime.now().isoformat()
         
+        # 获取分块参数，优先从文件夹获取
+        chunk_size = 1000
+        chunk_overlap = 200
+        if folder_id:
+            folder = self.data_service.get_folder_by_id(folder_id)
+            if folder:
+                chunk_size = folder.chunk_size if hasattr(folder, 'chunk_size') and folder.chunk_size else 1000
+                chunk_overlap = folder.chunk_overlap if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap else 200
+        
         # 将文档信息保存到数据库，通过DataService层
         self.data_service.create_document(
             document_id=document_id,
@@ -103,7 +112,9 @@ class DocumentService(BaseService):
             size=file_size,
             type=file_type,
             uploaded_at=now,
-            folder_id=folder_id
+            folder_id=folder_id,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
         )
         
         return {
@@ -210,7 +221,7 @@ class DocumentService(BaseService):
                 })
         return folders
     
-    def create_folder(self, folder_name, embedding_model=None, description=''):
+    def create_folder(self, folder_name, embedding_model=None, description='', chunk_size=1000, chunk_overlap=200):
         """创建文件夹/知识库"""
         # 保留原始文件夹名称，确保中文文件夹名不被截断
         # 只对文件夹名进行基本验证，不使用secure_filename（会移除中文等非ASCII字符）
@@ -244,7 +255,9 @@ class DocumentService(BaseService):
             embedding_model=embedding_model,
             created_at=now,
             updated_at=now,
-            description=description
+            description=description,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap
         )
         
         # 只有当embedding_model不为空时才初始化向量数据库
@@ -278,6 +291,8 @@ class DocumentService(BaseService):
             'name': folder_name,
             'path': folder_path,
             'embedding_model': embedding_model,
+            'chunk_size': chunk_size,
+            'chunk_overlap': chunk_overlap,
             'message': f'文件夹 {folder_name} 创建成功'
         }
     

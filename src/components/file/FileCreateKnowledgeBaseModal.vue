@@ -39,6 +39,45 @@
         ></textarea>
       </div>
       
+      <!-- 文本分块设置 -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">文本分块设置</label>
+        
+        <div class="flex space-x-4">
+          <!-- chunk_size 设置 -->
+          <div class="flex-1">
+            <div class="flex justify-between items-center mb-1">
+              <label for="chunkSize" class="text-xs text-gray-600 dark:text-gray-400">分块大小 ({{ chunkSize }}字符)</label>
+            </div>
+            <input
+              id="chunkSize"
+              v-model.number="chunkSize"
+              type="range"
+              min="500"
+              max="6000"
+              step="100"
+              class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+            >
+          </div>
+          
+          <!-- chunk_overlap 设置 -->
+          <div class="flex-1">
+            <div class="flex justify-between items-center mb-1">
+              <label for="chunkOverlap" class="text-xs text-gray-600 dark:text-gray-400">分块重叠 ({{ chunkOverlap }}字符)</label>
+            </div>
+            <input
+              id="chunkOverlap"
+              v-model.number="chunkOverlap"
+              type="range"
+              min="0"
+              max="3000"
+              step="50"
+              class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+            >
+          </div>
+        </div>
+      </div>
+      
       <!-- 向量模型选择 -->
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">向量模型</label>
@@ -95,6 +134,8 @@ const settingsStore = useSettingsStore();
 const knowledgeBaseName = ref('');
 const knowledgeBaseDescription = ref('');
 const selectedEmbeddingModel = ref(''); // 默认值将在计算属性中设置
+const chunkSize = ref(1000); // 默认分块大小
+const chunkOverlap = ref(200); // 默认分块重叠大小
 const error = ref('');
 const inputRef = ref(null);
 
@@ -167,8 +208,8 @@ const handleCreate = async () => {
     // 当没有可用模型时传递null，否则传递选择的嵌入模型
     const embeddingModel = hasAvailableEmbeddingModels.value && selectedEmbeddingModel.value ? selectedEmbeddingModel.value : null;
     
-    // 通过fileStore创建知识库，传递选择的嵌入模型和描述
-    const result = await fileStore.createFolder(knowledgeBaseName.value.trim(), embeddingModel, knowledgeBaseDescription.value.trim());
+    // 通过fileStore创建知识库，传递选择的嵌入模型、描述和分块参数
+    const result = await fileStore.createFolder(knowledgeBaseName.value.trim(), embeddingModel, knowledgeBaseDescription.value.trim(), chunkSize.value, chunkOverlap.value);
     if (result.success) {
       // 显示成功提示
       showNotification(`已成功创建知识库: ${knowledgeBaseName.value.trim()}`, 'success');
@@ -205,6 +246,9 @@ const resetForm = () => {
   } else {
     selectedEmbeddingModel.value = '';
   }
+  // 重置分块参数
+  chunkSize.value = 1000;
+  chunkOverlap.value = 200;
   error.value = '';
 };
 
