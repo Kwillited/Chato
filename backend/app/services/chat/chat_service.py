@@ -345,19 +345,6 @@ class ChatService(BaseService):
             """
             异步流式模型回复函数
             """
-            # 记录传递的消息
-            self.log_info(f"[chat_with_model_stream] 传递的消息: model_name={model_name}, use_agent={use_agent}")
-            self.log_info(f"[chat_with_model_stream] 消息数量: {len(messages)}")
-            for i, msg in enumerate(messages):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                # 增加截断长度，显示更多内容
-                content_preview = content[:500] + ('...' if len(content) > 500 else '')
-                self.log_info(f"[chat_with_model_stream] 消息{i+1} (role={role}): {content_preview}")
-                # 对于长消息，也记录完整内容到日志文件
-                if len(content) > 500:
-                    self.log_debug(f"[chat_with_model_stream] 消息{i+1} 完整内容: {content}")
-            
             # 1. 验证模型 (如果传入了 model，则直接使用)
             if not model:
                 model, error_response, _ = ModelUtils.validate_model(model_name, DataService)
@@ -382,6 +369,22 @@ class ChatService(BaseService):
                     
                     # ！！！核心改进 1：使用 await 而不是 asyncio.run
                     await agent_wrapper.initialize()
+                    
+                    # 准备消息（包含工具替换）
+                    prepared_messages = agent_wrapper._prepare_messages(messages)
+                    
+                    # 记录传递的消息（使用准备后的消息）
+                    self.log_info(f"[chat_with_model_stream] 传递的消息: model_name={model_name}, use_agent={use_agent}")
+                    self.log_info(f"[chat_with_model_stream] 消息数量: {len(prepared_messages)}")
+                    for i, msg in enumerate(prepared_messages):
+                        role = 'system' if hasattr(msg, 'content') and isinstance(msg, type(prepared_messages[0])) else 'unknown'
+                        content = msg.content if hasattr(msg, 'content') else ''
+                        # 增加截断长度，显示更多内容
+                        content_preview = content[:500] + ('...' if len(content) > 500 else '')
+                        self.log_info(f"[chat_with_model_stream] 消息{i+1} (role={role}): {content_preview}")
+                        # 对于长消息，也记录完整内容到日志文件
+                        if len(content) > 500:
+                            self.log_debug(f"[chat_with_model_stream] 消息{i+1} 完整内容: {content}")
                     
                     # ！！！核心改进 2：直接异步遍历生成器
                     # 不要再手动去写 while __anext__，那是 asyncio.run 的死穴

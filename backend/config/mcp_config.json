@@ -14,12 +14,5 @@
     "args": [
       "freesearch-mcpserver@latest"
     ]
-  },
-  "open-websearch": {
-    "transport": "stdio",
-    "command": "npx",
-    "args": [
-      "open-websearch@latest"
-    ]
   }
 }

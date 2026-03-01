@@ -199,6 +199,21 @@ class AgentWrapper:
             elif role == 'assistant':
                 formatted.append(AIMessage(content=content))
             elif role == 'system':
+                # 动态替换 {tools} 占位符
+                if '{tools}' in content:
+                    tools = self.tool_manager.get_tools()
+                    if tools:
+                        tool_list = []
+                        for tool in tools:
+                            try:
+                                tool_name = getattr(tool, 'name', str(tool))
+                                tool_list.append(f"- {tool_name}")
+                            except Exception:
+                                pass
+                        tools_str = "\n".join(tool_list) if tool_list else "- 无可用工具"
+                        content = content.replace('{tools}', tools_str)
+                    else:
+                        content = content.replace('{tools}', "- 无可用工具")
                 formatted.append(SystemMessage(content=content))
         return formatted
     

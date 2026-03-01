@@ -45,26 +45,6 @@
         </div>
       </div>
       
-      <!-- 兼容旧格式的工具执行状态（当没有steps时显示） -->
-      <div v-if="!messageValue.steps && messageValue.toolExecutions && messageValue.toolExecutions.length > 0" class="space-y-2">
-        <ToolExecutionStatus 
-          v-for="(tool, index) in messageValue.toolExecutions" 
-          :key="index"
-          :tool="tool"
-          containerClass="w-fit max-w-full"
-        />
-      </div>
-      
-      <!-- 兼容旧格式的工具执行状态（当没有steps时显示） -->
-      <div v-else-if="!messageValue.steps && (messageValue.status === 'tool_executing' || messageValue.status === 'tool_executed') && messageValue.currentTool" class="relative mb-2">
-        <ToolExecutionStatus 
-          :messageStatus="messageValue.status"
-          :currentTool="messageValue.currentTool"
-          :toolInput="messageValue.toolInput"
-          containerClass="w-fit max-w-full"
-        />
-      </div>
-      
       <!-- 智能体等待状态 -->
       <div v-if="messageValue.status === 'agent_waiting'" class="relative mb-2">
         <div :class="[
@@ -87,21 +67,14 @@
         </div>
       </div>
       
-      <!-- Agent消息 -->
-      <AgentMessage 
-        v-if="messageValue.steps && messageValue.steps.length > 0 || messageValue.message_type === 'agent' || messageValue.agent_step !== undefined"
-        :message="message"
-      />
-      
-      <!-- 普通AI消息 -->
-      <NormalAIMessage 
-        v-else
+      <!-- AI消息 -->
+      <AIMessage 
         :message="message"
         containerClass="mt-2"
       />
       
       <!-- 时间戳和操作按钮 -->
-      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.reasoning_content || messageValue.error || messageValue.status === 'tool_executed' || messageValue.content || messageValue.text)" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
+      <div v-if="!messageValue.isTyping && (formattedContent || messageValue.reasoning_content || messageValue.error || messageValue.status === 'tool_executed' || messageValue.content || messageValue.text || messageValue.toolExecutions?.length > 0 || messageValue.toolCalls?.length > 0)" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
         <span>{{ formatTime(messageValue.timestamp || messageValue.time) }}</span>
         <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Tooltip content="复制消息内容">
@@ -118,8 +91,7 @@
 <script setup>
 import { computed } from 'vue'
 import { Tooltip, ToolExecutionStatus } from '../../index.js'
-import NormalAIMessage from '../AIChat/NormalAIMessage.vue'
-import AgentMessage from '../AIChat/AgentMessage.vue'
+import AIMessage from '../AIChat/AIMessage.vue'
 import { formatTime } from '../../../../utils/time.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
 import iconService from '../../../../services/iconService'

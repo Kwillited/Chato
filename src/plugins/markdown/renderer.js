@@ -1,5 +1,7 @@
 import { marked } from 'marked'
 import hljs from '../../static/js/highlight-common.js'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 /**
  * 创建 Markdown 渲染插件
@@ -55,6 +57,43 @@ export function createMarkdownPlugin(config) {
   })
   
   /**
+   * 渲染数学公式
+   * @param {string} html 渲染后的 HTML
+   * @returns {string} 处理后的 HTML
+   */
+  const renderMathInElement = (html) => {
+    // 处理行内公式 $...$
+    const inlineMathRegex = /\$(.*?)\$/g
+    let result = html.replace(inlineMathRegex, (match, formula) => {
+      try {
+        return katex.renderToString(formula.trim(), {
+          throwOnError: false,
+          displayMode: false
+        })
+      } catch (error) {
+        console.error('KaTeX 行内公式渲染错误:', error)
+        return match
+      }
+    })
+    
+    // 处理块级公式 $$...$$
+    const blockMathRegex = /\$\$(.*?)\$\$/gs
+    result = result.replace(blockMathRegex, (match, formula) => {
+      try {
+        return '<div class="math-block">' + katex.renderToString(formula.trim(), {
+          throwOnError: false,
+          displayMode: true
+        }) + '</div>'
+      } catch (error) {
+        console.error('KaTeX 块级公式渲染错误:', error)
+        return match
+      }
+    })
+    
+    return result
+  }
+  
+  /**
    * 渲染 Markdown 内容
    * @param {string} content Markdown 内容
    * @returns {string} 渲染后的 HTML
@@ -63,7 +102,10 @@ export function createMarkdownPlugin(config) {
     if (!content) return ''
     
     try {
-      const html = marked(content)
+      let html = marked(content)
+      
+      // 处理数学公式
+      html = renderMathInElement(html)
       
       // 延迟执行代码高亮
       if (config.highlight) {

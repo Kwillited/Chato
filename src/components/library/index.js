@@ -10,6 +10,7 @@ export { default as Tooltip } from '../common/Tooltip.vue'
 export { default as ContextVisualizationContent } from './ContextVisualization/ContextVisualizationContent.vue'
 export { default as KnowledgeGraphVisualization } from './KnowledgeGraphVisualization/KnowledgeGraphCanvas.vue'
 export { default as ToolExecutionStatus } from './ToolExecutionStatus/ToolExecutionStatus.vue'
+export { default as ToolCallPlan } from './ToolCallPlan/ToolCallPlan.vue'
 
 export { default as Button } from '../common/Button.vue'
 export { default as Loading } from '../common/Loading.vue'
