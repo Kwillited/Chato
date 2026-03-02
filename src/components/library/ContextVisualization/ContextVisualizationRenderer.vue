@@ -242,9 +242,9 @@ const initContextScene = () => {
         ]);
         
         const material = new THREE.LineBasicMaterial({
-          color: 0x6366f1,
+          color: 0x93c5fd,
           transparent: true,
-          opacity: 0.3,
+          opacity: 0.6,
           linewidth: link.value * 2
         });
         

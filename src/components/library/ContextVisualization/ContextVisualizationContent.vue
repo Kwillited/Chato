@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, reactive, provide, defineAsyncComponent } from 'vue';
+import { ref, onMounted, onUnmounted, reactive, provide, defineAsyncComponent, watch, computed } from 'vue';
 
 // 导入本地存储管理工具
 import { StorageManager } from '../../../utils/storage.js';
@@ -67,6 +67,7 @@ import * as THREE from 'three';
 
 // 导入上下文存储
 import { useContextVisualizationStore } from '../../../store/contextVisualizationStore.js';
+import { useChatStore } from '../../../store/chatStore.js';
 
 // 创建星空背景函数
 const createStars = (scene, config) => {
@@ -105,8 +106,9 @@ const createStars = (scene, config) => {
   return stars;
 };
 
-// 初始化上下文存储
+// 初始化存储
 const contextStore = useContextVisualizationStore();
+const chatStore = useChatStore();
 
 // 响应式状态
 const selectedNode = ref(null);
@@ -168,108 +170,108 @@ const showNodeDetails = (node) => {
 const initNodeMaterials = () => {
   nodeMaterials.value = [
     new THREE.MeshStandardMaterial({
-      color: 0x6366f1,
-      emissive: new THREE.Color(0x6366f1).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0x93c5fd, // 亮蓝色 - 用户消息
+      emissive: new THREE.Color(0x3b82f6).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0x8b5cf6,
-      emissive: new THREE.Color(0x8b5cf6).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0xc4b5fd, // 亮紫色 - AI消息
+      emissive: new THREE.Color(0x8b5cf6).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0xec4899,
-      emissive: new THREE.Color(0xec4899).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0xf9a8d4, // 亮粉色
+      emissive: new THREE.Color(0xec4899).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0x10b981,
-      emissive: new THREE.Color(0x10b981).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0x86efac, // 亮绿色
+      emissive: new THREE.Color(0x10b981).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0x3b82f6,
-      emissive: new THREE.Color(0x3b82f6).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0x93c5fd, // 亮蓝色
+      emissive: new THREE.Color(0x3b82f6).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0xf59e0b,
-      emissive: new THREE.Color(0xf59e0b).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0xfcd34d, // 亮黄色
+      emissive: new THREE.Color(0xf59e0b).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0xef4444,
-      emissive: new THREE.Color(0xef4444).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0xfca5a5, // 亮红色
+      emissive: new THREE.Color(0xef4444).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0x6366f1,
-      emissive: new THREE.Color(0x6366f1).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0x93c5fd, // 亮蓝色
+      emissive: new THREE.Color(0x3b82f6).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0x8b5cf6,
-      emissive: new THREE.Color(0x8b5cf6).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0xc4b5fd, // 亮紫色
+      emissive: new THREE.Color(0x8b5cf6).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0xec4899,
-      emissive: new THREE.Color(0xec4899).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0xf9a8d4, // 亮粉色
+      emissive: new THREE.Color(0xec4899).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0x10b981,
-      emissive: new THREE.Color(0x10b981).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0x86efac, // 亮绿色
+      emissive: new THREE.Color(0x10b981).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
       opacity: 0.9
     }),
     new THREE.MeshStandardMaterial({
-      color: 0x3b82f6,
-      emissive: new THREE.Color(0x3b82f6).multiplyScalar(0.3),
-      emissiveIntensity: 0.3,
+      color: 0x93c5fd, // 亮蓝色
+      emissive: new THREE.Color(0x3b82f6).multiplyScalar(0.6),
+      emissiveIntensity: 0.6,
       roughness: 0.2,
       metalness: 0.8,
       transparent: true,
@@ -431,6 +433,9 @@ provide('graphData', contextStore.graphData);
 onMounted(() => {
   initNodeMaterials();
   
+  // 从聊天消息生成图谱数据
+  contextStore.generateGraphFromChatMessages();
+  
   // 1秒后自动隐藏信息面板
   if (infoPanel.value) {
     setTimeout(() => {
@@ -444,6 +449,18 @@ onMounted(() => {
       }
     }, 1000);
   }
+});
+
+// 监听聊天消息变化，自动更新图谱数据
+watch(() => chatStore.currentChatMessages, () => {
+  // 当聊天消息变化时，重新生成图谱数据
+  contextStore.generateGraphFromChatMessages();
+}, { deep: true });
+
+// 监听当前聊天ID变化，自动更新图谱数据
+watch(() => chatStore.currentChatId, () => {
+  // 当切换对话时，重新生成图谱数据
+  contextStore.generateGraphFromChatMessages();
 });
 
 // 组件卸载时不需要特殊清理，因为Three.js相关资源由子组件管理
