@@ -1,6 +1,16 @@
 <template>
   <div class="files-list mt-3">
-    <h3 class="text-sm font-medium text-gray-700 dark:text-white mb-2 px-2">{{ currentFolder.name }} 中的文件 ({{ currentFiles.length }})</h3>
+    <div class="flex items-center justify-between mb-2 px-2 h-6">
+      <h3 class="text-xs font-medium text-gray-700 dark:text-white flex items-center h-full">{{ currentFolder.name }} 中的文件 ({{ currentFiles.length }})</h3>
+      <button 
+        class="flex items-center justify-center transition-all duration-300 font-medium bg-transparent text-neutral border border-transparent hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-gray-300 text-xs px-2 py-0 i:text-xs rounded-full h-6"
+        @click="handleBack"
+        title="返回知识库列表"
+      >
+        <i class="fa-solid fa-arrow-left mr-1"></i>
+        <span>返回</span>
+      </button>
+    </div>
     
     <!-- 文件列表 -->
     <div v-if="currentFiles.length > 0">
@@ -49,6 +59,13 @@ defineProps({
     default: false
   }
 });
+
+// 处理返回一级菜单
+const handleBack = () => {
+  // 触发返回上一级事件，由FilePanel组件处理
+  const event = new CustomEvent('backToParent');
+  window.dispatchEvent(event);
+};
 </script>
 
 <style scoped>
@@ -58,11 +75,11 @@ defineProps({
 }
 
 .files-list h3 {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: #4b5563;
-  margin-bottom: 8px;
-  padding: 0 8px;
+  margin-bottom: 0;
+  padding: 0;
 }
 
 .dark .files-list h3 {

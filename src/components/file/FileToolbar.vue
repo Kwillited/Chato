@@ -1,5 +1,5 @@
 <template>
-  <div class="toolbar flex justify-between items-center mb-3 p-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 rounded-lg border border-gray-100 transition-all duration-300">
+  <div class="toolbar flex justify-between items-center mb-3 px-2 py-1 bg-gray-50 dark:bg-gray-800 dark:border-gray-700 rounded-lg border border-gray-100 transition-all duration-300">
     <Button
       id="createKnowledgeBaseBtn"
       icon="fa-folder-plus"
