@@ -39,6 +39,42 @@ export const useFileStore = defineStore('file', {
       errorUtils.clearError(this);
     },
     
+    // 加载持久化的选中文件夹
+    loadPersistedState() {
+      try {
+        // 尝试从两个可能的键中加载
+        const storedFolder = localStorage.getItem('fileManagerSelectedFolder') || localStorage.getItem('ragSelectedFolder');
+        if (storedFolder) {
+          const folder = JSON.parse(storedFolder);
+          this.currentFolder = folder;
+        }
+      } catch (error) {
+        console.error('加载持久化状态失败:', error);
+      }
+    },
+    
+    // 保存选中文件夹到 localStorage
+    saveSelectedFolder(folder) {
+      try {
+        localStorage.setItem('fileManagerSelectedFolder', JSON.stringify(folder));
+        // 清理旧键，确保一致性
+        localStorage.removeItem('ragSelectedFolder');
+      } catch (error) {
+        console.error('保存选中文件夹失败:', error);
+      }
+    },
+    
+    // 清除选中状态
+    clearSelectedFolder() {
+      this.currentFolder = null;
+      try {
+        localStorage.removeItem('fileManagerSelectedFolder');
+        localStorage.removeItem('ragSelectedFolder');
+      } catch (error) {
+        console.error('清除选中文件夹失败:', error);
+      }
+    },
+    
     // 加载文件列表
     async loadFiles() {
       try {

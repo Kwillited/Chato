@@ -199,10 +199,9 @@ const loadFolders = async () => {
 
 // 处理返回上一级
 const handleBackToParent = () => {
-  currentFolder.value = null;
+  // 使用fileStore的方法清除状态
+  fileStore.clearSelectedFolder();
   currentFiles.value = [];
-  // 返回上一级时清除localStorage中的选中状态
-  localStorage.removeItem('ragSelectedFolder');
 };
 
 // 处理新建知识库
@@ -522,10 +521,9 @@ const handleDeleteFolderConfirm = async () => {
 // 处理文件夹选中状态变化
 const handleFolderSelected = (event) => {
   const selectedFolder = event.detail;
-  // 保存选中的文件夹到localStorage，包含ID信息
-  localStorage.setItem('ragSelectedFolder', JSON.stringify(selectedFolder));
-  // 更新fileStore的currentFolder状态
+  // 使用fileStore的方法保存状态
   fileStore.currentFolder = selectedFolder;
+  fileStore.saveSelectedFolder(selectedFolder);
   // 发送事件到eventBus通知其他组件
   eventBus.emit('folderSelected', selectedFolder);
 };

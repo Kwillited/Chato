@@ -553,8 +553,9 @@ const handleFolderClick = async (folder) => {
   currentFolder.value = folder.name;
   isLoading.value = true;
   try {
-    // 保存选中的文件夹到本地存储
-    localStorage.setItem('fileManagerSelectedFolder', JSON.stringify(folder));
+    // 使用fileStore的方法保存状态
+    fileStore.currentFolder = folder;
+    fileStore.saveSelectedFolder(folder);
     
     // 使用fileStore加载指定文件夹的文件
     const folderFiles = await fileStore.loadFilesInFolder(folder);
@@ -609,22 +610,14 @@ onMounted(() => {
   
   // 初始加载文件夹列表
   loadFolders().then(() => {
-    // 尝试恢复之前保存的选中状态
-    const storedSelectedFolder = localStorage.getItem('fileManagerSelectedFolder');
-    if (storedSelectedFolder) {
-      try {
-        const folder = JSON.parse(storedSelectedFolder);
-        selectedFolder.value = folder;
-        currentFolder.value = folder.name;
-        // 加载选中文件夹的内容
-        handleFolderClick(folder);
-      } catch (error) {
-        console.error('解析存储的选中文件夹失败:', error);
-        // 解析失败时重置状态
-        selectedFolder.value = null;
-        currentFolder.value = '';
-        fileStore.files = [];
-      }
+    // 使用fileStore加载持久化状态
+    fileStore.loadPersistedState();
+    if (fileStore.currentFolder) {
+      const folder = fileStore.currentFolder;
+      selectedFolder.value = folder;
+      currentFolder.value = folder.name;
+      // 加载选中文件夹的内容
+      handleFolderClick(folder);
     }
   });
   
@@ -662,27 +655,27 @@ const handleContentChanged = async (event) => {
       await loadFolders();
     }
     
-    // 尝试从localStorage中获取之前保存的选中文件夹
-    const storedSelectedFolder = localStorage.getItem('fileManagerSelectedFolder');
-    if (storedSelectedFolder) {
-      try {
-        const folder = JSON.parse(storedSelectedFolder);
+    // 直接使用fileStore中的currentFolder
+    if (fileStore.currentFolder) {
+      const folder = fileStore.currentFolder;
+      selectedFolder.value = folder;
+      currentFolder.value = folder.name;
+      // 自动加载选中文件夹的内容
+      handleFolderClick(folder);
+    } else {
+      // 尝试从持久化存储加载
+      fileStore.loadPersistedState();
+      if (fileStore.currentFolder) {
+        const folder = fileStore.currentFolder;
         selectedFolder.value = folder;
         currentFolder.value = folder.name;
-        // 自动加载选中文件夹的内容
         handleFolderClick(folder);
-      } catch (error) {
-        console.error('解析存储的选中文件夹失败:', error);
-        // 解析失败时重置状态
+      } else {
+        // 重置状态
         selectedFolder.value = null;
         currentFolder.value = '';
         fileStore.files = [];
       }
-    } else {
-      // 如果没有存储的选中状态，重置当前组件的状态
-      selectedFolder.value = null;
-      currentFolder.value = '';
-      ragStore.files = [];
     }
   }
 }

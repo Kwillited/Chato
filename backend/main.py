@@ -14,7 +14,7 @@ from app.core.logging_config import logger, update_log_config
 # 更新日志配置
 update_log_config(config_manager)
 
-def setup():
+async def setup():
     """应用初始化"""
     # 向量系统现在采用按需初始化，不再在启动时验证配置
     # 用户可在使用前通过设置界面配置向量系统参数
@@ -48,11 +48,10 @@ async def lifespan(app):
     logger.info("应用启动，开始异步初始化系统组件")
     import asyncio
     
-    # 执行同步初始化操作
-    setup()
-
-    # 只初始化 MCP 适配器，向量系统采用按需初始化
-    # 使用后台任务执行 MCP 初始化，不阻塞应用启动
+    # 执行异步初始化操作
+    # 使用后台任务执行数据和MCP初始化，不阻塞应用启动
+    # 向量系统采用按需初始化
+    asyncio.create_task(setup())
     asyncio.create_task(init_mcp_adapter())
     
     yield
