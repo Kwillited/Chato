@@ -1,6 +1,5 @@
 <template>
   <div class="files-list">
-    
     <!-- 文件列表 -->
     <div v-if="currentFiles.length > 0">
       <div v-for="file in currentFiles" :key="file.path"
@@ -24,8 +23,6 @@
     
     <!-- 加载状态：使用骨架屏提升体验 -->
     <SkeletonLoader v-if="loadingFiles" type="files" :count="3" />
-
-
   </div>
 </template>
 

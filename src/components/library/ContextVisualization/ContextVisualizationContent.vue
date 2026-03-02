@@ -40,7 +40,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, reactive, provide } from 'vue';
+import { ref, onMounted, onUnmounted, reactive, provide, defineAsyncComponent } from 'vue';
 
 // 导入本地存储管理工具
 import { StorageManager } from '../../../utils/storage.js';
@@ -50,7 +50,17 @@ import ContextVisualizationNavigation from './ContextVisualizationNavigation.vue
 import ContextVisualizationSettingsPanel from './ContextVisualizationSettingsPanel.vue';
 import ContextVisualizationNodeInfoPanel from './ContextVisualizationNodeInfoPanel.vue';
 
-import ContextVisualizationRenderer from './ContextVisualizationRenderer.vue';
+// 动态导入 3D 渲染组件
+const ContextVisualizationRenderer = defineAsyncComponent({
+  loader: () => import('./ContextVisualizationRenderer.vue'),
+  loadingComponent: {
+    template: '<div class="flex justify-center items-center h-full text-white">加载 3D 可视化中...</div>'
+  },
+  errorComponent: {
+    template: '<div class="flex justify-center items-center h-full text-white">加载失败，请重试</div>'
+  },
+  timeout: 5000
+});
 
 // 引入 Three.js 库（仅用于材质定义）
 import * as THREE from 'three';

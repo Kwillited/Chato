@@ -171,7 +171,7 @@
         <KnowledgeGraphVisualization 
           :nodes="knowledgeGraphNodes"
           :links="knowledgeGraphLinks"
-          :visible="!isSliderActive"
+          :visible="true"
           @node-click="handleNodeClick"
           @node-hover="handleNodeHover"
           @view-changed="handleViewChanged"
@@ -212,7 +212,19 @@ import { eventBus } from '../services/eventBus.js';
 import { generateId } from '../utils/data.js';
 import { formatFileSize } from '../utils/file.js';
 import { Button } from '../components/library/index.js';
-import { KnowledgeGraphVisualization } from '../components/library';
+import { defineAsyncComponent } from 'vue';
+
+// 动态导入知识图谱组件
+const KnowledgeGraphVisualization = defineAsyncComponent({
+  loader: () => import('../components/library').then(module => module.KnowledgeGraphVisualization),
+  loadingComponent: {
+    template: '<div class="flex justify-center items-center h-full">加载知识图谱中...</div>'
+  },
+  errorComponent: {
+    template: '<div class="flex justify-center items-center h-full">加载失败，请重试</div>'
+  },
+  timeout: 5000
+});
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
 import FolderInfoModal from '../components/file/FolderInfoModal.vue';
