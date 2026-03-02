@@ -247,22 +247,7 @@ onMounted(() => {
   }
 
 /* 滚动条样式 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
+/* 滚动条样式 - 使用全局scrollbar-thin样式，与文件面板保持一致 */
 
 /* 渐变背景 */
 .bg-gradient-subtle {

@@ -317,21 +317,5 @@ const enterMcpManagement = () => {
   transition: all 0.2s ease;
 }
 
-/* 确保滚动条样式与项目整体一致 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 20px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.7);
-}
+/* 滚动条样式 - 使用全局scrollbar-thin样式，与文件面板保持一致 */
 </style>

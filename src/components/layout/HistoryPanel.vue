@@ -17,7 +17,7 @@
       <SearchBar v-model="searchQuery" placeholder="搜索对话..." />
     </div>
 
-    <div ref="scrollContainer" class="overflow-y-auto flex-1 scrollbar-thin transition-colors duration-300 ease-in-out">
+    <div ref="scrollContainer" class="overflow-y-auto flex-1 scrollbar-thin">
       <div id="chatHistory" class="p-2 space-y-3 transition-all duration-300 ease-in-out">
         <!-- 加载状态：使用骨架屏提升体验 -->
         <SkeletonLoader v-if="chatStore.isLoading && chatHistory.length === 0" type="history" :count="3" />
@@ -421,31 +421,5 @@ const hasUnreadMessage = (chat) => {
   opacity: 1;
 }
 
-/* 滚动条样式 - 与ChatMessagesContainer.vue保持一致 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 6px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 3px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* 深色模式滚动条样式 */
-.dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  transition: background-color 0.3s ease-in-out;
-}
-
-.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
+/* 滚动条样式 - 使用全局scrollbar-thin样式，与文件面板保持一致 */
 </style>

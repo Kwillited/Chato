@@ -74,7 +74,7 @@
             </div>
             
             <div class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-dark-700 h-[calc(100vh-360px)] overflow-hidden flex flex-col mb-4">
-              <div class="flex-1 overflow-y-auto p-2">
+              <div class="flex-1 overflow-y-auto p-2 scrollbar-thin">
                 <!-- 消息列表 -->
                 <div v-if="chatStore.currentChat && chatStore.currentChat.messages && chatStore.currentChat.messages.length > 0">
                   <div
@@ -406,35 +406,5 @@ watch(() => chatStore.currentChatId, () => {
   border-color: #3949ab !important;
 }
 
-/* 滚动条样式 */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* 深色模式滚动条 */
-.dark ::-webkit-scrollbar-track {
-  background: #333;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #666;
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background: #888;
-}
+/* 滚动条样式 - 使用全局scrollbar-thin样式，与文件面板保持一致 */
 </style>
