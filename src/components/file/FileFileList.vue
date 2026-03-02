@@ -1,21 +1,10 @@
 <template>
-  <div class="files-list mt-3">
-    <div class="flex items-center justify-between mb-2 px-2 h-6">
-      <h3 class="text-xs font-medium text-gray-700 dark:text-white flex items-center h-full">{{ currentFolder.name }} 中的文件 ({{ currentFiles.length }})</h3>
-      <button 
-        class="flex items-center justify-center transition-all duration-300 font-medium bg-transparent text-neutral border border-transparent hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-gray-300 text-xs px-2 py-0 i:text-xs rounded-full h-6"
-        @click="handleBack"
-        title="返回知识库列表"
-      >
-        <i class="fa-solid fa-arrow-left mr-1"></i>
-        <span>返回</span>
-      </button>
-    </div>
+  <div class="files-list">
     
     <!-- 文件列表 -->
     <div v-if="currentFiles.length > 0">
       <div v-for="file in currentFiles" :key="file.path"
-        class="file-item bg-white border border-gray-200 dark:bg-dark-bg-secondary rounded-lg p-3 mb-2 hover:bg-gray-50 dark:hover:bg-dark-bg-tertiary transition-all duration-300"
+        class="file-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mt-1 mb-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-500 transition-all duration-300"
       >
         <div class="file-header flex items-center justify-between">
           <div class="flex items-center">
@@ -60,18 +49,12 @@ defineProps({
   }
 });
 
-// 处理返回一级菜单
-const handleBack = () => {
-  // 触发返回上一级事件，由FilePanel组件处理
-  const event = new CustomEvent('backToParent');
-  window.dispatchEvent(event);
-};
+
 </script>
 
 <style scoped>
 /* 文件列表样式 */
 .files-list {
-  margin-top: 12px;
 }
 
 .files-list h3 {

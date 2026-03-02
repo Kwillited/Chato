@@ -1,12 +1,35 @@
 <template>
   <div id="ragPanel" class="h-full flex flex-col">
-    <!-- 主内容区域 -->
+    <!-- 顶部固定区域 -->
+    <div class="folder-container p-2">
+      <!-- 工具栏组件 -->
+      <FileToolbar :loading="fileStore.loading" />
+      
+      <!-- 文件夹列表 - 根目录视图 -->
+      <div v-if="!currentFolder">
+        <!-- 知识库文件夹标题 -->
+        <h3 v-if="folders.length > 0" class="text-sm font-medium text-gray-700 dark:text-white mt-2 mb-2 px-2">知识库文件夹 ({{ folders.length }})</h3>
+      </div>
+      
+      <!-- 文件列表 - 二级菜单视图标题 -->
+      <div v-else>
+        <div class="flex items-center justify-between mt-2 mb-2 px-2 h-6">
+          <h3 class="text-xs font-medium text-gray-700 dark:text-white flex items-center h-full">{{ currentFolder.name }} 中的文件 ({{ currentFiles.length }})</h3>
+          <button 
+            class="flex items-center justify-center transition-all duration-300 font-medium bg-transparent text-neutral border border-transparent hover:bg-gray-100 dark:hover:bg-dark-700 dark:text-gray-300 text-xs px-2 py-0 i:text-xs rounded-full h-6"
+            @click="handleBackToParent"
+            title="返回知识库列表"
+          >
+            <i class="fa-solid fa-arrow-left mr-1"></i>
+            <span>返回</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 可滚动内容区域 -->
     <div class="overflow-y-auto flex-1 scrollbar-thin">
-      <!-- 文件夹样式的根目录 -->
-      <div class="folder-container p-2">
-        <!-- 工具栏组件 -->
-        <FileToolbar :loading="fileStore.loading" />
-        
+      <div class="folder-container px-2 py-0">
         <!-- 文件夹列表 - 根目录视图 -->
         <div v-if="!currentFolder">
           <FileFolderList v-if="folders.length > 0" :folders="folders" />

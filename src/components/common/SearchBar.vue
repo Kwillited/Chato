@@ -1,5 +1,5 @@
 <template>
-  <div class="search-container py-3 transition-all duration-300">
+  <div class="search-container py-2 transition-all duration-300">
     <div class="relative">
       <input
         type="text"

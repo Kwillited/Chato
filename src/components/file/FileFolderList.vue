@@ -1,6 +1,5 @@
 <template>
-  <div v-if="folders.length > 0" class="folders-list mt-3">
-    <h3 class="text-sm font-medium text-gray-700 dark:text-white mb-2 px-2">知识库文件夹 ({{ folders.length }})</h3>
+  <div v-if="folders.length > 0" class="folders-list">
     <div v-for="folder in folders" :key="folder.id || folder.path"
       class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-500 transition-all duration-300"
       @dragover.prevent="handleFolderDragOver($event, folder)"
@@ -182,7 +181,6 @@ onMounted(() => {
 <style scoped>
 /* 文件夹列表样式 */
 .folders-list {
-  margin-top: 12px;
 }
 
 .folders-list h3 {

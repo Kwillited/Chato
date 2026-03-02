@@ -13,7 +13,9 @@
     />
 
     <!-- 搜索框 -->
-    <SearchBar v-model="searchQuery" placeholder="搜索对话..." />
+    <div class="px-2 py-1">
+      <SearchBar v-model="searchQuery" placeholder="搜索对话..." />
+    </div>
 
     <div ref="scrollContainer" class="overflow-y-auto flex-1 scrollbar-thin transition-colors duration-300 ease-in-out">
       <div id="chatHistory" class="p-2 space-y-3 transition-all duration-300 ease-in-out">
