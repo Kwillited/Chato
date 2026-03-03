@@ -194,11 +194,7 @@ class ChatService(BaseService):
         
         return context_docs, vector_results
 
-    def get_rag_enhanced_prompt(self, question, rag_config=None):
-        """RAG增强提示 - 现在直接返回原始问题，因为RAG上下文会在构建消息列表时添加到SystemMessage中"""
-        from app.core.logging_config import logger
-        logger.debug("RAG增强提示: 直接返回原始问题，RAG上下文会在构建消息列表时添加到SystemMessage中")
-        return question
+
     
     def generate_rag_response(self, query: str, chat_history: list, k=5):
         """生成增强响应
@@ -312,34 +308,7 @@ class ChatService(BaseService):
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
         logger.info(f"对话更新成功，消息已保存: chat_id={chat_id}, 消息总数: {len(chat.get('messages', []))}")
 
-    def _prepare_messages_for_model(self, chat_id, enhanced_question, selected_message_ids=None, rag_enabled=False, agent_enabled=False, context_docs=None, web_search_enabled=False, web_search_results=None):
-        """
-        准备发送给模型的消息格式
-        
-        参数:
-            chat_id: 对话ID
-            enhanced_question: 增强后的问题
-            selected_message_ids: 用户选择的消息ID列表
-            rag_enabled: 是否启用RAG模式
-            agent_enabled: 是否启用智能体模式
-            context_docs: RAG上下文文档列表
-            web_search_enabled: 是否启用网络搜索
-            web_search_results: 网络搜索结果
-        
-        返回:
-            格式化的消息列表
-        """
-        # 使用MessageBuilder构建消息列表
-        return MessageBuilder.build_messages_from_chat(
-            chat_id=chat_id,
-            query=enhanced_question,
-            rag_enabled=rag_enabled,
-            agent_enabled=agent_enabled,
-            context_docs=context_docs,
-            selected_message_ids=selected_message_ids,
-            web_search_enabled=web_search_enabled,
-            web_search_results=web_search_results
-        )
+
     
     async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False, model=None):
             """
@@ -841,7 +810,16 @@ class ChatService(BaseService):
         chat['messages'].append(user_message)
         
         # 构建模型输入
-        model_messages = self._prepare_messages_for_model(chat['id'], enhanced_question, selected_message_ids=selected_message_ids, rag_enabled=rag_enabled, agent_enabled=use_agent, context_docs=context_docs, web_search_enabled=web_search_enabled, web_search_results=web_search_results)
+        model_messages = MessageBuilder.build_messages_from_chat(
+            chat_id=chat['id'],
+            query=enhanced_question,
+            rag_enabled=rag_enabled,
+            agent_enabled=use_agent,
+            context_docs=context_docs,
+            selected_message_ids=selected_message_ids,
+            web_search_enabled=web_search_enabled,
+            web_search_results=web_search_results
+        )
         
         # 根据stream和agent的值决定返回类型
         if stream:

@@ -10,49 +10,7 @@ class GenerationService(BaseService):
         """初始化生成服务"""
         pass
     
-    def build_prompt(self, query, context_docs, chat_history=None, prompt_template=None):
-        """构建提示模板，将查询、聊天历史和检索到的上下文结合
-        
-        Args:
-            query: 用户查询
-            context_docs: 检索到的上下文文档列表
-            chat_history: 聊天历史记录
-            prompt_template: 自定义提示模板，默认为None
-            
-        Returns:
-            str: 构建好的提示
-        """
-        # 构建RAG提示，包含上下文信息
-        if context_docs:
-            # 构建上下文字符串
-            context_str = ""
-            for i, doc in enumerate(context_docs):
-                if isinstance(doc, dict):
-                    doc_content = doc.get('content', '') or doc.get('page_content', '')
-                else:
-                    doc_content = getattr(doc, 'page_content', '') or getattr(doc, 'content', '')
-                context_str += f"参考文档{i+1}：{doc_content}\n\n"
-            
-            # 构建聊天历史字符串
-            chat_history_str = ""
-            if chat_history:
-                chat_history_str = "\n".join([f"{'用户' if msg['role'] == 'user' else '助手'}: {msg['content']}" for msg in chat_history])
-            
-            # 使用自定义提示模板或默认模板
-            if prompt_template:
-                prompt = prompt_template.format(
-                    context=context_str,
-                    chat_history=chat_history_str,
-                    query=query
-                )
-            else:
-                # 使用默认的RAG提示模板
-                prompt = f"你是一个AI助手，使用以下上下文信息来回答用户问题。请严格基于提供的上下文信息进行回答，不要添加任何外部信息。如果你不知道答案，就说你不知道。保持回答简洁明了。\n\n{context_str}{chat_history_str}\n\n用户问题：{query}"
-        else:
-            # 没有上下文时，直接返回原始查询
-            prompt = query
-        
-        return prompt
+
     
     def generate_response(self, prompt, llm=None):
         """调用LLM生成响应
@@ -108,8 +66,17 @@ class GenerationService(BaseService):
             dict: RAG生成结果
         """
         try:
-            # 构建提示
-            prompt = self.build_prompt(query, context_docs, chat_history, prompt_template)
+            # 使用MessageBuilder构建消息
+            from app.utils.message_builder import MessageBuilder
+            messages = MessageBuilder.build_rag_messages(
+                query=query,
+                context_docs=context_docs,
+                chat_history=chat_history,
+                prompt_template=prompt_template
+            )
+            
+            # 提取消息内容作为提示
+            prompt = "\n\n".join([msg['content'] for msg in messages])
             
             # 生成响应
             response = self.generate_response(prompt, llm)
@@ -138,46 +105,4 @@ class GenerationService(BaseService):
                 'error': str(e)
             }
     
-    def build_agent_prompt(self, system_prompt=None):
-        """构建智能体提示词
-        
-        Args:
-            system_prompt: 自定义系统提示词，默认为None
-            
-        Returns:
-            str: 构建好的系统提示词
-        """
-        if system_prompt:
-            return system_prompt
-        # 使用prompt_manager获取智能体系统消息
-        agent_message = prompt_manager.get_system_message(mode='agent')
-        return agent_message['content']
-    
-    def get_agent_prompt_template(self, system_prompt=None):
-        """获取智能体提示词模板
-        
-        Args:
-            system_prompt: 自定义系统提示词，默认为None
-            
-        Returns:
-            ChatPromptTemplate: 智能体提示词模板
-        """
-        try:
-            from langchain_core.prompts import ChatPromptTemplate
-            
-            # 构建系统提示词
-            final_system_prompt = self.build_agent_prompt(system_prompt)
-            
-            # 创建提示词模板
-            prompt = ChatPromptTemplate.from_messages([
-                ("system", final_system_prompt),
-                ("placeholder", "{chat_history}"),
-                ("human", "{input}"),
-                ("placeholder", "{agent_scratchpad}"),
-            ])
-            
-            return prompt
-        except Exception as e:
-            # 简化错误处理，避免循环导入
-            print(f"创建智能体提示词模板失败: {str(e)}")
-            return None
+
