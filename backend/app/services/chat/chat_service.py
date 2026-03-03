@@ -128,74 +128,6 @@ class ChatService(BaseService):
         
         return formatted_messages
 
-    def _perform_rag_search(self, question, selected_folders=None, k=None):
-        """执行RAG搜索，获取相关文档片段"""
-        from app.core.config import config_manager
-        from app.services.vector.vector_service import VectorService
-        
-        vector_service = VectorService()
-        
-        # 从配置中获取参数
-        config_vector = config_manager.get('vector', {})
-        if k is None:
-            k = config_vector.get('top_k', 3)
-        score_threshold = config_vector.get('score_threshold', 0.7)
-        
-        # 构建过滤器
-        filter = None
-        knowledge_base_name = "default"
-        vector_db_path = None
-        embedder_model = None
-        
-        if selected_folders:
-            # 如果有选中的文件夹，构建filter条件
-            filter = {'folder_id': {'$in': selected_folders}}
-            
-            # 尝试从第一个选中的文件夹获取知识库信息
-            try:
-                from app.services.file.document_service import DocumentService
-                doc_service = DocumentService()
-                
-                # 获取第一个选中的文件夹ID
-                first_folder_id = selected_folders[0]
-                # 获取文件夹信息
-                folder = doc_service.data_service.get_folder_by_id(first_folder_id)
-                
-                if folder:
-                    if hasattr(folder, 'name'):
-                        knowledge_base_name = folder.name
-                        vector_service.log_info(f"从selected_folders获取知识库名称成功: {knowledge_base_name}")
-                    if hasattr(folder, 'vector_db_path'):
-                        vector_db_path = folder.vector_db_path
-                        vector_service.log_info(f"从selected_folders获取向量数据库路径成功: {vector_db_path}")
-                    if hasattr(folder, 'embedding_model'):
-                        embedder_model = folder.embedding_model
-                        vector_service.log_info(f"从selected_folders获取嵌入模型成功: {embedder_model}")
-            except Exception as e:
-                vector_service.log_warning(f"获取folder信息失败，使用默认知识库: {e}")
-        
-        # 执行相似性搜索
-        vector_results = vector_service.search_vectors(
-            query=question,
-            k=k,
-            filter=filter,
-            score_threshold=score_threshold,
-            knowledge_base_name=knowledge_base_name,
-            vector_db_path=vector_db_path,
-            embedder_model=embedder_model
-        )
-        
-        # 转换向量结果为文档列表
-        context_docs = []
-        if vector_results['success']:
-            for result in vector_results['results']:
-                # 添加文档到上下文
-                context_docs.append(result)
-        
-        return context_docs, vector_results
-
-
-    
     def generate_rag_response(self, query: str, chat_history: list, k=5):
         """生成增强响应
         
@@ -211,7 +143,9 @@ class ChatService(BaseService):
         try:
             logger.debug(f"开始生成增强响应: 查询='{query[:50]}{'...' if len(query) > 50 else ''}'")
             # 1. 调用向量服务获取相关文档
-            context_docs, vector_results = self._perform_rag_search(query, k=k)
+            from app.services.vector.vector_service import VectorService
+            vector_service = VectorService()
+            context_docs, vector_results = vector_service.perform_rag_search(query, k=k)
             
             if not vector_results['success']:
                 self.log_error(f"向量检索失败: {vector_results['message']}")
@@ -221,32 +155,60 @@ class ChatService(BaseService):
                     'response': '抱歉，我无法获取相关信息。'
                 }
             
-            # 2. 直接使用生成服务的 RAG 功能
-            from app.services.chat.generation_service import GenerationService
-            generation_service = GenerationService()
+            # 2. 使用统一的LLMService处理RAG响应生成
+            from app.services.llm.llm_service import LLMService
             
-            # 调用生成服务的 generate_rag_response 方法
-            rag_result = generation_service.generate_rag_response(
+            # 获取默认模型配置
+            from app.core.config import config_manager
+            default_model = config_manager.get('default_model', 'Ollama')
+            from app.services.data_service import DataService
+            model_config = DataService.get_model_by_name(default_model)
+            
+            if not model_config:
+                self.log_error("未找到默认模型配置")
+                return {
+                    'success': False,
+                    'message': '未找到默认模型配置',
+                    'response': '抱歉，我无法生成响应。'
+                }
+            
+            # 获取版本配置
+            version_config = self.get_version_config(model_config, '')
+            
+            # 构建RAG消息
+            from app.utils.message_builder import MessageBuilder
+            messages = MessageBuilder.build_rag_messages(
                 query=query,
                 context_docs=context_docs,
                 chat_history=chat_history
             )
             
-            if rag_result['success']:
-                logger.debug("生成增强响应成功")
-                return {
-                    'success': True,
-                    'message': '生成增强响应成功',
-                    'response': rag_result['answer'],
-                    'context': rag_result['context_docs']
-                }
+            # 调用LLMService生成响应
+            response = LLMService.generate_response(
+                messages=messages,
+                model_name=default_model,
+                model_config=model_config,
+                version_config=version_config,
+                model_params={'stream': False},
+                use_agent=False
+            )
+            
+            # 处理响应
+            answer = None
+            if hasattr(response, 'content'):
+                answer = response.content
+            elif isinstance(response, dict) and 'content' in response:
+                answer = response['content']
             else:
-                self.log_error(f"生成响应失败: {rag_result.get('error', '未知错误')}")
-                return {
-                    'success': False,
-                    'message': f'生成响应失败: {rag_result.get('error', '未知错误')}',
-                    'response': '抱歉，我无法生成响应。'
-                }
+                answer = str(response)
+            
+            logger.debug("生成增强响应成功")
+            return {
+                'success': True,
+                'message': '生成增强响应成功',
+                'response': answer,
+                'context': context_docs
+            }
         except Exception as e:
             self.log_error(f"生成增强响应失败: {str(e)}")
             return {
@@ -324,72 +286,33 @@ class ChatService(BaseService):
             # 2. 获取版本配置
             version_config = self.get_version_config(model, parsed_version_name)
             
-            if use_agent:
-                # --- 智能体模式：全异步处理 ---
-                try:
-                    from app.llm.managers.model_manager import ModelManager
-                    from app.llm.agent_wrapper import AgentWrapper
-                    
-                    # 获取基础模型驱动
-                    base_driver = ModelManager.get_model_driver(model_name, model, version_config)
-                    
-                    # 创建并【异步】初始化智能体
-                    agent_wrapper = AgentWrapper(base_driver)
-                    
-                    # ！！！核心改进 1：使用 await 而不是 asyncio.run
-                    await agent_wrapper.initialize()
-                    
-                    # 准备消息（包含工具替换）
-                    prepared_messages = agent_wrapper._prepare_messages(messages)
-                    
-                    # 记录传递的消息（使用准备后的消息）
-                    self.log_info(f"[chat_with_model_stream] 传递的消息: model_name={model_name}, use_agent={use_agent}")
-                    self.log_info(f"[chat_with_model_stream] 消息数量: {len(prepared_messages)}")
-                    for i, msg in enumerate(prepared_messages):
-                        role = 'system' if hasattr(msg, 'content') and isinstance(msg, type(prepared_messages[0])) else 'unknown'
-                        content = msg.content if hasattr(msg, 'content') else ''
-                        # 增加截断长度，显示更多内容
-                        content_preview = content[:500] + ('...' if len(content) > 500 else '')
-                        self.log_info(f"[chat_with_model_stream] 消息{i+1} (role={role}): {content_preview}")
-                        # 对于长消息，也记录完整内容到日志文件
-                        if len(content) > 500:
-                            self.log_debug(f"[chat_with_model_stream] 消息{i+1} 完整内容: {content}")
-                    
-                    # ！！！核心改进 2：直接异步遍历生成器
-                    # 不要再手动去写 while __anext__，那是 asyncio.run 的死穴
-                    async for chunk in agent_wrapper.chat_stream(messages, model_params):
-                        # 这里的 chunk 已经是 AgentWrapper 处理好的 dict 或 str
+            try:
+                from app.services.llm.llm_service import LLMService
+                
+                # 使用统一的LLMService处理所有LLM调用
+                stream = await LLMService.generate_response(
+                    messages=messages,
+                    model_name=model_name,
+                    model_config=model,
+                    version_config=version_config,
+                    model_params=model_params,
+                    use_agent=use_agent
+                )
+
+                # 开始接收LLM流式响应
+                # 如果 stream 是同步迭代器
+                if hasattr(stream, '__next__'):
+                    for chunk in stream:
                         yield chunk
-                    
-                except Exception as e:
-                    self.log_error(f'调用智能体失败: {str(e)}')
-                    yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
-            else:
-                # --- 普通模式 ---
-                streaming_config = version_config.get('streaming_config', False)
-                if not streaming_config:
-                    yield f'data: {json.dumps({"error": "该模型未启用流式传输"}, ensure_ascii=False)}\n\n'
-                    return
+                # 如果 stream 是异步迭代器 (推荐)
+                else:
+                    async for chunk in stream:
+                        yield chunk
 
-                try:
-                    from app.llm.managers.model_manager import ModelManager
-                    # ！！！核心改进 3：假设 ModelManager 支持异步流 (astream)
-                    # 如果 ModelManager.chat 是同步的，建议也改为异步版本
-                    stream = ModelManager.chat(model_name, model, version_config, messages, model_params)
-
-                    # 开始接收LLM流式响应
-                    # 如果 stream 是同步迭代器
-                    if hasattr(stream, '__next__'):
-                        for chunk in stream:
-                            yield chunk
-                    # 如果 stream 是异步迭代器 (推荐)
-                    else:
-                        async for chunk in stream:
-                            yield chunk
-
-                except Exception as e:
-                    self.log_error(f'调用模型失败: {str(e)}')
-                    yield f'data: {json.dumps({"error": str(e)}, ensure_ascii=False)}\n\n'
+            except Exception as e:
+                self.log_error(f'调用模型失败: {str(e)}')
+                error_response = json.dumps({"error": str(e)}, ensure_ascii=False)
+                yield f'data: {error_response}\n\n'
 
     def process_uploaded_files(self, files):
         """处理上传的文件，保存到临时目录并提取内容
@@ -745,7 +668,9 @@ class ChatService(BaseService):
         if rag_enabled:
             logger.debug("准备执行RAG搜索")
             # 执行RAG搜索获取上下文文档
-            context_docs, _ = self._perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
+            from app.services.vector.vector_service import VectorService
+            vector_service = VectorService()
+            context_docs, _ = vector_service.perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
             logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
         else:
             logger.debug("RAG未启用")
@@ -754,45 +679,10 @@ class ChatService(BaseService):
         web_search_results = None
         if web_search_enabled:
             logger.debug("准备执行网络搜索")
-            try:
-                from app.utils.mcp.mcp_adapter import mcp_adapter
-                # 初始化MCP适配器
-                await mcp_adapter.initialize()
-                if mcp_adapter.is_available():
-                    # 获取工具列表
-                    tools = mcp_adapter.get_tools()
-                    # 查找搜索工具
-                    search_tool = None
-                    for tool in tools:
-                        try:
-                            tool_name = getattr(tool, 'name', '').lower()
-                            if 'search' in tool_name:
-                                search_tool = tool
-                                break
-                        except Exception:
-                            pass
-                    
-                    if search_tool:
-                        logger.debug(f"找到搜索工具: {getattr(search_tool, 'name', 'unknown')}")
-                        # 执行搜索
-                        try:
-                            # 构建搜索参数
-                            search_params = {
-                                "query": full_message_text,
-                                "max_results": 3
-                            }
-                            # 调用搜索工具（使用异步调用）
-                            search_result = await search_tool.arun(search_params)
-                            logger.debug(f"网络搜索结果: {search_result}")
-                            web_search_results = search_result
-                        except Exception as e:
-                            logger.error(f"执行网络搜索失败: {str(e)}")
-                    else:
-                        logger.warning("未找到搜索工具")
-                else:
-                    logger.warning("MCP 不可用，跳过网络搜索")
-            except Exception as e:
-                logger.error(f"网络搜索初始化失败: {str(e)}")
+            from app.services.web.web_search_service import WebSearchService
+            web_search_service = WebSearchService()
+            web_search_results = await web_search_service.perform_web_search(full_message_text)
+            logger.debug(f"网络搜索结果: {web_search_results}")
         else:
             logger.debug("网络搜索未启用")
         

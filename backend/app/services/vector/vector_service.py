@@ -4,7 +4,7 @@ from app.services.base_service import BaseService
 from app.repositories.vector_repository import VectorRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.services.vector.vector_store_service import VectorStoreService
-from app.services.chat.generation_service import GenerationService
+
 from app.utils.rag import VectorUtils
 
 class VectorService(BaseService):
@@ -463,11 +463,80 @@ class VectorService(BaseService):
             )
             
             if results:
-                # 使用生成服务的build_prompt方法构建提示
-                generation_service = GenerationService()
-                return generation_service.build_prompt(question, results)
+                # 使用PromptManager构建提示
+                from app.utils.prompt_manager import prompt_manager
+                messages = prompt_manager.build_messages(
+                    query=question,
+                    context_docs=results,
+                    mode='rag'
+                )
+                prompt = "\n\n".join([msg['content'] for msg in messages])
+                return prompt
             
             return question
         except Exception as e:
             self.log_error(f"生成增强提示失败: {str(e)}")
             return question
+    
+    def perform_rag_search(self, question, selected_folders=None, k=None):
+        """执行RAG搜索，获取相关文档片段"""
+        from app.core.config import config_manager
+        
+        # 从配置中获取参数
+        config_vector = config_manager.get('vector', {})
+        if k is None:
+            k = config_vector.get('top_k', 3)
+        score_threshold = config_vector.get('score_threshold', 0.7)
+        
+        # 构建过滤器
+        filter = None
+        knowledge_base_name = "default"
+        vector_db_path = None
+        embedder_model = None
+        
+        if selected_folders:
+            # 如果有选中的文件夹，构建filter条件
+            filter = {'folder_id': {'$in': selected_folders}}
+            
+            # 尝试从第一个选中的文件夹获取知识库信息
+            try:
+                from app.services.file.document_service import DocumentService
+                doc_service = DocumentService()
+                
+                # 获取第一个选中的文件夹ID
+                first_folder_id = selected_folders[0]
+                # 获取文件夹信息
+                folder = doc_service.data_service.get_folder_by_id(first_folder_id)
+                
+                if folder:
+                    if hasattr(folder, 'name'):
+                        knowledge_base_name = folder.name
+                        self.log_info(f"从selected_folders获取知识库名称成功: {knowledge_base_name}")
+                    if hasattr(folder, 'vector_db_path'):
+                        vector_db_path = folder.vector_db_path
+                        self.log_info(f"从selected_folders获取向量数据库路径成功: {vector_db_path}")
+                    if hasattr(folder, 'embedding_model'):
+                        embedder_model = folder.embedding_model
+                        self.log_info(f"从selected_folders获取嵌入模型成功: {embedder_model}")
+            except Exception as e:
+                self.log_warning(f"获取folder信息失败，使用默认知识库: {e}")
+        
+        # 执行相似性搜索
+        vector_results = self.search_vectors(
+            query=question,
+            k=k,
+            filter=filter,
+            score_threshold=score_threshold,
+            knowledge_base_name=knowledge_base_name,
+            vector_db_path=vector_db_path,
+            embedder_model=embedder_model
+        )
+        
+        # 转换向量结果为文档列表
+        context_docs = []
+        if vector_results['success']:
+            for result in vector_results['results']:
+                # 添加文档到上下文
+                context_docs.append(result)
+        
+        return context_docs, vector_results
