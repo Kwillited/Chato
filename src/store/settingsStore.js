@@ -455,12 +455,27 @@ export const useSettingsStore = defineStore('settings', {
       this.saveModelSettings();
     },
 
+    // 包装模型API调用
+    async _wrapModelApiCall(apiCall, options = {}) {
+      return await apiUtils.wrapApiCall(this, apiCall, {
+        loadingProperty: 'modelLoading',
+        errorProperty: 'modelError',
+        ...options
+      });
+    },
+
+    // 包装嵌入模型API调用
+    async _wrapEmbeddingModelApiCall(apiCall, options = {}) {
+      return await apiUtils.wrapApiCall(this, apiCall, {
+        loadingProperty: 'embeddingModelLoading',
+        errorProperty: 'embeddingModelError',
+        ...options
+      });
+    },
+
     // 从后端加载模型列表
     async loadModels() {
-      try {
-        this.setModelLoading(true);
-        this.setModelError(null);
-        
+      await this._wrapModelApiCall(async () => {
         // 从后端加载模型列表
         const response = await apiService.models.getModels();
         // 确保models是数组
@@ -471,12 +486,9 @@ export const useSettingsStore = defineStore('settings', {
         
         // 通知事件总线，模型列表已更新
         eventBus.emit('modelsLoaded', { models: this.models });
-      } catch (error) {
-        this.setModelError('加载模型列表失败');
-        console.error('加载模型列表失败:', error);
-      } finally {
-        this.setModelLoading(false);
-      }
+      }, {
+        errorMessage: '加载模型列表失败'
+      });
     },
 
     // 更新模型数据，添加图标URL
@@ -528,10 +540,7 @@ export const useSettingsStore = defineStore('settings', {
 
     // 保存模型配置
     async saveModelConfig(modelName, config) {
-      try {
-        this.setModelLoading(true);
-        this.setModelError(null);
-        
+      await this._wrapModelApiCall(async () => {
         // 调用后端API保存配置
         await apiService.post(`/models/${modelName}`, {
           custom_name: config.customName,
@@ -543,55 +552,34 @@ export const useSettingsStore = defineStore('settings', {
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
-        
-        // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
-        
-        return true;
-      } catch (error) {
-        this.setModelError('保存模型配置失败');
-        console.error('保存模型配置失败:', error);
-        throw error;
-      } finally {
-        this.setModelLoading(false);
-      }
+      }, {
+        errorMessage: '保存模型配置失败'
+      });
+      
+      return true;
     },
 
     // 删除模型配置
     async deleteModelConfig(modelName) {
-      try {
-        this.setModelLoading(true);
-        this.setModelError(null);
-        
+      await this._wrapModelApiCall(async () => {
         // 调用后端API删除配置
         await apiService.delete(`/models/${modelName}`);
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
-        
-        // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
-        
-        // 显示成功通知
-        notifyUtils.showSuccess(`已删除${modelName}的配置`);
-        
-        return true;
-      } catch (error) {
-        this.setModelError('删除模型配置失败');
-        console.error('删除模型配置失败:', error);
-        notifyUtils.showError('删除失败: ' + (error.message || '未知错误'));
-        throw error;
-      } finally {
-        this.setModelLoading(false);
-      }
+      }, {
+        errorMessage: '删除模型配置失败',
+        successMessage: `已删除${modelName}的配置`,
+        showSuccessNotification: true,
+        showErrorNotification: true
+      });
+      
+      return true;
     },
 
     // 切换模型启用状态
     async toggleModelEnabled(modelName, enabled) {
-      try {
-        this.setModelLoading(true);
-        this.setModelError(null);
-        
+      await this._wrapModelApiCall(async () => {
         // 调用后端API更新启用状态
         await apiService.post(`/models/${modelName}/enabled`, {
           enabled: enabled
@@ -599,26 +587,16 @@ export const useSettingsStore = defineStore('settings', {
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
-        
-        // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
-        
-        return true;
-      } catch (error) {
-        this.setModelError('更新模型启用状态失败');
-        console.error('更新模型启用状态失败:', error);
-        throw error;
-      } finally {
-        this.setModelLoading(false);
-      }
+      }, {
+        errorMessage: '更新模型启用状态失败'
+      });
+      
+      return true;
     },
 
     // 添加模型版本
     async addModelVersion(modelName, versionConfig) {
-      try {
-        this.setModelLoading(true);
-        this.setModelError(null);
-        
+      await this._wrapModelApiCall(async () => {
         // 构建请求数据
         const modelConfig = {
           custom_name: versionConfig.customName,
@@ -635,26 +613,16 @@ export const useSettingsStore = defineStore('settings', {
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
-        
-        // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
-        
-        return true;
-      } catch (error) {
-        this.setModelError('添加模型版本失败');
-        console.error('添加模型版本失败:', error);
-        throw error;
-      } finally {
-        this.setModelLoading(false);
-      }
+      }, {
+        errorMessage: '添加模型版本失败'
+      });
+      
+      return true;
     },
 
     // 编辑模型版本
     async updateModelVersion(modelName, versionName, versionConfig) {
-      try {
-        this.setModelLoading(true);
-        this.setModelError(null);
-        
+      await this._wrapModelApiCall(async () => {
         // 构建请求数据
         const requestData = {
           custom_name: versionConfig.customName,
@@ -669,51 +637,34 @@ export const useSettingsStore = defineStore('settings', {
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
-        
-        // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
-        
-        return true;
-      } catch (error) {
-        this.setModelError('更新模型版本失败');
-        console.error('更新模型版本失败:', error);
-        throw error;
-      } finally {
-        this.setModelLoading(false);
-      }
+      }, {
+        errorMessage: '更新模型版本失败'
+      });
+      
+      return true;
     },
 
     // 删除模型版本
     async deleteModelVersion(modelName, versionName) {
-      try {
-        this.setModelLoading(true);
-        this.setModelError(null);
-        
+      // 查找模型和版本信息用于通知
+      const model = this.models.find(m => m.name === modelName);
+      const version = model?.versions?.find(v => v.version_name === versionName);
+      const versionNameForNotification = version?.custom_name || versionName;
+      
+      await this._wrapModelApiCall(async () => {
         // 调用后端API删除模型版本
         await apiService.delete(`/models/${modelName}/versions/${versionName}`);
         
         // 重新加载模型列表以更新状态
         await this.loadModels();
-        
-        // 通过事件总线通知模型已更新
-        eventBus.emit('modelUpdated');
-        
-        // 查找模型和版本信息用于通知
-        const model = this.models.find(m => m.name === modelName);
-        const version = model?.versions?.find(v => v.version_name === versionName);
-        
-        // 显示成功通知
-        notifyUtils.showSuccess(`已删除${modelName}的版本 ${version?.custom_name || versionName}`);
-        
-        return true;
-      } catch (error) {
-        this.setModelError('删除模型版本失败');
-        console.error('删除模型版本失败:', error);
-        notifyUtils.showError('删除失败: ' + (error.message || '未知错误'));
-        throw error;
-      } finally {
-        this.setModelLoading(false);
-      }
+      }, {
+        errorMessage: '删除模型版本失败',
+        successMessage: `已删除${modelName}的版本 ${versionNameForNotification}`,
+        showSuccessNotification: true,
+        showErrorNotification: true
+      });
+      
+      return true;
     },
 
     // 重置模型设置为默认值
@@ -774,10 +725,7 @@ export const useSettingsStore = defineStore('settings', {
 
     // 加载嵌入模型列表
     async loadEmbeddingModels() {
-      try {
-        this.embeddingModelLoading = true;
-        this.embeddingModelError = null;
-        
+      await this._wrapEmbeddingModelApiCall(async () => {
         // 从后端加载嵌入模型列表
         const response = await apiService.embeddingModels.getModels();
         // 确保models是数组
@@ -785,12 +733,9 @@ export const useSettingsStore = defineStore('settings', {
         
         // 通知事件总线，嵌入模型列表已更新
         eventBus.emit('embeddingModelsLoaded', { models: this.embeddingModels });
-      } catch (error) {
-        this.embeddingModelError = '加载嵌入模型列表失败';
-        console.error('加载嵌入模型列表失败:', error);
-      } finally {
-        this.embeddingModelLoading = false;
-      }
+      }, {
+        errorMessage: '加载嵌入模型列表失败'
+      });
     },
 
     // 更新嵌入模型数据，添加图标URL和type属性
@@ -826,7 +771,7 @@ export const useSettingsStore = defineStore('settings', {
 
     // 保存嵌入模型配置
     async saveEmbeddingModelConfig(modelName, config) {
-      try {
+      await this._wrapEmbeddingModelApiCall(async () => {
         // 调用后端API保存配置
         await apiService.post(`/embedding-models/${modelName}`, {
           custom_name: config.customName,
@@ -839,48 +784,34 @@ export const useSettingsStore = defineStore('settings', {
         
         // 重新加载嵌入模型列表以更新状态
         await this.loadEmbeddingModels();
-        
-        // 通过事件总线通知嵌入模型已更新
-        eventBus.emit('embeddingModelUpdated');
-        
-        return true;
-      } catch (error) {
-        console.error('保存嵌入模型配置失败:', error);
-        throw error;
-      }
+      }, {
+        errorMessage: '保存嵌入模型配置失败'
+      });
+      
+      return true;
     },
 
     // 删除嵌入模型配置
     async deleteEmbeddingModelConfig(modelName) {
-      try {
-        this.embeddingModelLoading = true;
-        this.embeddingModelError = null;
-        
+      await this._wrapEmbeddingModelApiCall(async () => {
         // 调用后端API删除配置
         await apiService.delete(`/embedding-models/${modelName}`);
         
         // 重新加载嵌入模型列表以更新状态
         await this.loadEmbeddingModels();
-        
-        // 通过事件总线通知嵌入模型已更新
-        eventBus.emit('embeddingModelUpdated');
-        
-        return true;
-      } catch (error) {
-        this.embeddingModelError = '删除嵌入模型配置失败';
-        console.error('删除嵌入模型配置失败:', error);
-        throw error;
-      } finally {
-        this.embeddingModelLoading = false;
-      }
+      }, {
+        errorMessage: '删除嵌入模型配置失败',
+        successMessage: `已删除${modelName}的配置`,
+        showSuccessNotification: true,
+        showErrorNotification: true
+      });
+      
+      return true;
     },
 
     // 切换嵌入模型启用状态
     async toggleEmbeddingModelEnabled(modelName, enabled) {
-      try {
-        this.embeddingModelLoading = true;
-        this.embeddingModelError = null;
-        
+      await this._wrapEmbeddingModelApiCall(async () => {
         // 调用后端API更新启用状态
         await apiService.post(`/embedding-models/${modelName}/enabled`, {
           enabled: enabled
@@ -888,43 +819,29 @@ export const useSettingsStore = defineStore('settings', {
         
         // 重新加载嵌入模型列表以更新状态
         await this.loadEmbeddingModels();
-        
-        // 通过事件总线通知嵌入模型已更新
-        eventBus.emit('embeddingModelUpdated');
-        
-        return true;
-      } catch (error) {
-        this.embeddingModelError = '更新嵌入模型启用状态失败';
-        console.error('更新嵌入模型启用状态失败:', error);
-        throw error;
-      } finally {
-        this.embeddingModelLoading = false;
-      }
+      }, {
+        errorMessage: '更新嵌入模型启用状态失败'
+      });
+      
+      return true;
     },
 
     // 删除嵌入模型版本
     async deleteEmbeddingModelVersion(modelName, versionName) {
-      try {
-        this.embeddingModelLoading = true;
-        this.embeddingModelError = null;
-        
+      await this._wrapEmbeddingModelApiCall(async () => {
         // 调用后端API删除模型版本
         await apiService.delete(`/embedding-models/${modelName}/versions/${versionName}`);
         
         // 重新加载嵌入模型列表以更新状态
         await this.loadEmbeddingModels();
-        
-        // 通过事件总线通知嵌入模型已更新
-        eventBus.emit('embeddingModelUpdated');
-        
-        return true;
-      } catch (error) {
-        this.embeddingModelError = '删除嵌入模型版本失败';
-        console.error('删除嵌入模型版本失败:', error);
-        throw error;
-      } finally {
-        this.embeddingModelLoading = false;
-      }
+      }, {
+        errorMessage: '删除嵌入模型版本失败',
+        successMessage: `已删除${modelName}的版本 ${versionName}`,
+        showSuccessNotification: true,
+        showErrorNotification: true
+      });
+      
+      return true;
     },
   },
 });

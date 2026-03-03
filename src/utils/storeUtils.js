@@ -83,21 +83,52 @@ export const apiUtils = {
    * 包装 API 调用，处理错误和加载状态
    * @param {Object} state - store 状态对象
    * @param {Function} apiCall - API 调用函数
-   * @param {string} errorMessage - 错误消息前缀
+   * @param {Object} options - 配置选项
+   * @param {string} options.errorMessage - 错误消息
+   * @param {string} options.successMessage - 成功消息
+   * @param {string} options.loadingProperty - 加载状态属性名
+   * @param {string} options.errorProperty - 错误状态属性名
+   * @param {boolean} options.showErrorNotification - 是否显示错误通知
+   * @param {boolean} options.showSuccessNotification - 是否显示成功通知
    * @returns {Promise<any>} API 调用结果
    */
-  async wrapApiCall(state, apiCall, errorMessage = '操作失败') {
-    loadingUtils.startLoading(state);
+  async wrapApiCall(state, apiCall, options = {}) {
+    const {
+      errorMessage = '操作失败',
+      successMessage = '',
+      loadingProperty = 'loading',
+      errorProperty = 'error',
+      showErrorNotification = false,
+      showSuccessNotification = false
+    } = options;
+
+    // 设置加载状态
+    state[loadingProperty] = true;
+    // 清除错误
+    state[errorProperty] = null;
 
     try {
       const response = await apiCall();
-      loadingUtils.setLoadingFalse(state);
+      
+      // 显示成功通知
+      if (showSuccessNotification && successMessage) {
+        notificationUtils.showSuccess(successMessage);
+      }
+      
       return response;
     } catch (error) {
       console.error(`${errorMessage}:`, error);
-      errorUtils.setError(state, `${errorMessage}: ${error.message || '未知错误'}`);
-      loadingUtils.setLoadingFalse(state);
+      const errorText = `${errorMessage}: ${error.message || '未知错误'}`;
+      state[errorProperty] = errorText;
+      
+      // 显示错误通知
+      if (showErrorNotification) {
+        notificationUtils.showError(errorText);
+      }
+      
       throw error;
+    } finally {
+      state[loadingProperty] = false;
     }
   }
 };
