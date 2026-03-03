@@ -1027,28 +1027,30 @@ def load_data():
     """加载数据"""
     user_data_dir = ensure_data_dir()  # 先确保目录存在
     
+    # 检查数据库文件是否存在
+    db_path = os.path.join(user_data_dir, 'config', 'chato.db')
+    db_file_exists = os.path.exists(db_path)
+    
     try:
         # 初始化数据库
         init_db()
         
-        # 插入默认模型数据
-        insert_default_models()
-        
-        # 插入默认嵌入模型数据
-        insert_default_embedding_models()
-        
-        # 从SQLite加载对话数据（只加载id和title字段）
-        load_chats_from_db()
-        
-        # 从SQLite加载设置数据（包含系统设置）
-        load_settings_from_db()
+        # 如果数据库文件不存在（初次运行），插入默认数据
+        if not db_file_exists:
+            logger.info("首次运行，插入默认数据...")
+            # 插入默认模型数据
+            insert_default_models()
+            # 插入默认嵌入模型数据
+            insert_default_embedding_models()
+        else:
+            logger.info("数据库文件已存在，使用按需加载模式...")
         
         # 启动自动保存功能
         start_auto_save()
         
-        logger.info("必要数据加载成功")
+        logger.info("必要数据初始化成功")
     except Exception as e:
-        logger.error(f"加载数据时出错: {str(e)}")
+        logger.error(f"初始化数据时出错: {str(e)}") 
 
 def sync_cache_to_db(key: str, sync_func) -> bool:
     """同步缓存到数据库
@@ -1144,3 +1146,60 @@ def set_dirty_flag(data_type, is_dirty=True):
         is_dirty: 是否为脏数据，默认为True
     """
     cache_manager.set_dirty_flag(data_type, is_dirty)
+
+
+def get_data(data_type, key=None):
+    """
+    统一数据访问接口，实现按需加载
+    - 先检查内存缓存
+    - 如果缓存不存在或为空，从数据库加载并缓存
+    - 返回数据
+    
+    Args:
+        data_type: 数据类型，可选值: 'chats', 'models', 'embedding_models', 'settings'
+        key: 可选，数据键名，例如对话ID
+        
+    Returns:
+        数据对象，如果不存在返回None
+    """
+    # 检查内存缓存
+    if key:
+        if data_type == 'chats':
+            data = cache_manager.get_chat(key)
+        else:
+            # 对于其他数据类型，key参数暂不支持
+            data = None
+    else:
+        data = cache_manager.get(data_type)
+    
+    # 检查缓存是否存在且非空
+    cache_empty = False
+    if data_type == 'chats':
+        cache_empty = not data if key else len(data or {}) == 0
+    elif data_type in ['models', 'embedding_models', 'agent_sessions']:
+        cache_empty = len(data or []) == 0
+    elif data_type == 'settings':
+        cache_empty = len(data or {}) == 0
+    
+    # 如果缓存不存在或为空，从数据库加载
+    if cache_empty:
+        if data_type == 'chats':
+            if key:
+                # 加载单个对话
+                load_chats_from_db()
+                data = cache_manager.get_chat(key)
+            else:
+                # 加载所有对话
+                load_chats_from_db()
+                data = cache_manager.get('chats')
+        elif data_type == 'models':
+            load_models_from_db()
+            data = cache_manager.get('models')
+        elif data_type == 'embedding_models':
+            load_embedding_models_from_db()
+            data = cache_manager.get('embedding_models')
+        elif data_type == 'settings':
+            load_settings_from_db()
+            data = cache_manager.get('settings')
+    
+    return data

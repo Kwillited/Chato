@@ -1,5 +1,5 @@
 """数据服务层 - 封装内存数据管理和脏标记机制"""
-from app.core.data_manager import save_data, set_dirty_flag
+from app.core.data_manager import save_data, set_dirty_flag, get_data
 from app.core.cache import cache_manager
 from app.services.base_service import BaseService
 from app.repositories.folder_repository import FolderRepository
@@ -19,7 +19,7 @@ class DataService(BaseService):
     @staticmethod
     def get_chats():
         """获取所有对话"""
-        chats = cache_manager.get('chats') or {}
+        chats = get_data('chats') or {}
         # 对对话列表进行排序，先按置顶状态排序，再按updatedAt降序排列
         chat_list = list(chats.values())
         chat_list.sort(key=lambda x: (not x.get('pinned', False), x.get('updatedAt', '')) , reverse=True)
@@ -29,8 +29,8 @@ class DataService(BaseService):
     def get_chat_by_id(chat_id):
         """根据ID获取对话"""
         import json
-        # 先从缓存中查找
-        chat = cache_manager.get_chat(chat_id)
+        # 先使用get_data函数获取对话，会自动处理缓存未命中的情况
+        chat = get_data('chats', chat_id)
         
         # 如果缓存中没有，从数据库中查询
         if not chat:
@@ -224,12 +224,12 @@ class DataService(BaseService):
     @staticmethod
     def get_models():
         """获取所有模型"""
-        return cache_manager.get('models')
+        return get_data('models')
     
     @staticmethod
     def get_model_by_name(model_name):
         """根据名称获取模型"""
-        models = cache_manager.get('models') or []
+        models = get_data('models') or []
         return next((m for m in models if m['name'] == model_name), None)
     
     @staticmethod
@@ -245,7 +245,7 @@ class DataService(BaseService):
     @staticmethod
     def get_settings():
         """获取所有设置"""
-        return cache_manager.get('settings')
+        return get_data('settings')
     
     @staticmethod
     def update_setting(key, value):

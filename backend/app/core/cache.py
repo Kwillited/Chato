@@ -111,43 +111,6 @@ class CacheManager:
             print(f"更新缓存数据失败: {e}")
             return None
     
-    def clear(self, key: Optional[str] = None) -> bool:
-        """清除缓存
-        
-        Args:
-            key: 缓存键名，如果为None则清除所有缓存
-            
-        Returns:
-            操作是否成功
-        """
-        try:
-            with self._lock:
-                if key:
-                    if key in self._cache:
-                        if key in ['chats', 'models', 'embedding_models', 'agent_sessions']:
-                            self._cache[key] = []
-                        elif key == 'settings':
-                            self._cache[key] = {}
-                        else:
-                            self._cache[key] = None
-                        self._dirty_flags[key] = True
-                else:
-                    # 重置所有缓存
-                    self._cache = {
-                        'chats': [],
-                        'models': [],
-                        'embedding_models': [],
-                        'settings': {},
-                        'agent_sessions': []
-                    }
-                    # 重置所有脏标记
-                    for k in self._dirty_flags:
-                        self._dirty_flags[k] = True
-            return True
-        except Exception as e:
-            print(f"清除缓存失败: {e}")
-            return False
-    
     def exists(self, key: str) -> bool:
         """检查缓存是否存在
         

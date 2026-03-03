@@ -1,5 +1,4 @@
 """Chato应用入口"""
-import os
 from contextlib import asynccontextmanager
 from app import create_app
 from app.core.config import ConfigManager
@@ -16,15 +15,8 @@ update_log_config(config_manager)
 
 async def setup():
     """应用初始化"""
-    # 向量系统现在采用按需初始化，不再在启动时验证配置
-    # 用户可在使用前通过设置界面配置向量系统参数
     
-    # 初始化数据库，更新表结构
-    from app.core.database import init_alembic_db
-    init_alembic_db()
-    logger.info("数据库初始化完成")
-    
-    # 加载初始数据
+    # 加载初始数据（会自动初始化数据库）
     load_data()
     logger.info("应用数据加载完成")
 
@@ -75,5 +67,5 @@ if __name__ == '__main__':
         'main:app',
         host=host,
         port=port,
-        reload=debug
+        reload=False
     )
