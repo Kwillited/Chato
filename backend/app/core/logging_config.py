@@ -50,11 +50,11 @@ class LogConfig:
         """
         # 完善日志格式，包含更多上下文信息
         log_format = (
-            '%(asctime)s - %(name)s - %(levelname)-8s - '
+            '[%(asctime)s] %(name)s - %(levelname)-8s - '
             '[%(process)d] %(filename)s:%(lineno)d - '
             '%(funcName)s() - %(message)s'
         )
-        return logging.Formatter(log_format)
+        return logging.Formatter(log_format, datefmt='%Y-%m-%d %H:%M:%S')
     
     def _setup_handlers(self) -> None:
         """设置日志处理器"""
