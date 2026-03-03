@@ -3,7 +3,9 @@
   
 
     <!-- 搜索框 -->
-    <SearchBar v-model="searchQuery" placeholder="搜索服务器..." />
+    <div class="px-2 py-1">
+      <SearchBar v-model="searchQuery" placeholder="搜索服务器..." />
+    </div>
 
     <div class="overflow-y-auto overflow-x-hidden flex-grow scrollbar-thin">
       <div class="p-2 space-y-4">
