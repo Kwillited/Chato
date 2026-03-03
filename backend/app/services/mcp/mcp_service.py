@@ -76,3 +76,50 @@ class MCPService(BaseService):
                 }
                 servers.append(server_info)
             return servers
+    
+    def get_mcp_config(self):
+        """获取MCP配置文件"""
+        import os
+        import json
+        
+        # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
+        
+        try:
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                return config
+            else:
+                # 返回默认配置
+                return self.mcp_adapter_service.get_default_config()
+        except Exception as e:
+            self.logger.error(f"获取MCP配置失败: {str(e)}")
+            raise Exception(f"获取MCP配置失败: {str(e)}")
+    
+    def save_mcp_config(self, config):
+        """保存MCP配置文件"""
+        import os
+        import json
+        
+        # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
+        config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
+        
+        try:
+            # 确保配置目录存在
+            config_dir = os.path.dirname(config_path)
+            os.makedirs(config_dir, exist_ok=True)
+            
+            # 保存配置文件
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+            
+            self.logger.info(f"MCP配置已保存到文件: {config_path}")
+            
+            return {
+                'message': 'MCP配置已保存',
+                'path': config_path
+            }
+        except Exception as e:
+            self.logger.error(f"保存MCP配置失败: {str(e)}")
+            raise Exception(f"保存MCP配置失败: {str(e)}")
