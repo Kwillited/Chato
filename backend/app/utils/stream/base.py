@@ -100,7 +100,16 @@ class StreamSystem:
         Yields:
             流式响应块
         """
-        async for chunk in chat_service.chat_with_model_stream(model_name, model_messages, version_name, model_params, use_agent, model):
+        from app.services.llm.llm_service import LLMService
+        version_config = chat_service.get_version_config(model, version_name)
+        async for chunk in await LLMService.generate_response(
+            messages=model_messages,
+            model_name=model_name,
+            model_config=model,
+            version_config=version_config,
+            model_params=model_params,
+            use_agent=use_agent
+        ):
             yield chunk
     
     @staticmethod

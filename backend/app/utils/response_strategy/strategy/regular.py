@@ -1,7 +1,7 @@
 """普通响应策略"""
 import json
 from app.utils.response_strategy.strategy.base import BaseResponseStrategyImpl
-from app.utils.response_message import ResponseMessageSystem
+from app.utils.message import ResponseMessageSystem
 
 
 class RegularResponseStrategy(BaseResponseStrategyImpl):
@@ -24,9 +24,16 @@ class RegularResponseStrategy(BaseResponseStrategyImpl):
 
         chat_service.log_info("使用普通对话模式")
         
-        from app.llm.managers.model_manager import ModelManager
-        # 即使是非流式调用，在异步链中也建议封装为异步执行
-        response = ModelManager.chat(parsed_model_name, model, version_config, messages, model_params)
+        from app.services.llm.llm_service import LLMService
+        # 使用统一的LLMService处理非流式响应
+        response = await LLMService.generate_response(
+            messages=messages,
+            model_name=parsed_model_name,
+            model_config=model,
+            version_config=version_config,
+            model_params=model_params,
+            use_agent=use_agent
+        )
     
         if isinstance(response, dict):
             ai_reply = response['content']

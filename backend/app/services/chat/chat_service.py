@@ -23,18 +23,6 @@ class ChatService(BaseService):
         """获取当前时间戳（ISO格式）"""
         return datetime.now().isoformat()
     
-    def log_operation(self, operation, status, details=None):
-        """记录操作日志"""
-        log_message = f"{operation} {status}"
-        if details:
-            log_message += f": {details}"
-        if status == "成功":
-            LoggingUtils.log_info(log_message)
-        elif status == "失败":
-            LoggingUtils.log_error(log_message)
-        else:
-            LoggingUtils.log_debug(log_message)
-    
     @handle_errors(default_return=[])
     def get_chats(self):
         """获取所有对话"""
@@ -77,145 +65,6 @@ class ChatService(BaseService):
         DataService.set_dirty_flag('chats', True)
         
         return True
-    
-    def get_chat_context(self, chat_id, max_messages=10, selected_message_ids=None):
-        """
-        获取对话上下文历史
-        
-        参数:
-            chat_id: 对话ID
-            max_messages: 最大获取的消息数量，默认10条
-            selected_message_ids: 用户选择的消息ID列表，None表示使用默认逻辑
-            
-        返回:
-            格式化的上下文消息列表，或者None（如果对话不存在）
-        """
-        # 查找匹配ID的对话
-        chat = self.get_chat(chat_id)
-        if not chat:
-            return None
-        
-        # 获取对话历史消息
-        messages = chat.get('messages', [])
-        
-        # 如果提供了选中的消息ID列表，只包含这些消息
-        if selected_message_ids:
-            # 过滤出用户选择的消息
-            selected_messages = [msg for msg in messages if msg.get('id') in selected_message_ids]
-            # 保持消息的原始顺序
-            selected_messages.sort(key=lambda x: messages.index(x))
-            messages = selected_messages
-        else:
-            # 如果消息数量超过max_messages，只保留最近的max_messages条
-            if len(messages) > max_messages:
-                messages = messages[-max_messages:]
-        
-        # 转换为适合模型输入的格式
-        from app.utils.message import MessageSystem
-        formatted_messages = []
-        for msg in messages:
-            # 确保消息有必要的字段
-            if 'role' in msg and 'content' in msg:
-                # 原始内容
-                original_content = msg['content']
-                # 直接使用原始内容，因为现在思考内容已经通过reasoning_content字段处理
-                content = original_content.strip()
-                
-                formatted_messages.append({
-                    'role': msg['role'],
-                    'content': content
-                })
-        
-        return formatted_messages
-
-    def generate_rag_response(self, query: str, chat_history: list, k=5):
-        """生成增强响应
-        
-        Args:
-            query (str): 用户查询
-            chat_history (list): 聊天历史
-            k (int): 返回结果数量
-            
-        Returns:
-            dict: 生成增强响应结果
-        """
-        from app.core.logging_config import logger
-        try:
-            logger.debug(f"开始生成增强响应: 查询='{query[:50]}{'...' if len(query) > 50 else ''}'")
-            # 1. 调用向量服务获取相关文档
-            from app.services.vector.vector_service import VectorService
-            vector_service = VectorService()
-            context_docs, vector_results = vector_service.perform_rag_search(query, k=k)
-            
-            if not vector_results['success']:
-                self.log_error(f"向量检索失败: {vector_results['message']}")
-                return {
-                    'success': False,
-                    'message': '向量检索失败',
-                    'response': '抱歉，我无法获取相关信息。'
-                }
-            
-            # 2. 使用统一的LLMService处理RAG响应生成
-            from app.services.llm.llm_service import LLMService
-            
-            # 获取默认模型配置
-            from app.core.config import config_manager
-            default_model = config_manager.get('default_model', 'Ollama')
-            from app.services.data_service import DataService
-            model_config = DataService.get_model_by_name(default_model)
-            
-            if not model_config:
-                self.log_error("未找到默认模型配置")
-                return {
-                    'success': False,
-                    'message': '未找到默认模型配置',
-                    'response': '抱歉，我无法生成响应。'
-                }
-            
-            # 获取版本配置
-            version_config = self.get_version_config(model_config, '')
-            
-            # 构建RAG消息
-            from app.utils.message_builder import MessageBuilder
-            messages = MessageBuilder.build_rag_messages(
-                query=query,
-                context_docs=context_docs,
-                chat_history=chat_history
-            )
-            
-            # 调用LLMService生成响应
-            response = LLMService.generate_response(
-                messages=messages,
-                model_name=default_model,
-                model_config=model_config,
-                version_config=version_config,
-                model_params={'stream': False},
-                use_agent=False
-            )
-            
-            # 处理响应
-            answer = None
-            if hasattr(response, 'content'):
-                answer = response.content
-            elif isinstance(response, dict) and 'content' in response:
-                answer = response['content']
-            else:
-                answer = str(response)
-            
-            logger.debug("生成增强响应成功")
-            return {
-                'success': True,
-                'message': '生成增强响应成功',
-                'response': answer,
-                'context': context_docs
-            }
-        except Exception as e:
-            self.log_error(f"生成增强响应失败: {str(e)}")
-            return {
-                'success': False,
-                'message': f'生成增强响应失败: {str(e)}',
-                'response': '抱歉，我无法生成响应。'
-            }
     
     def update_chat_and_save(self, chat, message_text, user_message, ai_message, now):
         """更新对话并保存"""
@@ -262,57 +111,8 @@ class ChatService(BaseService):
         cache_manager.set_chat(chat_id, chat)
         logger.info(f"更新缓存并标记对话为脏: chat_id={chat_id}")
         
-        # 检查chat对象是否在db['chats']中
-        chats = DataService.get_chats()
-        chat_in_db = any(c['id'] == chat_id for c in chats)
-        logger.info(f"对话是否在内存数据库中: {chat_in_db}, 内存数据库中对话数量: {len(chats)}")
-        
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
         logger.info(f"对话更新成功，消息已保存: chat_id={chat_id}, 消息总数: {len(chat.get('messages', []))}")
-
-
-    
-    async def chat_with_model_stream(self, model_name, messages, parsed_version_name, model_params, use_agent=False, model=None):
-            """
-            异步流式模型回复函数
-            """
-            # 1. 验证模型 (如果传入了 model，则直接使用)
-            if not model:
-                model, error_response, _ = ModelUtils.validate_model(model_name, DataService)
-                if error_response:
-                    yield f'data: {json.dumps(error_response, ensure_ascii=False)}\n\n'
-                    return
-            
-            # 2. 获取版本配置
-            version_config = self.get_version_config(model, parsed_version_name)
-            
-            try:
-                from app.services.llm.llm_service import LLMService
-                
-                # 使用统一的LLMService处理所有LLM调用
-                stream = await LLMService.generate_response(
-                    messages=messages,
-                    model_name=model_name,
-                    model_config=model,
-                    version_config=version_config,
-                    model_params=model_params,
-                    use_agent=use_agent
-                )
-
-                # 开始接收LLM流式响应
-                # 如果 stream 是同步迭代器
-                if hasattr(stream, '__next__'):
-                    for chunk in stream:
-                        yield chunk
-                # 如果 stream 是异步迭代器 (推荐)
-                else:
-                    async for chunk in stream:
-                        yield chunk
-
-            except Exception as e:
-                self.log_error(f'调用模型失败: {str(e)}')
-                error_response = json.dumps({"error": str(e)}, ensure_ascii=False)
-                yield f'data: {error_response}\n\n'
 
     def process_uploaded_files(self, files):
         """处理上传的文件，保存到临时目录并提取内容
