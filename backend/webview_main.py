@@ -2,6 +2,7 @@
 import webview
 import threading
 import screeninfo
+import datetime
 
 # 从配置中获取应用设置（使用默认值）
 PORT = 5000
@@ -52,5 +53,6 @@ if __name__ == '__main__':
     backend_thread.start()
     
     # 启动WebView
-    print("启动后端服务和WebView...")
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{current_time}] 启动后端服务和WebView...")
     start_webview()

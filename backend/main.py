@@ -64,7 +64,7 @@ if __name__ == '__main__':
     # 导入uvicorn并启动FastAPI应用
     import uvicorn
     uvicorn.run(
-        'main:app',
+        app,
         host=host,
         port=port,
         reload=False
