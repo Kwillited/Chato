@@ -1,7 +1,7 @@
 import json
 from typing import Dict, Any, List, Optional
 from langchain_core.messages import ToolMessage
-from app.utils.mcp.mcp_adapter import mcp_adapter
+from app.services.mcp.mcp_service import MCPService
 from app.core.logging_config import logger
 
 
@@ -22,8 +22,9 @@ class ToolManager:
         if self.tools_map:
             return
         
-        await mcp_adapter.initialize(mcp_config)
-        tools = mcp_adapter.get_tools()
+        mcp_service = MCPService()
+        await mcp_service.initialize_mcp(mcp_config)
+        tools = mcp_service.mcp_client_manager.get_tools()
         
         # 构建工具映射
         self.tools_map = {t.name: t for t in tools} if tools else {}

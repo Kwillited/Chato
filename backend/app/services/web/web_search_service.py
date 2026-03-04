@@ -20,12 +20,13 @@ class WebSearchService(BaseService):
             搜索结果
         """
         try:
-            from app.utils.mcp.mcp_adapter import mcp_adapter
-            # 初始化MCP适配器
-            await mcp_adapter.initialize()
-            if mcp_adapter.is_available():
-                # 获取工具列表
-                tools = mcp_adapter.get_tools()
+            from app.services.mcp.mcp_service import MCPService
+            # 初始化 MCP 服务
+            mcp_service = MCPService()
+            await mcp_service.initialize_mcp()
+            if mcp_service.mcp_client_manager.is_available():
+                # 获取 MCP 工具
+                tools = mcp_service.mcp_client_manager.get_tools()
                 # 查找搜索工具
                 search_tool = None
                 for tool in tools:

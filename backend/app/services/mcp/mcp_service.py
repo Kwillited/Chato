@@ -1,25 +1,68 @@
 """MCP工具相关业务逻辑服务"""
+from typing import Dict, List, Optional, Any
+import os
+import json
 from app.services.settings.setting_service import SettingService
 from app.services.base_service import BaseService
-from app.services.mcp.mcp_adapter_service import MCPAdapterService
+from app.services.mcp.mcp_client_manager import MCPClientManager
 
 
 class MCPService(BaseService):
     """MCP服务类，封装所有MCP相关的业务逻辑"""
 
-    def __init__(self, setting_service=None, mcp_adapter_service=None):
+    def __init__(self, setting_service=None, mcp_client_manager=None):
         """初始化MCP服务
         
         Args:
             setting_service: 设置服务实例，用于依赖注入
-            mcp_adapter_service: MCP适配器服务实例，用于依赖注入
+            mcp_client_manager: MCP客户端管理器实例，用于依赖注入
         """
         self.setting_service = setting_service or SettingService()
-        self.mcp_adapter_service = mcp_adapter_service or MCPAdapterService()
+        self.mcp_client_manager = mcp_client_manager or MCPClientManager()
+
+    def _get_default_config(self) -> Dict:
+        """获取默认 MCP 配置"""
+        # 自动检测应用根目录
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+        
+        return {
+            "filesystem": {
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["-y", "@modelcontextprotocol/server-filesystem", base_path]
+            },
+            "freesearch": {
+                "transport": "stdio",
+                "command": "npx",
+                "args": ["freesearch-mcpserver@latest"]
+            }
+        }
+
+    def get_default_config(self) -> Dict:
+        """获取默认 MCP 配置
+        
+        Returns:
+            Dict: 默认配置
+        """
+        return self._get_default_config()
+
+    async def initialize_mcp(self, mcp_config: Optional[Dict] = None) -> bool:
+        """初始化 MCP 服务
+        
+        Args:
+            mcp_config: MCP 配置，如果为 None 则从配置文件读取
+            
+        Returns:
+            bool: 是否初始化成功
+        """
+        if mcp_config is None:
+            mcp_config = self.get_mcp_config()
+        
+        return await self.mcp_client_manager.initialize(mcp_config)
 
     def get_mcp_tools(self):
         """获取MCP工具列表"""
-        tools = self.mcp_adapter_service.get_tools()
+        tools = self.mcp_client_manager.get_tools()
         # 转换工具格式，提取必要的信息
         tool_list = []
         for i, tool in enumerate(tools):
@@ -38,19 +81,9 @@ class MCPService(BaseService):
     def get_mcp_servers(self):
         """获取MCP服务器列表"""
         # 从配置文件中获取服务器列表
-        import os
-        import json
-        
-        # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
-        config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
         
         try:
-            if os.path.exists(config_path):
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    config = json.load(f)
-            else:
-                # 如果配置文件不存在，使用默认配置
-                config = self.mcp_adapter_service.get_default_config()
+            config = self.get_mcp_config()
             
             servers = []
             for i, (server_name, server_config) in enumerate(config.items()):
@@ -65,7 +98,7 @@ class MCPService(BaseService):
         except Exception as e:
             self.logger.error(f"获取MCP服务器列表失败: {e}")
             # 出错时使用默认配置
-            default_config = self.mcp_adapter_service.get_default_config()
+            default_config = self._get_default_config()
             servers = []
             for i, (server_name, server_config) in enumerate(default_config.items()):
                 server_info = {
@@ -79,9 +112,6 @@ class MCPService(BaseService):
     
     def get_mcp_config(self):
         """获取MCP配置文件"""
-        import os
-        import json
-        
         # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
         config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
         
@@ -92,16 +122,13 @@ class MCPService(BaseService):
                 return config
             else:
                 # 返回默认配置
-                return self.mcp_adapter_service.get_default_config()
+                return self._get_default_config()
         except Exception as e:
             self.logger.error(f"获取MCP配置失败: {str(e)}")
             raise Exception(f"获取MCP配置失败: {str(e)}")
     
     def save_mcp_config(self, config):
         """保存MCP配置文件"""
-        import os
-        import json
-        
         # 计算配置文件路径: H:\ChaTo\backend\config\mcp_config.json
         config_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'config', 'mcp_config.json')
         
