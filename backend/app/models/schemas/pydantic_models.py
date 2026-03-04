@@ -1,7 +1,6 @@
 """Pydantic模型定义"""
 from pydantic import BaseModel, Field
-from typing import List, Optional, Any
-from datetime import datetime
+from typing import List, Optional
 
 
 class MessageBase(BaseModel):

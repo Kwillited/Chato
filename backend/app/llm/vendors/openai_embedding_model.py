@@ -1,6 +1,6 @@
 """OpenAI 嵌入模型实现"""
 from app.llm.base.base_embedding_model import BaseEmbeddingModel
-from typing import List, Dict, Any
+from typing import List
 
 
 class OpenAIEmbeddingModel(BaseEmbeddingModel):

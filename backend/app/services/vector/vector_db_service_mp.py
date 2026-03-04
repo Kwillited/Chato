@@ -1,11 +1,9 @@
 """进程隔离的向量数据库服务 - 使用 multiprocessing 模块实现进程隔离，解决文件删除问题"""
-import os
 import threading
 import multiprocessing
-from typing import List, Dict, Any, Optional, Tuple, Callable
+from typing import List, Dict, Any, Optional, Tuple
 from app.core.config import config_manager
 from app.services.base_service import BaseService
-from app.repositories.vector_repository import VectorRepository
 from app.utils.error_handler import handle_vector_errors
 
 class VectorDBProcess(multiprocessing.Process):

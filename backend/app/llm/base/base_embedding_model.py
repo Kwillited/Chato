@@ -1,6 +1,6 @@
 """基础嵌入模型类"""
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List
 
 
 class BaseEmbeddingModel(ABC):

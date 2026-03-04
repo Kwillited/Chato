@@ -2,7 +2,6 @@
 import logging
 import os
 from logging.handlers import RotatingFileHandler
-from typing import Dict, Any, Optional
 
 class LogConfig:
     """日志配置类，封装日志相关的配置和操作"""

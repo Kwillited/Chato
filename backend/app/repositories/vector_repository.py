@@ -1,5 +1,5 @@
 """向量数据库Repository类 - 封装向量数据库的所有操作"""
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 from app.repositories.base_repository import BaseRepository
 from langchain_core.vectorstores import VectorStore
 

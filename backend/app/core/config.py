@@ -1,6 +1,5 @@
 """应用配置管理"""
 import os
-import json
 from platformdirs import PlatformDirs
 
 # 初始化平台目录管理

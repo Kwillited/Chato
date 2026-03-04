@@ -1,6 +1,6 @@
 # app/llm/managers/model_manager.py
 from app.llm.base.base_model import BaseModel
-from typing import Dict, Any, Generator, List, Optional
+from typing import Dict, Any, List
 
 class ModelManager:
     _model_drivers = None

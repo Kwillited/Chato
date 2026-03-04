@@ -1,7 +1,7 @@
 """嵌入模型相关API路由"""
-from fastapi import APIRouter, Depends, Body, Path, Query
+from fastapi import APIRouter, Depends, Body, Path
 from sqlalchemy.orm import Session
-from typing import List, Dict, Any
+from typing import Dict, Any
 from app.dependencies import get_db
 from app.services.model.embedding_model_service import EmbeddingModelService
 from app.utils.error_handler import handle_api_errors

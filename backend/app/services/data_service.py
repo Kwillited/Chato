@@ -1,5 +1,5 @@
 """数据服务层 - 封装内存数据管理和脏标记机制"""
-from app.core.data_manager import save_data, set_dirty_flag, get_data
+from app.core.data_manager import save_data, get_data
 from app.core.cache import cache_manager
 from app.services.base_service import BaseService
 from app.repositories.folder_repository import FolderRepository

@@ -1,7 +1,7 @@
 """统一错误处理模块"""
 import functools
 import traceback
-from typing import Callable, Any, Optional, Tuple
+from typing import Callable, Any, Tuple
 from app.core.logging_config import logger
 from app.utils.logging_utils import LoggingUtils
 

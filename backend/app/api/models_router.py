@@ -1,7 +1,5 @@
 """模型相关API路由"""
 from fastapi import APIRouter, Body, Path, HTTPException, Response, Depends
-from fastapi.responses import FileResponse
-import os
 
 # 导入模型服务层
 from app.services.model.model_service import ModelService

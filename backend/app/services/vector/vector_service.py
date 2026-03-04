@@ -1,7 +1,6 @@
 """向量服务模块 - 封装文档向量化、向量存储和检索功能"""
 import threading
 from app.services.base_service import BaseService
-from app.repositories.vector_repository import VectorRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.services.vector.vector_store_service import VectorStoreService
 

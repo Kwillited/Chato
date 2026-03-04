@@ -1,9 +1,7 @@
 """核心消息处理模块"""
-from typing import List, Dict, Any
+from typing import List, Dict
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage
-import json
 import uuid
-import re
 from app.core.logging_config import logger
 
 

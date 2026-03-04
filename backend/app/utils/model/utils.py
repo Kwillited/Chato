@@ -1,5 +1,5 @@
 """模型工具类，提供统一的模型管理功能"""
-from app.utils.logging_utils import LoggingUtils
+
 
 class ModelUtils:
     """模型工具类，封装所有模型相关方法"""

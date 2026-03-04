@@ -1,6 +1,6 @@
 """回调管理器 - 用于RAG系统的监控和调试"""
 import logging
-from typing import Callable, Dict, Any, List
+from typing import Callable, Dict, List
 
 logger = logging.getLogger(__name__)
 

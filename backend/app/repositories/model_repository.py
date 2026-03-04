@@ -1,5 +1,4 @@
 """模型数据访问类"""
-from sqlalchemy import or_
 from app.repositories.base_repository import BaseRepository
 from app.models.database.models import Model, ModelVersion
 

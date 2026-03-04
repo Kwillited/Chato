@@ -2,7 +2,7 @@
 import time
 import threading
 from typing import List, Dict, Any, Optional, Tuple
-from app.core.config import config_manager
+
 from app.services.base_service import BaseService
 from app.services.vector.vector_db_service_mp import VectorDBServiceMP
 

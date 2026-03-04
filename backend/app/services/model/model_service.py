@@ -5,8 +5,6 @@ from app.services.data_service import DataService
 from app.repositories.model_repository import ModelRepository
 from app.services.base_service import BaseService
 from app.utils.data import ModelConverter
-from app.utils.model import ModelUtils
-from app.utils.logging_utils import LoggingUtils
 
 
 class ModelService(BaseService):

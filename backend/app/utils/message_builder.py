@@ -1,5 +1,5 @@
 """消息构建模块，负责构建完整的消息列表"""
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Any
 from app.utils.prompt_manager import prompt_manager
 
 

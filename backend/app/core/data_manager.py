@@ -4,12 +4,9 @@ import os
 import threading
 import time
 from datetime import datetime
-from typing import Dict, Any, Optional
-
 from app.core.config import config_manager
 from app.core.cache import cache_manager
 from app.core.database import get_db, init_alembic_db
-from app.utils.data import build_message_list, build_chat_dict
 from app.core.logging_config import logger
 
 # 自动保存定时器

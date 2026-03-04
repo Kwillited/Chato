@@ -1,5 +1,5 @@
 """统一的LLM调用服务"""
-from typing import List, Dict, Any, AsyncIterator, Optional
+from typing import List, Dict, Any
 
 
 class LLMService:

@@ -1,5 +1,4 @@
 """服务基类，提供公共功能"""
-from functools import wraps
 
 # 使用提取的工具类
 from app.utils.logging_utils import LoggingUtils
