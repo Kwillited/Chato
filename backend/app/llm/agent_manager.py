@@ -14,12 +14,12 @@ from app.llm.agent.tool_manager import ToolManager
 from app.core.logging_config import logger
 
 
-class AgentWrapper:
-    """智能体包装器"""
+class AgentManager:
+    """智能体管理器"""
     
     def __init__(self, base_model: BaseModel):
         """
-        初始化智能体包装器
+        初始化智能体管理器
         
         Args:
             base_model: 基础模型实例
@@ -81,24 +81,13 @@ class AgentWrapper:
         
         return builder.compile()
     
-    async def chat_stream(
-        self, 
-        messages: List[Dict[str, str]], 
-        model_params: Dict[str, Any]
-    ) -> AsyncIterator[Dict[str, Any]]:
+    def _prepare_agent(self, model_params: Dict[str, Any]):
         """
-        智能体流式聊天接口
-        
-        Args:
-            messages: 消息列表
-            model_params: 模型参数字典
-        
-        Yields:
-            流式输出的事件
-        """
-        if not self.is_initialized:
-            await self.initialize()
+        准备智能体执行环境
 
+        Args:
+            model_params: 模型参数字典
+        """
         # 1. 集中处理参数（调用基础模型的钩子）
         call_kwargs = self.base_model._prepare_call_kwargs(model_params)
         
@@ -109,6 +98,27 @@ class AgentWrapper:
         # 3. 重新初始化智能体节点和图
         self.agent_nodes = AgentNodes(self.llm_with_tools, self.tool_manager)
         self.graph = self._build_graph()
+
+    async def chat_stream(
+        self, 
+        messages: List[Dict[str, str]], 
+        model_params: Dict[str, Any]
+    ) -> AsyncIterator[Dict[str, Any]]:
+        """
+        智能体流式聊天接口
+
+        Args:
+            messages: 消息列表
+            model_params: 模型参数字典
+
+        Yields:
+            流式输出的事件
+        """
+        if not self.is_initialized:
+            await self.initialize()
+
+        # 准备智能体执行环境
+        self._prepare_agent(model_params)
 
         prepared_messages = self._prepare_messages(messages)
         logger.debug(f"[Agent] 初始消息: {[msg.content[:100] + '...' if len(msg.content) > 100 else msg.content for msg in prepared_messages]}")
@@ -195,30 +205,30 @@ class AgentWrapper:
         Returns:
             格式化后的消息列表
         """
-        formatted = []
-        for msg in messages:
-            role, content = msg.get('role', 'user'), msg.get('content', '')
-            if role == 'user':
-                formatted.append(HumanMessage(content=content))
-            elif role == 'assistant':
-                formatted.append(AIMessage(content=content))
-            elif role == 'system':
-                # 动态替换 {tools} 占位符
-                if '{tools}' in content:
-                    tools = self.tool_manager.get_tools()
-                    if tools:
-                        tool_list = []
-                        for tool in tools:
-                            try:
-                                tool_name = getattr(tool, 'name', str(tool))
-                                tool_list.append(f"- {tool_name}")
-                            except Exception:
-                                pass
-                        tools_str = "\n".join(tool_list) if tool_list else "- 无可用工具"
-                        content = content.replace('{tools}', tools_str)
-                    else:
-                        content = content.replace('{tools}', "- 无可用工具")
-                formatted.append(SystemMessage(content=content))
+        from app.utils.message import MessageSystem
+        
+        # 使用消息系统处理基本的格式转换
+        formatted = MessageSystem.convert_to_langchain_messages(messages)
+        
+        # 处理系统消息中的 {tools} 占位符
+        for i, msg in enumerate(formatted):
+            if isinstance(msg, SystemMessage) and '{tools}' in msg.content:
+                tools = self.tool_manager.get_tools()
+                if tools:
+                    tool_list = []
+                    for tool in tools:
+                        try:
+                            tool_name = getattr(tool, 'name', str(tool))
+                            tool_list.append(f"- {tool_name}")
+                        except Exception:
+                            pass
+                    tools_str = "\n".join(tool_list) if tool_list else "- 无可用工具"
+                    new_content = msg.content.replace('{tools}', tools_str)
+                    formatted[i] = SystemMessage(content=new_content)
+                else:
+                    new_content = msg.content.replace('{tools}', "- 无可用工具")
+                    formatted[i] = SystemMessage(content=new_content)
+        
         return formatted
     
     async def chat(
@@ -228,27 +238,19 @@ class AgentWrapper:
     ) -> Dict[str, Any]:
         """
         智能体非流式聊天接口
-        
+
         Args:
             messages: 消息列表
             model_params: 模型参数字典
-        
+
         Returns:
             包含content和reasoning_content的字典
         """
         if not self.is_initialized:
             await self.initialize()
 
-        # 1. 集中处理参数（调用基础模型的钩子）
-        call_kwargs = self.base_model._prepare_call_kwargs(model_params)
-        
-        # 2. 绑定工具时传递处理后的参数
-        tools = self.tool_manager.get_tools()
-        self.llm_with_tools = self.llm.bind_tools(tools, **call_kwargs) if tools else self.llm
-        
-        # 3. 重新初始化智能体节点和图
-        self.agent_nodes = AgentNodes(self.llm_with_tools, self.tool_manager)
-        self.graph = self._build_graph()
+        # 准备智能体执行环境
+        self._prepare_agent(model_params)
 
         prepared_messages = self._prepare_messages(messages)
         

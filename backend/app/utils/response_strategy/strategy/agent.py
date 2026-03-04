@@ -151,7 +151,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         agent_session_id = AgentSystem.create_agent_session(chat_service, chat['id'])
         
         # 调用智能体
-        from app.llm.agent_wrapper import AgentWrapper
+        from app.llm.agent_manager import AgentManager
         from app.llm.managers.model_manager import ModelManager
         
         # 获取基础模型驱动
@@ -159,7 +159,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         base_driver = ModelManager.get_model_driver(parsed_version_name, model, version_config)
         
         # 创建并初始化智能体
-        agent_wrapper = AgentWrapper(base_driver)
+        agent_wrapper = AgentManager(base_driver)
         await agent_wrapper.initialize()
         
         # 使用工具类创建智能体状态

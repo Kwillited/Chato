@@ -10,7 +10,6 @@ class ToolManager:
     
     def __init__(self):
         """初始化工具管理器"""
-        self.tools_cache = None
         self.tools_map = {}
     
     async def initialize(self, mcp_config: Optional[Dict] = None):
@@ -20,12 +19,11 @@ class ToolManager:
         Args:
             mcp_config: MCP 配置
         """
-        if self.tools_cache:
+        if self.tools_map:
             return
         
         await mcp_adapter.initialize(mcp_config)
         tools = mcp_adapter.get_tools()
-        self.tools_cache = tools
         
         # 构建工具映射
         self.tools_map = {t.name: t for t in tools} if tools else {}
@@ -37,7 +35,7 @@ class ToolManager:
         Returns:
             工具列表
         """
-        return self.tools_cache or []
+        return list(self.tools_map.values())
     
     def get_tool_by_name(self, tool_name: str) -> Optional[Any]:
         """
@@ -99,5 +97,4 @@ class ToolManager:
     
     def clear_cache(self):
         """清空工具缓存"""
-        self.tools_cache = None
         self.tools_map = {}

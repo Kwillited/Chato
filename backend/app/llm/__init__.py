@@ -1,7 +1,7 @@
 """LLM 相关模块"""
 from app.llm.base.base_model import BaseModel
 from app.llm.managers.model_manager import ModelManager
-from app.llm.agent_wrapper import AgentWrapper
+from app.llm.agent_manager import AgentManager
 from app.llm.vendors import (
     AnthropicModel,
     GitHubModel,
@@ -13,7 +13,7 @@ from app.llm.vendors import (
 __all__ = [
     'BaseModel',
     'ModelManager',
-    'AgentWrapper',
+    'AgentManager',
     'AnthropicModel',
     'GitHubModel',
     'GoogleAIModel',

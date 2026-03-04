@@ -22,13 +22,24 @@ class LLMService:
         Returns:
             生成的响应，流式返回AsyncIterator，非流式返回dict
         """
+        # 打印调用LLM时传入的消息
+        print("\n=== 调用LLM传入的消息 ===")
+        print(f"模型名称: {model_name}")
+        print(f"使用智能体: {use_agent}")
+        print("消息内容:")
+        for i, msg in enumerate(messages):
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            print(f"[{i}] {role}: {content[:200]}{'...' if len(content) > 200 else ''}")
+        print("====================\n")
+        
         if use_agent:
             # 智能体模式
             from app.llm.managers.model_manager import ModelManager
-            from app.llm.agent_wrapper import AgentWrapper
+            from app.llm.agent_manager import AgentManager
             
             base_driver = ModelManager.get_model_driver(model_name, model_config, version_config)
-            agent_wrapper = AgentWrapper(base_driver)
+            agent_wrapper = AgentManager(base_driver)
             await agent_wrapper.initialize()
             
             if model_params.get('stream', False):

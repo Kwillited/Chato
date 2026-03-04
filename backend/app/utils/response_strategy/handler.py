@@ -32,17 +32,34 @@ class ResponseHandler:
     """响应处理器，处理不同类型的响应"""
     
     @staticmethod
+    def _get_strategy(use_agent, is_streaming):
+        """获取响应策略
+        
+        Args:
+            use_agent: 是否使用智能体
+            is_streaming: 是否为流式响应
+            
+        Returns:
+            ResponseStrategy: 响应策略实例
+        """
+        if use_agent:
+            from app.utils.response_strategy.strategy.agent import AgentResponseStrategy
+            return AgentResponseStrategy()
+        else:
+            if is_streaming:
+                from app.utils.response_strategy.strategy.streaming import StreamingResponseStrategy
+                return StreamingResponseStrategy()
+            else:
+                from app.utils.response_strategy.strategy.regular import RegularResponseStrategy
+                return RegularResponseStrategy()
+    
+    @staticmethod
     async def handle_regular_response(chat, message_text, user_message, now,
                                model_messages, parsed_model_name, parsed_version_name, 
                                model_params, model_display_name, use_agent=False,
                                model=None, chat_service=None):
         """处理普通响应（非流式）"""
-        if use_agent:
-            from app.utils.response_strategy.strategy.agent import AgentResponseStrategy
-            strategy = AgentResponseStrategy()
-        else:
-            from app.utils.response_strategy.strategy.regular import RegularResponseStrategy
-            strategy = RegularResponseStrategy()
+        strategy = ResponseHandler._get_strategy(use_agent, False)
         context = ResponseStrategyContext(strategy)
         return await context.handle_response(chat, message_text, user_message, now, 
                                       model_messages, parsed_model_name, parsed_version_name, 
@@ -56,12 +73,7 @@ class ResponseHandler:
                                  model_params, model_display_name, use_agent=False,
                                  model=None, chat_service=None):
         """处理流式响应（包括智能体的流式模式）"""
-        if use_agent:
-            from app.utils.response_strategy.strategy.agent import AgentResponseStrategy
-            strategy = AgentResponseStrategy()
-        else:
-            from app.utils.response_strategy.strategy.streaming import StreamingResponseStrategy
-            strategy = StreamingResponseStrategy()
+        strategy = ResponseHandler._get_strategy(use_agent, True)
         context = ResponseStrategyContext(strategy)
         return await context.handle_response(chat, message_text, user_message, now, 
                                       model_messages, parsed_model_name, parsed_version_name, 
