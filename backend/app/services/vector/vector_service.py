@@ -28,6 +28,12 @@ class VectorService(BaseService):
         super().__init__()
         self.chunk_repo = DocumentChunkRepository()
         
+        # 导入配置管理器和路径管理器
+        from app.core.config import config_manager
+        from app.utils.path_manager import PathManager
+        self.config_manager = config_manager
+        self.path_manager = PathManager()
+        
         # 向量存储服务实例字典，按知识库名称区分
         self.vector_store_services = {}
         
@@ -48,14 +54,12 @@ class VectorService(BaseService):
         if knowledge_base_name not in self.vector_store_services:
             if not vector_db_path or not embedder_model:
                 # 如果没有提供路径和模型，尝试从配置或默认值获取
-                from app.core.config import config_manager
-                vector_db_path = vector_db_path or config_manager.get('vector.vector_db_path', '')
-                embedder_model = embedder_model or config_manager.get('vector.embedder_model', 'qwen3-embedding-0.6b')
+                vector_db_path = vector_db_path or self.config_manager.get('vector.vector_db_path', '')
+                embedder_model = embedder_model or self.config_manager.get('vector.embedder_model', 'qwen3-embedding-0.6b')
                 
                 # 如果仍然没有路径，构建默认路径
                 if not vector_db_path:
-                    from app.utils.path_manager import PathManager
-                    vector_db_path = PathManager.get_vector_db_path(knowledge_base_name)
+                    vector_db_path = self.path_manager.get_vector_db_path(knowledge_base_name)
             
             # 创建新的向量存储服务实例
             self.vector_store_services[knowledge_base_name] = VectorStoreService(
@@ -435,11 +439,8 @@ class VectorService(BaseService):
             return question
         
         try:
-            # 导入配置管理器
-            from app.core.config import config_manager
-            
             # 更新配置
-            config = config_manager.get('rag', {})
+            config = self.config_manager.get('rag', {})
             if rag_config:
                 config.update(rag_config)
             
@@ -479,10 +480,8 @@ class VectorService(BaseService):
     
     def perform_rag_search(self, question, selected_folders=None, k=None):
         """执行RAG搜索，获取相关文档片段"""
-        from app.core.config import config_manager
-        
         # 从配置中获取参数
-        config_vector = config_manager.get('vector', {})
+        config_vector = self.config_manager.get('vector', {})
         if k is None:
             k = config_vector.get('top_k', 3)
         score_threshold = config_vector.get('score_threshold', 0.7)

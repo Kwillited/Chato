@@ -357,9 +357,6 @@ class ChatService(BaseService):
             (is_valid, error_response, error_code, chat)
         """
         try:
-            # 导入验证工具类
-            from app.utils.validators import ValidationUtils
-            
             # 验证对话ID格式
             ValidationUtils.validate_uuid(chat_id, param_name='对话ID')
             

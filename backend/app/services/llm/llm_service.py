@@ -33,9 +33,10 @@ class LLMService:
             print(f"[{i}] {role}: {content[:200]}{'...' if len(content) > 200 else ''}")
         print("====================\n")
         
+        from app.llm.managers.model_manager import ModelManager
+        
         if use_agent:
             # 智能体模式
-            from app.llm.managers.model_manager import ModelManager
             from app.llm.agent_manager import AgentManager
             
             base_driver = ModelManager.get_model_driver(model_name, model_config, version_config)
@@ -48,7 +49,6 @@ class LLMService:
                 return await agent_wrapper.chat(messages, model_params)
         else:
             # 普通模式（包括RAG）
-            from app.llm.managers.model_manager import ModelManager
             return ModelManager.chat(model_name, model_config, version_config, messages, model_params)
     
 
