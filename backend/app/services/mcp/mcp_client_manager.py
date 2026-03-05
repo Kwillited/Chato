@@ -24,8 +24,6 @@ class MCPClientManager(BaseService):
         super().__init__()
         self.mcp_client = None
         self.tools = []
-        self.weather_tool_name = None
-        self.filesystem_tool_name = None
         self._initialized = False
         self.log_info("MCP 客户端管理器初始化")
     
@@ -59,9 +57,6 @@ class MCPClientManager(BaseService):
             self.tools = await self.mcp_client.get_tools()
             self.log_info(f"成功获取 {len(self.tools)} 个 MCP 工具")
             
-            # 检测工具
-            self._detect_tools()
-            
             self._initialized = True
             self.log_info("MCP 客户端管理器初始化成功")
             return True
@@ -69,24 +64,6 @@ class MCPClientManager(BaseService):
             self.log_error(f"初始化 MCP 客户端失败: {str(e)}")
             self.log_error("MCP 客户端管理器初始化失败")
             return False
-    
-    def _detect_tools(self):
-        """检测可用工具"""
-        self.log_info("=== 开始检测 MCP 工具 ===")
-        
-        all_tool_names = []
-        
-        for i, tool in enumerate(self.tools):
-            try:
-                tool_name = getattr(tool, 'name', str(tool))
-                all_tool_names.append(tool_name)
-            except Exception as e:
-                self.log_error(f"解析工具 {i+1} 信息失败: {str(e)}")
-                pass
-        
-        # 输出工具列表
-        self.log_info(f"检测到 {len(all_tool_names)} 个工具: {', '.join(all_tool_names)}")
-        self.log_info("=== 工具检测完成 ===")
     
     def get_tools(self) -> List[Any]:
         """获取 MCP 工具列表
@@ -96,13 +73,15 @@ class MCPClientManager(BaseService):
         """
         return self.tools
     
-    def get_tool_info(self) -> Dict[str, Optional[str]]:
-        """获取工具信息
+    async def get_tools_by_server(self, server_name: str) -> List[Any]:
+        """根据服务器名称获取 MCP 工具列表
         
+        Args:
+            server_name: 服务器名称
+            
         Returns:
-            Dict[str, Optional[str]]: 工具信息
+            List[Any]: 工具列表
         """
-        return {
-            "weather_tool": self.weather_tool_name,
-            "filesystem_tool": self.filesystem_tool_name
-        }
+        if not self.mcp_client:
+            return []
+        return await self.mcp_client.get_tools(server_name=server_name)

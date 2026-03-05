@@ -15,6 +15,13 @@ def get_mcp_tools(mcp_service: MCPService = Depends(get_mcp_service)):
     """获取MCP工具列表"""
     return mcp_service.get_mcp_tools()
 
+# 根据服务器名称获取MCP工具列表
+@router.get('/tools/{server_name}', response_model=List[Dict[str, Any]])
+@handle_api_errors()
+async def get_mcp_tools_by_server(server_name: str, mcp_service: MCPService = Depends(get_mcp_service)):
+    """根据服务器名称获取MCP工具列表"""
+    return await mcp_service.get_mcp_tools_by_server(server_name)
+
 # 获取MCP服务器列表
 @router.get('/servers', response_model=List[Dict[str, Any]])
 @handle_api_errors()

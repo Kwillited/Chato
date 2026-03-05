@@ -92,9 +92,21 @@
       <div class="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
         <!-- 工具列表卡片（左侧） -->
         <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col overflow-hidden">
-          <!-- 标题和搜索框 -->
-          <div class="mb-4 flex-shrink-0 flex items-center space-x-4">
-            <h3 class="text-sm font-semibold">MCP 工具列表</h3>
+          <!-- 标题、服务器选择和搜索框 -->
+          <div class="mb-4 flex-shrink-0 flex flex-col space-y-2">
+            <div class="flex items-center space-x-4">
+              <h3 class="text-sm font-semibold">MCP 工具列表</h3>
+              <select
+                v-model="currentServer"
+                @change="handleServerChange"
+                class="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+              >
+                <option value="">所有服务器</option>
+                <option v-for="server in servers" :key="server.name" :value="server.name">
+                  {{ server.name }}
+                </option>
+              </select>
+            </div>
             <div class="relative flex-1">
               <input
                 type="text"
@@ -239,12 +251,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { showNotification } from '../utils/notificationUtils.js';
 import { Button } from '../components/library/index.js';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import { useSettingsStore } from '../store/settingsStore.js';
+import { useRouteState } from '../composables/useRouteState';
 import { eventBus } from '../services/eventBus.js';
+import { apiService } from '../services/apiService.js';
 
 // 状态管理
 const settingsStore = useSettingsStore();
@@ -270,6 +285,12 @@ const isDragging = ref(false);
 
 // 工具详情相关
 const selectedTool = ref(null);
+// 服务器列表
+const servers = ref([]);
+// 使用 useRouteState 管理 currentServer 状态
+const { state: currentServer, setState: setCurrentServer } = useRouteState('server', '');
+// 路由对象
+const route = useRoute();
 
 // 计算属性：过滤工具
 const filteredTools = computed(() => {
@@ -295,14 +316,17 @@ const handleSearch = () => {
 
 // 刷新工具列表
 const refreshTools = async () => {
+  // 先设置加载状态
   isLoading.value = true;
+  // 清空工具列表，避免显示旧内容
+  tools.value = [];
   try {
-    // 调用API获取MCP工具列表
-    const response = await fetch('/api/mcp/tools');
-    if (!response.ok) {
-      throw new Error('获取MCP工具失败');
+    let url = '/mcp/tools';
+    if (currentServer.value) {
+      url = `/mcp/tools/${currentServer.value}`;
     }
-    const data = await response.json();
+    // 调用API获取MCP工具列表
+    const data = await apiService.get(url);
     tools.value = data || [];
   } catch (error) {
     console.error('刷新工具列表失败:', error);
@@ -313,6 +337,14 @@ const refreshTools = async () => {
     await nextTick();
     isLoading.value = false;
   }
+};
+
+// 根据服务器名称获取工具列表
+const loadToolsByServer = async (serverName) => {
+  currentServer.value = serverName;
+  // 先清空工具列表，避免显示旧内容
+  tools.value = [];
+  await refreshTools();
 };
 
 // 处理上传工具
@@ -586,31 +618,9 @@ const saveConfig = async () => {
     
     // 调用实际的配置保存API
     // 如果配置为空，发送空对象
-    const requestBody = isEmptyConfig ? '{}' : configInput.value;
+    const requestBody = isEmptyConfig ? {} : JSON.parse(configInput.value);
     
-    const response = await fetch('/api/mcp/config', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: requestBody
-    });
-    
-    if (!response.ok) {
-      // 尝试获取错误详情
-      let errorMessage = '配置保存失败';
-      try {
-        const errorData = await response.json();
-        if (errorData.detail) {
-          errorMessage = `配置保存失败: ${JSON.stringify(errorData.detail)}`;
-        }
-      } catch (e) {
-        // 如果无法解析错误响应，使用默认错误信息
-      }
-      throw new Error(errorMessage);
-    }
-    
-    const result = await response.json();
+    const result = await apiService.post('/mcp/config', requestBody);
     showNotification(result.message || (isEmptyConfig ? '配置已清空' : '配置保存成功'), 'success');
     console.log('Saved config:', result.config);
     
@@ -712,26 +722,58 @@ const fetchCurrentConfig = async () => {
     // 注意：这里假设后端已经提供了获取配置文件的API
     // 如果没有，我们可以在后端添加一个API端点
     
-    // 暂时使用直接读取文件的方式
-    // 注意：这种方式只在开发环境中有效，生产环境中需要通过API获取
-    const response = await fetch('/api/mcp/config');
-    if (response.ok) {
-      const config = await response.json();
-      configInput.value = JSON.stringify(config, null, 2);
-    } else {
-      // 如果API调用失败，尝试从后端的默认配置中获取
-      console.log('获取配置失败，使用默认值');
-    }
+    // 使用 apiService 获取配置
+    const config = await apiService.get('/mcp/config');
+    configInput.value = JSON.stringify(config, null, 2);
   } catch (error) {
     console.error('获取配置失败:', error);
+    // 如果API调用失败，尝试从后端的默认配置中获取
+    console.log('获取配置失败，使用默认值');
   }
 };
 
 // 组件挂载时加载工具和配置
-onMounted(() => {
+onMounted(async () => {
   console.log('McpMangerContent组件挂载');
-  refreshTools();
-  fetchCurrentConfig();
+  // 加载服务器列表
+  await loadServers();
+  // 根据当前服务器状态加载工具列表
+  if (currentServer.value) {
+    await loadToolsByServer(currentServer.value);
+  } else {
+    // 加载所有MCP工具
+    await refreshTools();
+  }
+  await fetchCurrentConfig();
+});
+
+// 加载服务器列表
+const loadServers = async () => {
+  try {
+    const data = await apiService.get('/mcp/servers');
+    servers.value = data || [];
+  } catch (error) {
+    console.error('加载服务器列表失败:', error);
+    servers.value = [];
+  }
+};
+
+// 处理服务器切换
+const handleServerChange = async () => {
+  console.log('服务器切换:', currentServer.value);
+  // 使用 useRouteState 提供的方法更新状态和路由
+  setCurrentServer(currentServer.value);
+};
+
+// 监听 currentServer 变化，加载工具列表
+watch(currentServer, async (newServerName) => {
+  console.log('服务器名称变化:', newServerName);
+  if (newServerName) {
+    await loadToolsByServer(newServerName);
+  } else {
+    // 加载所有MCP工具
+    await refreshTools();
+  }
 });
 </script>
 

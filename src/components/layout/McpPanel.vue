@@ -80,6 +80,7 @@ import { useNotification } from '../../composables/useNotification.js';
 import { useSearch } from '../../composables/useSearch.js';
 import { useNavigation } from '../../composables/useNavigation.js';
 import { eventBus } from '../../services/eventBus.js';
+import { apiService } from '../../services/apiService.js';
 
 // 使用通知组合式函数
 const { showSuccess, showError } = useNotification();
@@ -141,11 +142,7 @@ const loadMcpTools = async () => {
     isLoading.value = true;
     console.log('Loading MCP servers...');
     // 调用API获取MCP服务器列表
-    const response = await fetch('/api/mcp/servers');
-    if (!response.ok) {
-      throw new Error('Failed to fetch MCP servers');
-    }
-    const data = await response.json();
+    const data = await apiService.get('/mcp/servers');
     tools.value = data || [];
     console.log('MCP servers loaded:', data);
   } catch (error) {
@@ -269,9 +266,9 @@ const getToolIcon = (toolType) => {
 
 // 处理工具点击事件
 const handleToolClick = (tool) => {
-  // 切换到MCP管理视图并更新路由
-  navigateToMcpManagement();
-  console.log('切换到MCP管理视图，工具:', tool.name);
+  // 切换到MCP管理视图并传递服务器名称
+  navigateToMcpManagement(tool.name);
+  console.log('切换到MCP管理视图，服务器:', tool.name);
 };
 
 // 进入MCP管理页面

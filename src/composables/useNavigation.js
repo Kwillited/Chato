@@ -3,6 +3,7 @@ import { useUiStore } from '../store/uiStore';
 import { useChatStore } from '../store/chatStore';
 import { ROUTES, ACTIVE_CONTENT } from '../router/constants.js';
 import { apiService } from '../services/apiService.js';
+import { useRouteState } from './useRouteState.js';
 
 export function useNavigation() {
   const router = useRouter();
@@ -34,7 +35,13 @@ export function useNavigation() {
   const navigateToRagManagement = () => navigateTo(ROUTES.RAG, ACTIVE_CONTENT.RAG_MANAGEMENT);
 
   // 导航到MCP管理
-  const navigateToMcpManagement = () => navigateTo(ROUTES.MCP, ACTIVE_CONTENT.MCP_MANAGEMENT);
+  const navigateToMcpManagement = (serverName = null) => {
+    if (serverName) {
+      router.push({ path: ROUTES.MCP, query: { server: serverName } });
+    } else {
+      navigateTo(ROUTES.MCP, ACTIVE_CONTENT.MCP_MANAGEMENT);
+    }
+  };
 
   // 导航到上下文可视化
   const navigateToContextVisualization = () => navigateTo(ROUTES.CONTEXT, ACTIVE_CONTENT.CONTEXT_VISUALIZATION);

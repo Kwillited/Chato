@@ -77,6 +77,24 @@ class MCPService(BaseService):
             except Exception as e:
                 self.logger.error(f"解析工具信息失败: {e}")
         return tool_list
+    
+    async def get_mcp_tools_by_server(self, server_name: str):
+        """根据服务器名称获取MCP工具列表"""
+        tools = await self.mcp_client_manager.get_tools_by_server(server_name)
+        # 转换工具格式，提取必要的信息
+        tool_list = []
+        for i, tool in enumerate(tools):
+            try:
+                tool_info = {
+                    "id": i + 1,
+                    "name": getattr(tool, 'name', f"Tool {i + 1}"),
+                    "description": getattr(tool, 'description', "No description available"),
+                    "type": "custom"
+                }
+                tool_list.append(tool_info)
+            except Exception as e:
+                self.logger.error(f"解析工具信息失败: {e}")
+        return tool_list
 
     def get_mcp_servers(self):
         """获取MCP服务器列表"""
