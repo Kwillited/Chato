@@ -1,6 +1,5 @@
 # llm/base/base_model.py
 from abc import ABC, abstractmethod
-from langchain_core.language_models import BaseLanguageModel
 from typing import List, Dict, Any, Optional, AsyncIterator 
 from app.utils.message import MessageSystem
 
@@ -8,7 +7,7 @@ class BaseModel(ABC):
     def __init__(self, model_config: Dict[str, Any], version_config: Dict[str, Any]):
         self.model_config = model_config
         self.version_config = version_config
-        self.llm: Optional[BaseLanguageModel] = None
+        self.llm: Optional["BaseLanguageModel"] = None
         self._initialize_llm()
 
     def _get_selected_version(self, default_version: str) -> str:

@@ -1,7 +1,6 @@
 """MCP 客户端管理器 - 管理 MCP 客户端生命周期"""
 from typing import Dict, List, Optional, Any
 from app.services.base_service import BaseService
-from langchain_mcp_adapters.client import MultiServerMCPClient
 
 
 class MCPClientManager(BaseService):
@@ -47,6 +46,9 @@ class MCPClientManager(BaseService):
         self.log_info("开始初始化 MCP 客户端管理器")
         
         try:
+            # 动态导入 MCP 客户端
+            from langchain_mcp_adapters.client import MultiServerMCPClient
+            
             # 初始化 MCP 客户端
             self.log_info("正在初始化 MCP 客户端...")
             self.mcp_client = MultiServerMCPClient(mcp_config)

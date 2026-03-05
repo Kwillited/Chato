@@ -1,6 +1,5 @@
 """文本分割工具模块 - 提供文档内容分割功能"""
 import uuid
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 class TextSplitter:
@@ -62,7 +61,8 @@ class TextSplitter:
             result['chunk_size'] = doc_chunk_size
             result['chunk_overlap'] = doc_chunk_overlap
             
-
+            # 动态导入文本分割器
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
             
             # 创建文本分割器
             text_splitter = RecursiveCharacterTextSplitter(
@@ -130,6 +130,9 @@ class TextSplitter:
         Returns:
             list: 文本块列表
         """
+        # 动态导入文本分割器
+        from langchain_text_splitters import RecursiveCharacterTextSplitter
+        
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,

@@ -2,20 +2,9 @@
 import os
 import time
 from typing import List, Dict, Any
-from langchain_community.document_loaders import (
-    TextLoader, PyPDFLoader, Docx2txtLoader, DirectoryLoader
-)
 
 class DocumentLoader:
     """文档加载器类 - 处理各种格式文档的加载"""
-    
-    # 支持的文件扩展名及其对应的加载器
-    SUPPORTED_EXTENSIONS = {
-        'txt': TextLoader,
-        'pdf': PyPDFLoader,
-        'doc': Docx2txtLoader,
-        'docx': Docx2txtLoader
-    }
     
     # 文档缓存，格式: {file_path: (mtime, document_info)}
     _cache = {}
@@ -47,8 +36,21 @@ class DocumentLoader:
         
         try:
             # 根据文件类型选择合适的加载器
-            if file_extension in DocumentLoader.SUPPORTED_EXTENSIONS:
-                loader_class = DocumentLoader.SUPPORTED_EXTENSIONS[file_extension]
+            if file_extension in ['txt', 'pdf', 'doc', 'docx']:
+                # 动态导入加载器
+                from langchain_community.document_loaders import (
+                    TextLoader, PyPDFLoader, Docx2txtLoader
+                )
+                
+                # 映射文件扩展名到加载器
+                extension_to_loader = {
+                    'txt': TextLoader,
+                    'pdf': PyPDFLoader,
+                    'doc': Docx2txtLoader,
+                    'docx': Docx2txtLoader
+                }
+                
+                loader_class = extension_to_loader[file_extension]
                 
                 # TextLoader需要指定编码
                 if file_extension == 'txt':
@@ -102,6 +104,9 @@ class DocumentLoader:
             List[Dict]: 包含所有文档信息的字典列表
         """
         print(f"📁 开始加载目录: {directory_path}")
+        
+        # 动态导入DirectoryLoader
+        from langchain_community.document_loaders import DirectoryLoader
         
         # 创建目录加载器
         loader = DirectoryLoader(
@@ -158,4 +163,4 @@ class DocumentLoader:
         Returns:
             List[str]: 支持的文件扩展名列表
         """
-        return list(DocumentLoader.SUPPORTED_EXTENSIONS.keys())
+        return ['txt', 'pdf', 'doc', 'docx']

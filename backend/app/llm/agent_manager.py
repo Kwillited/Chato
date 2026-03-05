@@ -1,10 +1,5 @@
 from typing import Dict, Any, List, Optional, AsyncIterator
 
-from langchain_core.messages import (
-    BaseMessage, AIMessage, SystemMessage
-)
-from langgraph.graph import StateGraph, END
-
 from app.llm.base.base_model import BaseModel
 from app.llm.agent.agent_state import AgentState
 from app.llm.agent.agent_nodes import AgentNodes
@@ -61,6 +56,9 @@ class AgentManager:
         Returns:
             编译后的状态图
         """
+        # 动态导入langgraph
+        from langgraph.graph import StateGraph, END
+        
         builder = StateGraph(AgentState)
         builder.add_node("reasoning", self.agent_nodes.reasoning_node)
         builder.add_node("execute_linear", self.agent_nodes.execute_linear_node)
@@ -193,7 +191,7 @@ class AgentManager:
             logger.error(f"[Agent] Stream Error: {str(e)}")
             yield {"event": "on_error", "data": str(e)}
     
-    def _prepare_messages(self, messages: List[Dict[str, str]]) -> List[BaseMessage]:
+    def _prepare_messages(self, messages: List[Dict[str, str]]) -> List:
         """
         准备消息格式
         
@@ -204,6 +202,7 @@ class AgentManager:
             格式化后的消息列表
         """
         from app.utils.message import MessageSystem
+        from langchain_core.messages import BaseMessage, SystemMessage
         
         # 使用消息系统处理基本的格式转换
         formatted = MessageSystem.convert_to_langchain_messages(messages)
@@ -259,6 +258,9 @@ class AgentManager:
         }
         
         try:
+            # 动态导入AIMessage
+            from langchain_core.messages import AIMessage
+            
             # 执行智能体图
             final_state = await self.graph.ainvoke(initial_state)
             
