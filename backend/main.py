@@ -20,18 +20,6 @@ async def setup():
     load_data()
     logger.info("应用数据加载完成")
 
-async def init_mcp_adapter():
-    """初始化 MCP 适配器"""
-    try:
-        from app.services.mcp.mcp_service import MCPService
-        mcp_service = MCPService()
-        await mcp_service.initialize_mcp()
-        logger.info("MCP 适配器初始化完成")
-        return True
-    except Exception as e:
-        logger.error(f"MCP 适配器初始化失败: {e}")
-        return False
-
 # 使用FastAPI的 lifespan event handlers 替代 deprecated 的 on_event
 @asynccontextmanager
 async def lifespan(app):
@@ -41,10 +29,9 @@ async def lifespan(app):
     import asyncio
     
     # 执行异步初始化操作
-    # 使用后台任务执行数据和MCP初始化，不阻塞应用启动
-    # 向量系统采用按需初始化
+    # 使用后台任务执行数据初始化，不阻塞应用启动
+    # MCP和向量系统采用按需初始化
     asyncio.create_task(setup())
-    asyncio.create_task(init_mcp_adapter())
     
     yield
     
