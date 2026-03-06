@@ -7,13 +7,12 @@ class MessageBuilder:
     """消息构建器，负责构建各种类型的消息列表"""
     
     @staticmethod
-    def build_normal_messages(query: str, chat_history: List[Dict[str, str]] = None, prompt_template: str = None, web_search_results: Any = None):
+    def build_normal_messages(query: str, chat_history: List[Dict[str, str]] = None, web_search_results: Any = None):
         """构建普通模式的消息列表
         
         Args:
             query: 用户查询
             chat_history: 聊天历史记录
-            prompt_template: 自定义提示模板
             web_search_results: 网络搜索结果
             
         Returns:
@@ -24,19 +23,17 @@ class MessageBuilder:
             context_docs=None,
             chat_history=chat_history,
             mode='normal',
-            prompt_template=prompt_template,
             web_search_results=web_search_results
         )
     
     @staticmethod
-    def build_rag_messages(query: str, context_docs: List[Any], chat_history: List[Dict[str, str]] = None, prompt_template: str = None, web_search_results: Any = None):
+    def build_rag_messages(query: str, context_docs: List[Any], chat_history: List[Dict[str, str]] = None, web_search_results: Any = None):
         """构建RAG模式的消息列表
         
         Args:
             query: 用户查询
             context_docs: 检索到的上下文文档列表
             chat_history: 聊天历史记录
-            prompt_template: 自定义提示模板
             web_search_results: 网络搜索结果
             
         Returns:
@@ -47,18 +44,16 @@ class MessageBuilder:
             context_docs=context_docs,
             chat_history=chat_history,
             mode='rag',
-            prompt_template=prompt_template,
             web_search_results=web_search_results
         )
     
     @staticmethod
-    def build_agent_messages(query: str, chat_history: List[Dict[str, str]] = None, prompt_template: str = None, web_search_results: Any = None):
+    def build_agent_messages(query: str, chat_history: List[Dict[str, str]] = None, web_search_results: Any = None):
         """构建智能体模式的消息列表
         
         Args:
             query: 用户查询
             chat_history: 聊天历史记录
-            prompt_template: 自定义提示模板
             web_search_results: 网络搜索结果
             
         Returns:
@@ -69,7 +64,6 @@ class MessageBuilder:
             context_docs=None,
             chat_history=chat_history,
             mode='agent',
-            prompt_template=prompt_template,
             web_search_results=web_search_results
         )
     
@@ -125,8 +119,27 @@ class MessageBuilder:
                         else:
                             chat_history = messages
         
-        # 根据模式构建消息列表
+        # 检查是否为混合模式
+        enabled_features = []
         if rag_enabled:
+            enabled_features.append('rag')
+        if agent_enabled:
+            enabled_features.append('agent')
+        if web_search_enabled:
+            enabled_features.append('web_search')
+        
+        # 构建消息列表
+        if len(enabled_features) > 1:
+            # 混合模式：使用通用SystemMessage，包含占位符
+            return MessageBuilder.build_mixed_messages(
+                query=query,
+                context_docs=context_docs,
+                chat_history=chat_history,
+                web_search_results=web_search_results,
+                enabled_features=enabled_features
+            )
+        elif rag_enabled:
+            # 单一RAG模式
             return MessageBuilder.build_rag_messages(
                 query=query,
                 context_docs=context_docs,
@@ -134,14 +147,39 @@ class MessageBuilder:
                 web_search_results=web_search_results
             )
         elif agent_enabled:
+            # 单一智能体模式
             return MessageBuilder.build_agent_messages(
                 query=query,
                 chat_history=chat_history,
                 web_search_results=web_search_results
             )
         else:
+            # 单一普通模式
             return MessageBuilder.build_normal_messages(
                 query=query,
                 chat_history=chat_history,
                 web_search_results=web_search_results
             )
+    
+    @staticmethod
+    def build_mixed_messages(query: str, context_docs: List[Any], chat_history: List[Dict[str, str]] = None, web_search_results: Any = None, enabled_features: List[str] = None):
+        """构建混合模式的消息列表
+        
+        Args:
+            query: 用户查询
+            context_docs: 检索到的上下文文档列表
+            chat_history: 聊天历史记录
+            web_search_results: 网络搜索结果
+            enabled_features: 启用的功能列表
+            
+        Returns:
+            List[dict]: 消息列表
+        """
+        return prompt_manager.build_messages(
+            query=query,
+            context_docs=context_docs,
+            chat_history=chat_history,
+            mode='mixed',
+            web_search_results=web_search_results,
+            enabled_features=enabled_features
+        )
