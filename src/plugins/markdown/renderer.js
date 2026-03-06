@@ -1,6 +1,7 @@
 import { marked } from 'marked'
 import hljs from '../../static/js/highlight-common.js'
 import katex from 'katex'
+import mermaid from 'mermaid'
 import 'katex/dist/katex.min.css'
 
 /**
@@ -27,6 +28,44 @@ export function createMarkdownPlugin(config) {
       }
     } else if (typeof code !== 'string') {
       actualCode = String(code)
+    }
+    
+    // 处理 Mermaid 图表
+    if (actualLanguage === 'mermaid') {
+      const mermaidId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      const codeBlockId = `code-block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      return `
+        <div class="code-container">
+          <div class="code-header">
+            <span class="code-language">mermaid</span>
+            <div class="code-header-actions">
+              <div class="mermaid-toggle-slider"
+                data-mermaid-id="${mermaidId}"
+                data-code-id="${codeBlockId}"
+                title="切换视图"
+              >
+                <div class="slider-track">
+                  <div class="slider-thumb">
+                    <i class="fa-solid fa-chart-simple"></i>
+                  </div>
+                </div>
+
+              </div>
+              <button 
+                class="copy-code-btn"
+                data-code-block-id="${codeBlockId}"
+                title="复制代码"
+              >
+                <i class="fa-solid fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="mermaid-container">
+            <pre class="mermaid" id="${mermaidId}">${actualCode}</pre>
+            <pre class="mermaid-code" id="${codeBlockId}" style="display: none;"><code class="language-mermaid">${actualCode}</code></pre>
+          </div>
+        </div>
+      `
     }
     
     const displayLanguage = actualLanguage && actualLanguage !== 'text' ? actualLanguage : 'plaintext'
@@ -77,7 +116,7 @@ export function createMarkdownPlugin(config) {
     })
     
     // 处理块级公式 $$...$$
-    const blockMathRegex = /\$\$(.*?)\$\$/gs
+    const blockMathRegex = /\$\$([\s\S]*?)\$\$/g
     result = result.replace(blockMathRegex, (match, formula) => {
       try {
         return '<div class="math-block">' + katex.renderToString(formula.trim(), {
@@ -102,15 +141,55 @@ export function createMarkdownPlugin(config) {
     if (!content) return ''
     
     try {
-      let html = marked(content)
+      // 先处理数学公式，避免 marked 转换换行符影响正则匹配
+      let processedContent = content
       
-      // 处理数学公式
-      html = renderMathInElement(html)
+      // 处理块级公式 $$...$$
+      const blockMathRegex = /\$\$([\s\S]*?)\$\$/g
+      processedContent = processedContent.replace(blockMathRegex, (match, formula) => {
+        try {
+          return '<div class="math-block">' + katex.renderToString(formula.trim(), {
+            throwOnError: false,
+            displayMode: true
+          }) + '</div>'
+        } catch (error) {
+          console.error('KaTeX 块级公式渲染错误:', error)
+          return match
+        }
+      })
       
-      // 延迟执行代码高亮
+      // 处理行内公式 $...$
+      const inlineMathRegex = /\$(.*?)\$/g
+      processedContent = processedContent.replace(inlineMathRegex, (match, formula) => {
+        try {
+          return katex.renderToString(formula.trim(), {
+            throwOnError: false,
+            displayMode: false
+          })
+        } catch (error) {
+          console.error('KaTeX 行内公式渲染错误:', error)
+          return match
+        }
+      })
+      
+      // 然后使用 marked 渲染剩余内容
+      let html = marked(processedContent)
+      
+      // 延迟执行代码高亮和 Mermaid 渲染
       if (config.highlight) {
         setTimeout(() => {
           hljs.highlightAll()
+          // 渲染 Mermaid 图表
+          mermaid.init()
+          // 绑定 Mermaid 切换按钮事件
+          bindMermaidToggleEvents()
+        }, 0)
+      } else {
+        // 即使没有代码高亮，也需要渲染 Mermaid 图表
+        setTimeout(() => {
+          mermaid.init()
+          // 绑定 Mermaid 切换按钮事件
+          bindMermaidToggleEvents()
         }, 0)
       }
       
@@ -121,6 +200,49 @@ export function createMarkdownPlugin(config) {
     }
   }
   
+  /**
+   * 绑定 Mermaid 切换滑块事件
+   */
+  const bindMermaidToggleEvents = () => {
+    const toggleSliders = document.querySelectorAll('.mermaid-toggle-slider')
+    toggleSliders.forEach(slider => {
+      slider.addEventListener('click', () => {
+        const mermaidId = slider.getAttribute('data-mermaid-id')
+        const codeId = slider.getAttribute('data-code-id')
+        const mermaidElement = document.getElementById(mermaidId)
+        const codeElement = document.getElementById(codeId)
+        
+        if (mermaidElement && codeElement) {
+          const isMermaidVisible = mermaidElement.style.display !== 'none'
+          
+          if (isMermaidVisible) {
+            // 切换到代码视图
+            mermaidElement.style.display = 'none'
+            codeElement.style.display = 'block'
+            // 更新滑块状态
+            slider.classList.add('active')
+            // 切换图标
+            const icon = slider.querySelector('i')
+            if (icon) {
+              icon.className = 'fa-solid fa-code'
+            }
+          } else {
+            // 切换到图表视图
+            mermaidElement.style.display = 'block'
+            codeElement.style.display = 'none'
+            // 更新滑块状态
+            slider.classList.remove('active')
+            // 切换图标
+            const icon = slider.querySelector('i')
+            if (icon) {
+              icon.className = 'fa-solid fa-chart-simple'
+            }
+          }
+        }
+      })
+    })
+  }
+
   return {
     render,
     marked,

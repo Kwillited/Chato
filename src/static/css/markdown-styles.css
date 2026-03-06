@@ -179,72 +179,268 @@
 
 /* 代码块容器样式 */
 .markdown-content .code-container {
-  margin-bottom: 1rem;
-  border-radius: 0.375rem;
+  position: relative;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   max-width: 100%;
 }
 
-/* 代码头部样式 - 与代码块协调 */
+/* 代码块头部样式 */
 .markdown-content .code-header {
-  background-color: #f6f8fa;
-  color: #374151;
-  padding: 0.5rem 1rem;
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  border-top-left-radius: 0.375rem;
-  border-top-right-radius: 0.375rem;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #f6f8fa;
+  border-bottom: 1px solid #e1e4e8;
 }
 
+/* 代码语言标签样式 */
 .markdown-content .code-language {
   font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: #57606a;
+  text-transform: lowercase;
 }
 
+/* 代码头部操作按钮容器 */
+.markdown-content .code-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 复制代码按钮样式 */
 .markdown-content .copy-code-btn {
-  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   border: none;
-  color: #6b7280;
+  border-radius: 0.25rem;
+  background-color: transparent;
+  color: #656d76;
   cursor: pointer;
-  padding: 0.25rem;
-  border-radius: 0.125rem;
   transition: all 0.2s ease;
-  font-size: 0.75rem;
 }
 
+/* 复制代码按钮悬停样式 */
+.markdown-content .copy-code-btn:hover {
+  background-color: rgba(175, 184, 193, 0.2);
+  color: #24292e;
+}
+
+/* 复制成功样式 */
 .markdown-content .copy-code-btn.text-green-400 {
   color: #34d399;
 }
 
-/* 代码块样式 - 统一配色方案，增强限制防止影响父容器宽度 */
-.markdown-content pre {
-  background-color: #f6f8fa; /* 与github主题一致 */
-  padding: 0;
-  margin: 0;
-  border-radius: 0;
-  overflow-x: auto;
-  border: none; /* 移除边框，由highlight.js样式处理 */
-  max-width: 100%; /* 确保不超过父容器宽度 */
-  word-wrap: break-word; /* 处理超长单词 */
-  white-space: pre-wrap; /* 保留空白但允许换行 */
-  word-break: break-all; /* 允许在任何字符处换行 */
+/* Mermaid 切换滑块样式 */
+.markdown-content .mermaid-toggle-slider {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
 }
 
-.markdown-content pre > code {
-  background-color: transparent;
+/* 滑块轨道样式 */
+.markdown-content .slider-track {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  background-color: #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* 滑块拇指样式 */
+.markdown-content .slider-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 滑块图标样式 */
+.markdown-content .slider-thumb i {
+  font-size: 9px;
+  color: #656d76;
+  transition: all 0.3s ease;
+}
+
+/* 激活状态的滑块轨道 */
+.markdown-content .mermaid-toggle-slider.active .slider-track {
+  background-color: #333333;
+}
+
+/* 激活状态的滑块拇指 */
+.markdown-content .mermaid-toggle-slider.active .slider-thumb {
+  transform: translateX(20px);
+}
+
+/* 激活状态的滑块图标 */
+.markdown-content .mermaid-toggle-slider.active .slider-thumb i {
+  color: #333333;
+}
+
+/* 悬停状态的滑块 */
+.markdown-content .mermaid-toggle-slider:hover .slider-track {
+  background-color: #cbd5e1;
+}
+
+/* 激活状态悬停的滑块轨道 */
+.markdown-content .mermaid-toggle-slider.active:hover .slider-track {
+  background-color: #1a1a1a;
+}
+
+/* Mermaid 容器样式 */
+.markdown-content .mermaid-container {
+  position: relative;
+  background-color: #f6f8fa;
+  overflow: hidden;
+}
+
+/* Mermaid 图表样式 */
+.markdown-content .mermaid-container .mermaid {
+  margin: 0;
   padding: 1rem;
-  border: none;
-  font-family: 'Inter', monospace;
+  background-color: #f6f8fa;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Mermaid 代码样式 */
+.markdown-content .mermaid-container .mermaid-code {
+  margin: 0;
+  padding: 1rem;
+  background-color: #f6f8fa;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Mermaid 代码内的代码样式 */
+.markdown-content .mermaid-container .mermaid-code code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 0.875rem;
-  display: block;
   line-height: 1.5;
-  max-width: 100%; /* 确保不超过父容器宽度 */
-  word-wrap: break-word; /* 处理超长单词 */
-  white-space: inherit; /* 继承父元素的空白处理 */
+  color: #24292e;
+}
+
+/* 代码块主体样式 */
+.markdown-content .code-container pre {
+  margin: 0;
+  padding: 1rem;
+  background-color: #f6f8fa;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* 代码块内的代码样式 */
+.markdown-content .code-container pre code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #24292e;
+}
+
+/* 深色模式下的代码块头部样式 */
+.dark .markdown-content .code-header {
+  background-color: #24292e;
+  border-bottom: 1px solid #30363d;
+}
+
+/* 深色模式下的代码语言标签样式 */
+.dark .markdown-content .code-language {
+  color: #d1d9e0;
+}
+
+/* 深色模式下的复制代码按钮样式 */
+.dark .markdown-content .copy-code-btn {
+  color: #8b949e;
+}
+
+/* 深色模式下的复制代码按钮悬停样式 */
+.dark .markdown-content .copy-code-btn:hover {
+  background-color: rgba(175, 184, 193, 0.1);
+  color: #f6f8fa;
+}
+
+/* 深色模式下的滑块轨道 */
+.dark .markdown-content .slider-track {
+  background-color: #374151;
+}
+
+/* 深色模式下的滑块拇指 */
+.dark .markdown-content .slider-thumb {
+  background-color: #1f2937;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 深色模式下的滑块图标 */
+.dark .markdown-content .slider-thumb i {
+  color: #9ca3af;
+}
+
+/* 深色模式下激活状态的滑块轨道 */
+.dark .markdown-content .mermaid-toggle-slider.active .slider-track {
+  background-color: #ffffff;
+}
+
+/* 深色模式下激活状态的滑块图标 */
+.dark .markdown-content .mermaid-toggle-slider.active .slider-thumb i {
+  color: #ffffff;
+}
+
+/* 深色模式下悬停状态的滑块 */
+.dark .markdown-content .mermaid-toggle-slider:hover .slider-track {
+  background-color: #4b5563;
+}
+
+/* 深色模式下激活状态悬停的滑块轨道 */
+.dark .markdown-content .mermaid-toggle-slider.active:hover .slider-track {
+  background-color: #e5e7eb;
+}
+
+/* 深色模式下的 Mermaid 容器样式 */
+.dark .markdown-content .mermaid-container {
+  background-color: #24292e;
+}
+
+/* 深色模式下的 Mermaid 图表样式 */
+.dark .markdown-content .mermaid-container .mermaid {
+  background-color: #24292e;
+}
+
+/* 深色模式下的 Mermaid 代码样式 */
+.dark .markdown-content .mermaid-container .mermaid-code {
+  background-color: #24292e;
+}
+
+/* 深色模式下的 Mermaid 代码内的代码样式 */
+.dark .markdown-content .mermaid-container .mermaid-code code {
+  color: #f6f8fa;
+}
+
+/* 深色模式下的代码块主体样式 */
+.dark .markdown-content .code-container pre {
+  background-color: #24292e;
+}
+
+/* 深色模式下的代码块内的代码样式 */
+.dark .markdown-content .code-container pre code {
+  color: #f6f8fa;
 }
 
 /* 确保markdown内容容器不会被内部代码块拉伸 */
@@ -327,4 +523,21 @@ table th {
 .dark .markdown-content .code-header {
   background-color: #1f2937;
   color: #e5e7eb;
+}
+
+/* 数学公式样式 */
+.markdown-content .math-block {
+  margin: 0.25rem 0;
+  padding: 0.25rem;
+  text-align: center;
+}
+
+/* 行内数学公式样式 */
+.markdown-content .katex {
+  font-size: 1.1em;
+}
+
+/* 深色模式下的数学公式样式 */
+.dark .markdown-content .katex {
+  color: #f6f8fa;
 }
