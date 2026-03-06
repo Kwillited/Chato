@@ -146,9 +146,8 @@
             </div>
             
             <!-- 加载状态 -->
-            <div v-if="isLoading" class="flex flex-col items-center justify-center h-full text-gray-500">
-              <div class="w-10 h-10 border-4 border-gray-200 border-t-primary rounded-full animate-spin mb-4"></div>
-              <p>加载中...</p>
+            <div v-if="isLoading">
+              <SkeletonLoader type="tools" :count="5" />
             </div>
           </div>
         </div>
@@ -211,6 +210,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { showNotification } from '../utils/notificationUtils.js';
 import { Button } from '../components/library/index.js';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
+import SkeletonLoader from '../components/common/SkeletonLoader.vue';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { useRouteState } from '../composables/useRouteState';
 import { eventBus } from '../services/eventBus.js';
