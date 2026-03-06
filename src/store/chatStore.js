@@ -6,6 +6,7 @@ import { useVectorStore } from './vectorStore.js';
 import { useUiStore } from './uiStore.js';
 import { useFileStore } from './fileStore.js';
 import { useNotification } from '../composables/useNotification.js';
+import { useNavigation } from '../composables/useNavigation.js';
 import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils, stateUtils } from '../utils/storeUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
@@ -864,7 +865,10 @@ export const useChatStore = defineStore('chat', {
       
       // 如果没有当前对话，创建一个新对话
       if (!this.currentChatId) {
-        await this.createNewChat(model);
+        const newChat = await this.createNewChat(model);
+        // 立即导航到新对话，避免路由切换延迟
+        const { navigateToChat } = useNavigation();
+        navigateToChat(newChat.id);
       }
 
       const currentChat = this.currentChat;
