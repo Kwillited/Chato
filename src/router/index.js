@@ -3,7 +3,8 @@ import { ROUTE_CONFIGS } from './constants.js';
 
 // 导入视图组件（使用懒加载）
 const HomeContent = () => import('../views/HomeContent.vue');
-const ChatContent = () => import('../views/ChatContent.vue');
+// ChatContent组件直接加载，避免首次跳转延迟
+import ChatContent from '../views/ChatContent.vue';
 const SettingsContent = () => import('../views/SettingsContent.vue');
 const FileMangerContent = () => import('../views/FileMangerContent.vue');
 const McpMangerContent = () => import('../views/McpMangerContent.vue');

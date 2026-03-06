@@ -6,7 +6,6 @@ import { useVectorStore } from './vectorStore.js';
 import { useUiStore } from './uiStore.js';
 import { useFileStore } from './fileStore.js';
 import { useNotification } from '../composables/useNotification.js';
-import { useNavigation } from '../composables/useNavigation.js';
 import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils, stateUtils } from '../utils/storeUtils.js';
 import { ref } from 'vue'; // 引入 ref
 
@@ -116,9 +115,6 @@ export const useChatStore = defineStore('chat', {
     // 创建新对话（前端生成UUID）
     createNewChat(model) {
       try {
-        // 先取消当前会话的选中状态，实现更流畅的过渡效果
-        this.currentChatId = null;
-        
         // 前端生成UUID
         const chatId = crypto.randomUUID();
         const now = Date.now();
@@ -135,6 +131,8 @@ export const useChatStore = defineStore('chat', {
         
         // 将新对话添加到本地状态
         this.chats.unshift(newChat); // 添加到开头，保持最新优先
+        
+        // 直接设置 currentChatId，避免先设为 null 再设置新值导致的响应式延迟
         this.currentChatId = newChat.id;
         
         // 使用 uiStore 更新 messageInput
@@ -865,10 +863,7 @@ export const useChatStore = defineStore('chat', {
       
       // 如果没有当前对话，创建一个新对话
       if (!this.currentChatId) {
-        const newChat = await this.createNewChat(model);
-        // 立即导航到新对话，避免路由切换延迟
-        const { navigateToChat } = useNavigation();
-        navigateToChat(newChat.id);
+        await this.createNewChat(model);
       }
 
       const currentChat = this.currentChat;

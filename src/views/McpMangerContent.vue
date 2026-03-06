@@ -136,23 +136,6 @@
                 </div>
               </div>
               <!-- 右侧：操作按钮 -->
-              <div class="flex items-center space-x-2">
-                <Button 
-                  shape="full"
-                  size="sm"
-                  icon="fa-eye" 
-                  tooltip="查看详情"
-                  class="text-gray-500 hover:text-primary w-6 h-6 p-1"
-                />
-                <Button 
-                  shape="full"
-                  size="sm"
-                  icon="fa-trash" 
-                  tooltip="删除"
-                  @click.stop="handleDeleteTool(tool.id)"
-                  class="text-gray-500 hover:text-red-500 w-6 h-6 p-1"
-                />
-              </div>
             </div>
             
             <!-- 空状态 -->
@@ -202,34 +185,6 @@
                   <p class="mb-1">{{ selectedTool.description || '暂无描述' }}</p>
                 </div>
               </div>
-            </div>
-            
-            <!-- 工具配置信息 -->
-            <div>
-              <h4 class="text-xs font-medium text-gray-500 mb-2">配置信息</h4>
-              <div class="bg-gray-50 dark:bg-dark-800 rounded-lg p-3">
-                <pre class="text-xs font-mono whitespace-pre-wrap text-gray-600 dark:text-gray-400">
-                  {{ JSON.stringify(selectedTool.config || {}, null, 2) }}
-                </pre>
-              </div>
-            </div>
-            
-            <!-- 操作按钮 -->
-            <div class="flex space-x-2">
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="editTool"
-                content="编辑工具"
-              />
-              <Button 
-                shape="rounded"
-                size="sm"
-                class="flex-1"
-                @click="duplicateTool"
-                content="复制工具"
-              />
             </div>
           </div>
         </div>
