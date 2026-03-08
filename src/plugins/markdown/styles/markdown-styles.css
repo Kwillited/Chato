@@ -9,48 +9,36 @@
 .markdown-content h1 {
   font-size: 1.8rem;
   font-weight: 700;
-  margin-top: 3rem !important;
-  margin-bottom: 0 !important;
   color: #1e293b;
 }
 
 .markdown-content h2 {
   font-size: 1.5rem;
   font-weight: 600;
-  margin-top: 2.5rem !important;
-  margin-bottom: 0 !important;
   color: #1e293b;
 }
 
 .markdown-content h3 {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-top: 2rem !important;
-  margin-bottom: 0 !important;
   color: #1e293b;
 }
 
 .markdown-content h4 {
   font-size: 1.1rem;
   font-weight: 600;
-  margin-top: 1.5rem !important;
-  margin-bottom: 0 !important;
   color: #1e293b;
 }
 
 .markdown-content h5 {
   font-size: 1rem;
   font-weight: 600;
-  margin-top: 1.25rem !important;
-  margin-bottom: 0 !important;
   color: #1e293b;
 }
 
 .markdown-content h6 {
   font-size: 0.9rem;
   font-weight: 600;
-  margin-top: 1rem !important;
-  margin-bottom: 0 !important;
   color: #1e293b;
 }
 
@@ -64,156 +52,93 @@
   color: #fff;
 }
 
-/* 连续标题间距 */
+/* 连续标题间距 - 使用统一变量 */
 .markdown-content h1 + h2,
 .markdown-content h2 + h3,
 .markdown-content h3 + h4,
 .markdown-content h4 + h5,
 .markdown-content h5 + h6 {
-  margin-top: 2.5rem !important;
+  margin-top: var(--space-md);
 }
 
 .markdown-content h3 + h3 {
-  margin-top: 2.5rem !important;
+  margin-top: var(--space-md);
 }
 
 .markdown-content p {
   margin-top: 0;
-  margin-bottom: 0;
 }
 
 .markdown-content ul, 
 .markdown-content ol {
-  margin-top: 1rem;
-  margin-bottom: 0;
   padding-left: 1.5rem;
 }
 
 /* 基础无序列表样式 */
 .markdown-content ul {
-  list-style-type: none; /* 隐藏默认列表标记 */
-  padding-left: 0;
+  list-style-type: disc; /* 使用原生列表标记 */
+  padding-left: 1.25rem; /* 调整内边距，与标题左对齐 */
 }
 
 /* 优化的ul列表样式 */
 .markdown-content ul li {
-  margin-top: 0.5rem; /* 增加列表项间距 */
-  margin-bottom: 0;
-  padding-left: 1.75rem; /* 为自定义标记留出空间 */
-  position: relative;
   transition: all 0.2s ease; /* 添加过渡效果 */
   line-height: 1.6; /* 优化行高 */
 }
 
-/* 自定义列表项标记 */
-.markdown-content ul li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
+/* 统一列表项标记样式 */
+.markdown-content ul li::marker,
+.markdown-content ol li::marker,
+.markdown-content ul ul li::marker,
+.markdown-content ol ol li::marker {
   color: #000; /* 黑色 */
-  font-size: 1.5rem;
-  line-height: 1;
-  top: 0.15rem;
+  font-size: 1rem;
   transition: transform 0.2s ease;
 }
 
 /* 深色模式列表项标记 */
-.dark .markdown-content ul li::before {
+.dark .markdown-content ul li::marker,
+.dark .markdown-content ol li::marker,
+.dark .markdown-content ul ul li::marker,
+.dark .markdown-content ol ol li::marker {
   color: #fff; /* 白色 */
 }
 
 /* 有序列表样式 - 优化版 */
 .markdown-content ol {
-  list-style-type: none; /* 隐藏默认列表标记 */
-  padding-left: 0;
+  list-style-type: decimal; /* 使用原生有序列表标记 */
+  padding-left: 1.25rem; /* 调整内边距，与标题左对齐 */
 }
 
 /* 优化的ol列表样式 */
 .markdown-content ol li {
-  margin-top: 0.5rem; /* 增加列表项间距 */
-  margin-bottom: 0;
-  padding-left: 1.75rem; /* 为序号留出空间 */
-  position: relative;
   transition: all 0.2s ease; /* 添加过渡效果 */
   line-height: 1.6; /* 优化行高 */
 }
 
-/* 自定义有序列表项标记 */
-.markdown-content ol li::before {
-  content: counter(list-item) ".";
-  counter-increment: list-item;
-  position: absolute;
-  left: 0;
-  color: #000; /* 黑色 */
-  font-size: 1rem;
-  line-height: 1;
-  top: 0.15rem;
-  transition: transform 0.2s ease;
-}
-
-/* 深色模式有序列表项标记 */
-.dark .markdown-content ol li::before {
-  color: #fff; /* 白色 */
-}
-
 /* 嵌套有序列表样式优化 */
 .markdown-content ol ol {
-  margin-top: 0.5rem;
-  margin-bottom: 0;
-  padding-left: 0;
-  counter-reset: list-item;
-}
-
-.markdown-content ol ol li {
-  margin-top: 0.25rem;
-  margin-bottom: 0;
   padding-left: 1.75rem;
-}
-
-/* 重置嵌套列表的计数器 */
-.markdown-content ol {
-  counter-reset: list-item;
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 /* 嵌套列表样式优化 */
 .markdown-content ul ul {
-  margin-top: 0.5rem;
-  margin-bottom: 0;
+  padding-left: 1.75rem;
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
-.markdown-content ul ul li {
-  margin-top: 0.25rem;
-  margin-bottom: 0;
-}
-
-.markdown-content ul ul li::before {
-  font-size: 1.25rem;
-  color: #000;
-}
-
-/* 深色模式嵌套列表项标记 */
-.dark .markdown-content ul ul li::before {
-  color: #fff;
-}
-
-/* hr标签样式 - 仅占位 */
+/* hr标签样式 */
 .markdown-content hr {
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  height: 0 !important;
-  background: none !important;
-  display: block !important;
-  width: 100% !important;
-}
-
-/* 深色模式hr标签 */
-.dark .markdown-content hr {
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  height: 0 !important;
-  background: none !important;
+  margin: 0;
+  padding: 0;
+  border: none;
+  height: 0;
+  background: none;
+  display: block;
+  width: 100%;
 }
 
 .markdown-content a {
@@ -265,7 +190,7 @@
   font-family: 'Inter', monospace;
   font-size: 0.875rem;
   color: #334155;
-  border: 1px solid #e2e8f0;
+  border: none;
 }
 
 /* 简约表格样式 - 水平黑色分割线 */
@@ -315,6 +240,13 @@ table th {
   color: #e5e7eb;
 }
 
+/* 深色模式行内代码样式 */
+.dark .markdown-content code {
+  background-color: #374151;
+  color: #e5e7eb;
+  border: none;
+}
+
 /* 数学公式样式 */
 .markdown-content .math-block {
   margin: 0.25rem 0;
@@ -330,4 +262,73 @@ table th {
 /* 深色模式下的数学公式样式 */
 .dark .markdown-content .katex {
   color: #f6f8fa;
+}
+
+/* 基础变量，方便统一调整 */
+.markdown-content {
+  --space-xs: 0.25em;
+  --space-sm: 0.5em;
+  --space-md: 1em;
+  --space-lg: 1.5em;
+  --space-xl: 2em;
+  line-height: 1.6; /* 基础行高 */
+}
+
+/* 块级元素通用间距：下方留白 */
+.markdown-content :is(p, ul, ol, dl, figure, table) {
+  margin-bottom: var(--space-md); /* 段落间默认1em */
+}
+
+/* 代码块和引用块特殊间距 */
+.markdown-content blockquote {
+  margin-top: var(--space-lg); /* 上方1.5em */
+  margin-bottom: var(--space-lg); /* 下方1.5em */
+}
+
+/* 代码块无间距 */
+.markdown-content pre {
+  margin: 0;
+}
+
+/* 标题特殊处理：上大下小 */
+.markdown-content :is(h1, h2, h3, h4, h5, h6) {
+  margin-top: var(--space-md);  /* 与上方内容拉开距离 */
+  margin-bottom: var(--space-sm); /* 紧跟自己下方的文字 */
+}
+
+/* 列表项之间 */
+.markdown-content li {
+  margin-bottom: var(--space-sm);
+}
+
+.markdown-content li:last-child {
+  margin-bottom: 0;
+}
+
+/* 列表项段落样式 */
+.ds-markdown-paragraph {
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+}
+
+.ds-markdown-paragraph span {
+  display: inline;
+}
+
+/* 任务列表段落样式 - 确保与复选框在同一行 */
+.task-list li .ds-markdown-paragraph {
+  display: inline;
+  margin: 0;
+  padding: 0;
+}
+
+/* 任务列表复选框样式 */
+.task-checkbox {
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+.task-list li .ds-markdown-paragraph span {
+  vertical-align: middle;
 }

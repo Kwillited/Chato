@@ -30,8 +30,16 @@ export default defineComponent({
 
     // 内联标签处理规则
     const inlineRules = {
-      strong: (token, key) => h('u', { key }, processInlineTokens(token.tokens, key)),
+      strong: (token, key) => {
+        // 根据原始文本判断是下划线还是加粗
+        if (token.raw && token.raw.startsWith('__') && token.raw.endsWith('__')) {
+          return h('u', { key }, processInlineTokens(token.tokens, key))
+        } else {
+          return h('strong', { key }, processInlineTokens(token.tokens, key))
+        }
+      },
       em: (token, key) => h('em', { key }, processInlineTokens(token.tokens, key)),
+      u: (token, key) => h('u', { key }, processInlineTokens(token.tokens, key)),
       link: (token, key) => h('a', {
         key,
         href: token.href,
@@ -164,17 +172,27 @@ export default defineComponent({
                     // 添加空格
                     itemChildren.push(' ')
                   } else if (token.type === 'text') {
-                    // 处理文本
+                    // 处理文本，使用 p+span 结构
                     if (token.text) {
-                      itemChildren.push(token.text)
+                      const textContent = processInlineTokens(token.tokens, tokenKey)
+                      itemChildren.push(h('p', { 
+                        key: tokenKey,
+                        class: 'ds-markdown-paragraph'
+                      }, [h('span', textContent)]))
                     }
                   } else if (token.type === 'paragraph') {
-                    // 处理段落
+                    // 处理段落，使用 p+span 结构
                     if (token.tokens) {
                       const paragraphContent = processInlineTokens(token.tokens, tokenKey)
-                      itemChildren.push(...paragraphContent)
+                      itemChildren.push(h('p', { 
+                        key: tokenKey,
+                        class: 'ds-markdown-paragraph'
+                      }, [h('span', paragraphContent)]))
                     } else if (token.text) {
-                      itemChildren.push(token.text)
+                      itemChildren.push(h('p', { 
+                        key: tokenKey,
+                        class: 'ds-markdown-paragraph'
+                      }, [h('span', token.text)]))
                     }
                   } else if (token.type === 'list') {
                     // 处理嵌套列表
@@ -198,17 +216,27 @@ export default defineComponent({
                             // 添加空格
                             nestedItemChildren.push(' ')
                           } else if (nestedToken.type === 'text') {
-                            // 处理文本
+                            // 处理文本，使用 p+span 结构
                             if (nestedToken.text) {
-                              nestedItemChildren.push(nestedToken.text)
+                              const nestedTextContent = processInlineTokens(nestedToken.tokens, nestedTokenKey)
+                              nestedItemChildren.push(h('p', { 
+                                key: nestedTokenKey,
+                                class: 'ds-markdown-paragraph'
+                              }, [h('span', nestedTextContent)]))
                             }
                           } else if (nestedToken.type === 'paragraph') {
-                            // 处理嵌套列表中的段落
+                            // 处理嵌套列表中的段落，使用 p+span 结构
                             if (nestedToken.tokens) {
                               const nestedParagraphContent = processInlineTokens(nestedToken.tokens, nestedTokenKey)
-                              nestedItemChildren.push(...nestedParagraphContent)
+                              nestedItemChildren.push(h('p', { 
+                                key: nestedTokenKey,
+                                class: 'ds-markdown-paragraph'
+                              }, [h('span', nestedParagraphContent)]))
                             } else if (nestedToken.text) {
-                              nestedItemChildren.push(nestedToken.text)
+                              nestedItemChildren.push(h('p', { 
+                                key: nestedTokenKey,
+                                class: 'ds-markdown-paragraph'
+                              }, [h('span', nestedToken.text)]))
                             }
                           }
                         })
