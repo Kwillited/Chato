@@ -13,6 +13,7 @@
     "highlight.js": "^11.11.1",
     "katex": "^0.16.33",
     "marked": "^17.0.2",
+    "mermaid": "^11.12.3",
     "pinia": "^3.0.3",
     "pinia-plugin-persistedstate": "^4.7.1",
     "three": "^0.180.0",

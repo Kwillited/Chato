@@ -1,6 +1,7 @@
 import { createMarkdownPlugin } from './renderer.js'
 import { registerHighlighter } from './highlighter.js'
 import { setupCopyHandler } from './copyHandler.js'
+import MarkdownRender from './MarkdownRender.vue'
 
 /**
  * Markdown 渲染插件
@@ -34,6 +35,12 @@ export default {
     app.config.globalProperties.$markdown = markdown
     app.provide('markdown', markdown)
     
+    // 全局注册组件
+    app.component('MarkdownRender', MarkdownRender)
+    
     console.log('Markdown 插件已初始化')
   }
 }
+
+// 导出组件，支持直接导入
+export { MarkdownRender }

@@ -1,6 +1,6 @@
 <template>
   <!-- 聊天快捷跳转模块 -->
-  <div class="fixed flex flex-col items-center z-10" :style="indicatorPosition">
+  <div v-if="userMessages.length > 1" class="fixed flex flex-col items-center z-10" :style="indicatorPosition">
     <div class="flex flex-col items-center">
       <!-- 遍历所有用户消息 -->
       <div 

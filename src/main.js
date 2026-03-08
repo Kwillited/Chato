@@ -6,9 +6,6 @@ import router from './router/index.js';
 // 导入Markdown插件
 import MarkdownPlugin from './plugins/markdown/index.js';
 
-// 导入代码块样式
-import './assets/styles/codeBlock.css';
-
 // 等待DOM完全加载后再初始化Vue应用
 document.addEventListener('DOMContentLoaded', () => {
   try {

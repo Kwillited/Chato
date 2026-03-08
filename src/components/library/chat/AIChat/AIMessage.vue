@@ -11,7 +11,9 @@
       {{ getEventLabel(messageValue.event) }}
     </div>
     
-    <div v-if="contentWithoutTools" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="parsedContent" :key="updateKey"></div>
+    <div v-if="contentWithoutTools" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed">
+      <MarkdownRender :content="contentWithoutTools" />
+    </div>
     
     <!-- 错误状态显示 -->
     <div v-if="messageValue.error" class="chat-error mt-2">
@@ -50,7 +52,6 @@
 import { computed } from 'vue'
 import { Loading, ToolExecutionStatus, ToolCallPlan } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
-import { useMarkdown } from '../../../../composables/useMarkdown.js'
 
 const props = defineProps({
   message: {
@@ -125,22 +126,7 @@ const hasContentToShow = computed(() => {
   return trimmedContent && hasNonToolContent
 })
 
-// 使用Markdown组合式函数
-const { renderMarkdown } = useMarkdown()
 
-// 解析Markdown内容
-const parsedContent = computed(() => {
-  const content = contentWithoutTools.value
-  if (!content) return ''
-  
-  try {
-    const result = renderMarkdown(content);
-    return result;
-  } catch (error) {
-    console.error('解析Markdown错误:', error);
-    return content.replace(/\n/g, '<br>');
-  }
-});
 </script>
 
 <style scoped>

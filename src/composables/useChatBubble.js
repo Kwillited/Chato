@@ -1,7 +1,6 @@
 import { computed, ref, watch, onMounted, onUnmounted, nextTick, inject } from 'vue'
 import { copyToClipboard } from '../utils/browser.js'
 import { useNotification } from './useNotification.js'
-import { useMarkdown } from './useMarkdown.js'
 
 /**
  * 聊天气泡组件的公共逻辑
@@ -31,29 +30,9 @@ export function useChatBubble(props) {
     return messageValue.value.content || messageValue.value.text || ''
   })
 
-  // 使用Markdown组合式函数
-  const { renderMarkdown } = useMarkdown()
-
-  // 格式化消息内容（支持Markdown）
+  // 格式化消息内容（现在由 MarkdownRender 组件处理）
   const formattedContent = computed(() => {
-    const content = messageContent.value
-    if (!content) return ''
-
-    console.log('原始Markdown内容:', content);
-
-    // 使用Markdown插件渲染
-    let parsedContent = ''
-    try {
-      console.log('调用Markdown插件解析Markdown');
-      parsedContent = renderMarkdown(content);
-      console.log('Markdown解析结果:', parsedContent);
-    } catch (error) {
-      console.error('Markdown解析错误:', error);
-      parsedContent = content.replace(/\n/g, '<br>');
-      console.log('错误处理后的内容:', parsedContent);
-    }
-    
-    return parsedContent
+    return messageContent.value
   })
 
   // 用于触发更新的key值
