@@ -1,0 +1,333 @@
+/* Markdown 样式美化 */
+@import './code-block-styles.css';
+
+.markdown-content {
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+.markdown-content h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-top: 3rem !important;
+  margin-bottom: 0 !important;
+  color: #1e293b;
+}
+
+.markdown-content h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 2.5rem !important;
+  margin-bottom: 0 !important;
+  color: #1e293b;
+}
+
+.markdown-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 2rem !important;
+  margin-bottom: 0 !important;
+  color: #1e293b;
+}
+
+.markdown-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0 !important;
+  color: #1e293b;
+}
+
+.markdown-content h5 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0 !important;
+  color: #1e293b;
+}
+
+.markdown-content h6 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 1rem !important;
+  margin-bottom: 0 !important;
+  color: #1e293b;
+}
+
+/* 深色模式标题颜色 */
+.dark .markdown-content h1,
+.dark .markdown-content h2,
+.dark .markdown-content h3,
+.dark .markdown-content h4,
+.dark .markdown-content h5,
+.dark .markdown-content h6 {
+  color: #fff;
+}
+
+/* 连续标题间距 */
+.markdown-content h1 + h2,
+.markdown-content h2 + h3,
+.markdown-content h3 + h4,
+.markdown-content h4 + h5,
+.markdown-content h5 + h6 {
+  margin-top: 2.5rem !important;
+}
+
+.markdown-content h3 + h3 {
+  margin-top: 2.5rem !important;
+}
+
+.markdown-content p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-content ul, 
+.markdown-content ol {
+  margin-top: 1rem;
+  margin-bottom: 0;
+  padding-left: 1.5rem;
+}
+
+/* 基础无序列表样式 */
+.markdown-content ul {
+  list-style-type: none; /* 隐藏默认列表标记 */
+  padding-left: 0;
+}
+
+/* 优化的ul列表样式 */
+.markdown-content ul li {
+  margin-top: 0.5rem; /* 增加列表项间距 */
+  margin-bottom: 0;
+  padding-left: 1.75rem; /* 为自定义标记留出空间 */
+  position: relative;
+  transition: all 0.2s ease; /* 添加过渡效果 */
+  line-height: 1.6; /* 优化行高 */
+}
+
+/* 自定义列表项标记 */
+.markdown-content ul li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #000; /* 黑色 */
+  font-size: 1.5rem;
+  line-height: 1;
+  top: 0.15rem;
+  transition: transform 0.2s ease;
+}
+
+/* 深色模式列表项标记 */
+.dark .markdown-content ul li::before {
+  color: #fff; /* 白色 */
+}
+
+/* 有序列表样式 - 优化版 */
+.markdown-content ol {
+  list-style-type: none; /* 隐藏默认列表标记 */
+  padding-left: 0;
+}
+
+/* 优化的ol列表样式 */
+.markdown-content ol li {
+  margin-top: 0.5rem; /* 增加列表项间距 */
+  margin-bottom: 0;
+  padding-left: 1.75rem; /* 为序号留出空间 */
+  position: relative;
+  transition: all 0.2s ease; /* 添加过渡效果 */
+  line-height: 1.6; /* 优化行高 */
+}
+
+/* 自定义有序列表项标记 */
+.markdown-content ol li::before {
+  content: counter(list-item) ".";
+  counter-increment: list-item;
+  position: absolute;
+  left: 0;
+  color: #000; /* 黑色 */
+  font-size: 1rem;
+  line-height: 1;
+  top: 0.15rem;
+  transition: transform 0.2s ease;
+}
+
+/* 深色模式有序列表项标记 */
+.dark .markdown-content ol li::before {
+  color: #fff; /* 白色 */
+}
+
+/* 嵌套有序列表样式优化 */
+.markdown-content ol ol {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+  padding-left: 0;
+  counter-reset: list-item;
+}
+
+.markdown-content ol ol li {
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+  padding-left: 1.75rem;
+}
+
+/* 重置嵌套列表的计数器 */
+.markdown-content ol {
+  counter-reset: list-item;
+}
+
+/* 嵌套列表样式优化 */
+.markdown-content ul ul {
+  margin-top: 0.5rem;
+  margin-bottom: 0;
+}
+
+.markdown-content ul ul li {
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
+.markdown-content ul ul li::before {
+  font-size: 1.25rem;
+  color: #000;
+}
+
+/* 深色模式嵌套列表项标记 */
+.dark .markdown-content ul ul li::before {
+  color: #fff;
+}
+
+/* hr标签样式 - 仅占位 */
+.markdown-content hr {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  height: 0 !important;
+  background: none !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+/* 深色模式hr标签 */
+.dark .markdown-content hr {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  height: 0 !important;
+  background: none !important;
+}
+
+.markdown-content a {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #e2e8f0;
+  padding-left: 1rem;
+  margin-left: 0;
+  margin-right: 0;
+  margin-bottom: 1rem;
+  color: #64748b;
+  font-style: italic;
+}
+
+
+
+/* 确保markdown内容容器不会被内部代码块拉伸 */
+.markdown-content {
+  overflow-x: hidden;
+  overflow-y: hidden;
+  max-width: 100%;
+}
+
+/* 禁止消息气泡触发滚动条 */
+.chat-message-container {
+  overflow: hidden;
+}
+
+/* 确保代码块不会触发滚动条 */
+.code-container {
+  overflow: hidden;
+}
+
+/* 禁止消息气泡内的任何元素触发滚动条 */
+.bg-primary\/20,
+.bg-white.dark\:bg-gray-800,
+.dark\:border.dark\:border-gray-700 {
+  overflow: hidden !important;
+}
+
+/* 行内代码样式 */
+.markdown-content code {
+  background-color: #f8fafc;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: 'Inter', monospace;
+  font-size: 0.875rem;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+/* 简约表格样式 - 水平黑色分割线 */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0;
+  margin-bottom: 25px;
+}
+
+table th,
+table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #000 !important;
+}
+
+table th {
+  font-weight: 600;
+  text-transform: none;
+  font-size: 0.875rem;
+}
+
+/* 表格响应式处理 */
+@media (max-width: 640px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* 深色模式表格样式 */
+.dark table th,
+.dark table td {
+  border-bottom: 1px solid #fff !important;
+}
+
+/* 深色模式代码块样式 */
+.dark .markdown-content pre {
+  background-color: #1f2937;
+}
+
+/* 深色模式代码头部样式 */
+.dark .markdown-content .code-header {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}
+
+/* 数学公式样式 */
+.markdown-content .math-block {
+  margin: 0.25rem 0;
+  padding: 0.25rem;
+  text-align: center;
+}
+
+/* 行内数学公式样式 */
+.markdown-content .katex {
+  font-size: 1.1em;
+}
+
+/* 深色模式下的数学公式样式 */
+.dark .markdown-content .katex {
+  color: #f6f8fa;
+}

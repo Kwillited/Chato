@@ -1,0 +1,286 @@
+/* 代码块和 Mermaid 共享样式 */
+
+/* 代码块容器样式 */
+.code-container {
+  position: relative;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 100%;
+}
+
+/* 代码块头部样式 */
+.code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  background-color: #f6f8fa;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+/* 代码语言标签样式 */
+.code-language {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #57606a;
+  text-transform: lowercase;
+}
+
+/* 代码头部操作按钮容器 */
+.code-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 复制代码按钮样式 */
+.copy-code-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 0.25rem;
+  background-color: transparent;
+  color: #656d76;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* 复制代码按钮悬停样式 */
+.copy-code-btn:hover {
+  background-color: rgba(175, 184, 193, 0.2);
+  color: #24292e;
+}
+
+/* 复制成功样式 */
+.copy-code-btn.text-green-400 {
+  color: #34d399;
+}
+
+/* Mermaid 切换滑块样式 */
+.mermaid-toggle-slider {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* 滑块轨道样式 */
+.slider-track {
+  position: relative;
+  width: 40px;
+  height: 20px;
+  background-color: #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+/* 滑块拇指样式 */
+.slider-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 滑块图标样式 */
+.slider-thumb i {
+  font-size: 9px;
+  color: #656d76;
+  transition: all 0.3s ease;
+}
+
+/* 激活状态的滑块轨道 */
+.mermaid-toggle-slider.active .slider-track {
+  background-color: #333333;
+}
+
+/* 激活状态的滑块拇指 */
+.mermaid-toggle-slider.active .slider-thumb {
+  transform: translateX(20px);
+}
+
+/* 激活状态的滑块图标 */
+.mermaid-toggle-slider.active .slider-thumb i {
+  color: #333333;
+}
+
+/* 悬停状态的滑块 */
+.mermaid-toggle-slider:hover .slider-track {
+  background-color: #cbd5e1;
+}
+
+/* 激活状态悬停的滑块轨道 */
+.mermaid-toggle-slider.active:hover .slider-track {
+  background-color: #1a1a1a;
+}
+
+/* Mermaid 容器样式 */
+.mermaid-container {
+  position: relative;
+  background-color: #f6f8fa;
+  overflow: hidden;
+  /* 设置固定高度，避免高度变化导致的闪烁 */
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 确保 SVG 适应容器大小 */
+.mermaid-container svg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Mermaid 代码样式 */
+.mermaid-code {
+  margin: 0;
+  padding: 1rem;
+  background-color: #f6f8fa;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Mermaid 代码内的代码样式 */
+.mermaid-code code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #24292e;
+  background-color: transparent;
+  padding: 0;
+}
+
+/* 代码块主体样式 */
+.code-container pre {
+  margin: 0;
+  padding: 1rem;
+  background-color: #f6f8fa;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* 代码块内的代码样式 */
+.code-container pre code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #24292e;
+  background-color: transparent;
+  padding: 0;
+}
+
+/* 深色模式下的代码块头部样式 */
+.dark .code-header {
+  background-color: #24292e;
+  border-bottom: 1px solid #30363d;
+}
+
+/* 深色模式下的代码语言标签样式 */
+.dark .code-language {
+  color: #d1d9e0;
+}
+
+/* 深色模式下的复制代码按钮样式 */
+.dark .copy-code-btn {
+  color: #8b949e;
+}
+
+/* 深色模式下的复制代码按钮悬停样式 */
+.dark .copy-code-btn:hover {
+  background-color: rgba(175, 184, 193, 0.1);
+  color: #f6f8fa;
+}
+
+/* 深色模式下的滑块轨道 */
+.dark .slider-track {
+  background-color: #374151;
+}
+
+/* 深色模式下的滑块拇指 */
+.dark .slider-thumb {
+  background-color: #1f2937;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* 深色模式下的滑块图标 */
+.dark .slider-thumb i {
+  color: #9ca3af;
+}
+
+/* 深色模式下激活状态的滑块轨道 */
+.dark .mermaid-toggle-slider.active .slider-track {
+  background-color: #ffffff;
+}
+
+/* 深色模式下激活状态的滑块图标 */
+.dark .mermaid-toggle-slider.active .slider-thumb i {
+  color: #ffffff;
+}
+
+/* 深色模式下悬停状态的滑块 */
+.dark .mermaid-toggle-slider:hover .slider-track {
+  background-color: #4b5563;
+}
+
+/* 深色模式下激活状态悬停的滑块轨道 */
+.dark .mermaid-toggle-slider.active:hover .slider-track {
+  background-color: #e5e7eb;
+}
+
+/* 深色模式下的 Mermaid 容器样式 */
+.dark .mermaid-container {
+  background-color: #24292e;
+}
+
+/* 深色模式下的 Mermaid 图表样式 */
+.dark .mermaid-container .mermaid {
+  background-color: #24292e;
+}
+
+/* 深色模式下的 Mermaid 代码样式 */
+.dark .mermaid-code {
+  background-color: #24292e;
+}
+
+/* 深色模式下的 Mermaid 代码内的代码样式 */
+.dark .mermaid-code code {
+  color: #f6f8fa;
+}
+
+/* 深色模式下的代码块主体样式 */
+.dark .code-container pre {
+  background-color: #24292e;
+}
+
+/* 深色模式下的代码块内的代码样式 */
+.dark .code-container pre code {
+  color: #f6f8fa;
+}
+
+/* 深色模式代码块样式 */
+.dark .markdown-content pre {
+  background-color: #1f2937;
+}
+
+/* 深色模式代码头部样式 */
+.dark .markdown-content .code-header {
+  background-color: #1f2937;
+  color: #e5e7eb;
+}

@@ -379,109 +379,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.code-container {
-  margin: 1em 0;
-  border-radius: 5px;
-  overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.code-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #f5f5f5;
-  padding: 0.5em 1em;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.code-language {
-  font-size: 0.85em;
-  font-weight: 600;
-  color: #666;
-}
-
-.code-header-actions {
-  display: flex;
-  gap: 0.5em;
-}
-
-.mermaid-toggle-slider {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  padding: 0.25em;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.mermaid-toggle-slider:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.mermaid-toggle-slider.active {
-  background-color: rgba(0, 123, 255, 0.1);
-}
-
-.slider-track {
-  display: flex;
-  align-items: center;
-}
-
-.slider-thumb {
+/* 组件特定样式 */
+.svg-container {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-}
-
-.copy-code-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0.25em;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.copy-code-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.mermaid-container {
-  background-color: #fff;
-  padding: 1em;
-  border-bottom: 1px solid #e0e0e0;
-  /* 设置固定高度，避免高度变化导致的闪烁 */
-  height: 300px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-/* 确保 SVG 适应容器大小 */
-.mermaid-container svg {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.mermaid-code {
-  background-color: #f5f5f5;
-  margin: 0;
-  padding: 1em;
-  overflow-x: auto;
-}
-
-.mermaid-code code {
-  background-color: transparent;
-  padding: 0;
-  font-family: 'Courier New', Courier, monospace;
 }
 </style>
