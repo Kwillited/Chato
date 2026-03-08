@@ -35,62 +35,8 @@ export function createMarkdownPlugin(config) {
       actualCode = String(code)
     }
     
-    // 处理 Mermaid 图表
-    if (actualLanguage === 'mermaid') {
-      const mermaidId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const codeBlockId = `code-block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      const containerId = `mermaid-container-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      return `
-        <div class="code-container">
-          <div class="code-header">
-            <span class="code-language">mermaid</span>
-            <div class="code-header-actions">
-              <div class="mermaid-toggle-slider"
-                data-mermaid-id="${mermaidId}"
-                data-code-id="${codeBlockId}"
-                title="切换视图"
-              >
-                <div class="slider-track">
-                  <div class="slider-thumb">
-                    <i class="fa-solid fa-chart-simple"></i>
-                  </div>
-                </div>
-              </div>
-              <button 
-                class="copy-code-btn"
-                data-code-block-id="${codeBlockId}"
-                title="复制代码"
-              >
-                <i class="fa-solid fa-copy"></i>
-              </button>
-            </div>
-          </div>
-          <div class="mermaid-container" id="${containerId}">
-            <pre class="mermaid" id="${mermaidId}">${actualCode}</pre>
-          </div>
-          <pre class="mermaid-code" id="${codeBlockId}" style="display: none;"><code class="language-plaintext">${actualCode}</code></pre>
-        </div>
-      `
-    }
-    
-    const displayLanguage = actualLanguage && actualLanguage !== 'text' ? actualLanguage : 'plaintext'
-    const codeBlockId = `code-block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    
-    return `
-      <div class="code-container">
-        <div class="code-header">
-          <span class="code-language">${displayLanguage}</span>
-          <button 
-            class="copy-code-btn"
-            data-code-block-id="${codeBlockId}"
-            title="复制代码"
-          >
-            <i class="fa-solid fa-copy"></i>
-          </button>
-        </div>
-        <pre><code class="language-${displayLanguage}" id="${codeBlockId}">${actualCode}</code></pre>
-      </div>
-    `
+    // 简化代码块渲染，返回原始代码
+    return actualCode
   }
   
   // 设置 marked 配置
@@ -137,128 +83,7 @@ export function createMarkdownPlugin(config) {
     return result
   }
   
-  /**
-   * 渐进式渲染 Mermaid 图表
-   * @param {string} containerId 容器元素 ID
-   * @param {string} code Mermaid 代码
-   */
-  const renderMermaidProgressive = (containerId, code) => {
-    // 检查容器是否存在的函数
-    const checkContainer = () => {
-      const container = document.getElementById(containerId)
-      if (container) {
-        // 容器存在，开始渲染
-        startRendering(container, code)
-      } else {
-        // 容器不存在，继续检查（最多检查 10 次，每次间隔 50ms）
-        if (checkContainer.attempts < 10) {
-          checkContainer.attempts++
-          setTimeout(checkContainer, 50)
-        }
-      }
-    }
-    
-    // 初始化检查次数
-    checkContainer.attempts = 0
-    
-    // 开始检查
-    checkContainer()
-    
-    // 开始渲染函数
-    function startRendering(container, code) {
-      // 清理代码，移除 Markdown 代码块 delimiters
-      let cleanedCode = code.trim()
-      // 移除开头的 ```mermaid
-      if (cleanedCode.startsWith('```mermaid')) {
-        cleanedCode = cleanedCode.substring('```mermaid'.length)
-      }
-      // 移除结尾的 ```
-      if (cleanedCode.endsWith('```')) {
-        cleanedCode = cleanedCode.substring(0, cleanedCode.length - 3)
-      }
-      cleanedCode = cleanedCode.trim()
-      
-      // 分割代码行
-      const lines = cleanedCode.split('\n').filter(line => line.trim() !== '')
-      if (lines.length === 0) return
-      
-      // 初始化渲染
-      let currentCode = ''
-      let lineIndex = 0
-      let isRendering = false
-      
-      // 渐进式渲染函数
-      const renderNextLine = () => {
-        if (lineIndex < lines.length && !isRendering) {
-          // 添加下一行代码到缓冲区
-          currentCode += lines[lineIndex] + '\n'
-          lineIndex++
-          
-          // 异步验证语法正确性
-          setTimeout(() => {
-            try {
-              const parseResult = mermaid.parse(currentCode)
-              if (parseResult) {
-                // 语法正确，进行渲染
-                isRendering = true
-                
-                // 生成唯一 ID
-                const renderId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-                
-                // 使用 mermaid.render 方法进行渲染
-                mermaid.render(renderId, currentCode)
-                  .then(result => {
-                    // 渲染成功，更新容器
-                    container.innerHTML = result.svg
-                    isRendering = false
-                    // 继续渲染下一行
-                    setTimeout(renderNextLine, 0)
-                  })
-                  .catch(error => {
-                    console.error('Mermaid 渲染错误:', error)
-                    isRendering = false
-                    // 继续渲染下一行
-                    setTimeout(renderNextLine, 0)
-                  })
-              } else {
-                // 语法不正确时，继续处理下一行
-                isRendering = false
-                // 继续渲染下一行
-                setTimeout(renderNextLine, 0)
-              }
-            } catch (error) {
-              // 语法验证错误是预期的，不打印错误信息
-              isRendering = false
-              // 继续渲染下一行
-              setTimeout(renderNextLine, 0)
-            }
-          }, 0)
-        }
-      }
-      
-      // 开始渐进式渲染
-      renderNextLine()
-    }
-  }
-  
-  /**
-   * 渲染所有 Mermaid 图表
-   */
-  const renderMermaidCharts = () => {
-    const codeContainers = document.querySelectorAll('.code-container')
-    codeContainers.forEach(container => {
-      const mermaidContainer = container.querySelector('.mermaid-container')
-      const mermaidCode = container.querySelector('.mermaid-code code')
-      
-      if (mermaidContainer && mermaidCode && !mermaidContainer.dataset.rendered) {
-        const code = mermaidCode.textContent
-        // 标记为已渲染，避免重复渲染
-        mermaidContainer.dataset.rendered = 'true'
-        // 立即处理 Mermaid 渲染
-        renderMermaidProgressive(mermaidContainer.id, code)
-      }
-    })
-  }
+
   
   /**
    * 渲染 Markdown 内容
@@ -290,12 +115,6 @@ export function createMarkdownPlugin(config) {
           
           highlightCode()
         }
-        
-        // 渲染 Mermaid 图表
-        renderMermaidCharts()
-        
-        // 绑定 Mermaid 切换按钮事件
-        bindMermaidToggleEvents()
       })
       
       return html
@@ -305,48 +124,7 @@ export function createMarkdownPlugin(config) {
     }
   }
   
-  /**
-   * 绑定 Mermaid 切换滑块事件
-   */
-  const bindMermaidToggleEvents = () => {
-    const toggleSliders = document.querySelectorAll('.mermaid-toggle-slider')
-    toggleSliders.forEach(slider => {
-      slider.addEventListener('click', () => {
-        const codeId = slider.getAttribute('data-code-id')
-        const codeContainer = slider.closest('.code-container')
-        const mermaidContainer = codeContainer.querySelector('.mermaid-container')
-        const codeElement = document.getElementById(codeId)
-        
-        if (mermaidContainer && codeElement) {
-          const isMermaidVisible = mermaidContainer.style.display !== 'none'
-          
-          if (isMermaidVisible) {
-            // 切换到代码视图
-            mermaidContainer.style.display = 'none'
-            codeElement.style.display = 'block'
-            // 更新滑块状态
-            slider.classList.add('active')
-            // 切换图标
-            const icon = slider.querySelector('i')
-            if (icon) {
-              icon.className = 'fa-solid fa-code'
-            }
-          } else {
-            // 切换到图表视图
-            mermaidContainer.style.display = 'block'
-            codeElement.style.display = 'none'
-            // 更新滑块状态
-            slider.classList.remove('active')
-            // 切换图标
-            const icon = slider.querySelector('i')
-            if (icon) {
-              icon.className = 'fa-solid fa-chart-simple'
-            }
-          }
-        }
-      })
-    })
-  }
+
 
   /**
    * 解析 Markdown 为 AST
