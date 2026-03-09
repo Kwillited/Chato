@@ -8,11 +8,11 @@ globalThis.hljs = hljs
 globalThis.mermaid = mermaid
 
 /**
- * 创建 Markdown 渲染插件
+ * 创建 Chato Renderer 插件
  * @param {Object} config 配置选项
  * @returns {Object} 渲染实例
  */
-export function createMarkdownPlugin(config) {
+export function createChatoRenderer(config) {
   // 配置渲染器
   const renderer = new marked.Renderer()
   
@@ -61,8 +61,8 @@ export function createMarkdownPlugin(config) {
       // 数学公式处理已移至 MarkdownRender 组件中
       let html = marked(content)
       
-      // 打印 marked 解释后的内容
-      console.log('Marked 渲染结果:', html)
+      // 打印渲染结果
+      console.log('Chato Renderer 渲染结果:', html)
       
       // 立即执行代码高亮和 Mermaid 渲染
       // 使用 requestAnimationFrame 确保 DOM 已更新但不会阻塞渲染
@@ -80,7 +80,7 @@ export function createMarkdownPlugin(config) {
       
       return html
     } catch (error) {
-      console.error('Markdown 解析错误:', error)
+      console.error('Chato Renderer 解析错误:', error)
       return content.replace(/\n/g, '<br>')
     }
   }

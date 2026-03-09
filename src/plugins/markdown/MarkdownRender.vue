@@ -2,6 +2,8 @@
 import { ref, computed, watch, onMounted, h, defineComponent } from 'vue'
 import { createMarkdownPlugin } from './renderer.js'
 import CodeBlock from './components/CodeBlock.vue'
+import katex from 'katex'
+import 'katex/dist/katex.min.css'
 
 export default defineComponent({
   name: 'MarkdownRender',
@@ -82,20 +84,276 @@ export default defineComponent({
       text: (token) => token.text
     }
 
+    // 解析 HTML 字符串为 DOM 元素
+    const parseHtmlString = (htmlString) => {
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(htmlString, 'text/html')
+      // 检查是否解析成功
+      const parserError = doc.querySelector('parsererror')
+      if (parserError) {
+        console.error('HTML 解析错误:', parserError.textContent)
+        return null
+      }
+      return doc.body
+    }
+
+    // 递归转换 DOM 元素为 VNode
+    const convertElementToVNode = (element, key) => {
+      if (element.nodeType === Node.TEXT_NODE) {
+        return element.textContent
+      } else if (element.nodeType === Node.ELEMENT_NODE) {
+        const props = { key }
+        
+        // 处理属性
+        for (let i = 0; i < element.attributes.length; i++) {
+          const attr = element.attributes[i]
+          props[attr.name] = attr.value
+        }
+        
+        // 处理样式
+        if (element.style) {
+          props.style = {}
+          for (let i = 0; i < element.style.length; i++) {
+            const property = element.style[i]
+            props.style[property] = element.style[property]
+          }
+        }
+        
+        // 处理子节点
+        const children = Array.from(element.childNodes).map((child, index) => 
+          convertElementToVNode(child, `${key}-child-${index}`)
+        ).filter(child => child !== null && child !== '')
+        
+        // 创建 VNode
+        return h(element.tagName.toLowerCase(), props, children)
+      }
+      return null
+    }
+
+    // 处理数学公式
+    const processMathFormulasInText = (text) => {
+    if (!text) return [text];
+    
+    // 长分隔符优先：块级公式先匹配
+    // 使用 [\s\S]*? 来匹配包括换行符在内的所有字符
+    const parts = text.split(/(\\\[[\s\S]*?\\\]|\$\$[\s\S]*?\$\$|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g);
+    
+    const result = [];
+    
+    parts.forEach((part, index) => {
+      if (!part) return; // 跳过空字符串
+      
+      // 块级公式：\[...\]
+      if (part.startsWith('\\[') && part.endsWith('\\]')) {
+        // 移除首尾的 \[ 和 \]，并清理前后空白
+        const latex = part.slice(2, -2).trim();
+        try {
+          // 块级公式使用 displayMode: true
+          const html = katex.renderToString(latex, {
+            throwOnError: false,
+            displayMode: true,
+            output: 'htmlAndMathml'
+          });
+          
+          // 直接返回 HTML 字符串
+          result.push(html);
+        } catch (error) {
+          console.error('KaTeX 块级公式渲染错误:', error);
+          result.push(part); // 降级显示原始文本
+        }
+      }
+      // 块级公式：$$...$$
+      else if (part.startsWith('$$') && part.endsWith('$$')) {
+        // 移除首尾的 $$ 和 $$，并清理前后空白
+        const latex = part.slice(2, -2).trim();
+        try {
+          // 块级公式使用 displayMode: true
+          const html = katex.renderToString(latex, {
+            throwOnError: false,
+            displayMode: true,
+            output: 'htmlAndMathml'
+          });
+          
+          // 直接返回 HTML 字符串
+          result.push(html);
+        } catch (error) {
+          console.error('KaTeX 块级公式渲染错误:', error);
+          result.push(part);
+        }
+      }
+      // 行内公式：\(...\)
+      else if (part.startsWith('\\(') && part.endsWith('\\)')) {
+        // 移除首尾的 \( 和 \)，并清理前后空白
+        const latex = part.slice(2, -2).trim();
+        try {
+          // 直接渲染为 HTML
+          const html = katex.renderToString(latex, {
+            throwOnError: false,
+            displayMode: false,
+            output: 'htmlAndMathml'
+          });
+          
+          // 直接返回 HTML 字符串
+          result.push(html);
+        } catch (error) {
+          console.error('KaTeX 行内公式渲染错误:', error);
+          result.push(part);
+        }
+      }
+      // 行内公式：$...$
+      else if (part.startsWith('$') && part.endsWith('$')) {
+        // 移除首尾的 $ 和 $，并清理前后空白
+        const latex = part.slice(1, -1).trim();
+        try {
+          // 直接渲染为 HTML
+          const html = katex.renderToString(latex, {
+            throwOnError: false,
+            displayMode: false,
+            output: 'htmlAndMathml'
+          });
+          
+          // 直接返回 HTML 字符串
+          result.push(html);
+        } catch (error) {
+          console.error('KaTeX 行内公式渲染错误:', error);
+          result.push(part);
+        }
+      } else {
+        // 普通文本直接返回字符串，Vue 会处理成文本节点
+        result.push(part);
+      }
+    });
+    
+    return result;
+  }
+
     // 处理内联标签
     const processInlineTokens = (tokens, parentKey) => {
       if (!tokens || !Array.isArray(tokens)) return []
       
-      return tokens.map((token, index) => {
+      // 合并连续的文本节点和转义节点，以便处理跨节点的数学公式
+      const mergedTokens = []
+      let currentText = ''
+      
+      tokens.forEach((token, index) => {
+        if (token.type === 'text' || token.type === 'br' || token.type === 'escape') {
+          if (token.type === 'escape') {
+            // 对于转义节点，使用 raw 来保留反斜杠
+            currentText += token.raw || ''
+          } else {
+            currentText += token.text || '\n'
+          }
+        } else {
+          if (currentText) {
+            mergedTokens.push({ type: 'text', text: currentText })
+            currentText = ''
+          }
+          mergedTokens.push(token)
+        }
+      })
+      
+      if (currentText) {
+        mergedTokens.push({ type: 'text', text: currentText })
+      }
+      
+      const result = []
+      
+      mergedTokens.forEach((token, index) => {
         const tokenKey = `${parentKey}-token-${index}`
         const rule = inlineRules[token.type]
         
         if (rule) {
-          return rule(token, tokenKey)
+          if (token.type === 'text' && (token.text.includes('$$') || token.text.includes('$') || token.text.includes('\\(') || token.text.includes('\\['))) {
+            // 处理包含数学公式的文本
+            const processedParts = processMathFormulasInText(token.text)
+            if (processedParts.length > 1 || (processedParts.length === 1 && processedParts[0].includes('katex'))) {
+              // 如果文本被处理过，添加处理后的 VNode
+              processedParts.forEach((part, partIndex) => {
+                if (typeof part === 'string' && part.includes('katex')) {
+                  // 处理 KaTeX 生成的 HTML，转换为 VNode
+                  try {
+                    const htmlElement = parseHtmlString(part)
+                    if (htmlElement) {
+                      // 转换 HTML 为 VNode
+                      const childVNodes = Array.from(htmlElement.childNodes).map((child, childIndex) => 
+                        convertElementToVNode(child, `${tokenKey}-katex-${partIndex}-${childIndex}`)
+                      ).filter(child => child !== null && child !== '')
+                      // 直接添加转换后的 VNode，不添加额外的 span 包裹
+                      result.push(...childVNodes)
+                    } else {
+                      // 解析失败时降级为原始 HTML
+                      result.push(h('span', {
+                        key: `${tokenKey}-katex-${partIndex}`,
+                        innerHTML: part
+                      }))
+                    }
+                  } catch (error) {
+                    console.error('KaTeX HTML 转换错误:', error)
+                    // 出错时降级为原始 HTML
+                    result.push(h('span', {
+                      key: `${tokenKey}-katex-${partIndex}`,
+                      innerHTML: part
+                    }))
+                  }
+                } else {
+                  result.push(part)
+                }
+              })
+            } else {
+              // 否则使用原始规则处理
+              result.push(rule(token, tokenKey))
+            }
+          } else {
+            result.push(rule(token, tokenKey))
+          }
         } else {
-          return token.text || ''
+          if (token.text && (token.text.includes('$$') || token.text.includes('$') || token.text.includes('\\(') || token.text.includes('\\['))) {
+            // 处理包含数学公式的文本
+            const processedParts = processMathFormulasInText(token.text)
+            if (processedParts.length > 1 || (processedParts.length === 1 && processedParts[0].includes('katex'))) {
+              // 如果文本被处理过，添加处理后的 VNode
+              processedParts.forEach((part, partIndex) => {
+                if (typeof part === 'string' && part.includes('katex')) {
+                  // 处理 KaTeX 生成的 HTML，转换为 VNode
+                  try {
+                    const htmlElement = parseHtmlString(part)
+                    if (htmlElement) {
+                      // 转换 HTML 为 VNode
+                      const childVNodes = Array.from(htmlElement.childNodes).map((child, childIndex) => 
+                        convertElementToVNode(child, `${tokenKey}-katex-${partIndex}-${childIndex}`)
+                      ).filter(child => child !== null && child !== '')
+                      // 直接添加转换后的 VNode，不添加额外的 span 包裹
+                      result.push(...childVNodes)
+                    } else {
+                      // 解析失败时降级为原始 HTML
+                      result.push(h('span', {
+                        key: `${tokenKey}-katex-${partIndex}`,
+                        innerHTML: part
+                      }))
+                    }
+                  } catch (error) {
+                    console.error('KaTeX HTML 转换错误:', error)
+                    // 出错时降级为原始 HTML
+                    result.push(h('span', {
+                      key: `${tokenKey}-katex-${partIndex}`,
+                      innerHTML: part
+                    }))
+                  }
+                } else {
+                  result.push(part)
+                }
+              })
+            } else {
+              // 否则添加原始文本
+              result.push(token.text || '')
+            }
+          } else {
+            result.push(token.text || '')
+          }
         }
       })
+      
+      return result
     }
 
     // 解析 Markdown 为 VNode 树
@@ -172,27 +430,27 @@ export default defineComponent({
                     // 添加空格
                     itemChildren.push(' ')
                   } else if (token.type === 'text') {
-                    // 处理文本，使用 p+span 结构
+                    // 处理文本，直接使用 processInlineTokens 的返回值
                     if (token.text) {
                       const textContent = processInlineTokens(token.tokens, tokenKey)
                       itemChildren.push(h('p', { 
                         key: tokenKey,
                         class: 'ds-markdown-paragraph'
-                      }, [h('span', textContent)]))
+                      }, textContent))
                     }
                   } else if (token.type === 'paragraph') {
-                    // 处理段落，使用 p+span 结构
+                    // 处理段落，直接使用 processInlineTokens 的返回值
                     if (token.tokens) {
                       const paragraphContent = processInlineTokens(token.tokens, tokenKey)
                       itemChildren.push(h('p', { 
                         key: tokenKey,
                         class: 'ds-markdown-paragraph'
-                      }, [h('span', paragraphContent)]))
+                      }, paragraphContent))
                     } else if (token.text) {
                       itemChildren.push(h('p', { 
                         key: tokenKey,
                         class: 'ds-markdown-paragraph'
-                      }, [h('span', token.text)]))
+                      }, token.text))
                     }
                   } else if (token.type === 'list') {
                     // 处理嵌套列表
@@ -216,27 +474,27 @@ export default defineComponent({
                             // 添加空格
                             nestedItemChildren.push(' ')
                           } else if (nestedToken.type === 'text') {
-                            // 处理文本，使用 p+span 结构
+                            // 处理文本，直接使用 processInlineTokens 的返回值
                             if (nestedToken.text) {
                               const nestedTextContent = processInlineTokens(nestedToken.tokens, nestedTokenKey)
                               nestedItemChildren.push(h('p', { 
                                 key: nestedTokenKey,
                                 class: 'ds-markdown-paragraph'
-                              }, [h('span', nestedTextContent)]))
+                              }, nestedTextContent))
                             }
                           } else if (nestedToken.type === 'paragraph') {
-                            // 处理嵌套列表中的段落，使用 p+span 结构
+                            // 处理嵌套列表中的段落，直接使用 processInlineTokens 的返回值
                             if (nestedToken.tokens) {
                               const nestedParagraphContent = processInlineTokens(nestedToken.tokens, nestedTokenKey)
                               nestedItemChildren.push(h('p', { 
                                 key: nestedTokenKey,
                                 class: 'ds-markdown-paragraph'
-                              }, [h('span', nestedParagraphContent)]))
+                              }, nestedParagraphContent))
                             } else if (nestedToken.text) {
                               nestedItemChildren.push(h('p', { 
                                 key: nestedTokenKey,
                                 class: 'ds-markdown-paragraph'
-                              }, [h('span', nestedToken.text)]))
+                              }, nestedToken.text))
                             }
                           }
                         })
@@ -422,7 +680,7 @@ export default defineComponent({
     const vnodeTree = computed(() => {
       // 检查内容是否有变化
       if (props.content === lastContent.value && cachedVNodes.value.length > 0) {
-        return h('div', { class: 'markdown-render' }, cachedVNodes.value)
+        return h('div', { class: 'markdown-content' }, cachedVNodes.value)
       }
       
       // 内容变化或首次渲染，重新解析
@@ -430,7 +688,7 @@ export default defineComponent({
       cachedVNodes.value = vnodes
       lastContent.value = props.content
       
-      return h('div', { class: 'markdown-render' }, vnodes)
+      return h('div', { class: 'markdown-content' }, vnodes)
     })
 
     // 组件挂载时处理
@@ -465,96 +723,22 @@ export default defineComponent({
     }
   },
   render() {
-    return this.vnodeTree || h('div', { class: 'markdown-render' })
+    return this.vnodeTree || h('div', { class: 'markdown-content' })
   }
 })
 </script>
 
 <style scoped>
-.markdown-render {
+.markdown-content {
   /* 基础样式 */
-  line-height: 1.6;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: var(--line-height-base);
+  font-family: var(--font-family-base);
   padding: 1em;
-}
-
-/* 图片容器样式 */
-.image-wrapper {
-  position: relative;
-  display: inline-block;
-  margin: 0.5em 0;
-  min-width: 150px;
-  min-height: 150px;
-}
-
-/* 图片样式 */
-.markdown-image {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-  display: none; /* 初始隐藏，加载成功后显示 */
-}
-
-/* 加载中状态样式 */
-.image-loading {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 150px;
-  height: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  color: #666;
-  text-align: center;
-  box-sizing: border-box;
-}
-
-.image-loading i {
-  font-size: 2em;
-  margin-bottom: 0.5em;
-  color: #999;
-}
-
-.image-loading span {
-  font-size: 0.9em;
-}
-
-/* 加载失败状态样式 */
-.image-error {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 150px;
-  height: 150px;
-  display: none; /* 初始隐藏，加载失败后显示 */
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  color: #666;
-  text-align: center;
-  box-sizing: border-box;
-}
-
-.image-error i {
-  font-size: 2em;
-  margin-bottom: 0.5em;
-  color: #999;
-}
-
-.image-error span {
-  font-size: 0.9em;
 }
 </style>
 
 <style>
 /* 导入全局 Markdown 样式 */
+@import './styles/variables.css';
 @import './styles/markdown-styles.css';
 </style>

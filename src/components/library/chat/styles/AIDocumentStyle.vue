@@ -110,13 +110,17 @@
         />
         
         <!-- 步骤内容 -->
-        <div v-if="step.content" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="step.content"></div>
+        <div v-if="step.content" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed">
+          <MarkdownRender :content="step.content" />
+        </div>
       </div>
     </div>
     
     <!-- 普通AI消息 -->
     <div v-else-if="formattedContent || messageValue.error || messageValue.isTyping" class="rounded-lg px-5 py-4 overflow-hidden w-full mt-3">
-      <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" :key="updateKey"></div>
+      <div class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed">
+        <MarkdownRender :content="formattedContent" :key="updateKey" />
+      </div>
       
       <!-- 错误状态显示 -->
       <div v-if="messageValue.error" class="chat-error mt-2">
@@ -155,6 +159,7 @@
 import { Tooltip, ToolExecutionStatus, Loading } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
 import { formatTime } from '../../../../utils/time.js'
+import { MarkdownRender } from '../../../../plugins/markdown/index.js'
 
 const props = defineProps({
   message: {

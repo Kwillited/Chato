@@ -138,7 +138,7 @@ watch(
     }
   ],
   (newValue, oldValue) => {
-    // 只有当内容确实发生变化时才滚动
+    // 只有当内容确实发生变化且用户当前在底部时才滚动
     if (JSON.stringify(newValue) !== JSON.stringify(oldValue) && settingsStore.systemSettings.autoScroll && !isScrollToBottomVisible.value) {
       nextTick(() => {
         safeScrollToBottom();

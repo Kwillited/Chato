@@ -1,5 +1,5 @@
 <template>
-  <div ref="scrollContainer" class="flex-1 p-6 overflow-y-auto bg-inherit relative scrollbar-thin" @scroll="checkScrollPosition">
+  <div ref="scrollContainer" class="flex-1 p-6 overflow-y-auto bg-inherit relative scrollbar-thin">
     <!-- 聊天消息列表容器 - 添加与UserInputBox相同的宽度限制 -->
     <div ref="chatMessagesContainer" class="w-full max-w-4xl mx-auto space-y-6 transition-colors duration-300 ease-in-out">
       <!-- 渲染分组后的消息 -->
@@ -10,9 +10,12 @@
           :key="message.timestamp" 
           :message="message" 
           :chatStyle="settingsStore.systemSettings.chatStyle" 
-          :id="`message-${groupIndex}-${msgIndex}`" 
+          :id="`message-${groupIndex}-${msgIndex}`"
+          :class="{ 'last-message': isLastMessage(groupIndex, msgIndex) }"
         />
       </template>
+      <!-- 用于检测底部的哨兵元素 -->
+      <div ref="sentinel" class="h-1 w-full"></div>
     </div>
     
     <!-- 使用组件库中的快捷跳转模块 -->
@@ -27,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import ChatMessage from './ChatMessage.vue';
 import { AIChatBubble, ChatJumpIndicator } from '../library/index.js';
 import { useChatStore } from '../../store/chatStore.js';
@@ -41,6 +44,8 @@ const settingsStore = useSettingsStore();
 const scrollContainer = ref(null);
 const chatMessagesContainer = ref(null);
 const jumpIndicatorRef = ref(null);
+const sentinel = ref(null);
+const observer = ref(null);
 
 // 从store计算属性获取数据
 const chatMessages = computed(() => {
@@ -105,6 +110,18 @@ const groupedMessages = computed(() => {
   return groups;
 });
 
+// 检查是否是最后一条消息
+const isLastMessage = (groupIndex, msgIndex) => {
+  const groups = groupedMessages.value;
+  if (groups.length === 0) return false;
+  
+  const lastGroup = groups[groups.length - 1];
+  const lastGroupIndex = groups.length - 1;
+  const lastMessageIndex = lastGroup.messages.length - 1;
+  
+  return groupIndex === lastGroupIndex && msgIndex === lastMessageIndex;
+};
+
 // 处理滚动到指定用户消息
 const handleScrollToUserMessage = (userMessage) => {
   // 处理ref包装的用户消息
@@ -139,29 +156,47 @@ const handleScrollToUserMessage = (userMessage) => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (scrollContainer.value) {
-    scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
-    
-    // 触发事件通知父组件隐藏滚动按钮
-    emit('scrollToBottom');
-  }
+  nextTick(() => {
+    if (scrollContainer.value) {
+      scrollContainer.value.scrollTop = scrollContainer.value.scrollHeight;
+      
+      // 触发事件通知父组件隐藏滚动按钮
+      emit('scrollToBottom');
+    }
+  });
 };
 
-// 检测滚动位置
-const checkScrollPosition = () => {
-  if (scrollContainer.value) {
-    const scrollPosition = scrollContainer.value.scrollTop + scrollContainer.value.clientHeight;
-    const scrollHeight = scrollContainer.value.scrollHeight;
-    
-    // 通知父组件是否显示滚动到底部按钮
-    // 修改：将阈值从100降低到10，使轻微滚动也能触发状态变化
-    emit('updateScrollVisibility', scrollHeight - scrollPosition > 10);
+// 初始化IntersectionObserver
+const initObserver = () => {
+  if (!scrollContainer.value || !sentinel.value) return;
+  
+  // 清理之前的观察器
+  if (observer.value) {
+    observer.value.disconnect();
+  }
+  
+  // 创建新的观察器
+  observer.value = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    // 当哨兵元素可见时，隐藏滚动按钮
+    if (entry.isIntersecting) {
+      emit('updateScrollVisibility', false);
+    } else {
+      // 当哨兵元素不可见时，显示滚动按钮
+      emit('updateScrollVisibility', true);
+    }
     
     // 通知跳转指示器更新高亮
     if (jumpIndicatorRef.value) {
       jumpIndicatorRef.value.updateCurrentHighlightedMessage();
     }
-  }
+  }, {
+    root: scrollContainer.value,
+    threshold: 0.1 // 当哨兵元素10%可见时触发
+  });
+  
+  // 观察哨兵元素
+  observer.value.observe(sentinel.value);
 };
 
 // 暴露方法给父组件
@@ -177,13 +212,43 @@ const emit = defineEmits(['updateScrollVisibility', 'scrollToBottom']);
 // 组件挂载后初始化
 onMounted(() => {
   console.log('ChatMessagesContainer组件已挂载');
+  nextTick(() => {
+    initObserver();
+  });
+});
+
+// 组件卸载时清理
+onUnmounted(() => {
+  if (observer.value) {
+    observer.value.disconnect();
+  }
 });
 
 // 监听消息变化
 watch(chatMessages, () => {
   console.log('ChatMessages变化，消息数量:', chatMessages.value.length);
-  // 消息变化时自动滚动到底部
-  scrollToBottom();
+  
+  // 检查最后一条消息是否正在输入
+  const lastMessage = chatMessages.value[chatMessages.value.length - 1];
+  const lastMessageValue = lastMessage?.value || lastMessage;
+  
+  // 只有当消息不在输入状态且用户当前在底部时才滚动到底部
+  if (!lastMessageValue.isTyping && scrollContainer.value) {
+    // 使用IntersectionObserver后，我们可以直接检查哨兵元素的可见性
+    // 但为了保持原有逻辑，我们仍然使用滚动位置检查
+    const scrollPosition = scrollContainer.value.scrollTop + scrollContainer.value.clientHeight;
+    const scrollHeight = scrollContainer.value.scrollHeight;
+    
+    // 只有当用户接近底部时才滚动（阈值20px）
+    if (scrollHeight - scrollPosition <= 20) {
+      scrollToBottom();
+    }
+  }
+  
+  // 消息变化后重新初始化观察器
+  nextTick(() => {
+    initObserver();
+  });
 }, { deep: true });
 </script>
 
