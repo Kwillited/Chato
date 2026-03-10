@@ -39,6 +39,10 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed, h } from 'vue'
+import { createMermaidRenderer } from '../extensions/mermaid-renderer.js'
+import { createCodeHighlighter } from '../extensions/code-highlighter.js'
+import { copyToClipboard } from '../extensions/copy-feature.js'
+import { parseSvgString } from '../utils/svg-utils.js'
 
 const props = defineProps({
   code: {
@@ -71,17 +75,19 @@ const containerVNode = ref(null)
 // SVG 内容
 const svgContent = ref('')
 
-const copyCode = () => {
-  navigator.clipboard.writeText(props.code)
+// 创建渲染器实例
+const mermaidRenderer = createMermaidRenderer()
+const codeHighlighter = createCodeHighlighter()
+
+const copyCode = async () => {
+  await copyToClipboard(props.code)
 }
 
 // 处理代码高亮
 const handleHighlight = () => {
-  if (typeof hljs !== 'undefined') {
-    const codeElement = document.getElementById(codeBlockId)
-    if (codeElement) {
-      hljs.highlightElement(codeElement)
-    }
+  const codeElement = document.getElementById(codeBlockId)
+  if (codeElement) {
+    codeHighlighter.highlightElement(codeElement)
   }
 }
 
@@ -107,13 +113,6 @@ const codeLines = computed(() => {
   return cleanedCode.value.split('\n').filter(line => line.trim() !== '')
 })
 
-// 计算容器高度
-const containerHeight = computed(() => {
-  const lines = codeLines.value
-  // 根据代码行数计算高度，每行 30px，最少 300px，最多 800px
-  return Math.min(Math.max(300, lines.length * 30), 800)
-})
-
 // 初始化基础 VNode
 const initContainerVNode = () => {
   if (!containerVNode.value) {
@@ -128,19 +127,6 @@ const initContainerVNode = () => {
       }
     })
   }
-}
-
-// 解析 SVG 字符串为 DOM 元素
-const parseSvgString = (svgString) => {
-  const parser = new DOMParser()
-  const doc = parser.parseFromString(svgString, 'image/svg+xml')
-  // 检查是否解析成功
-  const parserError = doc.querySelector('parsererror')
-  if (parserError) {
-    console.error('SVG 解析错误:', parserError.textContent)
-    return null
-  }
-  return doc.documentElement
 }
 
 // 递归转换 DOM 元素为 VNode
@@ -183,7 +169,7 @@ const convertElementToVNode = (element) => {
     // 对于 SVG 元素，保持标签名大小写
     let tagName = element.tagName.toLowerCase()
     // 特殊处理需要驼峰命名的 SVG 元素
-    const camelCaseTags = ['foreignobject', 'textpath', 'textpath', 'lineargradient', 'radialgradient', 'clippath', 'fegaussianblur']
+    const camelCaseTags = ['foreignobject', 'textpath', 'lineargradient', 'radialgradient', 'clippath', 'fegaussianblur']
     if (camelCaseTags.includes(tagName)) {
       // 转换为驼峰命名
       tagName = tagName.replace(/-(.)/g, (_, char) => char.toUpperCase())
@@ -256,39 +242,8 @@ const svgVNode = computed(() => {
   return containerVNode.value
 })
 
-// 生成稳定的 ID，基于代码内容的哈希值
-const generateStableId = (code) => {
-  let hash = 0
-  for (let i = 0; i < code.length; i++) {
-    const char = code.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash // 转换为 32 位整数
-  }
-  return `mermaid-${Math.abs(hash)}`
-}
-
 // 渲染 Mermaid 图表
-const renderMermaid = () => {
-  if (typeof mermaid === 'undefined') {
-    console.error('Mermaid 库未加载')
-    return
-  }
-  
-  const container = document.getElementById(mermaidContainerId)
-  if (!container) {
-    console.error('容器元素未找到:', mermaidContainerId)
-    return
-  }
-  
-  // 设置容器固定高度
-  container.style.height = `${containerHeight.value}px`
-  
-  // 清除之前的渲染定时器
-  if (renderTimer.value) {
-    clearTimeout(renderTimer.value)
-  }
-  
-  // 如果正在渲染，等待当前渲染完成
+const renderMermaid = async () => {
   if (isRendering.value) {
     renderTimer.value = setTimeout(renderMermaid, 50)
     return
@@ -296,39 +251,13 @@ const renderMermaid = () => {
   
   isRendering.value = true
   
-  // 使用临时缓冲区中的代码
-  const code = cleanedCode.value
-  if (!code) {
-    updateSvgContent('')
-    isRendering.value = false
-    return
-  }
-  
   try {
-    // 尝试解析代码语法
-    mermaid.parse(code)
-      .then(() => {
-        // 语法正确，Promise 被 resolve
-        // 进行渲染
-        const stableId = generateStableId(code)
-        mermaid.render(stableId, code)
-          .then(result => {
-            // 更新 SVG 内容
-            updateSvgContent(result.svg)
-            isRendering.value = false
-          })
-          .catch(error => {
-            console.error('Mermaid 渲染错误:', error)
-            isRendering.value = false
-          })
-      })
-      .catch(error => {
-        // 语法错误，Promise 被 reject
-        console.error('Mermaid 语法错误:', error)
-        isRendering.value = false
-      })
+    // 渲染 Mermaid 图表
+    const svg = await mermaidRenderer.render(cleanedCode.value)
+    updateSvgContent(svg)
   } catch (error) {
-    console.error('Mermaid 解析错误:', error)
+    console.error('Mermaid 渲染错误:', error)
+  } finally {
     isRendering.value = false
   }
 }
@@ -373,7 +302,9 @@ watch(codeLines, () => {
   if (props.isMermaid) {
     const container = document.getElementById(mermaidContainerId)
     if (container) {
-      container.style.height = `${containerHeight.value}px`
+      // 根据代码行数计算高度，每行 30px，最少 300px，最多 800px
+      const height = Math.min(Math.max(300, codeLines.value.length * 30), 800)
+      container.style.height = `${height}px`
     }
   }
 })
@@ -383,6 +314,9 @@ onUnmounted(() => {
   // 清理引用
   containerVNode.value = null
   svgContent.value = ''
+  if (renderTimer.value) {
+    clearTimeout(renderTimer.value)
+  }
 })
 </script>
 

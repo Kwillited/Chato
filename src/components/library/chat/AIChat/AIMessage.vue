@@ -12,7 +12,7 @@
     </div>
     
     <div v-if="contentWithoutTools" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed">
-      <MarkdownRender :content="contentWithoutTools" />
+      <VueChatoRenderer :content="contentWithoutTools" />
     </div>
     
     <!-- 错误状态显示 -->

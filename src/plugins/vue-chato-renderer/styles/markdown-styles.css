@@ -1,4 +1,4 @@
-/* Markdown 样式美化 */
+/* Vue-Chato-Renderer 样式美化 */
 @import './variables.css';
 @import './code-block-styles.css';
 
@@ -132,37 +132,34 @@
 }
 
 /* 行内代码样式 */
-.markdown-content code {
+.markdown-content code.inline-code {
   background-color: var(--color-bg-secondary);
   padding: 0.125rem 0.25rem;
   border-radius: var(--border-radius-sm);
-  font-family: var(--font-family-code);
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   border: none;
 }
 
-/* 代码块样式 */
-.markdown-content pre {
-  margin: 0;
-}
+
 
 /* 表格样式 */
-table {
+.markdown-content table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 0;
-  margin-bottom: 25px;
+  margin-bottom: var(--space-lg);
 }
 
-table th,
-table td {
+.markdown-content table th,
+.markdown-content table td {
   padding: var(--table-padding);
   text-align: left;
-  border-bottom: 1px solid var(--color-table-border) !important;
+  border-bottom: 1px solid var(--color-table-border);
 }
 
-table th {
+.markdown-content table th {
   font-weight: 600;
   text-transform: none;
   font-size: var(--font-size-sm);
@@ -170,7 +167,7 @@ table th {
 
 /* 表格响应式处理 */
 @media (max-width: 640px) {
-  table {
+  .markdown-content table {
     display: block;
     overflow-x: auto;
     white-space: nowrap;
@@ -179,14 +176,15 @@ table th {
 
 /* 数学公式样式 */
 .markdown-content .math-block {
-  margin: 0.25rem 0;
-  padding: 0.25rem;
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm);
   text-align: center;
 }
 
 /* 行内数学公式样式 */
 .markdown-content .katex {
   font-size: 1.1em;
+  font-family: var(--font-family-mono);
 }
 
 /* 块级元素通用间距 */
@@ -195,18 +193,18 @@ table th {
 }
 
 /* 列表项段落样式 */
-.ds-markdown-paragraph {
+.markdown-paragraph {
   margin: 0;
   padding: 0;
   line-height: var(--line-height-base);
 }
 
-.ds-markdown-paragraph span {
+.markdown-paragraph span {
   display: inline;
 }
 
 /* 任务列表段落样式 */
-.task-list li .ds-markdown-paragraph {
+.task-list li .markdown-paragraph {
   display: inline;
   margin: 0;
   padding: 0;
@@ -219,23 +217,10 @@ table th {
   margin-right: 0.5rem;
 }
 
-/* 消息气泡样式 */
-.chat-message-container {
-  overflow: hidden;
-}
 
-/* 确保代码块不会触发滚动条 */
-/* .code-container 样式已在 code-block-styles.css 中定义 */
-
-/* 禁止消息气泡内的任何元素触发滚动条 */
-.bg-primary\/20,
-.bg-white.dark\:bg-gray-800,
-.dark\:border.dark\:border-gray-700 {
-  overflow: hidden !important;
-}
 
 /* 图片容器样式 */
-.image-wrapper {
+.markdown-content .image-wrapper {
   position: relative;
   display: inline-block;
   margin: var(--image-margin) 0;
@@ -244,7 +229,7 @@ table th {
 }
 
 /* 图片样式 */
-.markdown-image {
+.markdown-content .markdown-image {
   max-width: 100%;
   height: auto;
   border-radius: var(--border-radius-sm);
@@ -252,8 +237,8 @@ table th {
 }
 
 /* 图片状态样式 */
-.image-loading,
-.image-error {
+.markdown-content .image-loading,
+.markdown-content .image-error {
   position: absolute;
   top: 0;
   left: 0;
@@ -271,19 +256,19 @@ table th {
   box-sizing: border-box;
 }
 
-.image-loading i,
-.image-error i {
+.markdown-content .image-loading i,
+.markdown-content .image-error i {
   font-size: 2em;
   margin-bottom: 0.5em;
   color: var(--color-image-loading-icon);
 }
 
-.image-loading span,
-.image-error span {
+.markdown-content .image-loading span,
+.markdown-content .image-error span {
   font-size: 0.9em;
 }
 
 /* 加载失败状态初始隐藏 */
-.image-error {
+.markdown-content .image-error {
   display: none; /* 初始隐藏，加载失败后显示 */
 }

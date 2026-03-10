@@ -1,14 +1,14 @@
-import { createChatoRenderer } from './renderer.js'
-import { registerHighlighter } from './highlighter.js'
-import { setupCopyHandler } from './copyHandler.js'
-import ChatoRenderer from './MarkdownRender.vue'
+import { createMarkdownRenderer } from './core/markdown-renderer.js'
+import { registerHighlighter } from './extensions/code-highlighter.js'
+import { setupCopyHandler } from './extensions/copy-feature.js'
+import VueChatoRenderer from './VueChatoRenderer.vue'
 
 /**
- * Vue Chato Renderer 插件
+ * Vue-Chato-Renderer 渲染插件
  * 提供统一的 Markdown 渲染功能，包括代码高亮和复制功能
  */
 export default {
-  install(app, options = {}) {
+  async install(app, options = {}) {
     // 初始化配置
     const config = {
       breaks: true,
@@ -20,7 +20,7 @@ export default {
     
     // 注册代码高亮
     if (config.highlight) {
-      registerHighlighter()
+      await registerHighlighter()
     }
     
     // 设置复制功能
@@ -29,18 +29,18 @@ export default {
     }
     
     // 创建渲染实例
-    const chatoRenderer = createChatoRenderer(config)
+    const markdown = createMarkdownRenderer(config)
     
     // 全局注册
-    app.config.globalProperties.$chatoRenderer = chatoRenderer
-    app.provide('chatoRenderer', chatoRenderer)
+    app.config.globalProperties.$vueChatoRenderer = markdown
+    app.provide('vueChatoRenderer', markdown)
     
     // 全局注册组件
-    app.component('ChatoRenderer', ChatoRenderer)
+    app.component('VueChatoRenderer', VueChatoRenderer)
     
-    console.log('Vue Chato Renderer 插件已初始化')
+    console.log('Vue-Chato-Renderer 插件已初始化')
   }
 }
 
 // 导出组件，支持直接导入
-export { ChatoRenderer }
+export { VueChatoRenderer }

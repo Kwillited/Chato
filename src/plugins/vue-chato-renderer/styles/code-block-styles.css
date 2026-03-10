@@ -1,5 +1,4 @@
 /* 代码块和 Mermaid 共享样式 */
-@import './variables.css';
 
 /* 代码块容器样式 */
 .code-container {
@@ -160,8 +159,17 @@
 }
 
 /* 代码块内的代码样式 */
-.mermaid-code code,
 .code-container pre code {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-code);
+  color: var(--color-code-text);
+  background-color: transparent;
+  padding: 0;
+}
+
+/* Mermaid 代码样式 */
+.mermaid-code code {
   font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-code);
