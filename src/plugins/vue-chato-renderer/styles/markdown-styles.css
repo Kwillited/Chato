@@ -57,13 +57,12 @@
 /* 段落样式 */
 .markdown-content p {
   margin-top: 0;
-  margin-bottom: var(--space-md);
+  margin-bottom: 0;
 }
 
 /* 列表样式 */
 .markdown-content :is(ul, ol) {
   padding-left: 1.25rem;
-  margin-bottom: var(--space-md);
 }
 
 .markdown-content ul {
@@ -100,6 +99,7 @@
   color: var(--color-list-marker);
   font-size: 1rem;
   transition: transform var(--transition-fast);
+  vertical-align: text-bottom;/* 添加垂直对齐属性 */
 }
 
 /* 水平线样式 */
@@ -149,7 +149,6 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 0;
-  margin-bottom: var(--space-lg);
 }
 
 .markdown-content table th,
@@ -188,8 +187,13 @@
 }
 
 /* 块级元素通用间距 */
-.markdown-content :is(p, ul, ol, dl, figure, table) {
+.markdown-content :is(ul, ol, dl, figure) {
   margin-bottom: var(--space-md);
+}
+
+/* 表格间距 */
+.markdown-content table {
+  margin-bottom: var(--space-lg);
 }
 
 /* 列表项段落样式 */
@@ -206,8 +210,6 @@
 /* 任务列表段落样式 */
 .task-list li .markdown-paragraph {
   display: inline;
-  margin: 0;
-  padding: 0;
   vertical-align: middle;
 }
 
@@ -271,4 +273,13 @@
 /* 加载失败状态初始隐藏 */
 .markdown-content .image-error {
   display: none; /* 初始隐藏，加载失败后显示 */
+}
+
+/* 强制去掉列表内段落的边距 */
+.markdown-content li .markdown-paragraph,
+.markdown-content li p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  display: inline; /* 或者 inline-block */
+  vertical-align: baseline; 
 }

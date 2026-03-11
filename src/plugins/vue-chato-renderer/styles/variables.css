@@ -39,9 +39,6 @@
   /* 表格颜色 */
   --color-table-border: #000000;
   
-  /* 消息气泡颜色 */
-  --color-message-bg: #f8fafc;
-  
   /* 图片加载状态颜色 */
   --color-image-loading-bg: #f5f5f5;
   --color-image-loading-border: #dddddd;

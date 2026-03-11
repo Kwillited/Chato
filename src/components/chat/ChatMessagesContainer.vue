@@ -233,7 +233,7 @@ watch(chatMessages, () => {
   const lastMessageValue = lastMessage?.value || lastMessage;
   
   // 只有当消息不在输入状态且用户当前在底部时才滚动到底部
-  if (!lastMessageValue.isTyping && scrollContainer.value) {
+  if (lastMessageValue && !lastMessageValue.isTyping && scrollContainer.value) {
     // 使用IntersectionObserver后，我们可以直接检查哨兵元素的可见性
     // 但为了保持原有逻辑，我们仍然使用滚动位置检查
     const scrollPosition = scrollContainer.value.scrollTop + scrollContainer.value.clientHeight;
