@@ -1,4 +1,6 @@
 import hljs from 'highlight.js/lib/core'
+import 'highlight.js/styles/github.css'
+import 'highlight.js/styles/github-dark.css'
 
 // 语言配置数组
 const languages = [
@@ -88,6 +90,13 @@ export class CodeHighlighter {
    */
   highlightAll() {
     if (typeof hljs !== 'undefined') {
+      // 移除所有代码元素的 data-highlighted 属性，确保重新高亮
+      const codeElements = document.querySelectorAll('code[class^="language-"]')
+      codeElements.forEach(element => {
+        if (element.dataset.highlighted) {
+          delete element.dataset.highlighted
+        }
+      })
       hljs.highlightAll()
     }
   }
@@ -98,6 +107,10 @@ export class CodeHighlighter {
    */
   highlightElement(element) {
     if (typeof hljs !== 'undefined' && element) {
+      // 移除 data-highlighted 属性，确保重新高亮
+      if (element.dataset.highlighted) {
+        delete element.dataset.highlighted
+      }
       hljs.highlightElement(element)
     }
   }

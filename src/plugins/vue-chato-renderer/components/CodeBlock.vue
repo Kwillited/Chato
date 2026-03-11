@@ -38,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed, h } from 'vue'
+import { ref, onMounted, onUnmounted, onUpdated, watch, computed, h } from 'vue'
 import { createMermaidRenderer } from '../extensions/mermaid-renderer.js'
 import { createCodeHighlighter } from '../extensions/code-highlighter.js'
 import { copyToClipboard } from '../extensions/copy-feature.js'
@@ -272,10 +272,30 @@ onMounted(() => {
   }, 100)
 })
 
+// 检测代码块是否结束
+const isCodeBlockEnded = (code) => {
+  // 检测 Markdown 代码块的结束标记
+  return code.includes('```')
+}
+
+// 组件更新时处理
+onUpdated(() => {
+  // 只有当代码块结束时才进行高亮
+  if (isCodeBlockEnded(props.code)) {
+    // 延迟处理，确保 DOM 已更新
+    setTimeout(() => {
+      handleHighlight()
+    }, 100)
+  }
+})
+
 // 当代码变化时重新处理
 watch(() => props.code, (newCode) => {
-  // 重新高亮代码
-  setTimeout(handleHighlight, 100)
+  // 只有当代码块结束时才进行高亮
+  if (isCodeBlockEnded(newCode)) {
+    // 重新高亮代码
+    setTimeout(handleHighlight, 100)
+  }
   
   // 如果是 Mermaid 图表，重新渲染
   if (props.isMermaid) {

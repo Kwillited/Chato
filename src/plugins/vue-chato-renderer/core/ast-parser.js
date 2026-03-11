@@ -1,4 +1,5 @@
 import { marked } from 'marked'
+import { createStructureAnalyzer } from './structure-analyzer.js'
 
 /**
  * AST 解析器
@@ -9,8 +10,10 @@ export class AstParser {
     // 缓存机制
     this.cache = {
       text: '',
-      ast: []
+      ast: [],
+      structure: null
     }
+    this.structureAnalyzer = createStructureAnalyzer()
   }
 
   /**
@@ -23,6 +26,7 @@ export class AstParser {
       this.cache = {
         text: '',
         ast: [],
+        structure: null,
         version: 0
       }
       return []
@@ -35,7 +39,8 @@ export class AstParser {
       } else {
         // 全量解析：内容与缓存不同或首次解析
         const ast = marked.lexer(content)
-        this.updateCache(content, ast)
+        const structure = this.structureAnalyzer.analyzeFromText(content)
+        this.updateCache(content, ast, structure)
         return ast
       }
     } catch (error) {
@@ -50,23 +55,37 @@ export class AstParser {
    * @returns {Array} 解析后的 AST
    */
   incrementalParse(newContent) {
-    // 对于复杂的 Markdown 结构，使用全量解析
-    const newAst = marked.lexer(newContent)
+    // 分析文本结构变化
+    const oldStructure = this.cache.structure
+    const newStructure = this.structureAnalyzer.analyzeFromText(newContent)
     
-    // 更新缓存
-    this.updateCache(newContent, newAst)
-    return newAst
+    // 根据结构变化决定如何解析
+    if (oldStructure && this.structureAnalyzer.isStructureExtension(oldStructure, newStructure)) {
+      // 结构扩展，只解析新增部分
+      console.log('使用结构扩展解析')
+      const newAst = marked.lexer(newContent)
+      this.updateCache(newContent, newAst, newStructure)
+      return newAst
+    } else {
+      // 结构变化较大，使用全量解析
+      console.log('使用全量解析')
+      const newAst = marked.lexer(newContent)
+      this.updateCache(newContent, newAst, newStructure)
+      return newAst
+    }
   }
 
   /**
    * 更新缓存
    * @param {string} content 内容
    * @param {Array} ast AST
+   * @param {Object} structure 结构分析结果
    */
-  updateCache(content, ast) {
+  updateCache(content, ast, structure) {
     this.cache = {
       text: content,
-      ast: ast
+      ast: ast,
+      structure: structure
     }
   }
 
@@ -93,6 +112,7 @@ export class AstParser {
     this.cache = {
       text: '',
       ast: [],
+      structure: null,
       version: 0
     }
   }

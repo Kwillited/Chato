@@ -2,6 +2,7 @@ import { h } from 'vue'
 import CodeBlock from '../components/CodeBlock.vue'
 import { processMathFormulasInText } from '../extensions/math-formula.js'
 import { parseHtmlString, convertElementToVNode } from '../utils/dom-utils.js'
+import { createStructureAnalyzer } from './structure-analyzer.js'
 
 /**
  * VNode 转换器
@@ -12,8 +13,10 @@ export class VNodeTransformer {
     this.inlineRules = this.setupInlineRules()
     this.cache = {
       vnodes: [],
-      version: 0
+      version: 0,
+      structure: null
     }
+    this.structureAnalyzer = createStructureAnalyzer()
   }
 
   /**
@@ -464,24 +467,32 @@ export class VNodeTransformer {
   transform(ast) {
     if (!ast || !Array.isArray(ast)) return []
     
+    // 分析 AST 结构
+    const structure = this.structureAnalyzer.analyzeFromAst(ast)
+    
     const vnodes = []
     
-    ast.forEach((node, index) => {
-      // 直接转换节点，利用 AST 位置不变的特性
-      const nodeKey = `${node.type}-${index}`
-      const vnode = this.convertNodeToVNode(node, nodeKey)
-      
-      if (vnode) {
-        if (Array.isArray(vnode)) {
-          vnodes.push(...vnode)
-        } else {
-          vnodes.push(vnode)
+    // 根据结构生成 VNode
+    structure.blocks.forEach((block, index) => {
+      const node = block.node
+      if (node) {
+        // 直接转换节点，利用 AST 位置不变的特性
+        const nodeKey = `${node.type}-${index}`
+        const vnode = this.convertNodeToVNode(node, nodeKey)
+        
+        if (vnode) {
+          if (Array.isArray(vnode)) {
+            vnodes.push(...vnode)
+          } else {
+            vnodes.push(vnode)
+          }
         }
       }
     })
     
     // 更新缓存
     this.cache.vnodes = vnodes
+    this.cache.structure = structure
     this.cache.version++
     
     return vnodes
@@ -493,7 +504,8 @@ export class VNodeTransformer {
   clearCache() {
     this.cache = {
       vnodes: [],
-      version: 0
+      version: 0,
+      structure: null
     }
   }
 }
