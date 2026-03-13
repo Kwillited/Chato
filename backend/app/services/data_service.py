@@ -78,40 +78,31 @@ class DataService(BaseService):
         # 先获取对话
         chat = self.get_chat_by_id(chat_id)
         if chat:
-            # 使用仓库更新对话
-            self.chat_repo.update_chat(
-                chat_id=chat_id,
-                title=updated_data.get('title', chat.get('title')),
-                preview=updated_data.get('preview', chat.get('preview')),
-                updated_at=updated_data.get('updatedAt', chat.get('updatedAt')),
-                pinned=int(updated_data.get('pinned', chat.get('pinned', 0)))
-            )
+            # 更新对话数据
+            chat.update(updated_data)
+            # 通过 add_chat 方法更新对话，确保数据流向统一
+            self.add_chat(chat)
     
     def add_message_to_chat(self, chat_id, message):
         """添加消息到对话"""
-        # 这里需要实现消息的添加逻辑
-        # 暂时使用缓存操作，后续可以移到仓库层
+        # 获取对话
         chat = self.get_chat_by_id(chat_id)
         if chat:
             if 'messages' not in chat:
                 chat['messages'] = []
             chat['messages'].append(message)
-            # 更新缓存并设置脏标记
-            cache_manager.set_chat(chat_id, chat)
+            # 通过 add_chat 方法更新对话，确保数据流向统一
+            self.add_chat(chat)
     
     def update_chat_pin(self, chat_id, pinned):
         """更新对话置顶状态"""
         # 先获取对话
         chat = self.get_chat_by_id(chat_id)
         if chat:
-            # 使用仓库更新对话
-            self.chat_repo.update_chat(
-                chat_id=chat_id,
-                title=chat.get('title'),
-                preview=chat.get('preview'),
-                updated_at=chat.get('updatedAt'),
-                pinned=int(pinned)
-            )
+            # 更新对话数据
+            chat['pinned'] = bool(pinned)
+            # 通过 add_chat 方法更新对话，确保数据流向统一
+            self.add_chat(chat)
     
     # 模型相关方法
     def get_models(self):
