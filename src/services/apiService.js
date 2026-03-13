@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { processFiles } from './streamingService.js';
+import { errorService } from './errorService.js';
 
 // 创建axios实例
 const api = axios.create({
@@ -37,71 +39,7 @@ api.interceptors.response.use(
 
 // 统一错误处理函数
 function handleApiError(error) {
-  console.error('API错误:', error.message);
-  
-  // 创建结构化错误信息
-  const errorInfo = {
-    message: '请求失败',
-    details: '',
-    type: 'unknown',
-    status: error.response?.status || 0
-  };
-
-  if (error.response) {
-    // 服务器返回错误状态码
-    const { status, data } = error.response;
-    errorInfo.status = status;
-    
-    switch (status) {
-      case 401:
-        errorInfo.message = '未授权访问';
-        errorInfo.details = '请检查您的身份验证信息';
-        errorInfo.type = 'unauthorized';
-        break;
-      case 403:
-        errorInfo.message = '禁止访问';
-        errorInfo.details = '您没有权限执行此操作';
-        errorInfo.type = 'forbidden';
-        break;
-      case 404:
-        errorInfo.message = '资源不存在';
-        errorInfo.details = '请求的资源未找到';
-        errorInfo.type = 'not_found';
-        break;
-      case 500:
-        errorInfo.message = '服务器错误';
-        errorInfo.details = '服务器内部出现问题，请稍后重试';
-        errorInfo.type = 'server_error';
-        break;
-      case 502:
-      case 503:
-      case 504:
-        errorInfo.message = '服务不可用';
-        errorInfo.details = '服务器暂时无法响应，请稍后重试';
-        errorInfo.type = 'service_unavailable';
-        break;
-      default:
-        errorInfo.message = '请求失败';
-        errorInfo.details = data?.message || '未知错误';
-        errorInfo.type = 'http_error';
-    }
-  } else if (error.request) {
-    // 请求已发送但没有收到响应
-    errorInfo.message = '网络错误';
-    errorInfo.details = '请检查您的网络连接';
-    errorInfo.type = 'network_error';
-  } else {
-    // 请求配置错误
-    errorInfo.message = '请求配置错误';
-    errorInfo.details = error.message;
-    errorInfo.type = 'config_error';
-  }
-  
-  // 增强错误对象
-  error.errorInfo = errorInfo;
-  console.error('API错误详情:', errorInfo);
-  
-  return errorInfo;
+  return errorService.handleApiError(error);
 }
 
 // 创建API请求重试函数 - 优化版：支持多种重试策略和配置
@@ -275,93 +213,7 @@ export function handleStreamingResponse(url, data, onMessage, onError, onComplet
         try {
           const parsedData = JSON.parse(dataPart);
           console.log('接收到流式数据块:', parsedData); // 添加日志追踪
-          
-          // 处理不同格式的响应
-          if (parsedData.chunk) {
-            // 标准格式
-            onMessage(parsedData);
-          } else if (parsedData.content) {
-            // LangChain 原始格式
-            onMessage({ chunk: parsedData.content, done: false });
-          } else if (parsedData.event && parsedData.data) {
-            // 事件流格式，如：{"event": "on_chat_model_stream", "data": {"chunk": {"content": "递"}}}
-            if (parsedData.event === 'on_chat_model_end') {
-              // 结束事件，视为结束标志
-              onMessage({ ...parsedData, done: true });
-            } else if (parsedData.event === 'on_chat_model_stream') {
-              // 流事件，提取chunk内容，保留node和step信息
-              console.log('接收到on_chat_model_stream事件:', parsedData); // 添加调试日志
-                // 直接从data对象中提取content和reasoning_content字段
-                if (parsedData.data.content !== undefined) {
-                  // data包含content字段
-                  console.log('提取到content和reasoning_content:', {
-                    content: parsedData.data.content,
-                    reasoning_content: parsedData.data.reasoning_content
-                  }); // 添加调试日志
-                  onMessage({ 
-                    event: parsedData.event, 
-                    node: parsedData.node, 
-                    agent_step: parsedData.agent_step, 
-                    chunk: parsedData.data.content, 
-                    reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
-                    done: false 
-                  });
-                } else if (parsedData.data.chunk) {
-                  // 兼容旧格式：data包含chunk字段
-                  const chunkData = parsedData.data.chunk;
-                  if (chunkData.content) {
-                    // chunk包含content字段
-                    console.log('提取到content和reasoning_content (旧格式):', {
-                      content: chunkData.content,
-                      reasoning_content: parsedData.data.reasoning_content
-                    }); // 添加调试日志
-                    onMessage({ 
-                      event: parsedData.event, 
-                      node: parsedData.node, 
-                      agent_step: parsedData.agent_step, 
-                      chunk: chunkData.content, 
-                      reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
-                      done: false 
-                    });
-                  } else {
-                    // chunk直接是内容
-                    onMessage({ 
-                      event: parsedData.event, 
-                      node: parsedData.node, 
-                      agent_step: parsedData.agent_step, 
-                      chunk: chunkData, 
-                      reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
-                      done: false 
-                    });
-                  }
-                } else if (parsedData.data.content) {
-                  // data直接包含content字段
-                  onMessage({ 
-                    event: parsedData.event, 
-                    node: parsedData.node, 
-                    agent_step: parsedData.agent_step, 
-                    chunk: parsedData.data.content, 
-                    reasoning_content: parsedData.data.reasoning_content, // 从data对象中提取reasoning_content字段
-                    done: false 
-                  });
-              } else {
-                // 其他流事件格式，直接传递
-                onMessage(parsedData);
-              }
-            } else {
-              // 其他事件流格式，直接传递
-              onMessage(parsedData);
-            }
-          } else if (parsedData.done) {
-            // 结束标志
-            onMessage(parsedData);
-          } else if (typeof parsedData === 'string') {
-            // 纯文本格式
-            onMessage({ chunk: parsedData, done: false });
-          } else {
-            // 其他格式，直接传递
-            onMessage(parsedData);
-          }
+          onMessage(parsedData);
         } catch (error) {
           console.error('解析SSE消息失败:', error);
           onError?.(error);
@@ -420,29 +272,7 @@ export const apiService = {
       const endpoint = `/chats/${chatId}/messages`;
       
       // 处理文件，转换为可序列化的格式
-      const processedFiles = await Promise.all(
-        files.map(async (file) => {
-          if (file instanceof File) {
-            // 将File对象转换为base64
-            const content = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                // 移除data URL前缀，只保留base64内容
-                const base64Content = reader.result.split(',')[1];
-                resolve(base64Content);
-              };
-              reader.readAsDataURL(file);
-            });
-            return {
-              name: file.name,
-              content: content,
-              type: file.type,  // 保留文件类型
-              size: file.size  // 保留文件大小
-            };
-          }
-          return file;
-        })
-      );
+      const processedFiles = await processFiles(files);
       
       return await requestWithRetry({
         method: 'POST',
@@ -462,71 +292,16 @@ export const apiService = {
       });
     },
     
-    // 发送流式消息
+    // 发送流式消息 - 已迁移到 streamingService
     sendStreamingMessage: async (chatId, message, files, options = {}, onMessage, onError, onComplete) => {
-      const { model = 'GPT-4', modelParams = {}, ragConfig = {}, deepThinking = false, agent = false, webSearchEnabled = false, selectedMessageIds = [] } = options;
-      
-      // 处理文件，转换为可序列化的格式
-      const processedFiles = await Promise.all(
-        files.map(async (file) => {
-          if (file instanceof File) {
-            // 将File对象转换为base64
-            const content = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                // 移除data URL前缀，只保留base64内容
-                const base64Content = reader.result.split(',')[1];
-                resolve(base64Content);
-              };
-              reader.readAsDataURL(file);
-            });
-            return {
-              name: file.name,
-              content: content,
-              size: file.size  // 保留文件大小
-            };
-          }
-          return file;
-        })
-      );
-      
-      const url = `/chats/${chatId}/messages`;
-      const data = {
-        message,
-        files: processedFiles,
-        model,
-        modelParams,
-        ragConfig,
-        stream: true,  // 传递stream参数给后端
-        deepThinking, // 传递deepThinking参数给后端
-        agent, // 传递agent参数给后端
-        webSearchEnabled, // 传递webSearchEnabled参数给后端
-        selectedMessageIds // 传递selectedMessageIds参数给后端
-      };
-      
-      // 创建一个Promise来包装流式请求
-      return new Promise((resolve, reject) => {
-        try {
-          const closeConnection = handleStreamingResponse(url, data, onMessage, onError, () => {
-            onComplete?.();
-            resolve();
-          });
-          
-          // 存储关闭连接的方法，以便在需要时手动关闭
-          apiService.chat.activeStreamingConnection = closeConnection;
-        } catch (error) {
-          console.error('创建流式连接失败:', error);
-          reject(error);
-        }
-      });
+      const { streamingService } = await import('./streamingService.js');
+      return streamingService.sendStreamingMessage(chatId, message, files, options, onMessage, onError, onComplete);
     },
     
-    // 关闭活动的流式连接
+    // 关闭活动的流式连接 - 已迁移到 streamingService
     closeStreamingConnection: () => {
-      if (apiService.chat.activeStreamingConnection) {
-        apiService.chat.activeStreamingConnection();
-        apiService.chat.activeStreamingConnection = null;
-      }
+      const { streamingService } = require('./streamingService.js');
+      streamingService.closeStreamingConnection();
     },
     getHistory: async () => {
       return await requestWithRetry({

@@ -228,10 +228,14 @@ import { showNotification } from '../../utils/notificationUtils.js';
 import SettingItem from '../common/SettingItem.vue';
 import { Button } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
+import { useModelUtils } from '../../composables/useModelUtils.js';
 
 const settingsStore = useSettingsStore();
 const modelStore = useSettingsStore();
 const chatStore = useChatStore();
+
+// 使用模型工具
+const { allModelVersions } = useModelUtils(modelStore);
 
 // 状态管理
 const isLoading = ref(false);
@@ -265,31 +269,7 @@ const displayTimeOptions = [
   { value: '10秒', label: '10秒' }
 ];
 
-// 计算属性：所有可用的模型版本
-const allModelVersions = computed(() => {
-  const versions = [];
-  
-  models.value.forEach(model => {
-    if (model.configured && model.enabled && model.versions) {
-      model.versions.forEach(version => {
-        // 只使用version_name字段
-        const versionName = version?.version_name;
-        if (versionName) {
-          // 构造模型版本标识，格式为 "name-versionName"
-          const id = `${model.name}-${versionName}`;
-          const displayName = `${model.name}-${version.custom_name || versionName}`;
-          
-          versions.push({
-            id,
-            displayName
-          });
-        }
-      });
-    }
-  });
-  
-  return versions;
-});
+// 所有可用的模型版本已从 useModelUtils 中获取
 
 // 从后端加载模型列表
 async function loadModels() {

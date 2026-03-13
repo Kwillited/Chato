@@ -1,6 +1,6 @@
 /**
  * 复制功能
- * 负责处理代码复制功能
+ * 负责处理代码复制和Markdown复制功能
  */
 
 // 跟踪事件监听器是否已添加
@@ -9,7 +9,7 @@ let copyHandlerAdded = false
 /**
  * 复制文本到剪贴板
  * @param {string} text 要复制的文本
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} 是否复制成功
  */
 export async function copyToClipboard(text) {
   try {
@@ -17,6 +17,21 @@ export async function copyToClipboard(text) {
     return true
   } catch (error) {
     console.error('复制失败:', error)
+    return false
+  }
+}
+
+/**
+ * 复制Markdown内容到剪贴板
+ * @param {string} markdown Markdown内容
+ * @returns {Promise<boolean>} 是否复制成功
+ */
+export async function copyMarkdown(markdown) {
+  try {
+    await navigator.clipboard.writeText(markdown)
+    return true
+  } catch (error) {
+    console.error('复制Markdown失败:', error)
     return false
   }
 }

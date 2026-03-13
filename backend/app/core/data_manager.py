@@ -653,8 +653,6 @@ def save_chats_to_db():
                         existing_msg.created_at = msg.get('createdAt') or datetime.now().isoformat()
                         existing_msg.model = msg.get('model', None)
                         existing_msg.files = json.dumps(msg.get('files', []))
-                        existing_msg.message_type = msg.get('message_type', 'normal')
-                        existing_msg.agent_session_id = msg.get('agent_session_id')
                         existing_msg.agent_node = msg.get('agent_node')
                         existing_msg.agent_step = msg.get('agent_step')
                         existing_msg.agent_metadata = msg.get('agent_metadata')
@@ -664,13 +662,11 @@ def save_chats_to_db():
                             id=msg_id,
                             chat_id=chat_id,
                             role=msg['role'],
-                            message_type=msg.get('message_type', 'normal'),
                             content=msg['content'],
                             reasoning_content=msg.get('reasoning_content', None),
                             created_at=msg.get('createdAt') or datetime.now().isoformat(),
                             model=msg.get('model', None),
                             files=json.dumps(msg.get('files', [])),
-                            agent_session_id=msg.get('agent_session_id'),
                             agent_node=msg.get('agent_node'),
                             agent_step=msg.get('agent_step'),
                             agent_metadata=msg.get('agent_metadata')
@@ -951,72 +947,6 @@ def save_settings_to_db():
             pass
         return False
 
-def save_agent_sessions_to_db():
-    """将智能体会话数据保存到SQLite数据库"""
-    try:
-        # 使用Repository层保存智能体会话数据
-        from app.repositories.agent_session_repository import AgentSessionRepository
-        
-        # 获取数据库会话
-        db_session = next(get_db())
-        agent_session_repo = AgentSessionRepository(db_session)
-        
-        # 获取内存中的智能体会话数据
-        sessions = cache_manager.get('agent_sessions')
-        
-        # 获取SQLite中所有智能体会话ID
-        all_sessions = agent_session_repo.get_all_sessions()
-        sqlite_session_ids = {session.id for session in all_sessions}
-        
-        if sessions:
-            # 获取内存中所有智能体会话ID
-            memory_session_ids = {session['id'] for session in sessions}
-            
-            # 找出需要删除的智能体会话ID
-            session_ids_to_delete = sqlite_session_ids - memory_session_ids
-            
-            # 删除不再存在于内存中的智能体会话
-            if session_ids_to_delete:
-                logger.info(f"删除不存在于内存的智能体会话: {len(session_ids_to_delete)} 个")
-                for session_id in session_ids_to_delete:
-                    agent_session_repo.delete_session(session_id)
-            
-            # 保存所有智能体会话
-            for session in sessions:
-                # 将graph_state转换为JSON字符串
-                graph_state = session.get('graph_state')
-                if graph_state is not None and isinstance(graph_state, dict):
-                    graph_state = json.dumps(graph_state)
-                
-                # 创建或更新智能体会话
-                agent_session_repo.create_or_update_session(
-                    session_id=session['id'],
-                    chat_id=session['chat_id'],
-                    created_at=session['created_at'],
-                    updated_at=session['updated_at'],
-                    graph_state=graph_state,
-                    current_node=session.get('current_node', ''),
-                    step_count=session.get('step_count', 0)
-                )
-            logger.info("智能体会话数据已保存到SQLite数据库")
-        else:
-            # 如果内存中没有智能体会话数据，删除数据库中的所有智能体会话
-            if sqlite_session_ids:
-                logger.info(f"内存中没有智能体会话数据，删除数据库中的所有智能体会话: {len(sqlite_session_ids)} 个")
-                agent_session_repo.delete_all_sessions()
-            else:
-                logger.info("内存中没有智能体会话数据，数据库中也没有，跳过保存")
-        
-        return True
-    except Exception as e:
-        logger.error(f"保存智能体会话数据到SQLite失败: {str(e)}")
-        # 回滚事务
-        try:
-            db_session.rollback()
-        except:
-            pass
-        return False
-
 # --------------------------
 # 7. 数据管理接口
 # --------------------------
@@ -1115,9 +1045,6 @@ def save_data():
         if cache_manager.is_dirty('settings'):
             sync_tasks.append({'key': 'settings', 'sync_func': save_settings_to_db})
         
-        if cache_manager.is_dirty('agent_sessions'):
-            sync_tasks.append({'key': 'agent_sessions', 'sync_func': save_agent_sessions_to_db})
-        
         # 执行同步任务
         results = batch_sync(sync_tasks)
         
@@ -1173,7 +1100,7 @@ def get_data(data_type, key=None):
     cache_empty = False
     if data_type == 'chats':
         cache_empty = not data if key else len(data or {}) == 0
-    elif data_type in ['models', 'embedding_models', 'agent_sessions']:
+    elif data_type in ['models', 'embedding_models']:
         cache_empty = len(data or []) == 0
     elif data_type == 'settings':
         cache_empty = len(data or {}) == 0

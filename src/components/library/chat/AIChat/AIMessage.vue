@@ -50,7 +50,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { Loading, ToolExecutionStatus, ToolCallPlan } from '../../index.js'
+import { Loading, ToolExecutionStatus, ToolCallPlan, VueChatoRenderer } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
 
 const props = defineProps({

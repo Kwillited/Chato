@@ -70,7 +70,7 @@
     </div>
     
     <!-- Agent消息 -->
-    <div v-if="messageValue.steps && messageValue.steps.length > 0 || messageValue.message_type === 'agent'" class="space-y-4 mt-3">
+    <div v-if="messageValue.steps && messageValue.steps.length > 0 || messageValue.agent_step !== undefined" class="space-y-4 mt-3">
       <div 
         v-for="step in messageValue.steps" 
         :key="step.agent_step" 

@@ -12,30 +12,19 @@ class MessageBase(BaseModel):
 
 
 class MessageCreate(MessageBase):
-    """创建消息模型"""
+    """创建消息模型 - 统一的AI消息创建模型"""
     chat_id: str
     files: Optional[List[dict]] = Field(default_factory=list)
-
-
-class Message(MessageBase):
-    """消息响应模型"""
-    id: str
-    createdAt: str
-    files: Optional[List[dict]] = Field(default_factory=list)
-    message_type: str = "normal"
-    agent_session_id: Optional[str] = None
     agent_node: str = ""
     agent_step: int = 0
     agent_metadata: Optional[str] = ""
-    
-    class Config:
-        from_attributes = True
 
 
-class AgentMessage(Message):
-    """智能体消息响应模型"""
-    message_type: str = "agent"
-    agent_session_id: Optional[str] = None
+class Message(MessageBase):
+    """消息响应模型 - 统一的AI消息模型，包含普通消息和智能体消息"""
+    id: str
+    createdAt: str
+    files: Optional[List[dict]] = Field(default_factory=list)
     agent_node: str = ""
     agent_step: int = 0
     agent_metadata: Optional[str] = ""
@@ -189,12 +178,6 @@ class ModelVersionResponse(ModelVersionBase):
         from_attributes = True
 
 
-
-
-
-
-
-
 class SystemSettings(BaseModel):
     """系统设置模型"""
     dark_mode: bool = False
@@ -326,50 +309,3 @@ class SuccessResponse(BaseModel):
     """成功响应模型"""
     success: bool
     message: str
-
-
-# 智能体会话相关模型
-class AgentSessionBase(BaseModel):
-    """智能体会话基础模型"""
-    chat_id: str
-    graph_state: Optional[str] = None
-    current_node: str = ""
-    step_count: int = 0
-
-
-class AgentSessionCreate(AgentSessionBase):
-    """创建智能体会话模型"""
-    pass
-
-
-class AgentSessionUpdate(BaseModel):
-    """更新智能体会话模型"""
-    graph_state: Optional[str] = None
-    current_node: Optional[str] = None
-    step_count: Optional[int] = None
-
-
-class AgentSession(AgentSessionBase):
-    """智能体会话响应模型"""
-    id: str
-    createdAt: str
-    updatedAt: str
-    messages: Optional[List[AgentMessage]] = Field(default_factory=list)
-    
-    class Config:
-        from_attributes = True
-
-
-class AgentSessionListResponse(BaseModel):
-    """智能体会话列表响应模型"""
-    sessions: List[AgentSession]
-
-
-class AgentSessionResponse(BaseModel):
-    """单个智能体会话响应模型"""
-    session: AgentSession
-
-
-class AgentSessionCreateResponse(BaseModel):
-    """创建智能体会话响应模型"""
-    session: AgentSession

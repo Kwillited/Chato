@@ -24,15 +24,13 @@ class CacheManager:
             'chats': {},
             'models': [],
             'embedding_models': [],
-            'settings': {},
-            'agent_sessions': []
+            'settings': {}
         }
         self._dirty_flags: Dict[str, Any] = {
             'chats': {},
             'models': False,
             'embedding_models': False,
-            'settings': False,
-            'agent_sessions': False
+            'settings': False
         }
         self._lock = threading.RLock()
     
@@ -335,7 +333,7 @@ class CacheManager:
                         if key == 'chats':
                             self._cache[key] = {}
                             self._dirty_flags[key] = {}
-                        elif key in ['models', 'embedding_models', 'agent_sessions']:
+                        elif key in ['models', 'embedding_models']:
                             self._cache[key] = []
                             self._dirty_flags[key] = False
                         elif key == 'settings':
@@ -350,16 +348,14 @@ class CacheManager:
                         'chats': {},
                         'models': [],
                         'embedding_models': [],
-                        'settings': {},
-                        'agent_sessions': []
+                        'settings': {}
                     }
                     # 重置所有脏标记
                     self._dirty_flags = {
                         'chats': {},
                         'models': False,
                         'embedding_models': False,
-                        'settings': False,
-                        'agent_sessions': False
+                        'settings': False
                     }
             return True
         except Exception as e:

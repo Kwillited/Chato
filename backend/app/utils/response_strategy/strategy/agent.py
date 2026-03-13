@@ -1,7 +1,7 @@
 """智能体响应策略"""
 import json
 from app.utils.response_strategy.strategy.base import BaseResponseStrategyImpl
-from app.utils.message import ResponseMessageSystem
+from app.utils.message.base import MessageSystem
 from app.utils.message.agent import AgentSystem
 from app.utils.stream import StreamSystem
 
@@ -36,9 +36,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         """处理流式智能体响应"""
         async def generate():
             try:
-                # 使用工具类创建智能体会话
-                agent_session_id = AgentSystem.create_agent_session(chat_service, chat['id'])
-                
                 # 累积每个节点的响应
                 node_content = {}
                 node_reasoning = {}  # 存储每个节点的思考内容
@@ -47,7 +44,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                 current_step = 0
                 responses = []
                 
-                # 使用工具类创建智能体状态
+                # 使用工具类创建智能体状态（仅用于运行时，不再持久化）
                 agent_state = AgentSystem.create_agent_state()
                 
                 # 工具执行信息存储
@@ -84,7 +81,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                         if current_node and node != current_node:
                             await self._save_agent_node_response(
                                 current_node, node_content, node_reasoning, node_metadata,
-                                current_step, agent_session_id, now, model_display_name,
+                                current_step, now, model_display_name,
                                 responses, chat_service, agent_state
                             )
                         
@@ -97,11 +94,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                         # 更新当前节点信息
                         current_node = node
                         current_step = step
-                        
-                        # 更新智能体会话状态
-                        AgentSystem.update_agent_session(
-                            chat_service, agent_session_id, current_node, current_step, agent_state
-                        )
                         
                         # 处理不同类型的事件
                         await self._process_agent_event(
@@ -122,7 +114,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                     # 保存当前节点
                     await self._save_agent_node_response(
                         current_node, node_content, node_reasoning, node_metadata,
-                        current_step, agent_session_id, now, model_display_name,
+                        current_step, now, model_display_name,
                         responses, chat_service, agent_state
                     )
                 
@@ -147,9 +139,6 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
                                            parsed_version_name, model_params, 
                                            model_display_name, model, chat_service):
         """处理非流式智能体响应"""
-        # 使用工具类创建智能体会话
-        agent_session_id = AgentSystem.create_agent_session(chat_service, chat['id'])
-        
         # 调用智能体
         from app.llm.agent_manager import AgentManager
         from app.llm.managers.model_manager import ModelManager
@@ -162,7 +151,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         agent_wrapper = AgentManager(base_driver)
         await agent_wrapper.initialize()
         
-        # 使用工具类创建智能体状态
+        # 使用工具类创建智能体状态（仅用于运行时）
         agent_state = AgentSystem.create_agent_state()
         
         # 非流式调用智能体
@@ -175,12 +164,11 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         reasoning_content = response.get('reasoning_content') if isinstance(response, dict) else None
         
         # 创建智能体消息
-        ai_message = ResponseMessageSystem.create_agent_message(
-            content, now, model_display_name, 
-            session_id=agent_session_id, 
-            node="final", 
-            step=0,
-            reasoning_content=reasoning_content
+        ai_message = MessageSystem.create_ai_message(
+            now, content, model_display_name,
+            reasoning_content=reasoning_content,
+            agent_node='final',
+            agent_step=0
         )
         
         # 保存消息
@@ -192,7 +180,7 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
         }, 201
     
     async def _save_agent_node_response(self, node, node_content, node_reasoning, node_metadata, 
-                                      step, agent_session_id, now, model_display_name, 
+                                      step, now, model_display_name, 
                                       responses, chat_service, agent_state):
         """保存智能体节点响应"""
         # 确保推理节点被保存
@@ -206,12 +194,11 @@ class AgentResponseStrategy(BaseResponseStrategyImpl):
             node_reasoning_content = node_reasoning.get(node, None)
             
             # 创建智能体消息
-            ai_message = ResponseMessageSystem.create_agent_message(
-                content, now, model_display_name, 
-                session_id=agent_session_id, 
-                node=node, 
-                step=step,
-                reasoning_content=node_reasoning_content
+            ai_message = MessageSystem.create_ai_message(
+                now, content, model_display_name,
+                reasoning_content=node_reasoning_content,
+                agent_node=node,
+                agent_step=step
             )
             
             # 存储AI消息

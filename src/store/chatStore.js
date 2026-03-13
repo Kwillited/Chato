@@ -1,10 +1,10 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
+import { streamingService } from '../services/streamingService.js';
+import { eventBus } from '../services/eventBus.js';
 import { generateId } from '../utils/data.js';
-import { useSettingsStore } from './settingsStore.js';
-import { useVectorStore } from './vectorStore.js';
 import { useUiStore } from './uiStore.js';
-import { useFileStore } from './fileStore.js';
+import { useSettingsStore } from './settingsStore.js';
 import { useNotification } from '../composables/useNotification.js';
 import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils, stateUtils } from '../utils/storeUtils.js';
 import { ref } from 'vue'; // 引入 ref
@@ -217,22 +217,24 @@ export const useChatStore = defineStore('chat', {
         model: model // 使用传入的model参数，避免显示默认的"NeoVAI"
       });
       currentChat.messages.push(typingMessageRef);
-      
-      // 强制更新currentChat，确保所有组件都能感知到变化
-      stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
 
       return typingMessageRef;
     },
 
     // 格式化模型名称
     formatModelName(model) {
-      const modelStore = useSettingsStore();
       let formattedModel = model;
       
+      // 从事件总线获取模型数据
+      let models = [];
+      eventBus.emit('getModels', { callback: (data) => {
+        models = data;
+      }});
+      
       // 检查是否需要进行格式转换（如果model不包含'-'，说明可能是旧格式）
-      if (!formattedModel.includes('-') && modelStore.models.length > 0) {
+      if (!formattedModel.includes('-') && models.length > 0) {
         // 尝试找到对应的模型和版本
-        for (const m of modelStore.models) {
+        for (const m of models) {
           if (m.versions && Array.isArray(m.versions)) {
             for (const version of m.versions) {
               if (version.version_name === formattedModel) {
@@ -250,15 +252,24 @@ export const useChatStore = defineStore('chat', {
 
     // 检查流式输出支持
     checkStreamingSupport(formattedModel) {
-      const settingsStore = useSettingsStore();
-      const systemStreamingEnabled = settingsStore.systemSettings.streamingEnabled || false;
+      let systemStreamingEnabled = false;
+      let models = [];
+      
+      // 从事件总线获取系统设置
+      eventBus.emit('getSystemSettings', { callback: (settings) => {
+        systemStreamingEnabled = settings.streamingEnabled || false;
+      }});
+      
+      // 从事件总线获取模型数据
+      eventBus.emit('getModels', { callback: (data) => {
+        models = data;
+      }});
       
       // 检查模型版本是否支持流式输出
       let modelStreamingEnabled = false;
       if (formattedModel && formattedModel.includes('-')) {
-        const modelStore = useSettingsStore();
         const [modelName, versionName] = formattedModel.split('-', 2);
-        const model = modelStore.models.find(m => m.name === modelName);
+        const model = models.find(m => m.name === modelName);
         if (model && model.versions) {
           const version = model.versions.find(v => v.version_name === versionName);
           if (version) {
@@ -283,11 +294,25 @@ export const useChatStore = defineStore('chat', {
 
     // 准备RAG配置
     prepareRagConfig() {
-      // 获取vectorStore实例
-      const vectorStore = useVectorStore();
+      let vectorConfig = {
+        enabled: false,
+        retrieval: {
+          topK: 5,
+          threshold: 0.7,
+          mode: 'similarity'
+        }
+      };
+      let currentFolder = null;
       
-      // 从vectorStore获取RAG配置
-      const vectorConfig = vectorStore.config;
+      // 从事件总线获取vectorStore配置
+      eventBus.emit('getRagConfig', { callback: (config) => {
+        vectorConfig = config;
+      }});
+      
+      // 从事件总线获取当前文件夹
+      eventBus.emit('getCurrentFolder', { callback: (folder) => {
+        currentFolder = folder;
+      }});
       
       // 构建后端需要的ragConfig格式
       let ragConfigToUse = {
@@ -298,18 +323,14 @@ export const useChatStore = defineStore('chat', {
         selectedFolders: []
       };
       
-      // 获取fileStore实例
-      const fileStore = useFileStore();
-      
       // 如果有选中的文件夹，设置检索范围为该文件夹
-      if (fileStore.currentFolder) {
-        const targetFolder = fileStore.currentFolder;
-        ragConfigToUse.selectedFolders = targetFolder && targetFolder.id ? [targetFolder.id] : [];
+      if (currentFolder) {
+        ragConfigToUse.selectedFolders = currentFolder && currentFolder.id ? [currentFolder.id] : [];
       }
       
       // 添加调试日志，查看实际发送给后端的ragConfig
       console.log('🔍 RAG配置调试:', {
-        currentFolder: fileStore.currentFolder,
+        currentFolder: currentFolder,
         selectedFolders: ragConfigToUse.selectedFolders,
         ragEnabled: ragConfigToUse.enabled
       });
@@ -415,8 +436,6 @@ export const useChatStore = defineStore('chat', {
                 currentMessage.value.toolInput = data.data.input;
                 currentMessage.value.lastUpdate = Date.now();
                 
-                // 强制更新currentChat
-                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                 return;
               }
               
@@ -441,8 +460,6 @@ export const useChatStore = defineStore('chat', {
                   currentMessage.value.lastUpdate = Date.now();
                 }
                 
-                // 强制更新currentChat
-                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                 return;
               }
               
@@ -493,8 +510,6 @@ export const useChatStore = defineStore('chat', {
                   currentMessage.value.lastUpdate = Date.now();
                 }
                 
-                // 强制更新currentChat
-                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                 return;
               }
               
@@ -546,8 +561,6 @@ export const useChatStore = defineStore('chat', {
                   currentMessage.value.lastUpdate = Date.now();
                 }
                 
-                // 强制更新currentChat
-                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                 return;
               }
               
@@ -637,9 +650,6 @@ export const useChatStore = defineStore('chat', {
                   }
                 }
                 
-                // 强制更新currentChat，确保所有组件都能感知到变化
-                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
-                
                 // 如果用户当前没有查看该对话，设置未读标记并显示通知
                 this.handleNewMessageNotification(currentChat);
               }
@@ -682,9 +692,6 @@ export const useChatStore = defineStore('chat', {
                       message.value = updatedMessage;
                     }
                   }
-                
-                // 强制更新currentChat
-                stateUtils.forceUpdate(this, 'currentChat', this.currentChat);
                 
                 // 如果用户当前没有查看该对话，设置未读标记并显示通知
                 this.handleNewMessageNotification(currentChat);
@@ -822,9 +829,8 @@ export const useChatStore = defineStore('chat', {
 
     // 清理消息发送后的状态
     cleanupAfterMessage() {
-      // 使用 uiStore 更新加载状态
-      const uiStore = useUiStore();
-      uiStore.setLoading(false);
+      // 使用事件总线更新加载状态
+      eventBus.emit('setLoading', false);
       this.uploadedFiles = [];
     },
 
@@ -869,19 +875,20 @@ export const useChatStore = defineStore('chat', {
       const currentChat = this.currentChat;
       if (!currentChat) return;
 
-      // 使用 uiStore 更新加载状态和消息输入
-      const uiStore = useUiStore();
-      uiStore.setLoading(true);
-      uiStore.updateMessageInput('');
+      // 使用事件总线更新加载状态和消息输入
+      eventBus.emit('setLoading', true);
+      eventBus.emit('updateMessageInput', '');
       this.clearError();
 
       // 准备消息状态
       this.prepareMessageState(currentChat, content, model);
 
       try {
-        // 获取模型参数
-        const settingsStore = useSettingsStore();
-        const modelParams = settingsStore.currentModelParams;
+        // 从事件总线获取模型参数
+        let modelParams = {};
+        eventBus.emit('getCurrentModelParams', { callback: (params) => {
+          modelParams = params;
+        }});
         
         // 准备消息发送参数
         const { formattedModel, ragConfigToUse, messageParams } = this.prepareMessageParams(
@@ -1098,7 +1105,7 @@ export const useChatStore = defineStore('chat', {
             // 确保files字段存在（默认为空数组）
             files: Array.isArray(messageData.files) ? messageData.files : [],
             // 确保智能体相关字段存在
-            agent_session_id: messageData.agent_session_id || messageData.agent_session,
+            // 注意：agent_session_id 字段已不再使用，后端已移除 AgentSession 表
             agent_node: messageData.agent_node || messageData.node,
             agent_step: messageData.agent_step || messageData.step || 0,
             agent_metadata: messageData.agent_metadata || messageData.metadata,
@@ -1255,7 +1262,7 @@ export const useChatStore = defineStore('chat', {
     // 取消流式响应
     cancelStreaming() {
       try {
-        apiService.chat.closeStreamingConnection();
+        streamingService.closeStreamingConnection();
         console.log('流式连接已关闭');
       } catch (error) {
         console.error('关闭流式连接失败:', error);

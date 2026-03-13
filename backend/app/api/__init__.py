@@ -9,6 +9,7 @@ from app.api.mcp_router import router as mcp_router
 from app.api.embedding_models_router import router as embedding_models_router
 from app.api.settings_router import router as settings_router
 from app.api.vector_router import router as vector_router
+from app.api.messages_router import router as messages_router
 
 __all__ = ['register_routes']
 
@@ -18,6 +19,7 @@ def register_routes(app):
     # 注册健康检查路由
     app.include_router(health_router, tags=['health'])
     app.include_router(chats_router, tags=['chats'])
+    app.include_router(messages_router, prefix='/api/chats', tags=['messages'])
     app.include_router(files_router, tags=['files'])
     app.include_router(models_router, tags=['models'])
     app.include_router(mcp_router, tags=['mcp'])

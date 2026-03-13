@@ -155,8 +155,9 @@
   margin: 0;
   padding: var(--code-padding);
   background-color: var(--color-code-bg);
-  overflow-x: auto;
   max-width: 100%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 /* 代码块内的代码样式 */
@@ -167,6 +168,8 @@
   color: var(--color-code-text);
   background-color: transparent;
   padding: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 /* Mermaid 代码样式 */
@@ -177,6 +180,8 @@
   color: var(--color-code-text);
   background-color: transparent;
   padding: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 /* SVG 容器样式 */

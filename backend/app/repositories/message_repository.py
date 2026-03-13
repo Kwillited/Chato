@@ -14,19 +14,17 @@ class MessageRepository(BaseRepository):
         return self.db.query(Message).filter(Message.id == message_id).first()
     
     def create_message(self, message_id, chat_id, role, content, reasoning_content, created_at, model, files=None, 
-                       message_type="normal", agent_session_id=None, agent_node="", agent_step=0, agent_metadata=""):
+                       agent_node="", agent_step=0, agent_metadata=""):
         """创建新消息"""
         message = Message(
             id=message_id,
             chat_id=chat_id,
             role=role,
-            message_type=message_type,
             content=content,
             reasoning_content=reasoning_content,
             created_at=created_at,
             model=model,
             files=files,
-            agent_session_id=agent_session_id,
             agent_node=agent_node,
             agent_step=agent_step,
             agent_metadata=agent_metadata
@@ -34,7 +32,7 @@ class MessageRepository(BaseRepository):
         return self.add(message)
     
     def update_message(self, message_id, role, content, reasoning_content, created_at, model, files=None, 
-                       message_type=None, agent_session_id=None, agent_node=None, agent_step=None, agent_metadata=None):
+                       agent_node=None, agent_step=None, agent_metadata=None):
         """更新消息"""
         message = self.get_message_by_id(message_id)
         if message:
@@ -45,10 +43,6 @@ class MessageRepository(BaseRepository):
             message.model = model
             if files is not None:
                 message.files = files
-            if message_type is not None:
-                message.message_type = message_type
-            if agent_session_id is not None:
-                message.agent_session_id = agent_session_id
             if agent_node is not None:
                 message.agent_node = agent_node
             if agent_step is not None:
@@ -80,7 +74,7 @@ class MessageRepository(BaseRepository):
         return False
     
     def create_or_update_message(self, message_id, chat_id, role, content, reasoning_content, created_at, model, files=None, 
-                                message_type="normal", agent_session_id=None, agent_node="", agent_step=0, agent_metadata=""):
+                                agent_node="", agent_step=0, agent_metadata=""):
         """创建或更新消息"""
         message = self.get_message_by_id(message_id)
         if message:
@@ -93,10 +87,6 @@ class MessageRepository(BaseRepository):
             message.model = model
             if files is not None:
                 message.files = files
-            if message_type is not None:
-                message.message_type = message_type
-            if agent_session_id is not None:
-                message.agent_session_id = agent_session_id
             if agent_node is not None:
                 message.agent_node = agent_node
             if agent_step is not None:
@@ -107,4 +97,4 @@ class MessageRepository(BaseRepository):
         else:
             # 创建新消息
             return self.create_message(message_id, chat_id, role, content, reasoning_content, created_at, model, files, 
-                                     message_type, agent_session_id, agent_node, agent_step, agent_metadata)
+                                     agent_node, agent_step, agent_metadata)

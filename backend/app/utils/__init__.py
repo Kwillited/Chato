@@ -20,7 +20,7 @@ from .message_builder import MessageBuilder
 from .callback_manager import CallbackManager, register_callback, trigger_callback, get_callback_manager
 
 # 消息处理模块
-from .message import MessageSystem, ResponseMessageSystem, AgentSystem
+from .message import MessageSystem, AgentSystem
 
 # 流式处理模块
 from .stream import StreamSystem
@@ -80,7 +80,6 @@ __all__ = [
     
     # 消息处理模块
     'MessageSystem',
-    'ResponseMessageSystem',
     'AgentSystem',
     
     # 流式处理模块

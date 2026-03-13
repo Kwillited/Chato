@@ -62,17 +62,3 @@ def update_chat_pin(chat_id: str = Path(...), data: PinUpdateRequest = Body(...)
     
     return PinUpdateResponse(success=True, message=f'对话已{"置顶" if pinned else "取消置顶"}')
 
-# 发送消息（应用层）
-@router.post('/{chat_id}/messages')
-@handle_api_errors()
-async def send_message(chat_id: str = Path(...), data: SendMessageRequest = Body(...), chat_service: ChatService = Depends(get_chat_service)):
-    # 这里的 result 应该是一个异步生成器函数
-    result = await chat_service.send_message(chat_id, data.dict())
-    
-    if callable(result):
-        # 传入异步生成器给 StreamingResponse
-        return StreamingResponse(result(), media_type='text/event-stream')
-    else:
-        # 普通响应返回json和状态码
-        response_data, status_code = result
-        return response_data, status_code

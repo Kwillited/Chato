@@ -137,13 +137,5 @@ export const apiUtils = {
  * 状态更新工具函数
  */
 export const stateUtils = {
-  /**
-   * 强制更新对象，确保响应式系统能够检测到变化
-   * @param {Object} store - store 实例
-   * @param {string} property - 要更新的属性名
-   * @param {any} value - 新值
-   */
-  forceUpdate(store, property, value) {
-    store[property] = { ...value };
-  }
+  // 状态更新相关工具函数
 };

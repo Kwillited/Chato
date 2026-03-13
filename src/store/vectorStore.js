@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService.js';
+import { eventBus } from '../services/eventBus.js';
 import { errorUtils, loadingUtils, apiUtils } from '../utils/storeUtils.js';
 import { useFileStore } from './fileStore.js';
 
@@ -75,6 +76,16 @@ export const useVectorStore = defineStore('vector', {
   },
 
   actions: {
+    // 初始化事件监听器
+    initEventListeners() {
+      // 监听获取RAG配置的请求
+      eventBus.on('getRagConfig', (data) => {
+        if (data && data.callback) {
+          data.callback(this.config);
+        }
+      });
+    },
+    
     // 设置错误信息
     setError(error) {
       errorUtils.setError(this, error);

@@ -29,12 +29,14 @@ import { useChatStore } from './store/chatStore.js';
 import { useSettingsStore } from './store/settingsStore.js';
 import { useUiStore } from './store/uiStore.js';
 import { useVectorStore } from './store/vectorStore.js';
+import { useFileStore } from './store/fileStore.js';
 
 // 初始化stores
 const chatStore = useChatStore();
 const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 const vectorStore = useVectorStore();
+const fileStore = useFileStore();
 
 // 路由
 const route = useRoute();
@@ -110,6 +112,12 @@ onMounted(async () => {
     // 可以在这里添加用户友好的提示，比如显示一个通知
     // showNotification('后端服务连接失败，请检查服务状态', 'error');
   }
+
+  // 初始化事件监听器
+  settingsStore.registerEventListeners();
+  vectorStore.initEventListeners();
+  fileStore.initEventListeners();
+  uiStore.initEventListeners();
 
   // 初始化默认面板
   if (!uiStore.activePanel) {

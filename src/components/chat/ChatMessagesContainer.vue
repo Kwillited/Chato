@@ -63,51 +63,27 @@ const userMessages = computed(() => {
   });
 });
 
-// 计算分组后的消息
+// 直接使用消息列表，不需要分组
 const groupedMessages = computed(() => {
   const messages = chatMessages.value;
   if (!messages || messages.length === 0) return [];
   
-  console.log('原始消息列表:', messages);
+  console.log('消息列表:', messages);
   
-  const groups = [];
-  
-  messages.forEach(message => {
+  // 将每条消息包装为独立分组，保持与原有结构兼容
+  return messages.map((message, index) => {
     const msgValue = message?.value || message;
-    console.log('处理消息:', msgValue);
+    const timestamp = msgValue.timestamp || Date.now();
     
-    // 检查是否是智能体消息（使用agent字段或agent_step字段）
-    if (msgValue.agent || msgValue.agent_step !== undefined) {
-      console.log('发现智能体消息，step:', msgValue.agent_step);
-      
-      // 为每个智能体消息创建独立的分组
-      const agentGroup = {
-        id: `agent-message-${msgValue.timestamp}-${msgValue.agent_step}`,
-        isAgentGroup: false, // 改为普通分组，每个智能体消息独立显示
-        messages: [message],
-        role: msgValue.role,
-        model: msgValue.model,
-        timestamp: msgValue.timestamp,
-        agent_step: msgValue.agent_step,
-        agent_node: msgValue.agent_node
-      };
-      
-      groups.push(agentGroup);
-      console.log('创建智能体消息分组:', agentGroup.id);
-    } else {
-      console.log('发现普通消息:', msgValue.role);
-      
-      // 添加普通消息分组
-      groups.push({
-        id: `normal-group-${msgValue.timestamp}`,
-        isAgentGroup: false,
-        messages: [message]
-      });
-    }
+    return {
+      id: `message-group-${timestamp}-${index}`,
+      isAgentGroup: false,
+      messages: [message],
+      role: msgValue.role,
+      model: msgValue.model,
+      timestamp: timestamp
+    };
   });
-  
-  console.log('最终分组结果:', groups);
-  return groups;
 });
 
 // 检查是否是最后一条消息

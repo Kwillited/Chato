@@ -55,26 +55,6 @@ class Chat(Base):
     
     # 关系：一个对话可以有多个消息
     messages = relationship("Message", back_populates="chat", cascade="all, delete-orphan")
-    # 关系：一个对话可以有多个智能体会话
-    agent_sessions = relationship("AgentSession", back_populates="chat", cascade="all, delete-orphan")
-
-
-class AgentSession(Base):
-    """智能体会话表"""
-    __tablename__ = "agent_sessions"
-    
-    id = Column(String, primary_key=True)
-    chat_id = Column(String, ForeignKey("chats.id", ondelete="CASCADE"), nullable=False)
-    created_at = Column(String, nullable=False)
-    updated_at = Column(String, nullable=False)
-    graph_state = Column(Text)  # 存储完整的图状态（JSON格式）
-    current_node = Column(String, default="")  # 当前节点
-    step_count = Column(Integer, default=0)  # 步骤计数
-    
-    # 关系：一个智能体会话包含多个消息
-    messages = relationship("Message", back_populates="agent_session")
-    # 关系：属于一个对话
-    chat = relationship("Chat", back_populates="agent_sessions")
 
 
 class Message(Base):
@@ -83,9 +63,7 @@ class Message(Base):
     
     id = Column(String, primary_key=True)
     chat_id = Column(String, ForeignKey("chats.id", ondelete="CASCADE"), nullable=False)
-    agent_session_id = Column(String, ForeignKey("agent_sessions.id", ondelete="SET NULL"))
     role = Column(String, nullable=False)
-    message_type = Column(String, default="normal")  # normal 或 agent
     content = Column(Text, nullable=False)
     reasoning_content = Column(Text)
     created_at = Column(String, nullable=False)
@@ -97,8 +75,6 @@ class Message(Base):
     
     # 关系：多个消息属于一个对话
     chat = relationship("Chat", back_populates="messages")
-    # 关系：属于一个智能体会话
-    agent_session = relationship("AgentSession", back_populates="messages")
 
 
 

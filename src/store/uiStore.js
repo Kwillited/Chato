@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { eventBus } from '../services/eventBus.js';
 import { errorUtils, loadingUtils } from '../utils/storeUtils.js';
 
 /**
@@ -104,6 +105,19 @@ export const useUiStore = defineStore('ui', {
    * 用于修改状态的方法
    */
   actions: {
+    // 初始化事件监听器
+    initEventListeners() {
+      // 监听设置加载状态的请求
+      eventBus.on('setLoading', (loading) => {
+        this.setLoading(loading);
+      });
+      
+      // 监听更新消息输入的请求
+      eventBus.on('updateMessageInput', (content) => {
+        this.updateMessageInput(content);
+      });
+    },
+    
     /**
      * 切换设置面板
      * @param {string} panel - 面板名称

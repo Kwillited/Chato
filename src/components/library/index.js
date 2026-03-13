@@ -18,3 +18,7 @@ export { default as ConfirmationModal } from '../common/ConfirmationModal.vue'
 export { default as DragDropZone } from '../common/DragDropZone.vue'
 export { default as SearchBar } from '../common/SearchBar.vue'
 export { default as SettingItem } from '../common/SettingItem.vue'
+
+// 导入并导出 VueChatoRenderer 组件
+import { VueChatoRenderer } from '../../plugins/vue-chato-renderer/index.js'
+export { VueChatoRenderer }

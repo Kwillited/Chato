@@ -145,6 +145,30 @@ export const useSettingsStore = defineStore('settings', {
       // 简化实现：设置保存和应用通过组件内的watch和@change事件处理
     },
     
+    // 注册事件总线监听器
+    registerEventListeners() {
+      // 监听获取模型列表的请求
+      eventBus.on('getModels', (data) => {
+        if (data && data.callback) {
+          data.callback(this.models);
+        }
+      });
+      
+      // 监听获取系统设置的请求
+      eventBus.on('getSystemSettings', (data) => {
+        if (data && data.callback) {
+          data.callback(this.systemSettings);
+        }
+      });
+      
+      // 监听获取当前模型参数的请求
+      eventBus.on('getCurrentModelParams', (data) => {
+        if (data && data.callback) {
+          data.callback(this.modelParams);
+        }
+      });
+    },
+    
     // 设置默认模型
     setDefaultModel(model) {
       this.systemSettings.defaultModel = model;

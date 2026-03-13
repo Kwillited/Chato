@@ -75,8 +75,6 @@ class DataService(BaseService):
                                 'createdAt': msg.created_at,
                                 'model': msg.model,
                                 'files': files,  # 使用反序列化后的列表
-                                'message_type': msg.message_type,
-                                'agent_session_id': msg.agent_session_id,
                                 'agent_node': msg.agent_node or '',  # 提供默认值
                                 'agent_step': msg.agent_step or 0,  # 提供默认值
                                 'agent_metadata': msg.agent_metadata
@@ -122,8 +120,6 @@ class DataService(BaseService):
                                 'createdAt': msg.created_at,
                                 'model': msg.model,
                                 'files': files,  # 使用反序列化后的列表
-                                'message_type': msg.message_type,
-                                'agent_session_id': msg.agent_session_id,
                                 'agent_node': msg.agent_node or '',  # 提供默认值
                                 'agent_step': msg.agent_step or 0,  # 提供默认值
                                 'agent_metadata': msg.agent_metadata
@@ -162,15 +158,6 @@ class DataService(BaseService):
                     dirty_flags[chat_id] = True
             # 更新缓存
             cache_manager.set('chats', chats)
-            
-            # 移除相关的智能体会话
-            sessions = cache_manager.get('agent_sessions') or []
-            sessions_to_remove = [s for s in sessions if s['chat_id'] == chat_id]
-            if sessions_to_remove:
-                for session in sessions_to_remove:
-                    sessions.remove(session)
-                cache_manager.set('agent_sessions', sessions)
-                cache_manager.set_dirty_flag('agent_sessions')
     
     @staticmethod
     def clear_chats():
@@ -186,10 +173,6 @@ class DataService(BaseService):
             if isinstance(dirty_flags, dict):
                 for chat_id in chat_ids:
                     dirty_flags[chat_id] = True
-        
-        # 清空所有智能体会话
-        cache_manager.set('agent_sessions', [])
-        cache_manager.set_dirty_flag('agent_sessions')
     
     @staticmethod
     def update_chat(chat_id, updated_data):
@@ -316,59 +299,3 @@ class DataService(BaseService):
     def save_data():
         """保存数据"""
         save_data()
-    
-    # 智能体会话相关方法
-    @staticmethod
-    def get_agent_sessions():
-        """获取所有智能体会话"""
-        return cache_manager.get('agent_sessions')
-    
-    @staticmethod
-    def get_agent_session_by_id(session_id):
-        """根据ID获取智能体会话"""
-        sessions = cache_manager.get('agent_sessions') or []
-        return next((s for s in sessions if s['id'] == session_id), None)
-    
-    @staticmethod
-    def add_agent_session(session):
-        """添加智能体会话"""
-        sessions = cache_manager.get('agent_sessions') or []
-        sessions.insert(0, session)
-        cache_manager.set('agent_sessions', sessions)
-    
-    @staticmethod
-    def update_agent_session(session_id, updated_session):
-        """更新智能体会话"""
-        session = DataService.get_agent_session_by_id(session_id)
-        if session:
-            session.update(updated_session)
-            # 由于session是引用，直接设置脏标记即可
-            cache_manager.set_dirty_flag('agent_sessions')
-    
-    @staticmethod
-    def remove_agent_session(session_id):
-        """移除智能体会话"""
-        sessions = cache_manager.get('agent_sessions') or []
-        session_index = next((i for i, s in enumerate(sessions) if s['id'] == session_id), None)
-        if session_index is not None:
-            sessions.pop(session_index)
-            cache_manager.set('agent_sessions', sessions)
-    
-    @staticmethod
-    def clear_agent_sessions():
-        """清空智能体会话"""
-        cache_manager.set('agent_sessions', [])
-    
-    @staticmethod
-    def get_agent_sessions_by_chat_id(chat_id):
-        """根据对话ID获取智能体会话"""
-        sessions = cache_manager.get('agent_sessions') or []
-        return [s for s in sessions if s['chat_id'] == chat_id]
-    
-    @staticmethod
-    def get_latest_agent_session(chat_id):
-        """获取对话的最新智能体会话"""
-        sessions = DataService.get_agent_sessions_by_chat_id(chat_id)
-        if sessions:
-            return sorted(sessions, key=lambda x: x['created_at'], reverse=True)[0]
-        return None

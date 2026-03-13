@@ -1,7 +1,7 @@
 """普通响应策略"""
 
 from app.utils.response_strategy.strategy.base import BaseResponseStrategyImpl
-from app.utils.message import ResponseMessageSystem
+from app.utils.message.base import MessageSystem
 
 
 class RegularResponseStrategy(BaseResponseStrategyImpl):
@@ -43,7 +43,10 @@ class RegularResponseStrategy(BaseResponseStrategyImpl):
             reasoning_content = None
 
         # 使用工具类创建AI消息
-        ai_message = ResponseMessageSystem.create_ai_message(ai_reply, now, model_display_name, reasoning_content)
+        ai_message = MessageSystem.create_ai_message(
+            now, ai_reply, model_display_name,
+            reasoning_content=reasoning_content
+        )
         
         # 保存消息
         chat_service.update_chat_and_save(chat, message_text, user_message, ai_message, now)

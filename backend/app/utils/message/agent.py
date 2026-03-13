@@ -64,51 +64,9 @@ class AgentSystem:
             formatted_chunk = StreamSystem.format_stream_chunk(str(chunk), agent=True)
             return formatted_chunk, full_reply
     
-    @staticmethod
-    def format_agent_message(message, now, model_display_name, session_id=None, node=None, step=None, full_reasoning=None):
-        """格式化智能体消息
 
-        Args:
-            message: 智能体消息内容
-            now: 当前时间戳
-            model_display_name: 模型显示名称
-            session_id: 智能体会话ID
-            node: 智能体节点名称
-            step: 智能体步骤
-            full_reasoning: 累积的思考内容
-
-        Returns:
-            格式化后的智能体消息
-        """
-        # 创建基础AI消息
-        ai_message = MessageSystem.process_full_reply(message, now, model_display_name, full_reasoning)
-        
-        # 添加智能体相关字段
-        ai_message['message_type'] = 'agent'
-        if session_id:
-            ai_message['agent_session_id'] = session_id
-        if node:
-            ai_message['agent_node'] = node
-        if step is not None:
-            ai_message['agent_step'] = step
-        
-        return ai_message
     
-    # 智能体会话管理相关方法
-    @staticmethod
-    def create_agent_session(chat_service, chat_id):
-        """创建智能体会话
-        
-        Args:
-            chat_service: 聊天服务实例
-            chat_id: 聊天ID
-            
-        Returns:
-            智能体会话ID，如果创建失败则返回None
-        """
-        agent_session = chat_service.create_agent_session(chat_id, graph_state={}, current_node="")
-        return agent_session['id'] if agent_session else None
-    
+    # 智能体会话管理相关方法（已简化，不再使用独立的AgentSession表）
     @staticmethod
     def create_agent_state():
         """创建智能体状态
@@ -122,25 +80,6 @@ class AgentSystem:
             "current_node": "",
             "steps": []
         }
-    
-    @staticmethod
-    def update_agent_session(chat_service, session_id, current_node, step_count, graph_state):
-        """更新智能体会话状态
-        
-        Args:
-            chat_service: 聊天服务实例
-            session_id: 智能体会话ID
-            current_node: 当前节点
-            step_count: 步骤计数
-            graph_state: 图状态
-        """
-        if session_id:
-            chat_service.update_agent_session(
-                session_id=session_id,
-                current_node=current_node,
-                step_count=step_count,
-                graph_state=graph_state
-            )
     
     # 智能体工具和节点相关方法
     @staticmethod

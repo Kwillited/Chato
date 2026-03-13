@@ -4,7 +4,7 @@ import pinia from './store/pinia.js';
 import router from './router/index.js';
 
 // 导入Vue-Chato-Renderer插件
-import VueChatoRendererPlugin from './plugins/Vue-Chato-Renderer/index.js';
+import VueChatoRendererPlugin from './plugins/vue-chato-renderer/index.js';
 
 // 等待DOM完全加载后再初始化Vue应用
 document.addEventListener('DOMContentLoaded', () => {

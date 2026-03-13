@@ -52,19 +52,8 @@
             </Tooltip>
           </div>
           
-          <!-- 展开/折叠控制按钮 -->
-          <div class="flex-1 flex justify-end items-center">
-            <button
-              class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
-              @click="toggleParamsPanel"
-              :class="{ 'rotate-180': showParamsPanel }"
-            >
-              <i class="fa-solid fa-chevron-down text-xs"></i>
-            </button>
-          </div>
-          
           <!-- 应用控制按钮 -->
-          <div class="flex items-center gap-2 pr-2">
+          <div class="flex-1 flex items-center gap-2 justify-end">
             <!-- 直接显示视图按钮 -->
             <Button 
               icon="fa-columns"
@@ -126,6 +115,17 @@
                   class="text-red-500"
                 />
               </div>
+            </div>
+            
+            <!-- 展开/折叠控制按钮 -->
+            <div class="ml-2">
+              <button
+                class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
+                @click="toggleParamsPanel"
+                :class="{ 'rotate-180': showParamsPanel }"
+              >
+                <i class="fa-solid fa-chevron-down text-xs"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -618,6 +618,7 @@ import { formatFileSize } from '../../../utils/file.js';
 import { Tooltip } from '../index.js';
 import { useNotification } from '../../../composables/useNotification.js';
 import { useNavigation } from '../../../composables/useNavigation.js';
+import { useModelUtils } from '../../../composables/useModelUtils.js';
 
 // 使用通知组合式函数
 const { showSuccess, showError } = useNotification();
@@ -646,6 +647,9 @@ const settingsStore = useSettingsStore();
 const uiStore = useUiStore();
 const modelStore = useSettingsStore();
 const vectorStore = useVectorStore();
+
+// 使用模型工具
+const { availableModelIds, formattedModels, getModelDisplayName } = useModelUtils(modelStore);
 
 // 导航管理
 const { navigateToSettings } = useNavigation();
@@ -754,90 +758,22 @@ const currentModelDisplayName = computed(() => {
   
   // 当currentModel为空或无效时，使用默认模型名称
   if (!currentModel.value || !modelStore.allModels.length) {
-    return currentModel.value || settingsStore.systemSettings.defaultModel || '默认模型';
-  }
-  
-  // 遍历所有模型，找到匹配的模型
-  for (const model of modelStore.allModels) {
-    if (model.versions) {
-      for (const version of model.versions) {
-        // 构建select组件使用的模型ID格式：model.name-version_name
-        const selectModelId = `${model.name}-${version.version_name}`;
-        // 同时检查select组件格式和直接匹配version_name/custom_name
-        if (selectModelId === currentModel.value || 
-            version.version_name === currentModel.value || 
-            version.custom_name === currentModel.value) {
-          // 使用模型的name
-          const modelDisplay = model.name;
-          // 优先使用版本的custom_name，否则使用版本的version_name
-          const versionDisplay = version.custom_name || version.version_name;
-          // 返回格式：name-versionDisplay（与默认模型下拉框保持一致）
-          return `${modelDisplay}-${versionDisplay}`;
-        }
-      }
+    // 优先使用系统默认模型，如果没有则使用第一个可用模型
+    const defaultModel = settingsStore.systemSettings.defaultModel || availableModels.value[0];
+    if (defaultModel) {
+      return getModelDisplayName(defaultModel);
     }
+    return '默认模型';
   }
   
-  // 如果当前模型不在可用模型列表中，返回当前模型值或默认名称
-  return currentModel.value || '默认模型';
+  // 使用getModelDisplayName函数获取显示名称
+  return getModelDisplayName(currentModel.value);
 });
 
-// 获取格式化后的模型列表（包含displayName和原始model值），与默认模型下拉框显示规则保持一致
-const formattedModels = computed(() => {
-  // 确保availableModels是数组
-  const modelsList = availableModels.value || [];
-  
-  if (!modelStore.allModels.length) {
-    return modelsList.map(model => ({ 
-      value: model, 
-      displayName: model 
-    }));
-  }
-  
-  const result = [];
-  
-  // 遍历availableModels中的每个模型名
-  for (const modelName of modelsList) {
-    let found = false;
-    
-    // 遍历所有模型和版本，找到匹配的模型
-    for (const model of modelStore.allModels) {
-      if (model.versions) {
-        for (const version of model.versions) {
-          // 构建select组件使用的模型ID格式：model.name-version_name
-          const selectModelId = `${model.name}-${version.version_name}`;
-          // 同时检查select组件格式和直接匹配version_name/custom_name
-          if (selectModelId === modelName || 
-              version.version_name === modelName || 
-              version.custom_name === modelName) {
-            // 使用模型的name
-            const modelDisplay = model.name;
-            // 优先使用版本的custom_name，否则使用版本的version_name
-            const versionDisplay = version.custom_name || version.version_name;
-            // 返回格式：name-versionDisplay（与默认模型下拉框保持一致）
-            result.push({
-              value: modelName,
-              displayName: `${modelDisplay}-${versionDisplay}`
-            });
-            found = true;
-            break;
-          }
-        }
-        if (found) break;
-      }
-    }
-    
-    // 如果没找到匹配的模型，使用原始名称
-    if (!found) {
-      result.push({ value: modelName, displayName: modelName });
-    }
-  }
-  
-  return result;
-});
+// 格式化后的模型列表已从 useModelUtils 中获取
 
 // 获取可用模型列表，确保始终返回数组
-const availableModels = computed(() => modelStore.availableModelList || []);
+const availableModels = availableModelIds;
 
 // 排序模型列表，使当前选中的模型在最底部
 const orderedModels = computed(() => {
@@ -891,8 +827,10 @@ watch(
   () => {
     // 新聊天时，重置用户选择标志
     userHasSelectedModel = false;
-    // 优先使用当前对话保存的模型，如果没有则使用系统默认模型
-    currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || modelStore.currentSelectedModel;
+    // 优先使用当前对话保存的模型，如果没有则使用系统默认模型，如果还没有则使用第一个可用模型
+    currentModel.value = chatStore.currentChat?.model || 
+                         settingsStore.systemSettings.defaultModel || 
+                         availableModels.value[0];
   }
 );
 
@@ -948,23 +886,13 @@ watch(
   () => {
     // 模型列表更新后，如果当前模型无效或为空，重新设置当前模型
     if (!currentModel.value || !availableModels.value.includes(currentModel.value)) {
-      currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || modelStore.availableModelList[0];
+      currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || availableModels.value[0];
     }
   },
   { deep: true }
 );
 
-// 监听可用模型列表变化，更新当前模型
-watch(
-  () => modelStore.availableModelList,
-  (newList) => {
-    // 可用模型列表更新后，如果当前模型无效或为空，重新设置当前模型
-    if (!currentModel.value || !newList.includes(currentModel.value)) {
-      currentModel.value = chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel || newList[0];
-    }
-  },
-  { deep: true }
-);
+
 
 // 切换模型下拉菜单显示状态
 const toggleModelDropdown = () => {

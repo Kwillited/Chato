@@ -1,7 +1,7 @@
 """流式响应策略"""
 import json
 from app.utils.response_strategy.strategy.base import BaseResponseStrategyImpl
-from app.utils.message import ResponseMessageSystem
+from app.utils.message.base import MessageSystem
 from app.utils.stream import StreamSystem
 
 
@@ -41,8 +41,9 @@ class StreamingResponseStrategy(BaseResponseStrategyImpl):
                         full_reply += str(chunk)
                 
                 # 使用工具类创建AI消息
-                ai_message = ResponseMessageSystem.create_ai_message(
-                    full_reply, now, model_display_name, full_reasoning
+                ai_message = MessageSystem.create_ai_message(
+                    now, full_reply, model_display_name,
+                    reasoning_content=full_reasoning
                 )
                 
                 # 保存消息

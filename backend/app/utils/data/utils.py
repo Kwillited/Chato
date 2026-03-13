@@ -261,8 +261,6 @@ def build_message_list(messages):
             model = msg.model
             files = msg.files
             # 智能体相关字段
-            message_type = msg.message_type
-            agent_session_id = msg.agent_session_id
             agent_node = msg.agent_node or ""
             agent_step = msg.agent_step or 0
             agent_metadata = msg.agent_metadata
@@ -276,11 +274,9 @@ def build_message_list(messages):
             model = msg[6] if len(msg) > 6 else None
             files = msg[7] if len(msg) > 7 else None
             # 智能体相关字段（元组格式）
-            message_type = msg[8] if len(msg) > 8 else 'normal'
-            agent_session_id = msg[9] if len(msg) > 9 else None
-            agent_node = msg[10] if len(msg) > 10 else ''
-            agent_step = msg[11] if len(msg) > 11 else 0
-            agent_metadata = msg[12] if len(msg) > 12 else ''
+            agent_node = msg[8] if len(msg) > 8 else ''
+            agent_step = msg[9] if len(msg) > 9 else 0
+            agent_metadata = msg[10] if len(msg) > 10 else ''
         
         # 解析files字段（JSON字符串转列表）
         files_list = []
@@ -301,8 +297,6 @@ def build_message_list(messages):
         }
         
         # 添加智能体相关字段
-        message_dict['message_type'] = message_type
-        message_dict['agent_session_id'] = agent_session_id
         message_dict['agent_node'] = agent_node
         message_dict['agent_step'] = agent_step
         message_dict['agent_metadata'] = agent_metadata

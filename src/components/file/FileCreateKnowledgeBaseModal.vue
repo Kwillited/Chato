@@ -93,7 +93,7 @@
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
           >
             <option value="">选择向量模型(选填)</option>
-            <option v-for="option in embeddingModelOptions" :key="option.value" :value="option.value">
+            <option v-for="option in formattedEmbeddingModels" :key="option.value" :value="option.value">
               {{ option.label }}
             </option>
           </select>
@@ -112,6 +112,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useFileStore } from '../../store/fileStore.js';
 import { useSettingsStore } from '../../store/settingsStore.js';
+import { useModelUtils } from '../../composables/useModelUtils.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 
@@ -130,6 +131,9 @@ const emit = defineEmits(['close', 'created']);
 const fileStore = useFileStore();
 const settingsStore = useSettingsStore();
 
+// 使用模型工具
+const { formattedEmbeddingModels } = useModelUtils(settingsStore);
+
 // Refs
 const knowledgeBaseName = ref('');
 const knowledgeBaseDescription = ref('');
@@ -139,33 +143,9 @@ const chunkOverlap = ref(200); // 默认分块重叠大小
 const error = ref('');
 const inputRef = ref(null);
 
-// 计算属性：获取已配置的嵌入模型列表
-const configuredEmbeddingModels = computed(() => {
-  return settingsStore.configuredEmbeddingModels;
-});
-
-// 计算属性：构建嵌入模型选项列表
-const embeddingModelOptions = computed(() => {
-  const options = [];
-  
-  // 遍历已配置的嵌入模型
-  configuredEmbeddingModels.value.forEach(model => {
-    if (model.versions && model.versions.length > 0) {
-      // 为每个模型的每个版本创建选项
-      model.versions.forEach(version => {
-        const optionValue = `${model.name}-${version.version_name}`;
-        const optionLabel = `${model.name} ${version.custom_name || version.version_name}`;
-        options.push({ value: optionValue, label: optionLabel });
-      });
-    }
-  });
-  
-  return options;
-});
-
 // 计算属性：是否有可用的嵌入模型
 const hasAvailableEmbeddingModels = computed(() => {
-  return embeddingModelOptions.value.length > 0;
+  return formattedEmbeddingModels.value.length > 0;
 });
 
 // 当模态框显示时，自动聚焦输入框并加载嵌入模型
@@ -177,8 +157,8 @@ const focusInput = async () => {
     }
     
     // 设置默认嵌入模型
-    if (embeddingModelOptions.value.length > 0 && !selectedEmbeddingModel.value) {
-      selectedEmbeddingModel.value = embeddingModelOptions.value[0].value;
+    if (formattedEmbeddingModels.value.length > 0 && !selectedEmbeddingModel.value) {
+      selectedEmbeddingModel.value = formattedEmbeddingModels.value[0].value;
     }
     
     await nextTick();
@@ -241,8 +221,8 @@ const resetForm = () => {
   knowledgeBaseName.value = '';
   knowledgeBaseDescription.value = '';
   // 设置默认嵌入模型
-  if (embeddingModelOptions.value.length > 0) {
-    selectedEmbeddingModel.value = embeddingModelOptions.value[0].value;
+  if (formattedEmbeddingModels.value.length > 0) {
+    selectedEmbeddingModel.value = formattedEmbeddingModels.value[0].value;
   } else {
     selectedEmbeddingModel.value = '';
   }

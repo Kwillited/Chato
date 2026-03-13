@@ -54,7 +54,8 @@ const props = defineProps({
   },
   scrollContainer: {
     type: Object,
-    required: true
+    required: false,
+    default: null
   }
 });
 

@@ -1,5 +1,4 @@
 import { computed, ref, watch, onMounted, onUnmounted, nextTick, inject } from 'vue'
-import { copyToClipboard } from '../utils/browser.js'
 import { useNotification } from './useNotification.js'
 
 /**
@@ -8,6 +7,9 @@ import { useNotification } from './useNotification.js'
 export function useChatBubble(props) {
   // 使用通知组合式函数
   const { showSuccess, showError } = useNotification();
+
+  // 注入复制功能
+  const copyUtils = inject('copyUtils', null);
 
   // 访问ref包装的消息对象
   const messageValue = computed(() => {
@@ -45,7 +47,15 @@ export function useChatBubble(props) {
     try {
       // 直接复制内容
       const contentToCopy = messageContent.value;
-      await copyToClipboard(contentToCopy)
+      
+      // 使用注入的复制功能或降级到本地实现
+      if (copyUtils && copyUtils.copyMarkdown) {
+        await copyUtils.copyMarkdown(contentToCopy)
+      } else {
+        // 降级方案：直接使用 navigator.clipboard
+        await navigator.clipboard.writeText(contentToCopy)
+      }
+      
       // 显示复制成功通知
       showSuccess('消息内容已复制到剪贴板')
     } catch (error) {

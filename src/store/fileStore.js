@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { apiService } from '../services/apiService';
 import { showNotification } from '../utils/notificationUtils.js';
-import eventBus from '../services/eventBus.js';
+import { eventBus } from '../services/eventBus.js';
 import { errorUtils, loadingUtils, notificationUtils as notifyUtils, apiUtils } from '../utils/storeUtils.js';
 
 export const useFileStore = defineStore('file', {
@@ -29,6 +29,16 @@ export const useFileStore = defineStore('file', {
   },
   
   actions: {
+    // 初始化事件监听器
+    initEventListeners() {
+      // 监听获取当前文件夹的请求
+      eventBus.on('getCurrentFolder', (data) => {
+        if (data && data.callback) {
+          data.callback(this.currentFolder);
+        }
+      });
+    },
+    
     // 设置错误
     setError(message) {
       errorUtils.setError(this, message);
