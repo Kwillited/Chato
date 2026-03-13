@@ -10,14 +10,14 @@ from app.services.mcp.mcp_client_manager import MCPClientManager
 class MCPService(BaseService):
     """MCP服务类，封装所有MCP相关的业务逻辑"""
 
-    def __init__(self, setting_service=None, mcp_client_manager=None):
+    def __init__(self, setting_service: SettingService, mcp_client_manager=None):
         """初始化MCP服务
         
         Args:
             setting_service: 设置服务实例，用于依赖注入
             mcp_client_manager: MCP客户端管理器实例，用于依赖注入
         """
-        self.setting_service = setting_service or SettingService()
+        self.setting_service = setting_service
         self.mcp_client_manager = mcp_client_manager or MCPClientManager()
 
     def _get_default_config(self) -> Dict:

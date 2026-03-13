@@ -17,10 +17,15 @@ DATA_DIR = PathManager.get_data_dir()
 class DocumentService(BaseService):
     """文档管理服务类 - 封装所有与文档文件系统相关的操作"""
     
-    def __init__(self):
-        """初始化文档管理服务"""
-        self.data_service = DataService()
-        self.vector_service = VectorService()
+    def __init__(self, data_service, vector_service):
+        """初始化文档管理服务
+        
+        Args:
+            data_service: 数据服务实例，用于依赖注入
+            vector_service: 向量服务实例，用于依赖注入
+        """
+        self.data_service = data_service
+        self.vector_service = vector_service
     
     def _get_folder_by_id(self, folder_id):
         """根据folder_id获取文件夹对象"""

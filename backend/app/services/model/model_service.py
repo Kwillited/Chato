@@ -10,13 +10,13 @@ from app.utils.data import ModelConverter
 class ModelService(BaseService):
     """模型服务类，封装所有模型相关的业务逻辑"""
 
-    def __init__(self, model_repo=None):
+    def __init__(self, model_repo: ModelRepository):
         """初始化模型服务
         
         Args:
             model_repo: 模型仓库实例，用于依赖注入
         """
-        self.model_repo = model_repo or ModelRepository()
+        self.model_repo = model_repo
 
     def _filter_icon_blob(self, model):
         """过滤模型中的icon_blob字段，避免JSON序列化错误

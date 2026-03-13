@@ -8,18 +8,13 @@ from app.core.cache import cache_manager
 class SettingService(BaseService):
     """设置服务类，封装所有设置相关的业务逻辑"""
     
-    def __init__(self, setting_repo=None):
+    def __init__(self, setting_repo: SettingRepository):
         """初始化设置服务
         
         Args:
             setting_repo: 设置仓库实例，用于依赖注入
         """
-        if setting_repo:
-            self.setting_repo = setting_repo
-        else:
-            # 创建默认的设置仓库实例
-            db_session = next(get_db())
-            self.setting_repo = SettingRepository(db_session)
+        self.setting_repo = setting_repo
     
     def convert_dict_keys(self, data_dict):
         """将字典的所有键从驼峰命名转换为蛇形命名

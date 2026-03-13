@@ -3,12 +3,68 @@ import os
 import sys
 from fastapi.staticfiles import StaticFiles
 
+# 注册服务到服务容器
+def register_services():
+    """注册所有服务到服务容器"""
+    from app.core.service_container import service_container
+    
+    # 注册配置管理器
+    from app.core.config import ConfigManager
+    service_container.register_service('config_manager', ConfigManager.get_instance)
+    
+    # 注册数据服务
+    from app.services.data_service import DataService
+    service_container.register_service('data_service', DataService)
+    
+    # 注册仓库服务
+    from app.repositories.chat_repository import ChatRepository
+    from app.repositories.message_repository import MessageRepository
+    from app.repositories.model_repository import ModelRepository
+    from app.repositories.setting_repository import SettingRepository
+    from app.repositories.embedding_model_repository import EmbeddingModelRepository
+    from app.repositories.document_repository import DocumentRepository
+    from app.repositories.document_chunk_repository import DocumentChunkRepository
+    from app.repositories.folder_repository import FolderRepository
+    from app.repositories.vector_repository import VectorRepository
+    
+    service_container.register_service('chat_repository', ChatRepository)
+    service_container.register_service('message_repository', MessageRepository)
+    service_container.register_service('model_repository', ModelRepository)
+    service_container.register_service('setting_repository', SettingRepository)
+    service_container.register_service('embedding_model_repository', EmbeddingModelRepository)
+    service_container.register_service('document_repository', DocumentRepository)
+    service_container.register_service('document_chunk_repository', DocumentChunkRepository)
+    service_container.register_service('folder_repository', FolderRepository)
+    service_container.register_service('vector_repository', VectorRepository)
+    
+    # 注册业务服务
+    from app.services.chat.chat_service import ChatService
+    from app.services.model.model_service import ModelService
+    from app.services.settings.setting_service import SettingService
+    from app.services.mcp.mcp_service import MCPService
+    from app.services.file.document_service import DocumentService
+    from app.services.vector.vector_service import VectorService
+    from app.services.message.message_service import MessageService
+    from app.services.web.web_search_service import WebSearchService
+    
+    service_container.register_service('chat_service', ChatService)
+    service_container.register_service('model_service', ModelService, 'model_repository')
+    service_container.register_service('setting_service', SettingService, 'setting_repository')
+    service_container.register_service('mcp_service', MCPService, 'setting_service')
+    service_container.register_service('vector_service', VectorService)
+    service_container.register_service('web_search_service', WebSearchService)
+    service_container.register_service('document_service', DocumentService, 'data_service', 'vector_service')
+    service_container.register_service('message_service', MessageService, 'chat_service', 'vector_service', 'web_search_service')
+
 # FastAPI应用实例
 def create_app(lifespan=None):
     """创建FastAPI应用实例"""
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
     from app.core.logging_config import logger
+    
+    # 注册服务
+    register_services()
     
     app = FastAPI(
         title="ChaTo API",

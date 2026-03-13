@@ -13,13 +13,18 @@ from app.utils import ValidationUtils, handle_errors, handle_db_errors
 class MessageService(BaseService):
     """消息服务类，封装所有消息相关的业务逻辑"""
     
-    def __init__(self):
-        """初始化消息服务"""
+    def __init__(self, chat_service, vector_service, web_search_service):
+        """初始化消息服务
+        
+        Args:
+            chat_service: 对话服务实例，用于依赖注入
+            vector_service: 向量服务实例，用于依赖注入
+            web_search_service: 网络搜索服务实例，用于依赖注入
+        """
         super().__init__()
-    
-    def _get_current_timestamp(self):
-        """获取当前时间戳（ISO格式）"""
-        return datetime.now().isoformat()
+        self.chat_service = chat_service
+        self.vector_service = vector_service
+        self.web_search_service = web_search_service
     
     def process_uploaded_files(self, files):
         """处理上传的文件，保存到临时目录并提取内容
@@ -97,9 +102,7 @@ class MessageService(BaseService):
             )
             
             # 验证对话是否存在
-            from app.services.chat.chat_service import ChatService
-            chat_service = ChatService()
-            chat = chat_service.get_chat(chat_id)
+            chat = self.chat_service.get_chat(chat_id)
             if not chat:
                 # 对话不存在，自动创建新对话（使用前端传递的UUID）
                 from app.core.logging_config import logger
@@ -195,9 +198,7 @@ class MessageService(BaseService):
         if rag_enabled:
             logger.debug("准备执行RAG搜索")
             # 执行RAG搜索获取上下文文档
-            from app.services.vector.vector_service import VectorService
-            vector_service = VectorService()
-            context_docs, _ = vector_service.perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
+            context_docs, _ = self.vector_service.perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
             logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
         else:
             logger.debug("RAG未启用")
@@ -206,9 +207,7 @@ class MessageService(BaseService):
         web_search_results = None
         if web_search_enabled:
             logger.debug("准备执行网络搜索")
-            from app.services.web.web_search_service import WebSearchService
-            web_search_service = WebSearchService()
-            web_search_results = await web_search_service.perform_web_search(full_message_text)
+            web_search_results = await self.web_search_service.perform_web_search(full_message_text)
             logger.debug(f"网络搜索结果: {web_search_results}")
         else:
             logger.debug("网络搜索未启用")
@@ -247,7 +246,7 @@ class MessageService(BaseService):
                 model_messages, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, use_agent,
                 model=model,  # 传递模型配置
-                chat_service=ChatService()
+                chat_service=self.chat_service
             )
         else:
             # 所有非流式对话都使用 handle_regular_response
@@ -256,7 +255,7 @@ class MessageService(BaseService):
                 model_messages, parsed_model_name, parsed_version_name, 
                 model_params, model_display_name, use_agent,
                 model=model,  # 传递模型配置
-                chat_service=ChatService()
+                chat_service=self.chat_service
             )
     
     async def send_message(self, chat_id, data):
