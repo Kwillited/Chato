@@ -14,7 +14,9 @@ class SettingService(BaseService):
         Args:
             setting_repo: 设置仓库实例，用于依赖注入
         """
+        from app.services.data_service import DataService
         self.setting_repo = setting_repo
+        self.data_service = DataService()
     
     def convert_dict_keys(self, data_dict):
         """将字典的所有键从驼峰命名转换为蛇形命名
@@ -32,7 +34,7 @@ class SettingService(BaseService):
     def get_system_setting(self):
         """获取系统设置（包含通知设置）"""
         # 优先从内存缓存获取设置
-        settings = cache_manager.get('settings') or {}
+        settings = self.data_service.get_settings() or {}
         system_settings = settings.get('system', {})
         
         if system_settings:
@@ -92,7 +94,7 @@ class SettingService(BaseService):
     def save_system_setting(self, data):
         """保存系统设置（包含通知设置）"""
         # 1. 获取当前的设置数据
-        current_settings = cache_manager.get('settings') or {}
+        current_settings = self.data_service.get_settings() or {}
         system_settings = current_settings.get('system', {})
         
         # 2. 更新内存缓存中的设置
@@ -119,10 +121,11 @@ class SettingService(BaseService):
         
         # 更新内存缓存
         current_settings['system'] = system_settings
-        cache_manager.set('settings', current_settings)
+        for key, value in current_settings.items():
+            self.data_service.update_setting(key, value)
         
         # 3. 设置脏标记，触发自动保存
-        cache_manager.set_dirty_flag('settings')
+        self.data_service.set_dirty_flag('settings')
         
         # 4. 从内存缓存返回更新后的数据
         # 直接返回内存中最新的设置数据，转换为前端期望的格式

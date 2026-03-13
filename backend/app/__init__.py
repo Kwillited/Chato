@@ -40,6 +40,7 @@ def register_services():
     # 注册业务服务
     from app.services.chat.chat_service import ChatService
     from app.services.model.model_service import ModelService
+    from app.services.model.embedding_model_service import EmbeddingModelService
     from app.services.settings.setting_service import SettingService
     from app.services.mcp.mcp_service import MCPService
     from app.services.file.document_service import DocumentService
@@ -49,6 +50,7 @@ def register_services():
     
     service_container.register_service('chat_service', ChatService)
     service_container.register_service('model_service', ModelService, 'model_repository')
+    service_container.register_service('embedding_model_service', EmbeddingModelService)
     service_container.register_service('setting_service', SettingService, 'setting_repository')
     service_container.register_service('mcp_service', MCPService, 'setting_service')
     service_container.register_service('vector_service', VectorService)

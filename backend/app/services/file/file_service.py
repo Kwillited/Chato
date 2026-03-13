@@ -10,8 +10,11 @@ class FileService(BaseService):
     def __init__(self):
         """初始化文件服务"""
         super().__init__()
-        self.data_service = DataService()
-        self.vector_service = VectorService()
+        from app.core.service_container import service_container
+        from app.services.data_service import DataService
+        from app.services.vector.vector_service import VectorService
+        self.data_service = service_container.get_service('data_service')
+        self.vector_service = service_container.get_service('vector_service')
     
     def upload_document(self, file, folder_id=''):
         """上传文档并进行向量化处理

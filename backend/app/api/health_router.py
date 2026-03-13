@@ -14,8 +14,8 @@ async def initialize_mcp():
     global mcp_initialized
     if not mcp_initialized:
         try:
-            from app.services.mcp.mcp_service import MCPService
-            mcp_service = MCPService()
+            from app.core.service_container import service_container
+            mcp_service = service_container.get_service('mcp_service')
             await mcp_service.initialize_mcp()
             mcp_initialized = True
         except Exception as e:

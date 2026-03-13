@@ -2,10 +2,10 @@
 from app.llm.base.base_model import BaseModel
 from typing import Dict, Any, List
 import json
+from app.core.instance_manager import InstanceManager
 
 class ModelManager:
     _model_drivers = None
-    _model_instance_cache = {}  # 模型实例缓存
     
     @classmethod
     def _get_model_drivers(cls):
@@ -45,7 +45,7 @@ class ModelManager:
     
     @classmethod
     def get_model_driver(cls, model_name: str, model_config: Dict[str, Any], version_config: Dict[str, Any]) -> BaseModel:
-        """获取模型驱动实例（缓存复用）"""
+        """获取模型驱动实例（使用统一实例管理器）"""
         drivers = cls._get_model_drivers()
         if model_name not in drivers:
             raise ValueError(f'未实现注册的模型类型: {model_name}')
@@ -53,15 +53,11 @@ class ModelManager:
         # 生成缓存键
         cache_key = cls._generate_cache_key(model_name, model_config, version_config)
         
-        # 检查缓存中是否已有实例
-        if cache_key in cls._model_instance_cache:
-            return cls._model_instance_cache[cache_key]
+        # 使用统一实例管理器获取实例
+        def create_model():
+            return drivers[model_name](model_config, version_config)
         
-        # 创建新实例并缓存
-        model_instance = drivers[model_name](model_config, version_config)
-        cls._model_instance_cache[cache_key] = model_instance
-        
-        return model_instance
+        return InstanceManager.get_instance('llm', cache_key, create_model)
     
     @classmethod
     def chat(cls, model_name: str, model_config: Dict[str, Any], version_config: Dict[str, Any], 
@@ -80,9 +76,9 @@ class ModelManager:
     @classmethod
     def clear_cache(cls):
         """清空模型实例缓存"""
-        cls._model_instance_cache.clear()
+        InstanceManager.clear_cache('llm')
     
     @classmethod
     def get_cache_size(cls) -> int:
         """获取缓存大小"""
-        return len(cls._model_instance_cache)
+        return InstanceManager.get_cache_size('llm').get('llm', 0)

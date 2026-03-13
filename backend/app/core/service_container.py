@@ -39,15 +39,23 @@ class ServiceContainer:
         """
         self._service_factories[service_name] = (service_class, dependencies)
     
-    def get_service(self, service_name: str) -> Any:
+    def get_service(self, service_identifier) -> Any:
         """获取服务实例
         
         Args:
-            service_name: 服务名称
+            service_identifier: 服务名称字符串或服务类
             
         Returns:
             服务实例
         """
+        # 确定服务名称
+        service_name = service_identifier
+        if not isinstance(service_identifier, str):
+            # 如果传入的是服务类，尝试通过类名推断服务名称
+            class_name = service_identifier.__name__
+            # 将驼峰命名转换为下划线命名
+            service_name = ''.join(['_' + i.lower() if i.isupper() else i for i in class_name]).lstrip('_')
+        
         if service_name not in self._services:
             # 服务未初始化，创建实例
             if service_name not in self._service_factories:

@@ -87,7 +87,8 @@ class MessageBuilder:
         from app.services.data_service import DataService
         
         # 获取对话上下文历史
-        chat = DataService.get_chat_by_id(chat_id)
+        data_service = DataService()
+        chat = data_service.get_chat_by_id(chat_id)
         chat_history = []
         
         if chat and 'messages' in chat:

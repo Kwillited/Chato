@@ -20,9 +20,10 @@ class WebSearchService(BaseService):
             搜索结果
         """
         try:
+            from app.core.service_container import service_container
             from app.services.mcp.mcp_service import MCPService
-            # 初始化 MCP 服务
-            mcp_service = MCPService()
+            # 获取 MCP 服务实例
+            mcp_service = service_container.get_service('mcp_service')
             await mcp_service.initialize_mcp()
             if mcp_service.mcp_client_manager.is_available():
                 # 获取 MCP 工具

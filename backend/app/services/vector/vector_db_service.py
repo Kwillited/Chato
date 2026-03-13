@@ -63,7 +63,8 @@ class VectorDBService(BaseService):
         self.embedding_models_dir = os.path.join(self.user_data_dir, 'models', 'embedding')
         
         # 初始化向量数据库Repository
-        self.vector_repository = VectorRepository()
+        from app.core.service_container import service_container
+        self.vector_repository = service_container.get_service('vector_repository')
         
         # 添加初始化锁，防止多线程环境下重复初始化
         self._init_lock = threading.Lock()

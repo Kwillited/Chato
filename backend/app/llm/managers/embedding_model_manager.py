@@ -1,7 +1,7 @@
 """嵌入模型管理器 - 工厂模式实现"""
 import threading
 from typing import Any
-from collections import OrderedDict
+from app.core.instance_manager import InstanceManager
 
 
 class EmbeddingModelManager:
@@ -9,11 +9,6 @@ class EmbeddingModelManager:
     
     # 模型驱动映射表
     _model_drivers = None
-    
-    # 模型缓存，使用OrderedDict实现LRU缓存
-    _model_cache = OrderedDict()
-    _cache_size = 3  # 缓存大小限制
-    _cache_lock = threading.Lock()  # 缓存操作锁
     
     @classmethod
     def _get_model_drivers(cls):
@@ -32,7 +27,7 @@ class EmbeddingModelManager:
     
     @classmethod
     def get_embedding_model(cls, model_type: str, model_name: str, **kwargs) -> Any:
-        """获取嵌入模型实例（支持缓存和即用即加载）
+        """获取嵌入模型实例（使用统一实例管理器）
         
         Args:
             model_type: 模型类型 (huggingface, openai, ollama)
@@ -45,31 +40,11 @@ class EmbeddingModelManager:
         # 生成缓存键
         cache_key = f"{model_type}:{model_name}:{hash(str(kwargs))}"
         
-        # 检查缓存中是否存在模型
-        with cls._cache_lock:
-            if cache_key in cls._model_cache:
-                # 命中缓存，将模型移到缓存末尾（LRU策略）
-                model = cls._model_cache.pop(cache_key)
-                cls._model_cache[cache_key] = model
-                print(f"从缓存加载嵌入模型: {model_name} (类型: {model_type})")
-                return model
+        # 使用统一实例管理器获取实例
+        def create_model():
+            return cls._load_model(model_type, model_name, **kwargs)
         
-        # 缓存未命中，加载新模型
-        print(f"加载新的嵌入模型: {model_name} (类型: {model_type})")
-        
-        model = cls._load_model(model_type, model_name, **kwargs)
-        
-        # 将模型添加到缓存
-        if model:
-            with cls._cache_lock:
-                # 如果缓存已满，移除最旧的模型
-                if len(cls._model_cache) >= cls._cache_size:
-                    cls._model_cache.popitem(last=False)
-                # 添加新模型到缓存末尾
-                cls._model_cache[cache_key] = model
-                print(f"嵌入模型已缓存: {model_name} (类型: {model_type})")
-        
-        return model
+        return InstanceManager.get_instance('embedding', cache_key, create_model)
     
     @classmethod
     def _load_model(cls, model_type: str, model_name: str, **kwargs) -> Any:
@@ -117,11 +92,10 @@ class EmbeddingModelManager:
         Returns:
             int: 清空的缓存项数量
         """
-        with cls._cache_lock:
-            cache_size = len(cls._model_cache)
-            cls._model_cache.clear()
-            print(f"模型缓存已清空，共 {cache_size} 个模型")
-            return cache_size
+        cache_size = InstanceManager.get_cache_size('embedding').get('embedding', 0)
+        InstanceManager.clear_cache('embedding')
+        print(f"模型缓存已清空，共 {cache_size} 个模型")
+        return cache_size
     
     @classmethod
     def get_cache_size(cls) -> int:
@@ -130,5 +104,4 @@ class EmbeddingModelManager:
         Returns:
             int: 当前缓存大小
         """
-        with cls._cache_lock:
-            return len(cls._model_cache)
+        return InstanceManager.get_cache_size('embedding').get('embedding', 0)

@@ -21,10 +21,12 @@ class MessageService(BaseService):
             vector_service: 向量服务实例，用于依赖注入
             web_search_service: 网络搜索服务实例，用于依赖注入
         """
+        from app.services.data_service import DataService
         super().__init__()
         self.chat_service = chat_service
         self.vector_service = vector_service
         self.web_search_service = web_search_service
+        self.data_service = DataService()
     
     def process_uploaded_files(self, files):
         """处理上传的文件，保存到临时目录并提取内容
@@ -120,7 +122,7 @@ class MessageService(BaseService):
                 }
                 
                 # 保存到内存数据库
-                DataService.add_chat(new_chat)
+                self.data_service.add_chat(new_chat)
                 chat = new_chat
             
             # 验证模型配置
@@ -272,7 +274,7 @@ class MessageService(BaseService):
             parsed_model_name, parsed_version_name, model_display_name = ModelUtils.parse_model_info(parsed_data['model_name'])
             
             # 获取模型配置
-            model = DataService.get_model_by_name(parsed_model_name)
+            model = self.data_service.get_model_by_name(parsed_model_name)
             
             # 验证请求参数并获取对话对象
             is_valid, error_response, error_code, chat = self._validate_request(chat_id, parsed_model_name, model)

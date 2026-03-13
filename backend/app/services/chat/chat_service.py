@@ -11,6 +11,7 @@ class ChatService(BaseService):
     def __init__(self):
         """初始化对话服务"""
         super().__init__()
+        self.data_service = DataService()
     
     def _get_current_timestamp(self):
         """获取当前时间戳（ISO格式）"""
@@ -20,18 +21,18 @@ class ChatService(BaseService):
     def get_chats(self):
         """获取所有对话"""
         # 直接从内存数据库获取对话
-        return DataService.get_chats()
+        return self.data_service.get_chats()
 
     def get_chat(self, chat_id):
         """获取单个对话记录（按ID）"""
         # 从内存数据库获取
-        return DataService.get_chat_by_id(chat_id)
+        return self.data_service.get_chat_by_id(chat_id)
 
     @handle_db_errors(default_return=False)
     def delete_chat(self, chat_id):
         """删除单个对话记录（按ID）"""
         # 从内存数据库中删除
-        DataService.remove_chat(chat_id)
+        self.data_service.remove_chat(chat_id)
         
         return True
 
@@ -39,7 +40,7 @@ class ChatService(BaseService):
     def delete_all_chats(self):
         """删除所有对话记录"""
         # 清空内存中的对话数据
-        DataService.clear_chats()
+        self.data_service.clear_chats()
         
         return True
     
@@ -47,7 +48,7 @@ class ChatService(BaseService):
     def update_chat_pin(self, chat_id, pinned):
         """更新对话置顶状态"""
         # 从内存获取对话信息
-        chat = DataService.get_chat_by_id(chat_id)
+        chat = self.data_service.get_chat_by_id(chat_id)
         if not chat:
             return False
         
@@ -55,14 +56,13 @@ class ChatService(BaseService):
         updated_at = self._get_current_timestamp()
         chat['pinned'] = bool(pinned)
         chat['updatedAt'] = updated_at
-        DataService.set_dirty_flag('chats', True)
+        self.data_service.set_dirty_flag('chats', True)
         
         return True
     
     def update_chat_and_save(self, chat, message_text, user_message, ai_message, now):
         """更新对话并保存"""
         from app.core.logging_config import logger
-        from app.core.cache import cache_manager
         chat_id = chat['id']
         user_msg_id = user_message['id']
         
@@ -101,7 +101,7 @@ class ChatService(BaseService):
             logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, agent_node={ai_message.get('agent_node')}")
         
         # 更新缓存并只标记当前对话为脏
-        cache_manager.set_chat(chat_id, chat)
+        self.data_service.add_chat(chat)
         logger.info(f"更新缓存并标记对话为脏: chat_id={chat_id}")
         
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化

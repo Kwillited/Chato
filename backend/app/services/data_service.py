@@ -11,182 +11,87 @@ class DataService(BaseService):
     
     def __init__(self):
         """初始化数据服务"""
+        from app.repositories.chat_repository import ChatRepository
+        from app.core.database import get_db
+        
         self.folder_repo = FolderRepository()
         self.document_repo = DocumentRepository()
         self.chunk_repo = DocumentChunkRepository()
+        self.db_session = next(get_db())
+        self.chat_repo = ChatRepository(self.db_session)
     
     # 对话相关方法
-    @staticmethod
-    def get_chats():
+    def get_chats(self):
         """获取所有对话"""
-        chats = get_data('chats') or {}
+        # 从仓库获取所有对话
+        chats = self.chat_repo.get_all_chats()
         # 对对话列表进行排序，先按置顶状态排序，再按updatedAt降序排列
-        chat_list = list(chats.values())
-        chat_list.sort(key=lambda x: (not x.get('pinned', False), x.get('updatedAt', '')) , reverse=True)
-        return chat_list
+        chats.sort(key=lambda x: (not x.get('pinned', False), x.get('updatedAt', '')) , reverse=True)
+        return chats
     
-    @staticmethod
-    def get_chat_by_id(chat_id):
+    def get_chat_by_id(self, chat_id):
         """根据ID获取对话"""
-        import json
-        # 先使用get_data函数获取对话，会自动处理缓存未命中的情况
-        chat = get_data('chats', chat_id)
-        
-        # 如果缓存中没有，从数据库中查询
-        if not chat:
-            try:
-                from app.repositories.chat_repository import ChatRepository
-                from app.core.database import get_db
-                
-                # 获取数据库会话
-                db_session = next(get_db())
-                chat_repo = ChatRepository(db_session)
-                
-                # 从数据库获取对话及其消息
-                db_chat = chat_repo.get_chat_with_messages(chat_id)
-                if db_chat:
-                    # 构建对话字典
-                    chat = {
-                        'id': db_chat.id,
-                        'title': db_chat.title,
-                        'preview': db_chat.preview,
-                        'createdAt': db_chat.created_at,
-                        'updatedAt': db_chat.updated_at,
-                        'pinned': bool(db_chat.pinned),
-                        'messages': []
-                    }
-                    
-                    # 添加消息
-                    if hasattr(db_chat, 'messages') and db_chat.messages:
-                        for msg in db_chat.messages:
-                            # 反序列化 files 字段
-                            files = []
-                            if msg.files:
-                                try:
-                                    files = json.loads(msg.files)
-                                except:
-                                    files = []
-                            
-                            message_dict = {
-                                'id': msg.id,
-                                'role': msg.role,
-                                'content': msg.content,
-                                'reasoning_content': msg.reasoning_content,
-                                'createdAt': msg.created_at,
-                                'model': msg.model,
-                                'files': files,  # 使用反序列化后的列表
-                                'agent_node': msg.agent_node or '',  # 提供默认值
-                                'agent_step': msg.agent_step or 0,  # 提供默认值
-                                'agent_metadata': msg.agent_metadata
-                            }
-                            chat['messages'].append(message_dict)
-                    
-                    # 将对话添加到缓存（不设置脏标记）
-                    cache_manager.update_chat_no_dirty(chat_id, chat)
-                    
-            except Exception as e:
-                from app.core.logging_config import logger
-                logger.error(f"从数据库获取对话失败: {str(e)}")
-        else:
-            # 检查消息是否为空，如果为空，从数据库加载
-            if not chat.get('messages'):
-                try:
-                    from app.repositories.chat_repository import ChatRepository
-                    from app.core.database import get_db
-                    
-                    # 获取数据库会话
-                    db_session = next(get_db())
-                    chat_repo = ChatRepository(db_session)
-                    
-                    # 从数据库获取对话及其消息
-                    db_chat = chat_repo.get_chat_with_messages(chat_id)
-                    if db_chat and hasattr(db_chat, 'messages') and db_chat.messages:
-                        # 更新消息
-                        chat['messages'] = []
-                        for msg in db_chat.messages:
-                            # 反序列化 files 字段
-                            files = []
-                            if msg.files:
-                                try:
-                                    files = json.loads(msg.files)
-                                except:
-                                    files = []
-                            
-                            message_dict = {
-                                'id': msg.id,
-                                'role': msg.role,
-                                'content': msg.content,
-                                'reasoning_content': msg.reasoning_content,
-                                'createdAt': msg.created_at,
-                                'model': msg.model,
-                                'files': files,  # 使用反序列化后的列表
-                                'agent_node': msg.agent_node or '',  # 提供默认值
-                                'agent_step': msg.agent_step or 0,  # 提供默认值
-                                'agent_metadata': msg.agent_metadata
-                            }
-                            chat['messages'].append(message_dict)
-                        
-                        # 更新缓存（不设置脏标记）
-                        cache_manager.update_chat_no_dirty(chat_id, chat)
-                        
-                except Exception as e:
-                    from app.core.logging_config import logger
-                    logger.error(f"从数据库加载对话消息失败: {str(e)}")
-        
-        return chat
+        # 从仓库获取对话及其消息
+        return self.chat_repo.get_chat_with_messages(chat_id)
     
-    @staticmethod
-    def add_chat(chat):
-        """添加对话"""
+    def add_chat(self, chat):
+        """添加或更新对话"""
         chat_id = chat.get('id')
         if chat_id:
+            # 检查对话是否已存在
+            existing_chat = self.chat_repo.get_chat_by_id(chat_id)
+            if existing_chat:
+                # 如果对话已存在，更新对话
+                self.chat_repo.update_chat(
+                    chat_id=chat_id,
+                    title=chat.get('title', existing_chat.get('title')),
+                    preview=chat.get('preview', existing_chat.get('preview', '')),
+                    updated_at=chat.get('updatedAt', existing_chat.get('updatedAt')),
+                    pinned=int(chat.get('pinned', existing_chat.get('pinned', 0)))
+                )
+            else:
+                # 如果对话不存在，创建新对话
+                self.chat_repo.create_chat(
+                    chat_id=chat_id,
+                    title=chat.get('title', '新对话'),
+                    preview=chat.get('preview', ''),
+                    created_at=chat.get('createdAt', ''),
+                    updated_at=chat.get('updatedAt', '')
+                )
+            
+            # 无论对话是创建还是更新，都更新缓存中的消息列表
+            # 这样在保存到数据库时，消息也会被保存
             cache_manager.set_chat(chat_id, chat)
     
-    @staticmethod
-    def remove_chat(chat_id):
+    def remove_chat(self, chat_id):
         """移除对话"""
-        chats = cache_manager.get('chats') or {}
-        if chat_id in chats:
-            # 先获取被删除的对话数据，用于标记脏标记
-            deleted_chat = chats[chat_id]
-            # 移除聊天
-            del chats[chat_id]
-            # 手动将被删除的对话ID标记为脏
-            with cache_manager._lock:
-                dirty_flags = cache_manager._dirty_flags.get('chats', {})
-                if isinstance(dirty_flags, dict):
-                    dirty_flags[chat_id] = True
-            # 更新缓存
-            cache_manager.set('chats', chats)
+        # 使用仓库删除对话
+        return self.chat_repo.delete_chat(chat_id)
     
-    @staticmethod
-    def clear_chats():
+    def clear_chats(self):
         """清空对话"""
-        # 先获取所有对话ID，用于标记脏标记
-        chats = cache_manager.get('chats') or {}
-        chat_ids = list(chats.keys())
-        # 清空对话
-        cache_manager.set('chats', {})
-        # 手动将所有对话ID标记为脏
-        with cache_manager._lock:
-            dirty_flags = cache_manager._dirty_flags.get('chats', {})
-            if isinstance(dirty_flags, dict):
-                for chat_id in chat_ids:
-                    dirty_flags[chat_id] = True
+        # 使用仓库删除所有对话
+        return self.chat_repo.delete_all_chats()
     
-    @staticmethod
-    def update_chat(chat_id, updated_data):
+    def update_chat(self, chat_id, updated_data):
         """更新对话信息"""
-        chat = DataService.get_chat_by_id(chat_id)
+        # 先获取对话
+        chat = self.get_chat_by_id(chat_id)
         if chat:
-            chat.update(updated_data)
-            # 更新缓存并设置脏标记
-            cache_manager.set_chat(chat_id, chat)
+            # 使用仓库更新对话
+            self.chat_repo.update_chat(
+                chat_id=chat_id,
+                title=updated_data.get('title', chat.get('title')),
+                preview=updated_data.get('preview', chat.get('preview')),
+                updated_at=updated_data.get('updatedAt', chat.get('updatedAt')),
+                pinned=int(updated_data.get('pinned', chat.get('pinned', 0)))
+            )
     
-    @staticmethod
-    def add_message_to_chat(chat_id, message):
+    def add_message_to_chat(self, chat_id, message):
         """添加消息到对话"""
-        chat = DataService.get_chat_by_id(chat_id)
+        # 这里需要实现消息的添加逻辑
+        # 暂时使用缓存操作，后续可以移到仓库层
+        chat = self.get_chat_by_id(chat_id)
         if chat:
             if 'messages' not in chat:
                 chat['messages'] = []
@@ -194,44 +99,44 @@ class DataService(BaseService):
             # 更新缓存并设置脏标记
             cache_manager.set_chat(chat_id, chat)
     
-    @staticmethod
-    def update_chat_pin(chat_id, pinned):
+    def update_chat_pin(self, chat_id, pinned):
         """更新对话置顶状态"""
-        chat = DataService.get_chat_by_id(chat_id)
+        # 先获取对话
+        chat = self.get_chat_by_id(chat_id)
         if chat:
-            chat['pinned'] = bool(pinned)
-            # 更新缓存并设置脏标记
-            cache_manager.set_chat(chat_id, chat)
+            # 使用仓库更新对话
+            self.chat_repo.update_chat(
+                chat_id=chat_id,
+                title=chat.get('title'),
+                preview=chat.get('preview'),
+                updated_at=chat.get('updatedAt'),
+                pinned=int(pinned)
+            )
     
     # 模型相关方法
-    @staticmethod
-    def get_models():
+    def get_models(self):
         """获取所有模型"""
         return get_data('models')
     
-    @staticmethod
-    def get_model_by_name(model_name):
+    def get_model_by_name(self, model_name):
         """根据名称获取模型"""
         models = get_data('models') or []
         return next((m for m in models if m['name'] == model_name), None)
     
-    @staticmethod
-    def update_model(model_name, updated_model):
+    def update_model(self, model_name, updated_model):
         """更新模型"""
-        model = DataService.get_model_by_name(model_name)
+        model = self.get_model_by_name(model_name)
         if model:
             model.update(updated_model)
             # 由于model是引用，直接设置脏标记即可
             cache_manager.set_dirty_flag('models')
     
     # 设置相关方法
-    @staticmethod
-    def get_settings():
+    def get_settings(self):
         """获取所有设置"""
         return get_data('settings')
     
-    @staticmethod
-    def update_setting(key, value):
+    def update_setting(self, key, value):
         """更新设置"""
         settings = cache_manager.get('settings') or {}
         settings[key] = value
@@ -290,12 +195,10 @@ class DataService(BaseService):
         """创建文档分块"""
         return self.chunk_repo.create_chunk(chunk_id, document_id, chunk_index, content, extra_metadata, vector_collection)
     
-    @staticmethod
-    def set_dirty_flag(data_type, is_dirty=True):
+    def set_dirty_flag(self, data_type, is_dirty=True):
         """设置脏标记"""
         cache_manager.set_dirty_flag(data_type, is_dirty)
     
-    @staticmethod
-    def save_data():
+    def save_data(self):
         """保存数据"""
         save_data()

@@ -16,7 +16,9 @@ class ModelService(BaseService):
         Args:
             model_repo: 模型仓库实例，用于依赖注入
         """
+        from app.services.data_service import DataService
         self.model_repo = model_repo
+        self.data_service = DataService()
 
     def _filter_icon_blob(self, model):
         """过滤模型中的icon_blob字段，避免JSON序列化错误
@@ -54,7 +56,9 @@ class ModelService(BaseService):
             return None
         
         model_dict = self._build_model_dict(model_row)
-        DataService.get_models().append(model_dict)
+        models = self.data_service.get_models()
+        if models:
+            models.append(model_dict)
         return model_dict
 
     def _update_model_in_db(self, model):
@@ -76,7 +80,7 @@ class ModelService(BaseService):
         """获取所有模型供应商以及模型版本"""
         try:
             # 先从内存数据库获取模型
-            memory_models = DataService.get_models()
+            memory_models = self.data_service.get_models()
             
             # 如果内存中有模型数据，直接返回
             if memory_models:
@@ -91,13 +95,15 @@ class ModelService(BaseService):
                 model_dict = self._build_model_dict(model_row)
                 
                 # 更新内存数据库
-                db_model = DataService.get_model_by_name(model_dict['name'])
+                db_model = self.data_service.get_model_by_name(model_dict['name'])
                 if db_model:
                     # 更新现有模型
                     db_model.update(model_dict)
                 else:
                     # 添加新模型
-                    DataService.get_models().append(model_dict)
+                    memory_models = self.data_service.get_models()
+                    if memory_models:
+                        memory_models.append(model_dict)
                 
                 models.append(self._filter_icon_blob(model_dict))
             
@@ -106,7 +112,7 @@ class ModelService(BaseService):
             # 使用BaseService的日志方法
             self.log_error(f"获取模型列表失败: {str(e)}")
             # 失败时返回内存数据库中的模型
-            return [self._filter_icon_blob(model) for model in DataService.get_models()]
+            return [self._filter_icon_blob(model) for model in self.data_service.get_models()]
 
     def configure_model(self, model_name, data):
         """
@@ -121,7 +127,7 @@ class ModelService(BaseService):
         """
         try:
             # 查找匹配名称的模型
-            model = DataService.get_model_by_name(model_name)
+            model = self.data_service.get_model_by_name(model_name)
             
             # 如果内存数据库中找不到模型，从数据库构建模型对象并添加到内存数据库
             if not model:
@@ -172,7 +178,7 @@ class ModelService(BaseService):
                 model['enabled'] = True
             
             # 先设置脏标记，确保数据会被保存
-            DataService.set_dirty_flag('models')
+            self.data_service.set_dirty_flag('models')
             
             # 从数据库获取模型ID（用于后续数据库更新）
             model_row = self.model_repo.get_model_by_name(model_name)
@@ -209,7 +215,7 @@ class ModelService(BaseService):
         """
         try:
             # 查找匹配名称的模型
-            model = DataService.get_model_by_name(model_name)
+            model = self.data_service.get_model_by_name(model_name)
             if not model:
                 return False, '模型不存在'
             
@@ -230,7 +236,7 @@ class ModelService(BaseService):
             })
             
             # 设置脏标记，确保数据会被保存
-            DataService.set_dirty_flag('models')
+            self.data_service.set_dirty_flag('models')
             
             # 更新数据库中的模型信息
             self._update_model_in_db(model)
@@ -260,7 +266,7 @@ class ModelService(BaseService):
         """
         try:
             # 先从内存获取模型
-            model = DataService.get_model_by_name(model_name)
+            model = self.data_service.get_model_by_name(model_name)
             if not model:
                 # 如果内存中没有，从SQLite加载
                 model = self._load_model_from_db(model_name)
@@ -271,7 +277,7 @@ class ModelService(BaseService):
             model['enabled'] = enabled
             
             # 设置脏标记，确保数据会被保存
-            DataService.set_dirty_flag('models')
+            self.data_service.set_dirty_flag('models')
             
             # 更新数据库中的模型信息
             self._update_model_in_db(model)
@@ -295,7 +301,7 @@ class ModelService(BaseService):
         """
         try:
             # 先从内存获取模型
-            model = DataService.get_model_by_name(model_name)
+            model = self.data_service.get_model_by_name(model_name)
             if not model:
                 # 如果内存中没有，从SQLite加载
                 model = self._load_model_from_db(model_name)
@@ -320,7 +326,7 @@ class ModelService(BaseService):
                 model['enabled'] = False
             
             # 设置脏标记，确保数据会被保存
-            DataService.set_dirty_flag('models')
+            self.data_service.set_dirty_flag('models')
             
             # 从数据库获取模型ID
             model_row = self.model_repo.get_model_by_name(model_name)
@@ -358,7 +364,7 @@ class ModelService(BaseService):
                 model_name = filename.replace('.png', '')
             
             # 首先尝试从内存缓存获取模型
-            memory_model = DataService.get_model_by_name(model_name)
+            memory_model = self.data_service.get_model_by_name(model_name)
             
             # 如果内存中有模型，且有图标数据，直接返回
             if memory_model and memory_model.get('icon_blob'):

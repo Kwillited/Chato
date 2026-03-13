@@ -26,7 +26,11 @@ class VectorService(BaseService):
             return
         
         super().__init__()
-        self.chunk_repo = DocumentChunkRepository()
+        
+        # 导入service_container并获取依赖
+        from app.core.service_container import service_container
+        from app.repositories.document_chunk_repository import DocumentChunkRepository
+        self.chunk_repo = service_container.get_service('document_chunk_repository')
         
         # 导入配置管理器和路径管理器
         from app.core.config import config_manager
@@ -309,8 +313,9 @@ class VectorService(BaseService):
             
             if folder_id:
                 try:
+                    from app.core.service_container import service_container
                     from app.services.file.document_service import DocumentService
-                    doc_service = DocumentService()
+                    doc_service = service_container.get_service('document_service')
                     # 获取folder信息
                     folder = doc_service.data_service.get_folder_by_id(folder_id)
                     if folder:
@@ -498,8 +503,9 @@ class VectorService(BaseService):
             
             # 尝试从第一个选中的文件夹获取知识库信息
             try:
+                from app.core.service_container import service_container
                 from app.services.file.document_service import DocumentService
-                doc_service = DocumentService()
+                doc_service = service_container.get_service('document_service')
                 
                 # 获取第一个选中的文件夹ID
                 first_folder_id = selected_folders[0]

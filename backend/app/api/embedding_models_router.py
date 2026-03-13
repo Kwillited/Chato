@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, Body, Path
 from sqlalchemy.orm import Session
 from typing import Dict, Any
 from app.dependencies import get_db
+from app.core.service_container import service_container
 from app.services.model.embedding_model_service import EmbeddingModelService
 from app.utils.error_handler import handle_api_errors
 
@@ -23,7 +24,7 @@ async def get_embedding_models(
     Returns:
         List[Dict[str, Any]]: 嵌入模型列表
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     models = embedding_model_service.get_all_models(db, enabled_only)
     return {
         "success": True,
@@ -42,7 +43,7 @@ async def get_default_embedding_model(
     Returns:
         Dict[str, Any]: 默认嵌入模型信息
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     default_model = embedding_model_service.get_default_model(db)
     if not default_model:
         from fastapi import HTTPException
@@ -63,7 +64,7 @@ async def initialize_embedding_models(
     Returns:
         List[Dict[str, Any]]: 初始化的模型列表
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     initialized_models = embedding_model_service.initialize_models(db)
     return {
         "success": True,
@@ -89,7 +90,7 @@ async def update_embedding_model(
     Returns:
         Dict[str, Any]: 更新后的模型信息
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     updated_model = embedding_model_service.update_model(db, model_id, model_data)
     if not updated_model:
         from fastapi import HTTPException
@@ -117,7 +118,7 @@ async def update_embedding_model_version(
     Returns:
         Dict[str, Any]: 更新后的版本信息
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     updated_version = embedding_model_service.update_model_version(db, version_id, version_data)
     if not updated_version:
         from fastapi import HTTPException
@@ -137,7 +138,7 @@ async def clear_embedding_model_cache():
     Returns:
         Dict[str, Any]: 清空结果
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     cleared_count = embedding_model_service.clear_model_cache()
     return {
         "success": True,
@@ -159,7 +160,7 @@ async def load_embedding_model(
     Returns:
         Dict[str, Any]: 加载结果
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     model = embedding_model_service.load_embedding_model(model_name)
     if model:
         return {
@@ -188,7 +189,7 @@ async def configure_embedding_model(
     Returns:
         Dict[str, Any]: 配置结果
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     success, message, model = embedding_model_service.configure_model(db, model_name, data)
     if not success:
         from fastapi import HTTPException
@@ -217,7 +218,7 @@ async def delete_embedding_model(
     Returns:
         Dict[str, Any]: 删除结果
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     success, message = embedding_model_service.delete_model(db, model_name)
     if not success:
         from fastapi import HTTPException
@@ -245,7 +246,7 @@ async def update_embedding_model_enabled(
         Dict[str, Any]: 更新结果
     """
     enabled = data.get('enabled', True)
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     success, message = embedding_model_service.update_model_enabled(db, model_name, enabled)
     if not success:
         from fastapi import HTTPException
@@ -273,7 +274,7 @@ async def delete_embedding_model_version(
     Returns:
         Dict[str, Any]: 删除结果
     """
-    embedding_model_service = EmbeddingModelService()
+    embedding_model_service = service_container.get_service('embedding_model_service')
     success, message, model = embedding_model_service.delete_version(db, model_name, version_name)
     if not success:
         from fastapi import HTTPException

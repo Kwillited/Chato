@@ -3,6 +3,7 @@ from typing import Dict, Any, List, Optional
 from langchain_core.messages import ToolMessage
 from app.services.mcp.mcp_service import MCPService
 from app.core.logging_config import logger
+from app.core.service_container import service_container
 
 
 class ToolManager:
@@ -22,7 +23,8 @@ class ToolManager:
         if self.tools_map:
             return
         
-        mcp_service = MCPService()
+        # 通过服务容器获取 MCPService 实例
+        mcp_service = service_container.get_service('mcp_service')
         await mcp_service.initialize_mcp(mcp_config)
         tools = mcp_service.mcp_client_manager.get_tools()
         
