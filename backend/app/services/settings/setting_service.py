@@ -86,7 +86,7 @@ class SettingService(BaseService):
                 'default_model': "",
                 # 通知相关默认值
                 'newMessage': True,
-                'sound': False,
+                'sound': True,
                 'system': True,
                 'displayTime': '5秒',
                 'vector_db_path': '',

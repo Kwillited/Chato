@@ -90,7 +90,7 @@ class SystemSetting(Base):
     default_model = Column(String, default="")
     # 通知相关字段
     new_message = Column(Boolean, default=True)
-    sound = Column(Boolean, default=False)
+    sound = Column(Boolean, default=True)
     system = Column(Boolean, default=True)
     display_time = Column(String, default="5秒")
     # 向量相关设置

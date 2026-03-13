@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { ROUTE_CONFIGS } from './constants.js';
+import { setupRouteGuards } from './guards.js';
 
 // 导入视图组件（使用懒加载）
 const HomeContent = () => import('../views/HomeContent.vue');
@@ -32,6 +33,7 @@ const router = createRouter({
   routes
 });
 
-// 移除路由守卫，改为在App.vue中处理路由变化
+// 设置路由守卫
+setupRouteGuards(router);
 
 export default router;

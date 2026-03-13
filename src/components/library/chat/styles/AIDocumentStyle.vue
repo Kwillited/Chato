@@ -159,7 +159,7 @@
 import { Tooltip, ToolExecutionStatus, Loading } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
 import { formatTime } from '../../../../utils/time.js'
-import { VueChatoRenderer } from '../../../../plugins/Vue-Chato-Renderer/index.js'
+import { VueChatoRenderer } from '../../../../plugins/vue-chato-renderer/index.js'
 
 const props = defineProps({
   message: {

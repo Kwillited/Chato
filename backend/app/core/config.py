@@ -25,7 +25,7 @@ DEFAULT_CONFIG = {
     'notification': {
         'enabled': True,
         'newMessage': True,
-        'sound': False,
+        'sound': True,
         'system': True,
         'displayTime': '5秒'
     },

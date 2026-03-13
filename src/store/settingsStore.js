@@ -53,7 +53,7 @@ export const useSettingsStore = defineStore('settings', {
     // 通知相关设置
     notificationsConfig: {
       newMessage: true,
-      sound: false,
+      sound: true,
       system: true,
       displayTime: '5秒',
     },
@@ -222,7 +222,7 @@ export const useSettingsStore = defineStore('settings', {
     resetSettings() {
       this.notificationsConfig = {
         newMessage: true,
-        sound: false,
+        sound: true,
         system: true,
         displayTime: '5秒',
       };

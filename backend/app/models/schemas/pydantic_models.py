@@ -187,7 +187,7 @@ class SystemSettings(BaseModel):
     default_model: str = ""
     # 通知相关字段
     newMessage: bool = True
-    sound: bool = False
+    sound: bool = True
     system: bool = True
     displayTime: str = "5秒"
 
