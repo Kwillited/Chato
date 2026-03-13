@@ -1,10 +1,12 @@
 """数据服务层 - 封装内存数据管理和脏标记机制"""
 from app.core.data_manager import save_data, get_data
 from app.core.cache import cache_manager
+from app.core.logging_config import logger
 from app.services.base_service import BaseService
 from app.repositories.folder_repository import FolderRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
+from app.repositories.embedding_model_repository import EmbeddingModelRepository
 
 class DataService(BaseService):
     """数据服务类，封装所有数据相关的操作"""
@@ -12,6 +14,8 @@ class DataService(BaseService):
     def __init__(self):
         """初始化数据服务"""
         from app.repositories.chat_repository import ChatRepository
+        from app.repositories.model_repository import ModelRepository
+        from app.repositories.setting_repository import SettingRepository
         from app.core.database import get_db
         
         self.folder_repo = FolderRepository()
@@ -19,6 +23,9 @@ class DataService(BaseService):
         self.chunk_repo = DocumentChunkRepository()
         self.db_session = next(get_db())
         self.chat_repo = ChatRepository(self.db_session)
+        self.embedding_model_repo = EmbeddingModelRepository(self.db_session)
+        self.model_repo = ModelRepository(self.db_session)
+        self.setting_repo = SettingRepository(self.db_session)
     
     # 对话相关方法
     def get_chats(self):
@@ -107,31 +114,187 @@ class DataService(BaseService):
     # 模型相关方法
     def get_models(self):
         """获取所有模型"""
-        return get_data('models')
+        # 先尝试从缓存获取
+        models = get_data('models')
+        if models:
+            return models
+        # 如果缓存为空，从Repository获取并更新缓存
+        try:
+            db_models = self.model_repo.get_all_models()
+            model_list = []
+            for model in db_models:
+                # 获取模型的所有版本
+                versions = self.model_repo.get_model_versions(model.id)
+                version_list = []
+                for version in versions:
+                    version_list.append({
+                        'version_name': version.version_name,
+                        'custom_name': version.custom_name,
+                        'api_key': version.api_key,
+                        'api_base_url': version.api_base_url,
+                        'streaming_config': version.streaming_config
+                    })
+                model_list.append({
+                    'name': model.name,
+                    'description': model.description,
+                    'configured': bool(model.configured),
+                    'enabled': bool(model.enabled),
+                    'icon_url': model.icon_url,
+                    'icon_blob': model.icon_blob,
+                    'versions': version_list
+                })
+            # 更新缓存
+            cache_manager.set('models', model_list)
+            return model_list
+        except Exception as e:
+            logger.error(f"获取模型失败: {str(e)}")
+            return []
     
     def get_model_by_name(self, model_name):
         """根据名称获取模型"""
+        # 先尝试从缓存获取
         models = get_data('models') or []
-        return next((m for m in models if m['name'] == model_name), None)
+        model = next((m for m in models if m['name'] == model_name), None)
+        if model:
+            return model
+        # 如果缓存中不存在，从Repository获取
+        try:
+            db_model = self.model_repo.get_model_by_name(model_name)
+            if db_model:
+                # 获取模型的所有版本
+                versions = self.model_repo.get_model_versions(db_model.id)
+                version_list = []
+                for version in versions:
+                    version_list.append({
+                        'version_name': version.version_name,
+                        'custom_name': version.custom_name,
+                        'api_key': version.api_key,
+                        'api_base_url': version.api_base_url,
+                        'streaming_config': version.streaming_config
+                    })
+                model_data = {
+                    'name': db_model.name,
+                    'description': db_model.description,
+                    'configured': bool(db_model.configured),
+                    'enabled': bool(db_model.enabled),
+                    'icon_url': db_model.icon_url,
+                    'icon_blob': db_model.icon_blob,
+                    'versions': version_list
+                }
+                # 更新缓存
+                models = get_data('models') or []
+                existing_index = next((i for i, m in enumerate(models) if m['name'] == model_name), -1)
+                if existing_index >= 0:
+                    models[existing_index] = model_data
+                else:
+                    models.append(model_data)
+                cache_manager.set('models', models)
+                return model_data
+        except Exception as e:
+            logger.error(f"获取模型失败: {str(e)}")
+        return None
     
     def update_model(self, model_name, updated_model):
         """更新模型"""
-        model = self.get_model_by_name(model_name)
-        if model:
-            model.update(updated_model)
-            # 由于model是引用，直接设置脏标记即可
-            cache_manager.set_dirty_flag('models')
+        try:
+            # 先从缓存获取模型
+            model = self.get_model_by_name(model_name)
+            if model:
+                # 更新缓存中的模型
+                model.update(updated_model)
+                # 通过Repository更新数据库
+                self.model_repo.update_model(
+                    name=model['name'],
+                    description=model['description'],
+                    configured=model['configured'],
+                    enabled=model['enabled'],
+                    icon_url=model.get('icon_url', ''),
+                    icon_blob=model.get('icon_blob', None)
+                )
+                # 更新模型版本
+                if 'versions' in updated_model:
+                    db_model = self.model_repo.get_model_by_name(model_name)
+                    if db_model:
+                        for version in updated_model['versions']:
+                            self.model_repo.update_model_version(
+                                model_id=db_model.id,
+                                version_name=version['version_name'],
+                                custom_name=version.get('custom_name', ''),
+                                api_key=version.get('api_key', ''),
+                                api_base_url=version.get('api_base_url', ''),
+                                streaming_config=version.get('streaming_config', False)
+                            )
+                # 设置脏标记
+                cache_manager.set_dirty_flag('models')
+        except Exception as e:
+            logger.error(f"更新模型失败: {str(e)}")
     
     # 设置相关方法
     def get_settings(self):
         """获取所有设置"""
-        return get_data('settings')
+        # 先尝试从缓存获取
+        settings = get_data('settings')
+        if settings:
+            return settings
+        # 如果缓存为空，从Repository获取并更新缓存
+        try:
+            system_setting = self.setting_repo.get_system_setting()
+            if system_setting:
+                settings = {
+                    'system': {
+                        'darkMode': system_setting.dark_mode,
+                        'streamingEnabled': system_setting.streaming_enabled,
+                        'chatStyle': system_setting.chat_style,
+                        'viewMode': system_setting.view_mode,
+                        'defaultModel': system_setting.default_model,
+                        'vector_db_path': system_setting.vector_db_path,
+                        'default_top_k': system_setting.default_top_k,
+                        'default_score_threshold': system_setting.default_score_threshold,
+                        'newMessage': system_setting.new_message,
+                        'sound': system_setting.sound,
+                        'system': system_setting.system,
+                        'displayTime': system_setting.display_time
+                    }
+                }
+                # 更新缓存
+                cache_manager.set('settings', settings)
+                return settings
+        except Exception as e:
+            logger.error(f"获取设置失败: {str(e)}")
+        return {}
     
     def update_setting(self, key, value):
         """更新设置"""
-        settings = cache_manager.get('settings') or {}
-        settings[key] = value
-        cache_manager.set('settings', settings)
+        try:
+            # 获取当前设置
+            settings = get_data('settings') or {}
+            # 更新设置
+            settings[key] = value
+            # 更新缓存
+            cache_manager.set('settings', settings)
+            # 通过Repository更新数据库
+            # 如果更新的是system设置，转换为数据库格式并保存
+            if key == 'system' and isinstance(value, dict):
+                # 转换为数据库字段名（从驼峰命名转换为蛇形命名）
+                system_db_data = {
+                    'dark_mode': value.get('darkMode', False),
+                    'streaming_enabled': value.get('streamingEnabled', True),
+                    'chat_style': value.get('chatStyle', 'bubble'),
+                    'view_mode': value.get('viewMode', 'grid'),
+                    'default_model': value.get('defaultModel', ''),
+                    'vector_db_path': value.get('vector_db_path', ''),
+                    'default_top_k': value.get('default_top_k', 3),
+                    'default_score_threshold': value.get('default_score_threshold', 0.7),
+                    'new_message': value.get('newMessage', True),
+                    'sound': value.get('sound', False),
+                    'system': value.get('system', True),
+                    'display_time': value.get('displayTime', '5秒')
+                }
+                self.setting_repo.create_or_update_system_setting(system_db_data)
+            # 设置脏标记
+            cache_manager.set_dirty_flag('settings')
+        except Exception as e:
+            logger.error(f"更新设置失败: {str(e)}")
     
     # 文件管理相关方法
     def get_folders(self):
@@ -185,6 +348,59 @@ class DataService(BaseService):
     def create_chunk(self, chunk_id, document_id, chunk_index, content, extra_metadata, vector_collection):
         """创建文档分块"""
         return self.chunk_repo.create_chunk(chunk_id, document_id, chunk_index, content, extra_metadata, vector_collection)
+    
+    # 嵌入模型相关方法
+    def get_all_embedding_models(self, enabled_only: bool = False):
+        """获取所有嵌入模型"""
+        return self.embedding_model_repo.get_all_models(enabled_only)
+    
+    def get_embedding_model_by_name(self, model_name: str):
+        """根据名称获取嵌入模型"""
+        return self.embedding_model_repo.get_model_by_name(model_name)
+    
+    def get_embedding_model_by_id(self, model_id: int):
+        """根据ID获取嵌入模型"""
+        return self.embedding_model_repo.get_model_by_id(model_id)
+    
+    def create_embedding_model(self, model_data):
+        """创建嵌入模型"""
+        return self.embedding_model_repo.create_model(model_data)
+    
+    def update_embedding_model(self, model_id: int, model_data):
+        """更新嵌入模型"""
+        return self.embedding_model_repo.update_model(model_id, model_data)
+    
+    def delete_embedding_model(self, model_id: int):
+        """删除嵌入模型"""
+        return self.embedding_model_repo.delete_model(model_id)
+    
+    def get_embedding_model_versions(self, model_id: int):
+        """获取模型的所有版本"""
+        return self.embedding_model_repo.get_model_versions(model_id)
+    
+    def get_embedding_model_version_by_name(self, model_id: int, version_name: str):
+        """根据版本名称获取模型版本"""
+        return self.embedding_model_repo.get_version_by_name(model_id, version_name)
+    
+    def create_embedding_model_version(self, version_data):
+        """创建模型版本"""
+        return self.embedding_model_repo.create_model_version(version_data)
+    
+    def update_embedding_model_version(self, version_id: int, version_data):
+        """更新模型版本"""
+        return self.embedding_model_repo.update_model_version(version_id, version_data)
+    
+    def delete_embedding_model_version(self, version_id: int):
+        """删除模型版本"""
+        return self.embedding_model_repo.delete_model_version(version_id)
+    
+    def get_default_embedding_model(self):
+        """获取默认的嵌入模型"""
+        return self.embedding_model_repo.get_default_model()
+    
+    def is_embedding_model_table_empty(self):
+        """检查嵌入模型表是否为空"""
+        return self.embedding_model_repo.is_embedding_model_table_empty()
     
     def set_dirty_flag(self, data_type, is_dirty=True):
         """设置脏标记"""

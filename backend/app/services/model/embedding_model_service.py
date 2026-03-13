@@ -2,7 +2,7 @@
 import threading
 from typing import List, Optional, Dict, Any
 from app.services.base_service import BaseService
-from app.repositories.embedding_model_repository import EmbeddingModelRepository
+from app.services.data_service import DataService
 from app.llm.managers.embedding_model_manager import EmbeddingModelManager
 
 
@@ -28,15 +28,13 @@ class EmbeddingModelService(BaseService):
         super().__init__()
         self._initialized = False
         self.embedding_model_manager = EmbeddingModelManager()
+        self.data_service = DataService()
         self._initialized = True
         self.log_info("嵌入模型服务初始化成功")
     
-    def initialize_models(self, db_session) -> List[Dict[str, Any]]:
+    def initialize_models(self) -> List[Dict[str, Any]]:
         """初始化嵌入模型，创建默认的模型提供商
         
-        Args:
-            db_session: 数据库会话
-            
         Returns:
             List[Dict[str, Any]]: 初始化的模型列表
         """
@@ -49,23 +47,21 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"初始化嵌入模型失败: {str(e)}", exc_info=True)
             return []
     
-    def get_all_models(self, db_session, enabled_only: bool = False) -> List[Dict[str, Any]]:
+    def get_all_models(self, enabled_only: bool = False) -> List[Dict[str, Any]]:
         """获取所有嵌入模型
         
         Args:
-            db_session: 数据库会话
             enabled_only (bool): 是否只获取启用的模型
             
         Returns:
             List[Dict[str, Any]]: 嵌入模型列表
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            models = repo.get_all_models(enabled_only)
+            models = self.data_service.get_all_embedding_models(enabled_only)
             
             model_list = []
             for model in models:
-                versions = repo.get_model_versions(model.id)
+                versions = self.data_service.get_embedding_model_versions(model.id)
                 model_list.append({
                     'id': model.id,
                     'name': model.name,
@@ -92,24 +88,22 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"获取嵌入模型列表失败: {str(e)}", exc_info=True)
             return []
     
-    def get_model_by_name(self, db_session, model_name: str) -> Optional[Dict[str, Any]]:
+    def get_model_by_name(self, model_name: str) -> Optional[Dict[str, Any]]:
         """根据名称获取嵌入模型
         
         Args:
-            db_session: 数据库会话
             model_name (str): 模型名称
             
         Returns:
             Optional[Dict[str, Any]]: 嵌入模型信息
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            model = repo.get_model_by_name(model_name)
+            model = self.data_service.get_embedding_model_by_name(model_name)
             
             if not model:
                 return None
             
-            versions = repo.get_model_versions(model.id)
+            versions = self.data_service.get_embedding_model_versions(model.id)
             return {
                 'id': model.id,
                 'name': model.name,
@@ -134,11 +128,10 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"获取嵌入模型失败: {str(e)}", exc_info=True)
             return None
     
-    def update_model(self, db_session, model_id: int, model_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def update_model(self, model_id: int, model_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """更新嵌入模型
         
         Args:
-            db_session: 数据库会话
             model_id (int): 模型ID
             model_data (Dict[str, Any]): 模型数据
             
@@ -146,13 +139,12 @@ class EmbeddingModelService(BaseService):
             Optional[Dict[str, Any]]: 更新后的模型信息
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            updated_model = repo.update_model(model_id, model_data)
+            updated_model = self.data_service.update_embedding_model(model_id, model_data)
             
             if not updated_model:
                 return None
             
-            versions = repo.get_model_versions(updated_model.id)
+            versions = self.data_service.get_embedding_model_versions(updated_model.id)
             return {
                 'id': updated_model.id,
                 'name': updated_model.name,
@@ -177,11 +169,10 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"更新嵌入模型失败: {str(e)}", exc_info=True)
             return None
     
-    def update_model_version(self, db_session, version_id: int, version_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def update_model_version(self, version_id: int, version_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """更新模型版本
         
         Args:
-            db_session: 数据库会话
             version_id (int): 版本ID
             version_data (Dict[str, Any]): 版本数据
             
@@ -189,8 +180,7 @@ class EmbeddingModelService(BaseService):
             Optional[Dict[str, Any]]: 更新后的版本信息
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            updated_version = repo.update_model_version(version_id, version_data)
+            updated_version = self.data_service.update_embedding_model_version(version_id, version_data)
             
             if not updated_version:
                 return None
@@ -209,23 +199,19 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"更新模型版本失败: {str(e)}", exc_info=True)
             return None
     
-    def get_default_model(self, db_session) -> Optional[Dict[str, Any]]:
+    def get_default_model(self) -> Optional[Dict[str, Any]]:
         """获取默认的嵌入模型
         
-        Args:
-            db_session: 数据库会话
-            
         Returns:
             Optional[Dict[str, Any]]: 默认嵌入模型信息
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            default_model = repo.get_default_model()
+            default_model = self.data_service.get_default_embedding_model()
             
             if not default_model:
                 return None
             
-            versions = repo.get_model_versions(default_model.id)
+            versions = self.data_service.get_embedding_model_versions(default_model.id)
             return {
                 'id': default_model.id,
                 'name': default_model.name,
@@ -275,12 +261,11 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"清空模型缓存失败: {str(e)}", exc_info=True)
             return 0
 
-    def configure_model(self, db_session, model_name, data):
+    def configure_model(self, model_name, data):
         """
         配置特定嵌入模型
         
         Args:
-            db_session: 数据库会话
             model_name: 模型名称
             data: 配置数据
             
@@ -288,10 +273,8 @@ class EmbeddingModelService(BaseService):
             元组: (成功标志, 消息, 模型对象)
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            
             # 查找模型
-            model = repo.get_model_by_name(model_name)
+            model = self.data_service.get_embedding_model_by_name(model_name)
             if not model:
                 return False, '模型不存在', None
             
@@ -299,7 +282,7 @@ class EmbeddingModelService(BaseService):
             target_version_name = data.get('version_name', '')
             
             # 查找匹配的版本
-            versions = repo.get_model_versions(model.id)
+            versions = self.data_service.get_embedding_model_versions(model.id)
             version = next((v for v in versions if v.version_name == target_version_name), None)
             
             # 如果找不到匹配的版本，创建一个新的版本
@@ -313,10 +296,10 @@ class EmbeddingModelService(BaseService):
                     'model_path': data.get('model_path', ''),
                     'dimension': data.get('dimension', 0)
                 }
-                repo.create_model_version(version_data)
+                self.data_service.create_embedding_model_version(version_data)
             else:
                 # 更新现有版本
-                repo.update_model_version(
+                self.data_service.update_embedding_model_version(
                     version.id,
                     {
                         'custom_name': data.get('custom_name', version.custom_name),
@@ -328,7 +311,7 @@ class EmbeddingModelService(BaseService):
                 )
             
             # 更新模型状态
-            repo.update_model(
+            self.data_service.update_embedding_model(
                 model.id,
                 {
                     'configured': True,
@@ -337,39 +320,36 @@ class EmbeddingModelService(BaseService):
             )
             
             # 重新获取更新后的模型信息
-            updated_model = self.get_model_by_name(db_session, model_name)
+            updated_model = self.get_model_by_name(model_name)
             
             return True, f'嵌入模型 {model_name} 已配置', updated_model
         except Exception as e:
             self.log_error(f"配置嵌入模型失败: {str(e)}", exc_info=True)
             return False, f'配置嵌入模型失败: {str(e)}', None
 
-    def delete_model(self, db_session, model_name):
+    def delete_model(self, model_name):
         """
         删除特定嵌入模型配置
         
         Args:
-            db_session: 数据库会话
             model_name: 模型名称
             
         Returns:
             元组: (成功标志, 消息)
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            
             # 查找模型
-            model = repo.get_model_by_name(model_name)
+            model = self.data_service.get_embedding_model_by_name(model_name)
             if not model:
                 return False, '模型不存在'
             
             # 删除所有相关的模型版本
-            versions = repo.get_model_versions(model.id)
+            versions = self.data_service.get_embedding_model_versions(model.id)
             for version in versions:
-                repo.delete_model_version(version.id)
+                self.data_service.delete_embedding_model_version(version.id)
             
             # 更新模型状态
-            repo.update_model(
+            self.data_service.update_embedding_model(
                 model.id,
                 {
                     'configured': False,
@@ -382,12 +362,11 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"删除嵌入模型配置失败: {str(e)}", exc_info=True)
             return False, f'删除嵌入模型配置失败: {str(e)}'
 
-    def update_model_enabled(self, db_session, model_name, enabled):
+    def update_model_enabled(self, model_name, enabled):
         """
         更新嵌入模型启用状态
         
         Args:
-            db_session: 数据库会话
             model_name: 模型名称
             enabled: 是否启用
             
@@ -395,15 +374,13 @@ class EmbeddingModelService(BaseService):
             元组: (成功标志, 消息)
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            
             # 查找模型
-            model = repo.get_model_by_name(model_name)
+            model = self.data_service.get_embedding_model_by_name(model_name)
             if not model:
                 return False, '模型不存在'
             
             # 更新模型启用状态
-            repo.update_model(
+            self.data_service.update_embedding_model(
                 model.id,
                 {
                     'enabled': enabled
@@ -415,12 +392,11 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"更新嵌入模型启用状态失败: {str(e)}", exc_info=True)
             return False, f'更新嵌入模型启用状态失败: {str(e)}'
 
-    def delete_version(self, db_session, model_name, version_name):
+    def delete_version(self, model_name, version_name):
         """
         删除特定嵌入模型的特定版本
         
         Args:
-            db_session: 数据库会话
             model_name: 模型名称
             version_name: 版本名称
             
@@ -428,27 +404,25 @@ class EmbeddingModelService(BaseService):
             元组: (成功标志, 消息, 模型对象)
         """
         try:
-            repo = EmbeddingModelRepository(db_session)
-            
             # 查找模型
-            model = repo.get_model_by_name(model_name)
+            model = self.data_service.get_embedding_model_by_name(model_name)
             if not model:
                 return False, '模型不存在', None
             
             # 查找匹配的版本
-            versions = repo.get_model_versions(model.id)
+            versions = self.data_service.get_embedding_model_versions(model.id)
             version = next((v for v in versions if v.version_name == version_name), None)
             if not version:
                 return False, '版本不存在', None
             
             # 删除版本
-            repo.delete_model_version(version.id)
+            self.data_service.delete_embedding_model_version(version.id)
             
             # 检查模型是否还有其他版本
-            remaining_versions = repo.get_model_versions(model.id)
+            remaining_versions = self.data_service.get_embedding_model_versions(model.id)
             if not remaining_versions:
                 # 如果没有其他版本，设置为未配置
-                repo.update_model(
+                self.data_service.update_embedding_model(
                     model.id,
                     {
                         'configured': False,
@@ -457,7 +431,7 @@ class EmbeddingModelService(BaseService):
                 )
             
             # 重新获取更新后的模型信息
-            updated_model = self.get_model_by_name(db_session, model_name)
+            updated_model = self.get_model_by_name(model_name)
             
             return True, f'版本 {version_name} 已成功删除', updated_model
         except Exception as e:

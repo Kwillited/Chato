@@ -32,18 +32,13 @@ class SettingRepository(BaseRepository):
             for key, value in system_data.items():
                 if hasattr(existing, key):
                     setattr(existing, key, value)
-            self.db.commit()
-            # 不再更新 system_settings 缓存
-            # 因为设置现在通过 settings 缓存统一管理
-            return existing
+            # 使用基类方法更新
+            return self.update(existing)
         else:
             # 创建新记录
             # 先删除所有现有记录（如果有）
             self.db.query(SystemSetting).delete()
             # 创建新记录
             new_setting = SystemSetting(**system_data)
-            self.db.add(new_setting)
-            self.db.commit()
-            # 不再更新 system_settings 缓存
-            # 因为设置现在通过 settings 缓存统一管理
-            return new_setting
+            # 使用基类方法添加
+            return self.add(new_setting)

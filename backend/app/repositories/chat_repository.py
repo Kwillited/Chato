@@ -90,10 +90,8 @@ class ChatRepository(BaseRepository):
             created_at=created_at,
             updated_at=updated_at
         )
-        # 添加到数据库
-        self.db.add(chat)
-        self.db.commit()
-        self.db.refresh(chat)
+        # 使用基类方法添加到数据库
+        chat = self.add(chat)
         
         # 转换为字典
         chat_dict = self._convert_chat_to_dict(chat)
@@ -112,8 +110,8 @@ class ChatRepository(BaseRepository):
             chat.preview = preview
             chat.updated_at = updated_at
             chat.pinned = pinned
-            self.db.commit()
-            self.db.refresh(chat)
+            # 使用基类方法更新
+            chat = self.update(chat)
             
             # 转换为字典
             chat_dict = self._convert_chat_to_dict(chat)

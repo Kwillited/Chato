@@ -65,10 +65,11 @@ class FolderRepository(BaseRepository):
     def delete_all_folders(self):
         """删除所有文件夹"""
         try:
-            # 删除所有文件夹
-            self.db.query(Folder).delete()
-            self.db.commit()
+            # 获取所有文件夹并逐个删除
+            folders = self.db.query(Folder).all()
+            for folder in folders:
+                self.delete(folder)
             return True
         except Exception as e:
-            self.db.rollback()
+            self.rollback()
             raise e

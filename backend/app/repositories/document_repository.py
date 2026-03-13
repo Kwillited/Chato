@@ -91,10 +91,11 @@ class DocumentRepository(BaseRepository):
     def delete_all_documents(self):
         """删除所有文档"""
         try:
-            # 删除所有文档
-            self.db.query(Document).delete()
-            self.db.commit()
+            # 获取所有文档并逐个删除
+            docs = self.db.query(Document).all()
+            for doc in docs:
+                self.delete(doc)
             return True
         except Exception as e:
-            self.db.rollback()
+            self.rollback()
             raise e

@@ -36,8 +36,8 @@ class DocumentChunkRepository(BaseRepository):
     
     def create_chunks_batch(self, chunks):
         """批量创建文档分块"""
-        self.db.add_all(chunks)
-        self.db.commit()
+        for chunk in chunks:
+            self.add(chunk)
         return chunks
     
     def update_chunk(self, chunk_id, content=None, extra_metadata=None, vector_id=None, vector_collection=None):

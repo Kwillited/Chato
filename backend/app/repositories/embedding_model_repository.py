@@ -69,10 +69,7 @@ class EmbeddingModelRepository(BaseRepository):
         
         # 创建新模型
         model = EmbeddingModel(**model_data)
-        self.db.add(model)
-        self.db.commit()
-        self.db.refresh(model)
-        return model
+        return self.add(model)
     
     def update_model(self, model_id: int, model_data: Dict[str, Any]) -> Optional[EmbeddingModel]:
         """更新嵌入模型
@@ -92,9 +89,7 @@ class EmbeddingModelRepository(BaseRepository):
         for key, value in model_data.items():
             setattr(model, key, value)
         
-        self.db.commit()
-        self.db.refresh(model)
-        return model
+        return self.update(model)
     
     def delete_model(self, model_id: int) -> bool:
         """删除嵌入模型
@@ -109,8 +104,7 @@ class EmbeddingModelRepository(BaseRepository):
         if not model:
             return False
         
-        self.db.delete(model)
-        self.db.commit()
+        self.delete(model)
         return True
     
     def get_model_versions(self, model_id: int) -> List[EmbeddingVersion]:
@@ -162,10 +156,7 @@ class EmbeddingModelRepository(BaseRepository):
         
         # 创建新版本
         version = EmbeddingVersion(**version_data)
-        self.db.add(version)
-        self.db.commit()
-        self.db.refresh(version)
-        return version
+        return self.add(version)
     
     def update_model_version(self, version_id: int, version_data: Dict[str, Any]) -> Optional[EmbeddingVersion]:
         """更新模型版本
@@ -188,9 +179,7 @@ class EmbeddingModelRepository(BaseRepository):
         for key, value in version_data.items():
             setattr(version, key, value)
         
-        self.db.commit()
-        self.db.refresh(version)
-        return version
+        return self.update(version)
     
     def delete_model_version(self, version_id: int) -> bool:
         """删除模型版本
@@ -208,8 +197,7 @@ class EmbeddingModelRepository(BaseRepository):
         if not version:
             return False
         
-        self.db.delete(version)
-        self.db.commit()
+        self.delete(version)
         return True
     
     def get_default_model(self) -> Optional[EmbeddingModel]:

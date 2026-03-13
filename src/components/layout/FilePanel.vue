@@ -201,6 +201,7 @@ const loadFolders = async () => {
 const handleBackToParent = () => {
   // 使用fileStore的方法清除状态
   fileStore.clearSelectedFolder();
+  currentFolder.value = null;
   currentFiles.value = [];
 };
 

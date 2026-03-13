@@ -1,8 +1,6 @@
 """嵌入模型相关API路由"""
 from fastapi import APIRouter, Depends, Body, Path
-from sqlalchemy.orm import Session
 from typing import Dict, Any
-from app.dependencies import get_db
 from app.core.service_container import service_container
 from app.services.model.embedding_model_service import EmbeddingModelService
 from app.utils.error_handler import handle_api_errors
@@ -13,8 +11,7 @@ router = APIRouter(prefix='/api/embedding-models')
 @router.get("", tags=["embedding-models"])
 @handle_api_errors()
 async def get_embedding_models(
-    enabled_only: bool = False,
-    db: Session = Depends(get_db)
+    enabled_only: bool = False
 ):
     """获取所有嵌入模型
     
@@ -25,7 +22,7 @@ async def get_embedding_models(
         List[Dict[str, Any]]: 嵌入模型列表
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    models = embedding_model_service.get_all_models(db, enabled_only)
+    models = embedding_model_service.get_all_models(enabled_only)
     return {
         "success": True,
         "models": models,
@@ -35,16 +32,14 @@ async def get_embedding_models(
 
 @router.get("/default", tags=["embedding-models"])
 @handle_api_errors()
-async def get_default_embedding_model(
-    db: Session = Depends(get_db)
-):
+async def get_default_embedding_model():
     """获取默认的嵌入模型
     
     Returns:
         Dict[str, Any]: 默认嵌入模型信息
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    default_model = embedding_model_service.get_default_model(db)
+    default_model = embedding_model_service.get_default_model()
     if not default_model:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="未找到默认嵌入模型")
@@ -56,16 +51,14 @@ async def get_default_embedding_model(
 
 @router.post("/initialize", tags=["embedding-models"])
 @handle_api_errors()
-async def initialize_embedding_models(
-    db: Session = Depends(get_db)
-):
+async def initialize_embedding_models():
     """初始化嵌入模型，将支持的模型添加到数据库
     
     Returns:
         List[Dict[str, Any]]: 初始化的模型列表
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    initialized_models = embedding_model_service.initialize_models(db)
+    initialized_models = embedding_model_service.initialize_models()
     return {
         "success": True,
         "models": initialized_models,
@@ -78,8 +71,7 @@ async def initialize_embedding_models(
 @handle_api_errors()
 async def update_embedding_model(
     model_id: int = Path(...),
-    model_data: Dict[str, Any] = Body(...),
-    db: Session = Depends(get_db)
+    model_data: Dict[str, Any] = Body(...)
 ):
     """更新嵌入模型
     
@@ -91,7 +83,7 @@ async def update_embedding_model(
         Dict[str, Any]: 更新后的模型信息
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    updated_model = embedding_model_service.update_model(db, model_id, model_data)
+    updated_model = embedding_model_service.update_model(model_id, model_data)
     if not updated_model:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="嵌入模型不存在")
@@ -106,8 +98,7 @@ async def update_embedding_model(
 @handle_api_errors()
 async def update_embedding_model_version(
     version_id: int = Path(...),
-    version_data: Dict[str, Any] = Body(...),
-    db: Session = Depends(get_db)
+    version_data: Dict[str, Any] = Body(...)
 ):
     """更新模型版本
     
@@ -119,7 +110,7 @@ async def update_embedding_model_version(
         Dict[str, Any]: 更新后的版本信息
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    updated_version = embedding_model_service.update_model_version(db, version_id, version_data)
+    updated_version = embedding_model_service.update_model_version(version_id, version_data)
     if not updated_version:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="模型版本不存在")
@@ -177,8 +168,7 @@ async def load_embedding_model(
 @handle_api_errors()
 async def configure_embedding_model(
     model_name: str = Path(...),
-    data: dict = Body(...),
-    db: Session = Depends(get_db)
+    data: dict = Body(...)
 ):
     """配置特定嵌入模型
     
@@ -190,7 +180,7 @@ async def configure_embedding_model(
         Dict[str, Any]: 配置结果
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    success, message, model = embedding_model_service.configure_model(db, model_name, data)
+    success, message, model = embedding_model_service.configure_model(model_name, data)
     if not success:
         from fastapi import HTTPException
         if message == '模型不存在':
@@ -207,8 +197,7 @@ async def configure_embedding_model(
 @router.delete("/{model_name}", tags=["embedding-models"])
 @handle_api_errors()
 async def delete_embedding_model(
-    model_name: str = Path(...),
-    db: Session = Depends(get_db)
+    model_name: str = Path(...)
 ):
     """删除特定嵌入模型配置
     
@@ -219,7 +208,7 @@ async def delete_embedding_model(
         Dict[str, Any]: 删除结果
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    success, message = embedding_model_service.delete_model(db, model_name)
+    success, message = embedding_model_service.delete_model(model_name)
     if not success:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=message)
@@ -233,8 +222,7 @@ async def delete_embedding_model(
 @handle_api_errors()
 async def update_embedding_model_enabled(
     model_name: str = Path(...),
-    data: dict = Body(...),
-    db: Session = Depends(get_db)
+    data: dict = Body(...)
 ):
     """更新嵌入模型启用状态
     
@@ -247,7 +235,7 @@ async def update_embedding_model_enabled(
     """
     enabled = data.get('enabled', True)
     embedding_model_service = service_container.get_service('embedding_model_service')
-    success, message = embedding_model_service.update_model_enabled(db, model_name, enabled)
+    success, message = embedding_model_service.update_model_enabled(model_name, enabled)
     if not success:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=message)
@@ -262,8 +250,7 @@ async def update_embedding_model_enabled(
 @handle_api_errors()
 async def delete_embedding_model_version(
     model_name: str = Path(...),
-    version_name: str = Path(...),
-    db: Session = Depends(get_db)
+    version_name: str = Path(...)
 ):
     """删除特定嵌入模型的特定版本
     
@@ -275,7 +262,7 @@ async def delete_embedding_model_version(
         Dict[str, Any]: 删除结果
     """
     embedding_model_service = service_container.get_service('embedding_model_service')
-    success, message, model = embedding_model_service.delete_version(db, model_name, version_name)
+    success, message, model = embedding_model_service.delete_version(model_name, version_name)
     if not success:
         from fastapi import HTTPException
         if message == '模型不存在':
