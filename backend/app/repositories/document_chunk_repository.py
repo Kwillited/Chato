@@ -7,19 +7,39 @@ class DocumentChunkRepository(BaseRepository):
     
     def get_all_chunks(self):
         """获取所有文档分块"""
-        return self.db.query(DocumentChunk).all()
+        db = self.get_db()
+        try:
+            return db.query(DocumentChunk).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_chunk_by_id(self, chunk_id):
         """根据ID获取文档分块"""
-        return self.db.query(DocumentChunk).filter(DocumentChunk.id == chunk_id).first()
+        db = self.get_db()
+        try:
+            return db.query(DocumentChunk).filter(DocumentChunk.id == chunk_id).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_chunks_by_document_id(self, document_id):
         """根据文档ID获取所有分块"""
-        return self.db.query(DocumentChunk).filter(DocumentChunk.document_id == document_id).order_by(DocumentChunk.chunk_index).all()
+        db = self.get_db()
+        try:
+            return db.query(DocumentChunk).filter(DocumentChunk.document_id == document_id).order_by(DocumentChunk.chunk_index).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_chunks_by_vector_id(self, vector_id):
         """根据向量ID获取文档分块"""
-        return self.db.query(DocumentChunk).filter(DocumentChunk.vector_id == vector_id).first()
+        db = self.get_db()
+        try:
+            return db.query(DocumentChunk).filter(DocumentChunk.vector_id == vector_id).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_chunk(self, chunk_id, document_id, chunk_index, content, extra_metadata=None, vector_id=None, vector_collection=None):
         """创建新文档分块"""
@@ -72,7 +92,12 @@ class DocumentChunkRepository(BaseRepository):
     
     def delete_chunks_by_vector_collection(self, vector_collection):
         """根据向量集合删除所有分块"""
-        chunks = self.db.query(DocumentChunk).filter(DocumentChunk.vector_collection == vector_collection).all()
-        for chunk in chunks:
-            self.delete(chunk)
-        return True
+        db = self.get_db()
+        try:
+            chunks = db.query(DocumentChunk).filter(DocumentChunk.vector_collection == vector_collection).all()
+            for chunk in chunks:
+                self.delete(chunk)
+            return True
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()

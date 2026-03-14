@@ -120,7 +120,3 @@ def get_vector_db_service(vector_db_path: str = '', embedder_model: str = '', kn
     )
 
 
-def get_vector_store_service():
-    """获取向量存储服务实例"""
-    from app.services.vector.vector_store_service import VectorStoreService
-    return VectorStoreService()

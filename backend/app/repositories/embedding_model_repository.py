@@ -26,10 +26,15 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             List[EmbeddingModel]: 嵌入模型列表
         """
-        query = self.db.query(EmbeddingModel)
-        if enabled_only:
-            query = query.filter(EmbeddingModel.enabled == True)
-        return query.all()
+        db = self.get_db()
+        try:
+            query = db.query(EmbeddingModel)
+            if enabled_only:
+                query = query.filter(EmbeddingModel.enabled == True)
+            return query.all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_model_by_name(self, model_name: str) -> Optional[EmbeddingModel]:
         """根据名称获取嵌入模型
@@ -40,7 +45,12 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             Optional[EmbeddingModel]: 嵌入模型实例
         """
-        return self.db.query(EmbeddingModel).filter(EmbeddingModel.name == model_name).first()
+        db = self.get_db()
+        try:
+            return db.query(EmbeddingModel).filter(EmbeddingModel.name == model_name).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_model_by_id(self, model_id: int) -> Optional[EmbeddingModel]:
         """根据ID获取嵌入模型
@@ -51,7 +61,12 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             Optional[EmbeddingModel]: 嵌入模型实例
         """
-        return self.db.query(EmbeddingModel).filter(EmbeddingModel.id == model_id).first()
+        db = self.get_db()
+        try:
+            return db.query(EmbeddingModel).filter(EmbeddingModel.id == model_id).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_model(self, model_data: Dict[str, Any]) -> EmbeddingModel:
         """创建新的嵌入模型
@@ -116,9 +131,14 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             List[EmbeddingVersion]: 模型版本列表
         """
-        return self.db.query(EmbeddingVersion).filter(
-            EmbeddingVersion.model_id == model_id
-        ).all()
+        db = self.get_db()
+        try:
+            return db.query(EmbeddingVersion).filter(
+                EmbeddingVersion.model_id == model_id
+            ).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_version_by_name(self, model_id: int, version_name: str) -> Optional[EmbeddingVersion]:
         """根据版本名称获取模型版本
@@ -130,12 +150,17 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             Optional[EmbeddingVersion]: 模型版本实例
         """
-        return self.db.query(EmbeddingVersion).filter(
-            and_(
-                EmbeddingVersion.model_id == model_id,
-                EmbeddingVersion.version_name == version_name
-            )
-        ).first()
+        db = self.get_db()
+        try:
+            return db.query(EmbeddingVersion).filter(
+                and_(
+                    EmbeddingVersion.model_id == model_id,
+                    EmbeddingVersion.version_name == version_name
+                )
+            ).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_model_version(self, version_data: Dict[str, Any]) -> EmbeddingVersion:
         """创建新的模型版本
@@ -168,18 +193,23 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             Optional[EmbeddingVersion]: 更新后的模型版本实例
         """
-        version = self.db.query(EmbeddingVersion).filter(
-            EmbeddingVersion.id == version_id
-        ).first()
-        
-        if not version:
-            return None
-        
-        # 更新版本数据
-        for key, value in version_data.items():
-            setattr(version, key, value)
-        
-        return self.update(version)
+        db = self.get_db()
+        try:
+            version = db.query(EmbeddingVersion).filter(
+                EmbeddingVersion.id == version_id
+            ).first()
+            
+            if not version:
+                return None
+            
+            # 更新版本数据
+            for key, value in version_data.items():
+                setattr(version, key, value)
+            
+            return self.update(version)
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def delete_model_version(self, version_id: int) -> bool:
         """删除模型版本
@@ -190,15 +220,20 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             bool: 是否删除成功
         """
-        version = self.db.query(EmbeddingVersion).filter(
-            EmbeddingVersion.id == version_id
-        ).first()
-        
-        if not version:
-            return False
-        
-        self.delete(version)
-        return True
+        db = self.get_db()
+        try:
+            version = db.query(EmbeddingVersion).filter(
+                EmbeddingVersion.id == version_id
+            ).first()
+            
+            if not version:
+                return False
+            
+            self.delete(version)
+            return True
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_default_model(self) -> Optional[EmbeddingModel]:
         """获取默认的嵌入模型
@@ -206,16 +241,21 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             Optional[EmbeddingModel]: 默认嵌入模型实例
         """
-        # 优先返回启用的模型，否则返回第一个模型
-        enabled_model = self.db.query(EmbeddingModel).filter(
-            EmbeddingModel.enabled == True
-        ).first()
-        
-        if enabled_model:
-            return enabled_model
-        
-        # 返回第一个模型
-        return self.db.query(EmbeddingModel).first()
+        db = self.get_db()
+        try:
+            # 优先返回启用的模型，否则返回第一个模型
+            enabled_model = db.query(EmbeddingModel).filter(
+                EmbeddingModel.enabled == True
+            ).first()
+            
+            if enabled_model:
+                return enabled_model
+            
+            # 返回第一个模型
+            return db.query(EmbeddingModel).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def is_embedding_model_table_empty(self) -> bool:
         """检查嵌入模型表是否为空
@@ -223,4 +263,9 @@ class EmbeddingModelRepository(BaseRepository):
         Returns:
             bool: 嵌入模型表是否为空
         """
-        return self.db.query(EmbeddingModel).count() == 0
+        db = self.get_db()
+        try:
+            return db.query(EmbeddingModel).count() == 0
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()

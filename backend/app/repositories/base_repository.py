@@ -11,72 +11,97 @@ class BaseRepository:
         Args:
             db: SQLAlchemy会话对象，用于依赖注入
         """
-        self.db = db or SessionLocal()
+        self._db = db
     
-    def get_db(self):
+    def get_db(self) -> Session:
         """获取数据库会话"""
-        return self.db
+        return self._db or SessionLocal()
     
     def close(self):
         """关闭数据库会话"""
-        if self.db:
-            self.db.close()
+        if self._db:
+            self._db.close()
     
     def add(self, model):
         """添加模型实例到数据库"""
-        # 对于设置相关模型，使用传统数据库操作
-        model_type = self._get_model_type(model)
-        if model_type:
-            # 直接添加到数据库
-            self.db.add(model)
-            self.db.commit()
-            self.db.refresh(model)
+        db = self.get_db()
+        try:
+            # 对于设置相关模型，使用传统数据库操作
+            model_type = self._get_model_type(model)
+            if model_type:
+                # 直接添加到数据库
+                db.add(model)
+                db.commit()
+                db.refresh(model)
+                return model
+            
+            # 对于其他模型，继续使用直接数据库操作
+            db.add(model)
+            db.commit()
+            db.refresh(model)
             return model
-        
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.add(model)
-        self.db.commit()
-        self.db.refresh(model)
-        return model
+        finally:
+            if not self._db:
+                db.close()
     
     def update(self, model):
         """更新模型实例"""
-        # 对于设置相关模型，使用传统数据库操作
-        model_type = self._get_model_type(model)
-        if model_type:
-            # 直接更新数据库
-            self.db.commit()
-            self.db.refresh(model)
+        db = self.get_db()
+        try:
+            # 对于设置相关模型，使用传统数据库操作
+            model_type = self._get_model_type(model)
+            if model_type:
+                # 直接更新数据库
+                db.commit()
+                db.refresh(model)
+                return model
+            
+            # 对于其他模型，继续使用直接数据库操作
+            db.commit()
+            db.refresh(model)
             return model
-        
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.commit()
-        self.db.refresh(model)
-        return model
+        finally:
+            if not self._db:
+                db.close()
     
     def delete(self, model):
         """删除模型实例"""
-        # 对于设置相关模型，不支持删除操作
-        model_type = self._get_model_type(model)
-        if model_type:
-            # 可以选择将其设置为默认值
-            return
-        
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.delete(model)
-        self.db.commit()
+        db = self.get_db()
+        try:
+            # 对于设置相关模型，不支持删除操作
+            model_type = self._get_model_type(model)
+            if model_type:
+                # 可以选择将其设置为默认值
+                return
+            
+            # 对于其他模型，继续使用直接数据库操作
+            db.delete(model)
+            db.commit()
+        finally:
+            if not self._db:
+                db.close()
     
     def commit(self):
         """提交事务"""
-        # 对于设置相关模型，内存数据库会自动提交
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.commit()
+        db = self.get_db()
+        try:
+            # 对于设置相关模型，内存数据库会自动提交
+            # 对于其他模型，继续使用直接数据库操作
+            db.commit()
+        finally:
+            if not self._db:
+                db.close()
     
     def rollback(self):
         """回滚事务"""
-        # 对于设置相关模型，需要从数据库重新加载
-        # 对于其他模型，继续使用直接数据库操作
-        self.db.rollback()
+        db = self.get_db()
+        try:
+            # 对于设置相关模型，需要从数据库重新加载
+            # 对于其他模型，继续使用直接数据库操作
+            db.rollback()
+        finally:
+            if not self._db:
+                db.close()
     
     def _get_model_type(self, model) -> str:
         """获取模型类型对应的内存数据库键名"""

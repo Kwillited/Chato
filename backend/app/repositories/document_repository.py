@@ -7,23 +7,48 @@ class DocumentRepository(BaseRepository):
     
     def get_all_documents(self):
         """获取所有文档"""
-        return self.db.query(Document).all()
+        db = self.get_db()
+        try:
+            return db.query(Document).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_document_by_id(self, document_id):
         """根据ID获取文档"""
-        return self.db.query(Document).filter(Document.id == document_id).first()
+        db = self.get_db()
+        try:
+            return db.query(Document).filter(Document.id == document_id).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_document_by_name(self, document_name):
         """根据名称获取文档"""
-        return self.db.query(Document).filter(Document.name == document_name).first()
+        db = self.get_db()
+        try:
+            return db.query(Document).filter(Document.name == document_name).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_documents_by_folder_id(self, folder_id):
         """根据文件夹ID获取文档"""
-        return self.db.query(Document).filter(Document.folder_id == folder_id).all()
+        db = self.get_db()
+        try:
+            return db.query(Document).filter(Document.folder_id == folder_id).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_documents_by_folder_name(self, folder_name):
         """根据文件夹名称获取文档"""
-        return self.db.query(Document).join(Document.folder).filter(folder_name == Document.folder.name).all()
+        db = self.get_db()
+        try:
+            return db.query(Document).join(Document.folder).filter(folder_name == Document.folder.name).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_document(self, document_id, name, path, size, type, uploaded_at, folder_id=None, extra_metadata=None, chunk_size=1000, chunk_overlap=200):
         """创建新文档"""
@@ -72,14 +97,19 @@ class DocumentRepository(BaseRepository):
     
     def delete_document_by_name(self, document_name, folder_id=None):
         """根据名称删除文档"""
-        query = self.db.query(Document).filter(Document.name == document_name)
-        if folder_id:
-            query = query.filter(Document.folder_id == folder_id)
-        document = query.first()
-        if document:
-            self.delete(document)
-            return True
-        return False
+        db = self.get_db()
+        try:
+            query = db.query(Document).filter(Document.name == document_name)
+            if folder_id:
+                query = query.filter(Document.folder_id == folder_id)
+            document = query.first()
+            if document:
+                self.delete(document)
+                return True
+            return False
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def delete_documents_by_folder_id(self, folder_id):
         """根据文件夹ID删除所有文档"""
@@ -90,12 +120,16 @@ class DocumentRepository(BaseRepository):
     
     def delete_all_documents(self):
         """删除所有文档"""
+        db = self.get_db()
         try:
             # 获取所有文档并逐个删除
-            docs = self.db.query(Document).all()
+            docs = db.query(Document).all()
             for doc in docs:
                 self.delete(doc)
             return True
         except Exception as e:
             self.rollback()
             raise e
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()

@@ -7,15 +7,30 @@ class FolderRepository(BaseRepository):
     
     def get_all_folders(self):
         """获取所有文件夹"""
-        return self.db.query(Folder).all()
+        db = self.get_db()
+        try:
+            return db.query(Folder).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_folder_by_id(self, folder_id):
         """根据ID获取文件夹"""
-        return self.db.query(Folder).filter(Folder.id == folder_id).first()
+        db = self.get_db()
+        try:
+            return db.query(Folder).filter(Folder.id == folder_id).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_folder_by_name(self, folder_name):
         """根据名称获取文件夹"""
-        return self.db.query(Folder).filter(Folder.name == folder_name).first()
+        db = self.get_db()
+        try:
+            return db.query(Folder).filter(Folder.name == folder_name).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_folder(self, folder_id, name, path, vector_db_path=None, embedding_model=None, created_at=None, updated_at=None, description=None, chunk_size=1000, chunk_overlap=200):
         """创建新文件夹"""
@@ -64,12 +79,16 @@ class FolderRepository(BaseRepository):
     
     def delete_all_folders(self):
         """删除所有文件夹"""
+        db = self.get_db()
         try:
             # 获取所有文件夹并逐个删除
-            folders = self.db.query(Folder).all()
+            folders = db.query(Folder).all()
             for folder in folders:
                 self.delete(folder)
             return True
         except Exception as e:
             self.rollback()
             raise e
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()

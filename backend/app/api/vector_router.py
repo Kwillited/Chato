@@ -133,8 +133,8 @@ async def get_vector_stores(vector_service: VectorService = Depends(get_vector_s
     Returns:
         dict: 向量库列表
     """
-    # 返回一个默认向量库，因为当前版本只支持单向量库
-    return {"success": True, "stores": [{"id": "default", "name": "默认向量库", "path": "resources/python/userData/rag/chroma_db"}]}
+    # 调用服务层方法获取向量库列表
+    return vector_service.get_vector_stores()
 
 
 @router.post("/switch", tags=["vectors"])
@@ -149,5 +149,5 @@ async def switch_vector_store(request: dict = Body(...), vector_service: VectorS
         dict: 切换结果
     """
     store_id = request.get("store_id", "default")
-    # 当前版本只支持单向量库，直接返回成功
-    return {"success": True, "message": f"已切换到向量库: {store_id}"}
+    # 调用服务层方法切换向量库
+    return vector_service.switch_vector_store(store_id)

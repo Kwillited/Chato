@@ -96,7 +96,10 @@ class SettingService(BaseService):
         current_settings = self.data_service.get_settings() or {}
         system_settings = current_settings.get('system', {})
         
-        # 2. 更新内存缓存中的设置
+        # 2. 过滤出非None的字段
+        filtered_data = {k: v for k, v in data.items() if v is not None}
+        
+        # 3. 更新内存缓存中的设置
         # 处理前端发送的蛇形命名格式数据
         # 直接映射蛇形命名到驼峰命名
         field_mapping = {
@@ -109,7 +112,7 @@ class SettingService(BaseService):
             'display_time': 'displayTime'
         }
         
-        for key, value in data.items():
+        for key, value in filtered_data.items():
             # 检查是否需要转换命名格式
             if key in field_mapping:
                 # 蛇形命名转驼峰命名
@@ -123,10 +126,10 @@ class SettingService(BaseService):
         for key, value in current_settings.items():
             self.data_service.update_setting(key, value)
         
-        # 3. 设置脏标记，触发自动保存
+        # 4. 设置脏标记，触发自动保存
         self.data_service.set_dirty_flag('settings')
         
-        # 4. 从内存缓存返回更新后的数据
+        # 5. 从内存缓存返回更新后的数据
         # 直接返回内存中最新的设置数据，转换为前端期望的格式
         return {
             'dark_mode': system_settings.get('darkMode', False),

@@ -12,7 +12,6 @@ class VectorDBProcess(multiprocessing.Process):
         super().__init__()
         self.task_queue = task_queue
         self.result_queue = result_queue
-        self.vector_service = None
         self.running = True
     
     def run(self):
@@ -74,56 +73,185 @@ class VectorDBProcess(multiprocessing.Process):
     def _init_service(self, vector_db_path, embedder_model, knowledge_base_name):
         """初始化向量服务"""
         try:
-            from app.services.vector.vector_db_service import VectorDBService
-            self.vector_service = VectorDBService(
-                vector_db_path=vector_db_path,
-                embedder_model=embedder_model,
-                knowledge_base_name=knowledge_base_name
+            # 直接在进程中实现向量服务功能，不再依赖外部模块
+            import os
+            from app.repositories.vector_repository import VectorRepository
+            from app.core.service_container import service_container
+            from app.llm.managers.embedding_model_manager import EmbeddingModelManager
+            from langchain_chroma import Chroma
+            
+            # 初始化配置
+            from app.core.config import config_manager
+            self.config_manager = config_manager
+            self.user_data_dir = self.config_manager.get_user_data_dir()
+            
+            # 设置属性
+            self.knowledge_base_name = knowledge_base_name or "default"
+            self.vector_db_path = vector_db_path
+            self.embedder_model = embedder_model
+            
+            # 创建标准的embedding模型目录
+            self.embedding_models_dir = os.path.join(self.user_data_dir, 'models', 'embedding')
+            
+            # 确保目录存在
+            os.makedirs(self.embedding_models_dir, exist_ok=True)
+            os.makedirs(os.path.dirname(self.vector_db_path), exist_ok=True)
+            
+            # 初始化嵌入模型
+            model_type = 'huggingface'  # 默认类型
+            model_name = self.embedder_model
+            
+            # 根据模型名称或关键词判断模型类型
+            import re
+            prefix_pattern = r'^(Ollama|OpenAI|HuggingFace)-(.+)$'
+            match = re.match(prefix_pattern, model_name, re.IGNORECASE)
+            if match:
+                vendor = match.group(1)
+                model_name = match.group(2)
+                if vendor.lower() == 'ollama':
+                    model_type = 'ollama'
+                elif vendor.lower() == 'openai':
+                    model_type = 'openai'
+                elif vendor.lower() == 'huggingface':
+                    model_type = 'huggingface'
+            else:
+                if 'ollama' in model_name.lower() or 'llama' in model_name.lower():
+                    model_type = 'ollama'
+                elif 'openai' in model_name.lower() or 'gpt' in model_name.lower():
+                    model_type = 'openai'
+                elif 'huggingface' in model_name.lower():
+                    model_type = 'huggingface'
+            
+            # 加载嵌入模型
+            self._embeddings = EmbeddingModelManager.get_embedding_model(
+                model_type,
+                model_name,
+                device='cpu',
+                normalize_embeddings=True
             )
+            
+            if not self._embeddings:
+                # 尝试使用默认模型
+                default_model = 'all-MiniLM-L6-v2'
+                default_model_type = 'huggingface'
+                self._embeddings = EmbeddingModelManager.get_embedding_model(
+                    default_model_type,
+                    default_model,
+                    device='cpu',
+                    normalize_embeddings=True
+                )
+            
+            if not self._embeddings:
+                return (False, "嵌入模型初始化失败")
+            
             # 初始化向量存储
-            _ = self.vector_service.vector_store
+            if os.path.exists(self.vector_db_path):
+                self._vector_store = Chroma(
+                    persist_directory=self.vector_db_path,
+                    embedding_function=self._embeddings
+                )
+            else:
+                self._vector_store = Chroma(
+                    persist_directory=self.vector_db_path,
+                    embedding_function=self._embeddings
+                )
+            
+            # 初始化向量Repository
+            self.vector_repository = service_container.get_service('vector_repository')
+            self.vector_repository.set_vector_store(self._vector_store)
+            
             # 子进程只输出必要的初始化成功日志
             import logging
             logger = logging.getLogger('chato')
             logger.info(f"[子进程:{multiprocessing.current_process().pid}] 进程隔离的向量服务初始化成功")
             return (True, "初始化成功")
         except Exception as e:
-            return (False, str(e))
+            import traceback
+            error_msg = f"初始化失败: {str(e)}\n{traceback.format_exc()}"
+            return (False, error_msg)
     
     def _add_documents(self, documents):
         """添加文档"""
-        if not self.vector_service:
-            return (False, "向量服务未初始化")
-        return self.vector_service.add_documents(documents)
+        if not hasattr(self, '_vector_store') or not self._vector_store:
+            return (False, "向量存储未初始化")
+        try:
+            if not documents:
+                return (False, "没有找到文档或文档为空")
+            result = self.vector_repository.add_documents(documents)
+            if result:
+                return (True, "success")
+            else:
+                return (False, "添加文档失败")
+        except Exception as e:
+            return (False, f"添加文档失败: {str(e)}")
     
     def _clear_vector_store(self):
         """清空向量库"""
-        if not self.vector_service:
-            return (False, "向量服务未初始化")
-        return self.vector_service.clear_vector_store()
+        if not hasattr(self, '_vector_store') or not self._vector_store:
+            return (False, "向量存储未初始化")
+        try:
+            result = self.vector_repository.clear_vector_store()
+            if result:
+                return (True, "success")
+            else:
+                return (False, "清空向量库失败")
+        except Exception as e:
+            return (False, f"清空向量库失败: {str(e)}")
     
     def _get_vector_statistics(self):
         """获取统计信息"""
-        if not self.vector_service:
-            return {"status": "error", "error": "向量服务未初始化"}
-        return self.vector_service.get_vector_statistics()
+        if not hasattr(self, '_vector_store') or not self._vector_store:
+            return {"status": "error", "error": "向量存储未初始化"}
+        try:
+            stats = {
+                'status': 'ok',
+                'knowledge_base': self.knowledge_base_name,
+                'embedding_model': self.embedder_model,
+                'vector_store_type': 'chroma',
+                'vector_store_path': self.vector_db_path,
+                'total_vectors': 0
+            }
+            stats['total_vectors'] = self.vector_repository.get_vector_count()
+            return stats
+        except Exception as e:
+            return {
+                'status': 'error',
+                'error': str(e),
+                'total_vectors': 0,
+                'knowledge_base': self.knowledge_base_name
+            }
     
     def _search_documents(self, query, k, score_threshold, search_type, fetch_k, filter):
         """搜索文档"""
-        if not self.vector_service:
+        if not hasattr(self, '_vector_store') or not self._vector_store:
             return []
-        return self.vector_service.search_documents(
-            query=query,
-            k=k,
-            score_threshold=score_threshold,
-            search_type=search_type,
-            fetch_k=fetch_k,
-            filter=filter
-        )
+        try:
+            result = self.vector_repository.search_documents(
+                query=query,
+                k=k,
+                score_threshold=score_threshold,
+                search_type=search_type,
+                fetch_k=fetch_k,
+                filter=filter
+            )
+            return result
+        except Exception as e:
+            return []
     
     def _close_service(self):
         """关闭服务"""
-        self.vector_service = None
+        try:
+            if hasattr(self, '_vector_store') and self._vector_store:
+                try:
+                    if hasattr(self._vector_store, 'close'):
+                        self._vector_store.close()
+                except Exception:
+                    pass
+                self._vector_store = None
+            if hasattr(self, '_embeddings'):
+                self._embeddings = None
+        except Exception:
+            pass
         return (True, "服务已关闭")
 
 class VectorDBServiceMP(BaseService):

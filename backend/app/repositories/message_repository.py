@@ -7,11 +7,21 @@ class MessageRepository(BaseRepository):
     
     def get_messages_by_chat_id(self, chat_id):
         """根据对话ID获取所有消息"""
-        return self.db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.created_at).all()
+        db = self.get_db()
+        try:
+            return db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.created_at).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_message_by_id(self, message_id):
         """根据ID获取消息"""
-        return self.db.query(Message).filter(Message.id == message_id).first()
+        db = self.get_db()
+        try:
+            return db.query(Message).filter(Message.id == message_id).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_message(self, message_id, chat_id, role, content, reasoning_content, created_at, model, files=None, 
                        agent_node="", agent_step=0, agent_metadata=""):
@@ -54,16 +64,26 @@ class MessageRepository(BaseRepository):
     
     def delete_messages_by_chat_id(self, chat_id):
         """根据对话ID删除所有消息"""
-        # 批量删除，利用SQLAlchemy的删除API
-        result = self.db.query(Message).filter(Message.chat_id == chat_id).delete()
-        self.db.commit()
-        return result
+        db = self.get_db()
+        try:
+            # 批量删除，利用SQLAlchemy的删除API
+            result = db.query(Message).filter(Message.chat_id == chat_id).delete()
+            db.commit()
+            return result
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def delete_all_messages(self):
         """删除所有消息"""
-        result = self.db.query(Message).delete()
-        self.db.commit()
-        return result
+        db = self.get_db()
+        try:
+            result = db.query(Message).delete()
+            db.commit()
+            return result
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def delete_message(self, message_id):
         """删除消息"""

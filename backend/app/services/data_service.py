@@ -7,6 +7,7 @@ from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.repositories.embedding_model_repository import EmbeddingModelRepository
 from app.repositories.cache_repository import CacheRepository
 from app.repositories.memory_repository import MemoryRepository
+from app.repositories.vector_repository import VectorRepository
 
 class DataService(BaseService):
     """数据服务类，封装所有数据相关的操作"""
@@ -28,6 +29,10 @@ class DataService(BaseService):
         self.setting_repo = SettingRepository(self.db_session)
         self.cache_repo = CacheRepository()
         self.memory_repo = MemoryRepository()
+        
+        # 向量相关初始化
+        self.vector_repo = VectorRepository()
+        self.vector_services = {}  # 按知识库名称存储向量服务实例
     
     # 对话相关方法
     def get_chats(self):
@@ -403,6 +408,238 @@ class DataService(BaseService):
     def is_embedding_model_table_empty(self):
         """检查嵌入模型表是否为空"""
         return self.embedding_model_repo.is_embedding_model_table_empty()
+    
+    # 向量相关方法
+    def get_vector_service(self, knowledge_base_name="default", vector_db_path=None, embedder_model=None):
+        """获取向量服务实例
+        
+        Args:
+            knowledge_base_name: 知识库名称
+            vector_db_path: 向量数据库路径
+            embedder_model: 嵌入模型名称
+            
+        Returns:
+            向量服务实例
+        """
+        if knowledge_base_name not in self.vector_services:
+            from app.core.config import config_manager
+            from app.utils.path_manager import PathManager
+            
+            # 获取配置
+            vector_db_path = vector_db_path or config_manager.get('vector.vector_db_path', '')
+            embedder_model = embedder_model or config_manager.get('vector.embedder_model', 'qwen3-embedding-0.6b')
+            
+            # 构建默认路径
+            if not vector_db_path:
+                path_manager = PathManager()
+                vector_db_path = path_manager.get_vector_db_path(knowledge_base_name)
+            
+            # 只使用进程隔离模式的向量服务
+            from app.services.vector.vector_db_service_mp import VectorDBServiceMP
+            self.vector_services[knowledge_base_name] = VectorDBServiceMP(
+                vector_db_path=vector_db_path,
+                embedder_model=embedder_model,
+                knowledge_base_name=knowledge_base_name
+            )
+        return self.vector_services[knowledge_base_name]
+    
+    def embed_document(self, doc_content: str, metadata: dict, knowledge_base_name="default"):
+        """将文档内容转换为向量表示并存储
+        
+        Args:
+            doc_content: 文档内容
+            metadata: 文档元数据
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            向量化结果
+        """
+        try:
+            vector_service = self.get_vector_service(knowledge_base_name)
+            # 从vector_service获取向量仓库实例
+            vector_repo = vector_service.vector_repository
+            # 执行文档向量化
+            result = vector_repo.embed_document(doc_content, metadata)
+            
+            return {
+                'success': True,
+                'message': '文档向量化成功',
+                'chunk_count': result.get('chunk_count', 0),
+                'vector_result': result
+            }
+        except Exception as e:
+            logger.error(f"文档向量化失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'文档向量化失败: {str(e)}',
+                'chunk_count': 0
+            }
+    
+    def search_vectors(self, query: str, k: int = 5, filter: dict = None, score_threshold: float = None, knowledge_base_name="default"):
+        """根据查询向量检索相关文档
+        
+        Args:
+            query: 查询文本
+            k: 返回结果数量
+            filter: 过滤条件
+            score_threshold: 相似度分数阈值
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            向量检索结果
+        """
+        try:
+            vector_service = self.get_vector_service(knowledge_base_name)
+            # 从vector_service获取向量仓库实例
+            vector_repo = vector_service.vector_repository
+            # 执行向量检索
+            results = vector_repo.search_vectors(query, k=k, filter=filter, score_threshold=score_threshold)
+            
+            return {
+                'success': True,
+                'results': results.get('results', []),
+                'result_count': results.get('result_count', 0)
+            }
+        except Exception as e:
+            logger.error(f"向量检索失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'向量检索失败: {str(e)}',
+                'results': [],
+                'result_count': 0
+            }
+    
+    def clear_vector_store(self, knowledge_base_name="default"):
+        """清空向量存储
+        
+        Args:
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            清空结果
+        """
+        try:
+            vector_service = self.get_vector_service(knowledge_base_name)
+            success, message = vector_service.clear_vector_store()
+            
+            if success:
+                return {'success': True, 'message': '向量存储已清空'}
+            else:
+                return {'success': False, 'message': message}
+        except Exception as e:
+            logger.error(f"清空向量存储失败: {str(e)}")
+            return {'success': False, 'message': f'清空向量存储失败: {str(e)}'}
+    
+    def get_vector_statistics(self, knowledge_base_name="default"):
+        """获取向量库统计信息
+        
+        Args:
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            向量库统计信息
+        """
+        try:
+            vector_service = self.get_vector_service(knowledge_base_name)
+            stats = vector_service.get_vector_statistics()
+            return stats
+        except Exception as e:
+            logger.error(f"获取向量库统计信息失败: {str(e)}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'total_vectors': 0,
+                'knowledge_base': knowledge_base_name
+            }
+    
+    def delete_vectors_by_document_id(self, document_id: str, knowledge_base_name="default"):
+        """根据文档ID删除相关向量
+        
+        Args:
+            document_id: 文档ID
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            删除结果
+        """
+        try:
+            vector_service = self.get_vector_service(knowledge_base_name)
+            # 从vector_service获取向量仓库实例
+            vector_repo = vector_service.vector_repository
+            # 删除相关向量
+            result = vector_repo.delete_vectors_by_document_id(document_id)
+            
+            return {
+                'success': True,
+                'message': '文档向量删除成功',
+                'deleted_count': result.get('deleted_count', 0)
+            }
+        except Exception as e:
+            logger.error(f"删除文档相关向量失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'文档向量删除失败: {str(e)}',
+                'deleted_count': 0
+            }
+    
+    def delete_vectors_by_folder_id(self, folder_id: str, knowledge_base_name="default"):
+        """根据文件夹ID删除相关向量
+        
+        Args:
+            folder_id: 文件夹ID
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            删除结果
+        """
+        try:
+            vector_service = self.get_vector_service(knowledge_base_name)
+            # 从vector_service获取向量仓库实例
+            vector_repo = vector_service.vector_repository
+            # 删除相关向量
+            result = vector_repo.delete_vectors_by_folder_id(folder_id)
+            
+            return {
+                'success': True,
+                'message': '文件夹向量删除成功',
+                'deleted_count': result.get('deleted_count', 0)
+            }
+        except Exception as e:
+            logger.error(f"删除文件夹相关向量失败: {str(e)}")
+            return {
+                'success': False,
+                'message': f'文件夹向量删除失败: {str(e)}',
+                'deleted_count': 0
+            }
+    
+    def search_documents(self, query: str, k: int = 3, score_threshold: float = 0.7, search_type: str = "similarity", filter: dict = None, knowledge_base_name="default"):
+        """搜索相关文档
+        
+        Args:
+            query: 查询文本
+            k: 返回结果数量
+            score_threshold: 相似度分数阈值
+            search_type: 搜索类型
+            filter: 过滤条件
+            knowledge_base_name: 知识库名称
+            
+        Returns:
+            相关文档列表
+        """
+        try:
+            vector_service = self.get_vector_service(knowledge_base_name)
+            # 执行文档搜索
+            results = vector_service.search_documents(
+                query=query,
+                k=k,
+                score_threshold=score_threshold,
+                search_type=search_type,
+                filter=filter
+            )
+            return results
+        except Exception as e:
+            logger.error(f"搜索文档失败: {str(e)}")
+            return []
     
     def set_dirty_flag(self, data_type, is_dirty=True):
         """设置脏标记"""

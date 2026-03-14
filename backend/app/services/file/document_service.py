@@ -150,6 +150,20 @@ class DocumentService(BaseService):
             })
         return documents
     
+    def get_documents_with_folder_map(self):
+        """获取文档列表和文件夹ID映射"""
+        # 获取文档列表
+        documents = self.get_documents()
+        
+        # 获取所有文件夹信息，建立id到name的映射
+        folders = self.get_folders()
+        folder_id_map = {folder['id']: folder['name'] for folder in folders if folder['id']}
+        
+        return {
+            'documents': documents,
+            'folder_id_map': folder_id_map
+        }
+    
     def delete_document(self, filename, folder_name=''):
         """删除指定文档/文件"""
         # 参数验证
@@ -267,8 +281,6 @@ class DocumentService(BaseService):
         # 只有当embedding_model不为空时才初始化向量数据库
         if embedding_model:
             try:
-                from app.services.vector.vector_service import VectorService
-                from app.services.vector.vector_store_service import VectorStoreService
                 from app.services.vector.vector_db_service_mp import VectorDBServiceMP
                 from app.core.config import config_manager
                 
@@ -379,18 +391,23 @@ class DocumentService(BaseService):
             try:
                 from app.services.vector.vector_service import VectorService
                 from app.services.vector.vector_db_service_mp import VectorDBServiceMP
+                from app.core.service_container import service_container
                 
-                # 先获取并关闭所有 VectorStoreService 实例
-                if hasattr(VectorService, '_instance') and VectorService._instance:
-                    vector_service = VectorService._instance
-                    # 关闭所有 VectorStoreService 实例
-                    for store_service in list(vector_service.vector_store_services.values()):
-                        try:
-                            # 关闭向量数据库服务实例
-                            if hasattr(store_service, 'vector_db_service') and store_service.vector_db_service:
-                                store_service.vector_db_service.close()
-                        except Exception as e:
-                            self.log_warning(f"关闭 VectorStoreService 实例失败: {e}")
+                # 清除 data_service 中的向量服务实例
+                try:
+                    data_service = service_container.get_service('data_service')
+                    if hasattr(data_service, 'vector_services'):
+                        # 关闭所有向量服务实例
+                        for vector_service_instance in list(data_service.vector_services.values()):
+                            try:
+                                if hasattr(vector_service_instance, 'close'):
+                                    vector_service_instance.close()
+                            except Exception as e:
+                                self.log_warning(f"关闭向量服务实例失败: {e}")
+                        # 清除向量服务实例缓存
+                        data_service.vector_services = {}
+                except Exception as e:
+                    self.log_warning(f"清除 data_service 中的向量服务实例失败: {e}")
                 
                 # 先关闭所有 VectorDBServiceMP 实例
                 for instance in list(VectorDBServiceMP._instances.values()):
@@ -402,8 +419,6 @@ class DocumentService(BaseService):
                 # 清除向量服务实例缓存
                 if hasattr(VectorService, '_instance'):
                     VectorService._instance = None
-                if hasattr(VectorService, 'vector_store_services'):
-                    VectorService.vector_store_services = {}
                 # 清除进程隔离的向量数据库服务实例缓存
                 VectorDBServiceMP._instances = {}
                 
@@ -494,18 +509,23 @@ class DocumentService(BaseService):
                 try:
                     from app.services.vector.vector_service import VectorService
                     from app.services.vector.vector_db_service_mp import VectorDBServiceMP
+                    from app.core.service_container import service_container
                     
-                    # 先获取并关闭所有 VectorStoreService 实例
-                    if hasattr(VectorService, '_instance') and VectorService._instance:
-                        vector_service = VectorService._instance
-                        # 关闭所有 VectorStoreService 实例
-                        for store_service in list(vector_service.vector_store_services.values()):
-                            try:
-                                # 关闭向量数据库服务实例
-                                if hasattr(store_service, 'vector_db_service') and store_service.vector_db_service:
-                                    store_service.vector_db_service.close()
-                            except Exception as e:
-                                self.log_warning(f"关闭 VectorStoreService 实例失败: {e}")
+                    # 清除 data_service 中的向量服务实例
+                    try:
+                        data_service = service_container.get_service('data_service')
+                        if hasattr(data_service, 'vector_services'):
+                            # 关闭所有向量服务实例
+                            for vector_service_instance in list(data_service.vector_services.values()):
+                                try:
+                                    if hasattr(vector_service_instance, 'close'):
+                                        vector_service_instance.close()
+                                except Exception as e:
+                                    self.log_warning(f"关闭向量服务实例失败: {e}")
+                            # 清除向量服务实例缓存
+                            data_service.vector_services = {}
+                    except Exception as e:
+                        self.log_warning(f"清除 data_service 中的向量服务实例失败: {e}")
                     
                     # 先关闭所有 VectorDBServiceMP 实例
                     for instance in list(VectorDBServiceMP._instances.values()):
@@ -517,8 +537,6 @@ class DocumentService(BaseService):
                     # 清除向量服务实例缓存
                     if hasattr(VectorService, '_instance'):
                         VectorService._instance = None
-                    if hasattr(VectorService, 'vector_store_services'):
-                        VectorService.vector_store_services = {}
                     # 清除进程隔离的向量数据库服务实例缓存
                     VectorDBServiceMP._instances = {}
                     

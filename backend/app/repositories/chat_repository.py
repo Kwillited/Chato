@@ -61,9 +61,14 @@ class ChatRepository(BaseRepository):
     
     def get_all_chats(self):
         """获取所有对话"""
-        # 从数据库获取所有对话，按更新时间倒序排序
-        chats = self.db.query(Chat).order_by(desc(Chat.updated_at)).all()
-        return [self._convert_chat_to_dict(chat) for chat in chats]
+        db = self.get_db()
+        try:
+            # 从数据库获取所有对话，按更新时间倒序排序
+            chats = db.query(Chat).order_by(desc(Chat.updated_at)).all()
+            return [self._convert_chat_to_dict(chat) for chat in chats]
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_chat_by_id(self, chat_id):
         """根据ID获取对话"""
@@ -73,55 +78,42 @@ class ChatRepository(BaseRepository):
             return cached_chat
         
         # 缓存未命中，从数据库获取
-        chat = self.db.query(Chat).filter(Chat.id == chat_id).first()
-        if chat:
-            chat_dict = self._convert_chat_to_dict(chat)
-            # 将对话添加到缓存（不设置脏标记）
-            self.cache_repo.update_chat_no_dirty(chat_id, chat_dict)
-            return chat_dict
-        return None
+        db = self.get_db()
+        try:
+            chat = db.query(Chat).filter(Chat.id == chat_id).first()
+            if chat:
+                chat_dict = self._convert_chat_to_dict(chat)
+                # 将对话添加到缓存（不设置脏标记）
+                self.cache_repo.update_chat_no_dirty(chat_id, chat_dict)
+                return chat_dict
+            return None
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_chat(self, chat_id, title, preview, created_at, updated_at):
         """创建新对话"""
-        # 检查对话ID是否已经存在
-        existing_chat = self.db.query(Chat).filter(Chat.id == chat_id).first()
-        if existing_chat:
-            # 如果对话已存在，返回现有对话的字典形式
-            chat_dict = self._convert_chat_to_dict(existing_chat)
-            # 更新缓存
-            self.cache_repo.set_chat(chat_id, chat_dict)
-            return chat_dict
-        
-        # 创建新对话
-        chat = Chat(
-            id=chat_id,
-            title=title,
-            preview=preview,
-            created_at=created_at,
-            updated_at=updated_at
-        )
-        # 使用基类方法添加到数据库
-        chat = self.add(chat)
-        
-        # 转换为字典
-        chat_dict = self._convert_chat_to_dict(chat)
-        
-        # 更新缓存
-        self.cache_repo.set_chat(chat_id, chat_dict)
-        
-        return chat_dict
-    
-    def update_chat(self, chat_id, title, preview, updated_at, pinned=0):
-        """更新对话"""
-        # 直接从数据库获取
-        chat = self.db.query(Chat).filter(Chat.id == chat_id).first()
-        if chat:
-            chat.title = title
-            chat.preview = preview
-            chat.updated_at = updated_at
-            chat.pinned = pinned
-            # 使用基类方法更新
-            chat = self.update(chat)
+        db = self.get_db()
+        try:
+            # 检查对话ID是否已经存在
+            existing_chat = db.query(Chat).filter(Chat.id == chat_id).first()
+            if existing_chat:
+                # 如果对话已存在，返回现有对话的字典形式
+                chat_dict = self._convert_chat_to_dict(existing_chat)
+                # 更新缓存
+                self.cache_repo.set_chat(chat_id, chat_dict)
+                return chat_dict
+            
+            # 创建新对话
+            chat = Chat(
+                id=chat_id,
+                title=title,
+                preview=preview,
+                created_at=created_at,
+                updated_at=updated_at
+            )
+            # 使用基类方法添加到数据库
+            chat = self.add(chat)
             
             # 转换为字典
             chat_dict = self._convert_chat_to_dict(chat)
@@ -130,7 +122,35 @@ class ChatRepository(BaseRepository):
             self.cache_repo.set_chat(chat_id, chat_dict)
             
             return chat_dict
-        return None
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
+    
+    def update_chat(self, chat_id, title, preview, updated_at, pinned=0):
+        """更新对话"""
+        db = self.get_db()
+        try:
+            # 直接从数据库获取
+            chat = db.query(Chat).filter(Chat.id == chat_id).first()
+            if chat:
+                chat.title = title
+                chat.preview = preview
+                chat.updated_at = updated_at
+                chat.pinned = pinned
+                # 使用基类方法更新
+                chat = self.update(chat)
+                
+                # 转换为字典
+                chat_dict = self._convert_chat_to_dict(chat)
+                
+                # 更新缓存
+                self.cache_repo.set_chat(chat_id, chat_dict)
+                
+                return chat_dict
+            return None
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def delete_chat(self, chat_id):
         """删除对话"""
@@ -170,18 +190,23 @@ class ChatRepository(BaseRepository):
             return cached_chat
         
         # 缓存未命中，从数据库获取
-        chat = self.db.query(Chat).filter(Chat.id == chat_id).first()
-        if chat:
-            # 转换为字典
-            chat_dict = self._convert_chat_to_dict(chat)
+        db = self.get_db()
+        try:
+            chat = db.query(Chat).filter(Chat.id == chat_id).first()
+            if chat:
+                # 转换为字典
+                chat_dict = self._convert_chat_to_dict(chat)
+                
+                # 加载相关的消息
+                messages = db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.created_at).all()
+                # 转换消息为字典
+                chat_dict['messages'] = [self._convert_message_to_dict(msg) for msg in messages]
+                
+                # 更新缓存（不设置脏标记）
+                self.cache_repo.update_chat_no_dirty(chat_id, chat_dict)
+                return chat_dict
             
-            # 加载相关的消息
-            messages = self.db.query(Message).filter(Message.chat_id == chat_id).order_by(Message.created_at).all()
-            # 转换消息为字典
-            chat_dict['messages'] = [self._convert_message_to_dict(msg) for msg in messages]
-            
-            # 更新缓存（不设置脏标记）
-            self.cache_repo.update_chat_no_dirty(chat_id, chat_dict)
-            return chat_dict
-        
-        return None
+            return None
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()

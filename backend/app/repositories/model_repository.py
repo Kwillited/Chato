@@ -7,11 +7,21 @@ class ModelRepository(BaseRepository):
     
     def get_all_models(self):
         """获取所有模型"""
-        return self.db.query(Model).all()
+        db = self.get_db()
+        try:
+            return db.query(Model).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_model_by_name(self, model_name):
         """根据名称获取模型"""
-        return self.db.query(Model).filter(Model.name == model_name).first()
+        db = self.get_db()
+        try:
+            return db.query(Model).filter(Model.name == model_name).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_model(self, name, description, configured, enabled, icon_url, icon_blob):
         """创建新模型"""
@@ -39,14 +49,24 @@ class ModelRepository(BaseRepository):
     
     def get_model_versions(self, model_id):
         """获取模型的所有版本"""
-        return self.db.query(ModelVersion).filter(ModelVersion.model_id == model_id).all()
+        db = self.get_db()
+        try:
+            return db.query(ModelVersion).filter(ModelVersion.model_id == model_id).all()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def get_model_version(self, model_id, version_name):
         """获取特定版本的模型"""
-        return self.db.query(ModelVersion).filter(
-            ModelVersion.model_id == model_id,
-            ModelVersion.version_name == version_name
-        ).first()
+        db = self.get_db()
+        try:
+            return db.query(ModelVersion).filter(
+                ModelVersion.model_id == model_id,
+                ModelVersion.version_name == version_name
+            ).first()
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_model_version(self, model_id, version_name, custom_name, api_key, api_base_url, streaming_config):
         """创建新模型版本"""
@@ -92,7 +112,12 @@ class ModelRepository(BaseRepository):
     
     def is_model_table_empty(self):
         """检查模型表是否为空"""
-        return self.db.query(Model).count() == 0
+        db = self.get_db()
+        try:
+            return db.query(Model).count() == 0
+        finally:
+            if not hasattr(self, '_db') or not self._db:
+                db.close()
     
     def create_or_update_model(self, name, description, configured, enabled, icon_url, icon_blob):
         """创建或更新模型"""

@@ -19,18 +19,14 @@ router = APIRouter(prefix='/api/files')
 @handle_exception()
 def get_documents(document_service: DocumentService = Depends(get_document_service)):
     """获取所有文档列表"""
-    # 调用服务层方法获取文档列表
-    documents = document_service.get_documents()
-    
-    # 获取所有文件夹信息，建立id到name的映射
-    folders = document_service.get_folders()
-    folder_id_to_name = {folder['id']: folder['name'] for folder in folders if folder['id']}
+    # 调用服务层方法获取文档列表和文件夹ID映射
+    result = document_service.get_documents_with_folder_map()
     
     # 直接返回文档列表和文件夹ID映射
     return DocumentListResponse(
         success=True,
-        documents=documents,
-        folder_id_map=folder_id_to_name  # 返回ID到名称的映射供前端使用
+        documents=result['documents'],
+        folder_id_map=result['folder_id_map']  # 返回ID到名称的映射供前端使用
     )
 
 # 获取文件夹列表

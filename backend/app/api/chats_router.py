@@ -1,13 +1,12 @@
 """对话相关API路由"""
 from fastapi import APIRouter, Body, Path, HTTPException, Depends
-from fastapi.responses import StreamingResponse
 from app.services.chat.chat_service import ChatService  # 导入对话服务类
 from app.utils.error_handler import handle_api_errors
 from app.dependencies import get_chat_service
 from app.models.schemas.pydantic_models import (
     ChatListResponse, ChatResponse,
     PinUpdateRequest, PinUpdateResponse, DeleteChatResponse,
-    SuccessResponse, SendMessageRequest
+    SuccessResponse
 )
 
 # 创建对话API路由（前缀统一为 /api/chats）

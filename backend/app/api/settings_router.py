@@ -26,9 +26,8 @@ def get_system_settings(setting_service: SettingService = Depends(get_setting_se
 @handle_exception()
 def save_system_settings(data: PatchSystemSettings = Body(...), setting_service: SettingService = Depends(get_setting_service)):
     """保存系统设置"""
-    # 只包含请求体中提供的非None字段
-    settings_data = {k: v for k, v in data.model_dump().items() if v is not None}
-    settings = setting_service.save_system_setting(settings_data)
+    # 直接传递所有字段，服务层会处理None值的过滤
+    settings = setting_service.save_system_setting(data.model_dump())
     return SettingResponse(
         message='系统设置已保存',
         settings=settings
