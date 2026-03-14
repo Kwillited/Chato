@@ -2,11 +2,21 @@
 import json
 from sqlalchemy import desc
 from app.repositories.base_repository import BaseRepository
-from app.models.database.models import Chat, Message
+from app.repositories.cache_repository import CacheRepository
 from app.core.cache import cache_manager
+from app.models.database.models import Chat, Message
 
 class ChatRepository(BaseRepository):
     """对话数据访问类，处理对话相关的数据访问"""
+    
+    def __init__(self, db=None):
+        """初始化对话仓库
+        
+        Args:
+            db: SQLAlchemy会话对象，用于依赖注入
+        """
+        super().__init__(db)
+        self.cache_repo = CacheRepository()
     
     def _convert_chat_to_dict(self, chat):
         """将Chat对象转换为字典"""
@@ -58,7 +68,7 @@ class ChatRepository(BaseRepository):
     def get_chat_by_id(self, chat_id):
         """根据ID获取对话"""
         # 先从缓存获取
-        cached_chat = cache_manager.get_chat(chat_id)
+        cached_chat = self.cache_repo.get_chat(chat_id)
         if cached_chat:
             return cached_chat
         
@@ -67,7 +77,7 @@ class ChatRepository(BaseRepository):
         if chat:
             chat_dict = self._convert_chat_to_dict(chat)
             # 将对话添加到缓存（不设置脏标记）
-            cache_manager.update_chat_no_dirty(chat_id, chat_dict)
+            self.cache_repo.update_chat_no_dirty(chat_id, chat_dict)
             return chat_dict
         return None
     
@@ -79,7 +89,7 @@ class ChatRepository(BaseRepository):
             # 如果对话已存在，返回现有对话的字典形式
             chat_dict = self._convert_chat_to_dict(existing_chat)
             # 更新缓存
-            cache_manager.set_chat(chat_id, chat_dict)
+            self.cache_repo.set_chat(chat_id, chat_dict)
             return chat_dict
         
         # 创建新对话
@@ -97,7 +107,7 @@ class ChatRepository(BaseRepository):
         chat_dict = self._convert_chat_to_dict(chat)
         
         # 更新缓存
-        cache_manager.set_chat(chat_id, chat_dict)
+        self.cache_repo.set_chat(chat_id, chat_dict)
         
         return chat_dict
     
@@ -117,7 +127,7 @@ class ChatRepository(BaseRepository):
             chat_dict = self._convert_chat_to_dict(chat)
             
             # 更新缓存
-            cache_manager.set_chat(chat_id, chat_dict)
+            self.cache_repo.set_chat(chat_id, chat_dict)
             
             return chat_dict
         return None
@@ -125,39 +135,37 @@ class ChatRepository(BaseRepository):
     def delete_chat(self, chat_id):
         """删除对话"""
         # 从缓存中删除对话
-        chats = cache_manager.get('chats') or {}
+        chats = self.cache_repo.get('chats') or {}
         if chat_id in chats:
-            # 从缓存中删除
-            del chats[chat_id]
-            cache_manager.set('chats', chats)
-            # 设置脏标记，以便在保存时从数据库中删除
+            # 先将对话标记为脏，以便在保存时从数据库中删除
+            # 直接操作cache_manager的脏标记字典，确保被删除的对话也被标记为脏
             with cache_manager._lock:
                 dirty_flags = cache_manager._dirty_flags.get('chats', {})
-                if isinstance(dirty_flags, dict):
-                    dirty_flags[chat_id] = True
+                dirty_flags[chat_id] = True
+                cache_manager._dirty_flags['chats'] = dirty_flags
+            # 从缓存中删除
+            del chats[chat_id]
+            self.cache_repo.set('chats', chats)
             return True
         return False
     
     def delete_all_chats(self):
         """删除所有对话"""
         # 清空缓存
-        chats = cache_manager.get('chats') or {}
+        chats = self.cache_repo.get('chats') or {}
         chat_ids = list(chats.keys())
-        cache_manager.set('chats', {})
+        self.cache_repo.set('chats', {})
         
         # 设置所有对话的脏标记，以便在保存时从数据库中删除
-        with cache_manager._lock:
-            dirty_flags = cache_manager._dirty_flags.get('chats', {})
-            if isinstance(dirty_flags, dict):
-                for chat_id in chat_ids:
-                    dirty_flags[chat_id] = True
+        # 直接使用 set_dirty_flag 方法，它会处理 chats 类型的特殊逻辑
+        self.cache_repo.set_dirty_flag('chats', True)
         
         return True
     
     def get_chat_with_messages(self, chat_id):
         """获取对话及其所有消息"""
         # 先从缓存获取
-        cached_chat = cache_manager.get_chat(chat_id)
+        cached_chat = self.cache_repo.get_chat(chat_id)
         if cached_chat and cached_chat.get('messages'):
             return cached_chat
         
@@ -173,7 +181,7 @@ class ChatRepository(BaseRepository):
             chat_dict['messages'] = [self._convert_message_to_dict(msg) for msg in messages]
             
             # 更新缓存（不设置脏标记）
-            cache_manager.update_chat_no_dirty(chat_id, chat_dict)
+            self.cache_repo.update_chat_no_dirty(chat_id, chat_dict)
             return chat_dict
         
         return None

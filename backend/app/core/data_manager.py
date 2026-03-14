@@ -5,9 +5,12 @@ import threading
 import time
 from datetime import datetime
 from app.core.config import config_manager
-from app.core.cache import cache_manager
+from app.repositories.cache_repository import CacheRepository
 from app.core.database import get_db, init_alembic_db
 from app.core.logging_config import logger
+
+# 创建全局 Repository 实例
+cache_repo = CacheRepository()
 
 # 自动保存定时器
 AUTO_SAVE_INTERVAL = 5  # 自动保存间隔（秒）
@@ -71,7 +74,10 @@ def auto_save_task():
         time.sleep(AUTO_SAVE_INTERVAL)
         with transaction_lock:
             # 检查是否有脏数据需要保存
-            dirty_keys = [key for key, is_dirty in cache_manager._dirty_flags.items() if is_dirty]
+            dirty_keys = []
+            for key in ['chats', 'models', 'embedding_models', 'settings']:
+                if cache_repo.is_dirty(key):
+                    dirty_keys.append(key)
             if dirty_keys:
                 logger.info(f"自动保存触发: 脏标记={dirty_keys}")
                 save_data()
@@ -110,7 +116,7 @@ def load_chats_from_db():
         chat_repo = ChatRepository(db_session)
         
         # 清空内存中的对话数据
-        cache_manager.set('chats', {})
+        cache_repo.set('chats', {})
         
         # 获取所有对话，加载必要的字段
         chats = db_session.query(Chat.id, Chat.title, Chat.created_at, Chat.updated_at, Chat.pinned).order_by(Chat.updated_at.desc()).all()
@@ -130,9 +136,9 @@ def load_chats_from_db():
             chat_dict[chat_id] = chat_data
         
         # 更新缓存
-        cache_manager.set('chats', chat_dict)
+        cache_repo.set('chats', chat_dict)
         # 清除所有对话脏标记
-        cache_manager._dirty_flags['chats'] = {}
+        cache_repo.clear_dirty_flag('chats')
         
         logger.info(f"从SQLite数据库加载了 {len(chat_dict)} 个对话")
         return len(chat_dict) > 0
@@ -182,9 +188,9 @@ def load_models_from_db():
             })
         
         # 更新缓存
-        cache_manager.set('models', model_list)
+        cache_repo.set('models', model_list)
         # 清除脏标记
-        cache_manager.clear_dirty_flag('models')
+        cache_repo.clear_dirty_flag('models')
         
         logger.info(f"从SQLite数据库加载了 {len(model_list)} 个模型")
     except Exception as e:
@@ -234,9 +240,9 @@ def load_embedding_models_from_db():
             })
         
         # 更新缓存
-        cache_manager.set('embedding_models', model_list)
+        cache_repo.set('embedding_models', model_list)
         # 清除脏标记
-        cache_manager.clear_dirty_flag('embedding_models')
+        cache_repo.clear_dirty_flag('embedding_models')
         
         logger.info(f"从SQLite数据库加载了 {len(model_list)} 个嵌入模型")
     except Exception as e:
@@ -256,7 +262,7 @@ def load_settings_from_db():
         # 加载系统设置（包含通知设置和向量相关设置）
         system_setting = setting_repo.get_system_setting()
         if system_setting:
-            settings = cache_manager.get('settings') or {}
+            settings = cache_repo.get('settings') or {}
             
             # 系统设置 - 统一使用驼峰命名存储在内存中
             settings['system'] = {
@@ -275,10 +281,10 @@ def load_settings_from_db():
                 'displayTime': system_setting.display_time
             }
             
-            cache_manager.set('settings', settings)
+            cache_repo.set('settings', settings)
         
         # 清除脏标记
-        cache_manager.clear_dirty_flag('settings')
+        cache_repo.clear_dirty_flag('settings')
         
         logger.info("从SQLite数据库加载了设置数据")
     except Exception as e:
@@ -589,10 +595,10 @@ def save_chats_to_db():
         db_session = next(get_db())
         
         # 获取内存中的对话数据
-        chats = cache_manager.get('chats') or {}
+        chats = cache_repo.get('chats') or {}
         
         # 获取所有脏对话ID
-        dirty_chat_ids = cache_manager.get_dirty_chats()
+        dirty_chat_ids = cache_repo.get_dirty_chats()
         
         if not dirty_chat_ids:
             logger.info("没有脏对话需要保存")
@@ -686,7 +692,7 @@ def save_chats_to_db():
         
         # 清除脏标记
         for chat_id in dirty_chat_ids:
-            cache_manager.clear_chat_dirty_flag(chat_id)
+            cache_repo.clear_chat_dirty_flag(chat_id)
         
         logger.info(f"对话数据已保存到SQLite数据库: 添加{added_chats}个对话, 更新{updated_chats}个对话, 删除{deleted_chats}个对话")
         return True
@@ -710,7 +716,7 @@ def save_models_to_db():
         model_repo = ModelRepository(db_session)
         
         # 获取内存中的模型数据
-        models = cache_manager.get('models')
+        models = cache_repo.get('models')
         if not models:
             logger.info("内存中没有模型数据，跳过保存")
             return True
@@ -800,7 +806,7 @@ def save_embedding_models_to_db():
         embedding_model_repo = EmbeddingModelRepository(db_session)
         
         # 获取内存中的嵌入模型数据
-        models = cache_manager.get('embedding_models')
+        models = cache_repo.get('embedding_models')
         if not models:
             logger.info("内存中没有嵌入模型数据，跳过保存")
             return True
@@ -904,7 +910,7 @@ def save_settings_to_db():
         setting_repo = SettingRepository(db_session)
         
         # 获取内存中的设置数据
-        settings = cache_manager.get('settings')
+        settings = cache_repo.get('settings')
         if not settings:
             logger.info("内存中没有设置数据，跳过保存")
             return True
@@ -989,14 +995,14 @@ def sync_cache_to_db(key: str, sync_func) -> bool:
     Returns:
         bool: 同步是否成功
     """
-    if not cache_manager.is_dirty(key):
+    if not cache_repo.is_dirty(key):
         return True
     
     try:
         # 执行同步函数
         success = sync_func()
         if success:
-            cache_manager.clear_dirty_flag(key)
+            cache_repo.clear_dirty_flag(key)
         return success
     except Exception as e:
         # 记录错误
@@ -1032,17 +1038,17 @@ def save_data():
         sync_tasks = []
         
         # 检查是否有脏对话
-        dirty_chat_ids = cache_manager.get_dirty_chats()
+        dirty_chat_ids = cache_repo.get_dirty_chats()
         if dirty_chat_ids:
             sync_tasks.append({'key': 'chats', 'sync_func': save_chats_to_db})
         
-        if cache_manager.is_dirty('models'):
+        if cache_repo.is_dirty('models'):
             sync_tasks.append({'key': 'models', 'sync_func': save_models_to_db})
         
-        if cache_manager.is_dirty('embedding_models'):
+        if cache_repo.is_dirty('embedding_models'):
             sync_tasks.append({'key': 'embedding_models', 'sync_func': save_embedding_models_to_db})
         
-        if cache_manager.is_dirty('settings'):
+        if cache_repo.is_dirty('settings'):
             sync_tasks.append({'key': 'settings', 'sync_func': save_settings_to_db})
         
         # 执行同步任务
@@ -1069,7 +1075,7 @@ def set_dirty_flag(data_type, is_dirty=True):
         data_type: 数据类型，可选值: 'chats', 'models', 'settings'
         is_dirty: 是否为脏数据，默认为True
     """
-    cache_manager.set_dirty_flag(data_type, is_dirty)
+    cache_repo.set_dirty_flag(data_type, is_dirty)
 
 
 def get_data(data_type, key=None):
@@ -1089,12 +1095,12 @@ def get_data(data_type, key=None):
     # 检查内存缓存
     if key:
         if data_type == 'chats':
-            data = cache_manager.get_chat(key)
+            data = cache_repo.get_chat(key)
         else:
             # 对于其他数据类型，key参数暂不支持
             data = None
     else:
-        data = cache_manager.get(data_type)
+        data = cache_repo.get(data_type)
     
     # 检查缓存是否存在且非空
     cache_empty = False
@@ -1111,19 +1117,19 @@ def get_data(data_type, key=None):
             if key:
                 # 加载单个对话
                 load_chats_from_db()
-                data = cache_manager.get_chat(key)
+                data = cache_repo.get_chat(key)
             else:
                 # 加载所有对话
                 load_chats_from_db()
-                data = cache_manager.get('chats')
+                data = cache_repo.get('chats')
         elif data_type == 'models':
             load_models_from_db()
-            data = cache_manager.get('models')
+            data = cache_repo.get('models')
         elif data_type == 'embedding_models':
             load_embedding_models_from_db()
-            data = cache_manager.get('embedding_models')
+            data = cache_repo.get('embedding_models')
         elif data_type == 'settings':
             load_settings_from_db()
-            data = cache_manager.get('settings')
+            data = cache_repo.get('settings')
     
     return data

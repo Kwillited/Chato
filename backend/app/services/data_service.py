@@ -1,12 +1,12 @@
 """数据服务层 - 封装内存数据管理和脏标记机制"""
-from app.core.data_manager import save_data, get_data
-from app.core.cache import cache_manager
 from app.core.logging_config import logger
 from app.services.base_service import BaseService
 from app.repositories.folder_repository import FolderRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.repositories.embedding_model_repository import EmbeddingModelRepository
+from app.repositories.cache_repository import CacheRepository
+from app.repositories.memory_repository import MemoryRepository
 
 class DataService(BaseService):
     """数据服务类，封装所有数据相关的操作"""
@@ -26,6 +26,8 @@ class DataService(BaseService):
         self.embedding_model_repo = EmbeddingModelRepository(self.db_session)
         self.model_repo = ModelRepository(self.db_session)
         self.setting_repo = SettingRepository(self.db_session)
+        self.cache_repo = CacheRepository()
+        self.memory_repo = MemoryRepository()
     
     # 对话相关方法
     def get_chats(self):
@@ -68,7 +70,7 @@ class DataService(BaseService):
             
             # 无论对话是创建还是更新，都更新缓存中的消息列表
             # 这样在保存到数据库时，消息也会被保存
-            cache_manager.set_chat(chat_id, chat)
+            self.cache_repo.set_chat(chat_id, chat)
     
     def remove_chat(self, chat_id):
         """移除对话"""
@@ -114,11 +116,11 @@ class DataService(BaseService):
     # 模型相关方法
     def get_models(self):
         """获取所有模型"""
-        # 先尝试从缓存获取
-        models = get_data('models')
+        # 先尝试从内存缓存获取
+        models = self.memory_repo.get_data('models')
         if models:
             return models
-        # 如果缓存为空，从Repository获取并更新缓存
+        # 如果内存缓存为空，从Repository获取并更新缓存
         try:
             db_models = self.model_repo.get_all_models()
             model_list = []
@@ -143,8 +145,8 @@ class DataService(BaseService):
                     'icon_blob': model.icon_blob,
                     'versions': version_list
                 })
-            # 更新缓存
-            cache_manager.set('models', model_list)
+            # 更新内存缓存
+            self.cache_repo.set('models', model_list)
             return model_list
         except Exception as e:
             logger.error(f"获取模型失败: {str(e)}")
@@ -152,12 +154,12 @@ class DataService(BaseService):
     
     def get_model_by_name(self, model_name):
         """根据名称获取模型"""
-        # 先尝试从缓存获取
-        models = get_data('models') or []
+        # 先尝试从内存缓存获取
+        models = self.memory_repo.get_data('models') or []
         model = next((m for m in models if m['name'] == model_name), None)
         if model:
             return model
-        # 如果缓存中不存在，从Repository获取
+        # 如果内存缓存中不存在，从Repository获取
         try:
             db_model = self.model_repo.get_model_by_name(model_name)
             if db_model:
@@ -181,14 +183,14 @@ class DataService(BaseService):
                     'icon_blob': db_model.icon_blob,
                     'versions': version_list
                 }
-                # 更新缓存
-                models = get_data('models') or []
+                # 更新内存缓存
+                models = self.memory_repo.get_data('models') or []
                 existing_index = next((i for i, m in enumerate(models) if m['name'] == model_name), -1)
                 if existing_index >= 0:
                     models[existing_index] = model_data
                 else:
                     models.append(model_data)
-                cache_manager.set('models', models)
+                self.cache_repo.set('models', models)
                 return model_data
         except Exception as e:
             logger.error(f"获取模型失败: {str(e)}")
@@ -197,10 +199,10 @@ class DataService(BaseService):
     def update_model(self, model_name, updated_model):
         """更新模型"""
         try:
-            # 先从缓存获取模型
+            # 先从内存缓存获取模型
             model = self.get_model_by_name(model_name)
             if model:
-                # 更新缓存中的模型
+                # 更新内存缓存中的模型
                 model.update(updated_model)
                 # 通过Repository更新数据库
                 self.model_repo.update_model(
@@ -225,18 +227,18 @@ class DataService(BaseService):
                                 streaming_config=version.get('streaming_config', False)
                             )
                 # 设置脏标记
-                cache_manager.set_dirty_flag('models')
+                self.memory_repo.set_dirty_flag('models')
         except Exception as e:
             logger.error(f"更新模型失败: {str(e)}")
     
     # 设置相关方法
     def get_settings(self):
         """获取所有设置"""
-        # 先尝试从缓存获取
-        settings = get_data('settings')
+        # 先尝试从内存缓存获取
+        settings = self.memory_repo.get_data('settings')
         if settings:
             return settings
-        # 如果缓存为空，从Repository获取并更新缓存
+        # 如果内存缓存为空，从Repository获取并更新缓存
         try:
             system_setting = self.setting_repo.get_system_setting()
             if system_setting:
@@ -256,8 +258,8 @@ class DataService(BaseService):
                         'displayTime': system_setting.display_time
                     }
                 }
-                # 更新缓存
-                cache_manager.set('settings', settings)
+                # 更新内存缓存
+                self.cache_repo.set('settings', settings)
                 return settings
         except Exception as e:
             logger.error(f"获取设置失败: {str(e)}")
@@ -267,11 +269,11 @@ class DataService(BaseService):
         """更新设置"""
         try:
             # 获取当前设置
-            settings = get_data('settings') or {}
+            settings = self.memory_repo.get_data('settings') or {}
             # 更新设置
             settings[key] = value
-            # 更新缓存
-            cache_manager.set('settings', settings)
+            # 更新内存缓存
+            self.cache_repo.set('settings', settings)
             # 通过Repository更新数据库
             # 如果更新的是system设置，转换为数据库格式并保存
             if key == 'system' and isinstance(value, dict):
@@ -292,7 +294,7 @@ class DataService(BaseService):
                 }
                 self.setting_repo.create_or_update_system_setting(system_db_data)
             # 设置脏标记
-            cache_manager.set_dirty_flag('settings')
+            self.memory_repo.set_dirty_flag('settings')
         except Exception as e:
             logger.error(f"更新设置失败: {str(e)}")
     
@@ -404,8 +406,8 @@ class DataService(BaseService):
     
     def set_dirty_flag(self, data_type, is_dirty=True):
         """设置脏标记"""
-        cache_manager.set_dirty_flag(data_type, is_dirty)
+        self.memory_repo.set_dirty_flag(data_type, is_dirty)
     
     def save_data(self):
         """保存数据"""
-        save_data()
+        self.memory_repo.save_data()
