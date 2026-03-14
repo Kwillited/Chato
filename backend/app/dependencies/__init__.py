@@ -109,6 +109,11 @@ def get_message_service():
     return service_container.get_service('message_service')
 
 
+def get_embedding_model_service():
+    """获取嵌入模型服务实例"""
+    return service_container.get_service('embedding_model_service')
+
+
 # 向量服务相关依赖
 def get_vector_db_service(vector_db_path: str = '', embedder_model: str = '', knowledge_base_name: str = 'default'):
     """获取向量数据库服务实例"""
