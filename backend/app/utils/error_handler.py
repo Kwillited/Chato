@@ -2,8 +2,7 @@
 import functools
 import traceback
 from typing import Callable, Any, Tuple
-from app.core.logging_config import logger
-from app.utils.logging_utils import LoggingUtils
+from app.core.logger import logger
 
 
 class ErrorHandler:
@@ -132,9 +131,9 @@ class ErrorHandler:
         status_code = ErrorHandler.ERROR_TYPES.get(error_type, 500)
         
         if status_code >= 500:
-            LoggingUtils.log_error(f"{message}: {str(exception)}", exc_info=True)
+            logger.error(f"{message}: {str(exception)}", exc_info=True)
         else:
-            LoggingUtils.log_warning(f"{message}: {str(exception)}")
+            logger.warning(f"{message}: {str(exception)}")
         
         error_response = {
             'error': message,
@@ -175,7 +174,7 @@ class ErrorHandler:
             Tuple[dict, int]: (错误响应字典, HTTP状态码)
         """
         error_message = f"{resource} 不存在: {identifier}"
-        LoggingUtils.log_warning(error_message)
+        logger.warning(error_message)
         
         error_response = {
             'error': error_message,
@@ -197,7 +196,7 @@ class ErrorHandler:
         Returns:
             Tuple[dict, int]: (错误响应字典, HTTP状态码)
         """
-        LoggingUtils.log_warning(message)
+        logger.warning(message)
         
         error_response = {
             'error': message,
@@ -217,7 +216,7 @@ class ErrorHandler:
         Returns:
             Tuple[dict, int]: (错误响应字典, HTTP状态码)
         """
-        LoggingUtils.log_warning(message)
+        logger.warning(message)
         
         error_response = {
             'error': message,

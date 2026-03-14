@@ -1,7 +1,6 @@
 """向量服务模块 - 封装文档向量化、向量存储和检索功能"""
 import threading
 from app.services.base_service import BaseService
-from app.repositories.document_chunk_repository import DocumentChunkRepository
 from app.utils.rag import VectorUtils
 
 class VectorService(BaseService):
@@ -231,11 +230,8 @@ class VectorService(BaseService):
             
             if folder_id:
                 try:
-                    from app.core.service_container import service_container
-                    from app.services.file.document_service import DocumentService
-                    doc_service = service_container.get_service('document_service')
-                    # 获取folder信息
-                    folder = doc_service.data_service.get_folder_by_id(folder_id)
+                    # 直接使用data_service获取folder信息
+                    folder = self.data_service.get_folder_by_id(folder_id)
                     if folder:
                         if hasattr(folder, 'name'):
                             knowledge_base_name = folder.name
@@ -412,14 +408,10 @@ class VectorService(BaseService):
             
             # 尝试从第一个选中的文件夹获取知识库信息
             try:
-                from app.core.service_container import service_container
-                from app.services.file.document_service import DocumentService
-                doc_service = service_container.get_service('document_service')
-                
                 # 获取第一个选中的文件夹ID
                 first_folder_id = selected_folders[0]
-                # 获取文件夹信息
-                folder = doc_service.data_service.get_folder_by_id(first_folder_id)
+                # 直接使用data_service获取文件夹信息
+                folder = self.data_service.get_folder_by_id(first_folder_id)
                 
                 if folder:
                     if hasattr(folder, 'name'):

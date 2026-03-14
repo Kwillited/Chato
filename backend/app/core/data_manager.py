@@ -7,7 +7,7 @@ from datetime import datetime
 from app.core.config import config_manager
 from app.repositories.cache_repository import CacheRepository
 from app.core.database import get_db, init_alembic_db
-from app.core.logging_config import logger
+from app.core.logger import logger
 
 # 创建全局 Repository 实例
 cache_repo = CacheRepository()

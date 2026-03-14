@@ -8,10 +8,7 @@ from app.core.data_manager import load_data
 config_manager = ConfigManager.get_instance()
 
 # 导入日志模块
-from app.core.logging_config import logger, update_log_config
-
-# 更新日志配置
-update_log_config(config_manager)
+from app.core.logger import logger
 
 async def setup():
     """应用初始化"""

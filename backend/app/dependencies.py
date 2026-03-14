@@ -1,13 +1,5 @@
 """应用依赖项管理"""
 from app.core.service_container import service_container
-from app.services.chat.chat_service import ChatService
-from app.services.message.message_service import MessageService
-from app.services.file.document_service import DocumentService
-from app.services.model.model_service import ModelService
-from app.services.model.embedding_model_service import EmbeddingModelService
-from app.services.mcp.mcp_service import MCPService
-from app.services.settings.setting_service import SettingService
-from app.services.vector.vector_service import VectorService
 
 
 def get_chat_service():

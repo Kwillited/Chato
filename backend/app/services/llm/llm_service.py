@@ -1,8 +1,9 @@
 """统一的LLM调用服务"""
 from typing import List, Dict, Any
+from app.services.base_service import BaseService
 
 
-class LLMService:
+class LLMService(BaseService):
     """统一的LLM调用服务，封装所有LLM调用逻辑"""
     
     @staticmethod
@@ -22,16 +23,16 @@ class LLMService:
         Returns:
             生成的响应，流式返回AsyncIterator，非流式返回dict
         """
-        # 打印调用LLM时传入的消息
-        print("\n=== 调用LLM传入的消息 ===")
-        print(f"模型名称: {model_name}")
-        print(f"使用智能体: {use_agent}")
-        print("消息内容:")
+        # 记录调用LLM时传入的消息
+        LLMService.log_info(f"\n=== 调用LLM传入的消息 ===")
+        LLMService.log_info(f"模型名称: {model_name}")
+        LLMService.log_info(f"使用智能体: {use_agent}")
+        LLMService.log_info("消息内容:")
         for i, msg in enumerate(messages):
             role = msg.get('role', 'unknown')
             content = msg.get('content', '')
-            print(f"[{i}] {role}: {content[:200]}{'...' if len(content) > 200 else ''}")
-        print("====================\n")
+            LLMService.log_info(f"[{i}] {role}: {content[:200]}{'...' if len(content) > 200 else ''}")
+        LLMService.log_info("====================\n")
         
         from app.llm.managers.model_manager import ModelManager
         

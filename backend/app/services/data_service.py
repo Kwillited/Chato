@@ -1,5 +1,4 @@
 """数据服务层 - 封装内存数据管理和脏标记机制"""
-from app.core.logging_config import logger
 from app.services.base_service import BaseService
 from app.repositories.folder_repository import FolderRepository
 from app.repositories.document_repository import DocumentRepository
@@ -154,7 +153,7 @@ class DataService(BaseService):
             self.cache_repo.set('models', model_list)
             return model_list
         except Exception as e:
-            logger.error(f"获取模型失败: {str(e)}")
+            self.log_error(f"获取模型失败: {str(e)}")
             return []
     
     def get_model_by_name(self, model_name):
@@ -198,7 +197,7 @@ class DataService(BaseService):
                 self.cache_repo.set('models', models)
                 return model_data
         except Exception as e:
-            logger.error(f"获取模型失败: {str(e)}")
+            self.log_error(f"获取模型失败: {str(e)}")
         return None
     
     def update_model(self, model_name, updated_model):
@@ -234,7 +233,7 @@ class DataService(BaseService):
                 # 设置脏标记
                 self.memory_repo.set_dirty_flag('models')
         except Exception as e:
-            logger.error(f"更新模型失败: {str(e)}")
+            self.log_error(f"更新模型失败: {str(e)}")
     
     # 设置相关方法
     def get_settings(self):
@@ -267,7 +266,7 @@ class DataService(BaseService):
                 self.cache_repo.set('settings', settings)
                 return settings
         except Exception as e:
-            logger.error(f"获取设置失败: {str(e)}")
+            self.log_error(f"获取设置失败: {str(e)}")
         return {}
     
     def update_setting(self, key, value):
@@ -301,7 +300,7 @@ class DataService(BaseService):
             # 设置脏标记
             self.memory_repo.set_dirty_flag('settings')
         except Exception as e:
-            logger.error(f"更新设置失败: {str(e)}")
+            self.log_error(f"更新设置失败: {str(e)}")
     
     # 文件管理相关方法
     def get_folders(self):
@@ -468,7 +467,7 @@ class DataService(BaseService):
                 'vector_result': result
             }
         except Exception as e:
-            logger.error(f"文档向量化失败: {str(e)}")
+            self.log_error(f"文档向量化失败: {str(e)}")
             return {
                 'success': False,
                 'message': f'文档向量化失败: {str(e)}',
@@ -501,7 +500,7 @@ class DataService(BaseService):
                 'result_count': results.get('result_count', 0)
             }
         except Exception as e:
-            logger.error(f"向量检索失败: {str(e)}")
+            self.log_error(f"向量检索失败: {str(e)}")
             return {
                 'success': False,
                 'message': f'向量检索失败: {str(e)}',
@@ -527,7 +526,7 @@ class DataService(BaseService):
             else:
                 return {'success': False, 'message': message}
         except Exception as e:
-            logger.error(f"清空向量存储失败: {str(e)}")
+            self.log_error(f"清空向量存储失败: {str(e)}")
             return {'success': False, 'message': f'清空向量存储失败: {str(e)}'}
     
     def get_vector_statistics(self, knowledge_base_name="default"):
@@ -544,7 +543,7 @@ class DataService(BaseService):
             stats = vector_service.get_vector_statistics()
             return stats
         except Exception as e:
-            logger.error(f"获取向量库统计信息失败: {str(e)}")
+            self.log_error(f"获取向量库统计信息失败: {str(e)}")
             return {
                 'status': 'error',
                 'error': str(e),
@@ -575,7 +574,7 @@ class DataService(BaseService):
                 'deleted_count': result.get('deleted_count', 0)
             }
         except Exception as e:
-            logger.error(f"删除文档相关向量失败: {str(e)}")
+            self.log_error(f"删除文档相关向量失败: {str(e)}")
             return {
                 'success': False,
                 'message': f'文档向量删除失败: {str(e)}',
@@ -605,7 +604,7 @@ class DataService(BaseService):
                 'deleted_count': result.get('deleted_count', 0)
             }
         except Exception as e:
-            logger.error(f"删除文件夹相关向量失败: {str(e)}")
+            self.log_error(f"删除文件夹相关向量失败: {str(e)}")
             return {
                 'success': False,
                 'message': f'文件夹向量删除失败: {str(e)}',
@@ -638,7 +637,7 @@ class DataService(BaseService):
             )
             return results
         except Exception as e:
-            logger.error(f"搜索文档失败: {str(e)}")
+            self.log_error(f"搜索文档失败: {str(e)}")
             return []
     
     def set_dirty_flag(self, data_type, is_dirty=True):

@@ -5,8 +5,6 @@ from datetime import datetime
 import uuid
 from app.core.config import config_manager
 from app.services.base_service import BaseService
-from app.services.data_service import DataService
-from app.services.vector.vector_service import VectorService
 from app.utils.path_manager import PathManager
 
 # 使用PathManager获取目录路径

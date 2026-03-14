@@ -137,9 +137,15 @@ log_config = LogConfig()
 logger = log_config.get_logger()
 
 
+# 兼容新的日志模块
+from .logger import logger as new_logger
+
+# 保持向后兼容
 def update_log_config(config_manager):
     """根据配置更新日志设置（兼容旧API）"""
     log_config.update_config(config_manager)
+    # 同时更新新的日志模块
+    new_logger.update_config(config_manager)
 
 # 导出日志记录器和更新函数
-__all__ = ['logger', 'update_log_config']
+__all__ = ['logger', 'update_log_config', 'new_logger']

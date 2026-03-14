@@ -1,5 +1,5 @@
 """内存数据操作Repository"""
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, List
 from app.core.cache import cache_manager
 from app.core.data_manager import save_data, get_data
 from app.repositories.base_repository import BaseRepository

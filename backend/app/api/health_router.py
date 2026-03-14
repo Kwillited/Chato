@@ -19,7 +19,7 @@ async def initialize_mcp():
             await mcp_service.initialize_mcp()
             mcp_initialized = True
         except Exception as e:
-            from app.core.logging_config import logger
+            from app.core.logger import logger
             logger.error(f"MCP 适配器初始化失败: {e}")
 
 # 健康检查端点

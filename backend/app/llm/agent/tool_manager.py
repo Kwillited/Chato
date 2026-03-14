@@ -1,8 +1,7 @@
 import json
 from typing import Dict, Any, List, Optional
 from langchain_core.messages import ToolMessage
-from app.services.mcp.mcp_service import MCPService
-from app.core.logging_config import logger
+from app.core.logger import logger
 from app.core.service_container import service_container
 
 

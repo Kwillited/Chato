@@ -2,7 +2,6 @@
 from app.repositories.setting_repository import SettingRepository
 from app.services.base_service import BaseService
 from app.utils.data import NamingUtils
-from app.core.database import get_db
 
 class SettingService(BaseService):
     """设置服务类，封装所有设置相关的业务逻辑"""

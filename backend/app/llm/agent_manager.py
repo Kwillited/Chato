@@ -4,7 +4,7 @@ from app.llm.base.base_model import BaseModel
 from app.llm.agent.agent_state import AgentState
 from app.llm.agent.agent_nodes import AgentNodes
 from app.llm.agent.tool_manager import ToolManager
-from app.core.logging_config import logger
+from app.core.logger import logger
 
 
 class AgentManager:

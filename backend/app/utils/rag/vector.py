@@ -1,5 +1,5 @@
 """向量处理工具类，提供统一的向量管理功能"""
-from app.utils.logging_utils import LoggingUtils
+from app.core.logger import logger
 
 class VectorUtils:
     """向量处理工具类，封装所有向量相关方法"""
@@ -130,7 +130,7 @@ class VectorUtils:
             
             return info
         except Exception as e:
-            LoggingUtils.log_error(f"获取向量存储信息失败: {str(e)}")
+            logger.error(f"获取向量存储信息失败: {str(e)}")
             return {
                 'type': 'Unknown',
                 'initialized': False,

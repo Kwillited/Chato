@@ -1,5 +1,4 @@
 """嵌入模型管理器 - 工厂模式实现"""
-import threading
 from typing import Any
 from app.core.instance_manager import InstanceManager
 

@@ -93,6 +93,30 @@ class ModelUtils:
         return default_params
     
     @staticmethod
+    def merge_model_params(default_params, user_params):
+        """
+        合并模型参数，保留必要的默认值
+        
+        参数:
+            default_params: 默认参数字典
+            user_params: 用户参数字典
+            
+        返回:
+            合并后的参数字典
+        """
+        # 创建临时参数字典
+        temp_params = {**user_params}
+        
+        # 保留frequency_penalty的默认值，确保所有对话都使用一致的重复惩罚值
+        if 'frequency_penalty' in temp_params:
+            del temp_params['frequency_penalty']
+        
+        # 合并参数
+        default_params.update(temp_params)
+        
+        return default_params
+    
+    @staticmethod
     def is_model_supported(model_name):
         """
         检查模型是否支持

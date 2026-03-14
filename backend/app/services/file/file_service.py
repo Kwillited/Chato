@@ -1,7 +1,5 @@
 """文件服务模块 - 封装文件管理、文件夹管理和内容检索功能"""
 from app.services.base_service import BaseService
-from app.services.data_service import DataService
-from app.services.vector.vector_service import VectorService
 from app.utils import FileUtils
 
 class FileService(BaseService):

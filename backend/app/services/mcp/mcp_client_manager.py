@@ -1,5 +1,5 @@
 """MCP 客户端管理器 - 管理 MCP 客户端生命周期"""
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 import json
 from app.services.base_service import BaseService
 from app.core.instance_manager import InstanceManager

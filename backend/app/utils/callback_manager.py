@@ -1,8 +1,6 @@
 """回调管理器 - 用于RAG系统的监控和调试"""
-import logging
 from typing import Callable, Dict, List
-
-logger = logging.getLogger(__name__)
+from app.core.logger import logger
 
 
 class CallbackManager:

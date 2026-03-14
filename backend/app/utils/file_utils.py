@@ -2,7 +2,7 @@
 import os
 import tempfile
 import base64
-from app.utils.logging_utils import LoggingUtils
+from app.core.logger import logger
 
 
 class FileUtils:
@@ -101,7 +101,7 @@ class FileUtils:
             
             # 检查base64内容大小
             if len(file_content_base64) * 3/4 > max_size:
-                LoggingUtils.log_error(f"文件 {file_name} 超过大小限制")
+                logger.error(f"文件 {file_name} 超过大小限制")
                 return None
             
             # 解码base64内容
@@ -109,7 +109,7 @@ class FileUtils:
             
             # 再次检查文件大小
             if len(file_content) > max_size:
-                LoggingUtils.log_error(f"文件 {file_name} 超过大小限制")
+                logger.error(f"文件 {file_name} 超过大小限制")
                 return None
             
             # 保存到临时文件
@@ -119,7 +119,7 @@ class FileUtils:
             
             return file_path
         except Exception as decode_error:
-            LoggingUtils.log_error(f"解码文件 {file_name} 失败: {str(decode_error)}")
+            logger.error(f"解码文件 {file_name} 失败: {str(decode_error)}")
             return None
     
     @staticmethod
@@ -159,7 +159,7 @@ class FileUtils:
         except ImportError:
             return f"[PDF文件内容，无法提取，请安装PyPDF2库]"
         except Exception as e:
-            LoggingUtils.log_error(f"处理PDF文件 {file_name} 失败: {str(e)}")
+            logger.error(f"处理PDF文件 {file_name} 失败: {str(e)}")
             return f"[PDF文件内容，处理失败: {str(e)}]"
     
     @staticmethod
@@ -184,7 +184,7 @@ class FileUtils:
         except ImportError:
             return f"[Word文件内容，无法提取，请安装python-docx库]"
         except Exception as e:
-            LoggingUtils.log_error(f"处理Word文件 {file_name} 失败: {str(e)}")
+            logger.error(f"处理Word文件 {file_name} 失败: {str(e)}")
             return f"[Word文件内容，处理失败: {str(e)}]"
     
     @staticmethod
@@ -246,7 +246,7 @@ class FileUtils:
                             extracted_contents.append(f"文件 {file['name']} 内容：\n{content}")
         except Exception as e:
             # 记录错误但不中断流程
-            LoggingUtils.log_error(f"处理上传文件失败: {str(e)}")
+            logger.error(f"处理上传文件失败: {str(e)}")
         finally:
             # 清理临时目录
             if temp_dir and os.path.exists(temp_dir):
@@ -254,7 +254,7 @@ class FileUtils:
                 try:
                     shutil.rmtree(temp_dir)
                 except Exception as cleanup_error:
-                    LoggingUtils.log_error(f"清理临时目录失败: {str(cleanup_error)}")
+                    logger.error(f"清理临时目录失败: {str(cleanup_error)}")
         
         return extracted_contents
     
@@ -288,7 +288,7 @@ class FileUtils:
                     'extension': FileUtils.get_file_extension(file_path)
                 }
         except Exception as e:
-            LoggingUtils.log_error(f"获取文件信息失败: {str(e)}")
+            logger.error(f"获取文件信息失败: {str(e)}")
             return {
                 'name': os.path.basename(file_path),
                 'path': file_path,
@@ -441,12 +441,12 @@ class FileUtils:
                                 'extension': FileUtils.get_file_extension(file_name)
                             })
                     except Exception as file_error:
-                        LoggingUtils.log_error(f"❌ 读取文件 {doc.get('name', '')} 时出错: {file_error}")
+                        logger.error(f"❌ 读取文件 {doc.get('name', '')} 时出错: {file_error}")
             
             # 返回前k个结果
             return results[:k]
         except Exception as e:
-            LoggingUtils.log_error(f"❌ 传统搜索失败: {str(e)}")
+            logger.error(f"❌ 传统搜索失败: {str(e)}")
             return []
     
     @staticmethod
@@ -465,7 +465,7 @@ class FileUtils:
             搜索结果列表
         """
         try:
-            LoggingUtils.log_info(f"🔍 开始文件搜索: 查询='{query}', 类型='{search_type}', 结果数量={k}")
+            logger.info(f"🔍 开始文件搜索: 查询='{query}', 类型='{search_type}', 结果数量={k}")
             
             if search_type == 'vector' and vector_service:
                 # 调用向量服务进行向量检索
@@ -475,17 +475,17 @@ class FileUtils:
                     file_results = FileUtils.get_files_from_vector_results(vector_results['results'])
                     return file_results
                 else:
-                    LoggingUtils.log_error(f"❌ 向量检索失败: {vector_results['message']}")
+                    logger.error(f"❌ 向量检索失败: {vector_results['message']}")
                     return []
             elif data_service:
                 # 传统内容检索逻辑
                 documents = data_service.get_documents()
                 return FileUtils.traditional_search(query, documents, k=k)
             else:
-                LoggingUtils.log_error("❌ 搜索失败: 缺少必要的服务实例")
+                logger.error("❌ 搜索失败: 缺少必要的服务实例")
                 return []
         except Exception as e:
-            LoggingUtils.log_error(f"❌ 文件搜索失败: {str(e)}")
+            logger.error(f"❌ 文件搜索失败: {str(e)}")
             return []
     
     @staticmethod
@@ -504,7 +504,7 @@ class FileUtils:
             with open(file_path, 'r', encoding=encoding, errors='ignore') as f:
                 return f.read()
         except Exception as e:
-            LoggingUtils.log_error(f"读取文件内容失败: {str(e)}")
+            logger.error(f"读取文件内容失败: {str(e)}")
             return ""
     
 

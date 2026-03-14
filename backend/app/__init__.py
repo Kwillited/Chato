@@ -63,7 +63,7 @@ def create_app(lifespan=None):
     """创建FastAPI应用实例"""
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
-    from app.core.logging_config import logger
+    from app.core.logger import logger
     
     # 注册服务
     register_services()

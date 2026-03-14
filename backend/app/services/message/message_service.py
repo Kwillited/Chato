@@ -1,14 +1,12 @@
 """消息相关业务逻辑服务"""
 import uuid
 from datetime import datetime
-from app.services.data_service import DataService
 from app.services.base_service import BaseService
-from app.services.chat.chat_service import ChatService
 from app.utils.response_strategy.handler import ResponseHandler
 from app.utils import FileUtils
 from app.utils.model import ModelUtils
 from app.utils.message_builder import MessageBuilder
-from app.utils import ValidationUtils, handle_errors, handle_db_errors
+from app.utils import ValidationUtils
 
 class MessageService(BaseService):
     """消息服务类，封装所有消息相关的业务逻辑"""
@@ -21,12 +19,12 @@ class MessageService(BaseService):
             vector_service: 向量服务实例，用于依赖注入
             web_search_service: 网络搜索服务实例，用于依赖注入
         """
-        from app.services.data_service import DataService
         super().__init__()
+        from app.core.service_container import service_container
         self.chat_service = chat_service
         self.vector_service = vector_service
         self.web_search_service = web_search_service
-        self.data_service = DataService()
+        self.data_service = service_container.get_service('data_service')
     
     def process_uploaded_files(self, files):
         """处理上传的文件，保存到临时目录并提取内容
@@ -63,9 +61,8 @@ class MessageService(BaseService):
         selected_message_ids = data.get('selectedMessageIds', None)
         
         # 添加调试日志，显示后端接收的参数
-        from app.core.logging_config import logger
-        logger.debug(f"完整请求数据: {data}")
-        logger.debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件, selectedMessageIds={selected_message_ids}, webSearchEnabled={web_search_enabled}")
+        self.log_debug(f"完整请求数据: {data}")
+        self.log_debug(f"后端接收参数: message={message_text[:50]}{'...' if len(message_text) > 50 else ''}, model={model_name}, files={len(files)} 个文件, selectedMessageIds={selected_message_ids}, webSearchEnabled={web_search_enabled}")
         
         return {
             'message_text': message_text,
@@ -107,8 +104,7 @@ class MessageService(BaseService):
             chat = self.chat_service.get_chat(chat_id)
             if not chat:
                 # 对话不存在，自动创建新对话（使用前端传递的UUID）
-                from app.core.logging_config import logger
-                logger.info(f'对话不存在，自动创建新对话: {chat_id}')
+                self.log_info(f'对话不存在，自动创建新对话: {chat_id}')
                 
                 # 创建新对话对象
                 now = datetime.now().isoformat()
@@ -147,7 +143,6 @@ class MessageService(BaseService):
         返回:
             响应结果
         """
-        from app.core.logging_config import logger
         message_text = parsed_data['message_text']
         user_model_params = parsed_data['user_model_params']
         rag_enabled = parsed_data['rag_enabled']
@@ -160,7 +155,7 @@ class MessageService(BaseService):
         # 新增：获取用户选择的消息ID列表
         selected_message_ids = parsed_data.get('selected_message_ids', None)
         
-        now = datetime.now().isoformat()
+        now = self.get_current_timestamp()
         
         # 获取模型默认参数
         model_params = {
@@ -178,11 +173,7 @@ class MessageService(BaseService):
         }
         # 合并用户自定义参数，但强制保留 frequency_penalty 的默认值
         # 这样做是为了确保所有对话都使用一致的重复惩罚值，避免前端缓存旧设置导致的问题
-        temp_params = {**user_model_params}
-        if 'frequency_penalty' in temp_params:
-            # 删除用户参数中的 frequency_penalty，确保使用后端的默认值
-            del temp_params['frequency_penalty']
-        model_params.update(temp_params)
+        model_params = ModelUtils.merge_model_params(model_params, user_model_params)
         
         # 处理上传的文件
         file_contents = self.process_uploaded_files(files)
@@ -193,26 +184,26 @@ class MessageService(BaseService):
             full_message_text += "\n\n" + "\n\n".join(file_contents)
         
         # 调试RAG调用
-        logger.debug(f"RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
+        self.log_debug(f"RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
         
         # 调用RAG系统构造增强提示，传递完整的ragConfig
         context_docs = None
         if rag_enabled:
-            logger.debug("准备执行RAG搜索")
+            self.log_debug("准备执行RAG搜索")
             # 执行RAG搜索获取上下文文档
             context_docs, _ = self.vector_service.perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
-            logger.debug(f"找到 {len(context_docs)} 个相关文档片段")
+            self.log_debug(f"找到 {len(context_docs)} 个相关文档片段")
         else:
-            logger.debug("RAG未启用")
+            self.log_debug("RAG未启用")
         
         # 处理网络搜索
         web_search_results = None
         if web_search_enabled:
-            logger.debug("准备执行网络搜索")
+            self.log_debug("准备执行网络搜索")
             web_search_results = await self.web_search_service.perform_web_search(full_message_text)
-            logger.debug(f"网络搜索结果: {web_search_results}")
+            self.log_debug(f"网络搜索结果: {web_search_results}")
         else:
-            logger.debug("网络搜索未启用")
+            self.log_debug("网络搜索未启用")
         
         # 使用原始消息文本，RAG上下文会在构建消息列表时添加到SystemMessage中
         enhanced_question = full_message_text

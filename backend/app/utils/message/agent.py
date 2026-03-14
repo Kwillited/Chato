@@ -1,8 +1,7 @@
 """智能体消息处理模块"""
 import json
-from app.utils.logging_utils import LoggingUtils
+from app.core.logger import logger
 from app.utils.stream import StreamSystem
-from app.utils.message.base import MessageSystem
 
 
 class AgentSystem:
@@ -58,7 +57,7 @@ class AgentSystem:
                     full_reply += chunk
                     return formatted_chunk, full_reply
         except Exception as e:
-            LoggingUtils.log_error(f"处理智能体事件流响应块失败: {e}")
+            logger.error(f"处理智能体事件流响应块失败: {e}")
             # 尝试作为直接内容处理
             full_reply += str(chunk)
             formatted_chunk = StreamSystem.format_stream_chunk(str(chunk), agent=True)

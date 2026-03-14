@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, AsyncIterator 
 from app.utils.message import MessageSystem
+from app.core.logger import logger
 
 class BaseModel(ABC):
     def __init__(self, model_config: Dict[str, Any], version_config: Dict[str, Any]):
@@ -33,8 +34,7 @@ class BaseModel(ABC):
 
     def chat(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> Dict[str, Any]:
         """非流式对话 - 返回统一的回复格式"""
-        from app.utils.logging_utils import LoggingUtils
-        LoggingUtils.log_info(f"🔧 LLM参数传递: Original params: {model_params}")
+        logger.info(f"🔧 LLM参数传递: Original params: {model_params}")
         
         try:
             # 1. 消息格式转换
@@ -42,7 +42,7 @@ class BaseModel(ABC):
             
             # 2. 调用钩子处理参数（如适配 Ollama 的 options）
             call_kwargs = self._prepare_call_kwargs(model_params)
-            LoggingUtils.log_info(f"🔧 LLM调用: Invoking with processed kwargs: {list(call_kwargs.keys())}")
+            logger.info(f"🔧 LLM调用: Invoking with processed kwargs: {list(call_kwargs.keys())}")
             
             # 3. 调用模型
             if not self.llm:
@@ -58,17 +58,16 @@ class BaseModel(ABC):
             if hasattr(response, 'additional_kwargs') and isinstance(response.additional_kwargs, dict):
                 reasoning_content = response.additional_kwargs.get('reasoning_content')
             
-            LoggingUtils.log_info("🔧 LLM调用: Model invoked successfully")
+            logger.info("🔧 LLM调用: Model invoked successfully")
             return self._format_response(response.content, reasoning_content=reasoning_content)
             
         except Exception as e:
-            LoggingUtils.log_error(f"🔧 LLM错误: Chat error: {e}")
+            logger.error(f"🔧 LLM错误: Chat error: {e}")
             return self._format_response(f"Error: {str(e)}")
 
     async def chat_stream(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
         """流式对话"""
-        from app.utils.logging_utils import LoggingUtils
-        LoggingUtils.log_info(f"🔧 LLM参数传递: Original stream params: {model_params}")
+        logger.info(f"🔧 LLM参数传递: Original stream params: {model_params}")
         
         try:
             # 1. 消息格式转换
@@ -76,7 +75,7 @@ class BaseModel(ABC):
             
             # 2. 调用钩子处理参数
             call_kwargs = self._prepare_call_kwargs(model_params)
-            LoggingUtils.log_info(f"🔧 LLM调用: Starting stream with processed kwargs: {list(call_kwargs.keys())}")
+            logger.info(f"🔧 LLM调用: Starting stream with processed kwargs: {list(call_kwargs.keys())}")
             
             if not self.llm:
                 raise RuntimeError("LLM instance is not initialized")
@@ -105,10 +104,10 @@ class BaseModel(ABC):
                     yield {'content': content, 'reasoning_content': reasoning_content}
                     
         except Exception as e:
-            LoggingUtils.log_error(f"🔧 LLM错误: Streaming error: {e}")
+            logger.error(f"🔧 LLM错误: Streaming error: {e}")
             yield {'error': str(e)}
         
-        LoggingUtils.log_info("🔧 LLM调用: Stream invocation completed")
+        logger.info("🔧 LLM调用: Stream invocation completed")
         yield {'done': True}
 
     def _format_response(self, content: str, reasoning_content: Optional[str] = None) -> Dict[str, Any]:

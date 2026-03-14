@@ -161,8 +161,7 @@ class VectorDBProcess(multiprocessing.Process):
             self.vector_repository.set_vector_store(self._vector_store)
             
             # 子进程只输出必要的初始化成功日志
-            import logging
-            logger = logging.getLogger('chato')
+            from app.core.logger import logger
             logger.info(f"[子进程:{multiprocessing.current_process().pid}] 进程隔离的向量服务初始化成功")
             return (True, "初始化成功")
         except Exception as e:

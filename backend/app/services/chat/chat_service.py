@@ -1,9 +1,6 @@
 """对话相关业务逻辑服务"""
-import uuid
-from datetime import datetime
-from app.services.data_service import DataService
 from app.services.base_service import BaseService
-from app.utils import ValidationUtils, handle_errors, handle_db_errors
+from app.utils import handle_errors, handle_db_errors
 
 class ChatService(BaseService):
     """对话服务类，封装所有对话相关的业务逻辑"""
@@ -11,11 +8,10 @@ class ChatService(BaseService):
     def __init__(self):
         """初始化对话服务"""
         super().__init__()
-        self.data_service = DataService()
+        from app.core.service_container import service_container
+        self.data_service = service_container.get_service('data_service')
     
-    def _get_current_timestamp(self):
-        """获取当前时间戳（ISO格式）"""
-        return datetime.now().isoformat()
+
     
     @handle_errors(default_return=[])
     def get_chats(self):
@@ -53,7 +49,7 @@ class ChatService(BaseService):
             return False
         
         # 更新内存中的对话
-        updated_at = self._get_current_timestamp()
+        updated_at = self.get_current_timestamp()
         chat['pinned'] = bool(pinned)
         chat['updatedAt'] = updated_at
         self.data_service.set_dirty_flag('chats', True)
@@ -62,23 +58,22 @@ class ChatService(BaseService):
     
     def update_chat_and_save(self, chat, message_text, user_message, ai_message, now):
         """更新对话并保存"""
-        from app.core.logging_config import logger
         chat_id = chat['id']
         user_msg_id = user_message['id']
         
-        logger.info(f"开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
-        logger.info(f"对话当前消息数: {len(chat.get('messages', []))}")
-        logger.info(f"用户消息内容: {user_message['content'][:50]}{'...' if len(user_message['content']) > 50 else ''}")
+        self.log_info(f"开始保存对话: chat_id={chat_id}, user_msg_id={user_msg_id}")
+        self.log_info(f"对话当前消息数: {len(chat.get('messages', []))}")
+        self.log_info(f"用户消息内容: {user_message['content'][:50]}{'...' if len(user_message['content']) > 50 else ''}")
         
         # 更新内存中的对话
         # 更新对话的更新时间
         chat['updatedAt'] = now
-        logger.info(f"更新对话时间: chat_id={chat_id}, updatedAt={now}")
+        self.log_info(f"更新对话时间: chat_id={chat_id}, updatedAt={now}")
         
         # 更新对话预览（使用消息的前50个字符）
         preview_text = message_text[:50] + (message_text[50:] and '...')
         chat['preview'] = preview_text
-        logger.info(f"更新对话预览: chat_id={chat_id}, preview={preview_text}")
+        self.log_info(f"更新对话预览: chat_id={chat_id}, preview={preview_text}")
         
         # 自动更新对话标题（如果是首次消息且标题还是默认的"新对话"）
         new_title = chat['title']
@@ -91,18 +86,18 @@ class ChatService(BaseService):
                 # 使用用户的第一条消息作为标题（截取前30个字符）
                 new_title = message_text[:30] + (message_text[30:] and '...')
                 chat['title'] = new_title
-                logger.info(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
+                self.log_info(f"自动更新对话标题: chat_id={chat_id}, old_title={chat['title']}, new_title={new_title}")
         
         # 保存AI消息到内存（如果存在）
         if ai_message:
             ai_msg_id = ai_message['id']
             # 添加AI回复到对话（内存）
             chat['messages'].append(ai_message)
-            logger.info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, agent_node={ai_message.get('agent_node')}")
+            self.log_info(f"添加AI消息到内存: chat_id={chat_id}, ai_msg_id={ai_msg_id}, agent_node={ai_message.get('agent_node')}")
         
         # 更新缓存并只标记当前对话为脏
         self.data_service.add_chat(chat)
-        logger.info(f"更新缓存并标记对话为脏: chat_id={chat_id}")
+        self.log_info(f"更新缓存并标记对话为脏: chat_id={chat_id}")
         
         # 所有操作都在内存中完成，脏标记已设置，自动保存机制会处理持久化
-        logger.info(f"对话更新成功，消息已保存: chat_id={chat_id}, 消息总数: {len(chat.get('messages', []))}")
+        self.log_info(f"对话更新成功，消息已保存: chat_id={chat_id}, 消息总数: {len(chat.get('messages', []))}")

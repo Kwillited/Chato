@@ -1,7 +1,6 @@
 """模型服务层，处理模型相关的业务逻辑"""
 
 # 依赖数据服务模块
-from app.services.data_service import DataService
 from app.repositories.model_repository import ModelRepository
 from app.services.base_service import BaseService
 from app.utils.data import ModelConverter
@@ -16,9 +15,10 @@ class ModelService(BaseService):
         Args:
             model_repo: 模型仓库实例，用于依赖注入
         """
-        from app.services.data_service import DataService
+        super().__init__()
+        from app.core.service_container import service_container
         self.model_repo = model_repo
-        self.data_service = DataService()
+        self.data_service = service_container.get_service('data_service')
 
     def _filter_icon_blob(self, model):
         """过滤模型中的icon_blob字段，避免JSON序列化错误
