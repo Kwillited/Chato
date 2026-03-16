@@ -1,15 +1,21 @@
 """文档管理服务 - 负责文档的上传、存储、管理和检索"""
 import os
 import shutil
+import time
 from datetime import datetime
 import uuid
 from app.core.config import config_manager
 from app.services.base_service import BaseService
 from app.utils.path_manager import PathManager
+from app.services.vector.vector_service import VectorService
+from app.core.service_container import service_container
+from app.utils.rag.document_loader import DocumentLoader
+from app.utils.rag.text_splitter import TextSplitter
+from app.utils.error_handler import handle_api_errors
+from app.utils.validators import ValidationUtils
 
 # 使用PathManager获取目录路径
 DATA_DIR = PathManager.get_data_dir()
-
 
 
 class DocumentService(BaseService):
@@ -25,44 +31,78 @@ class DocumentService(BaseService):
         self.data_service = data_service
         self.vector_service = vector_service
     
-    def _get_folder_by_id(self, folder_id):
-        """根据folder_id获取文件夹对象"""
+    def _cleanup_vector_services(self):
+        """清理向量服务连接和实例"""
+        try:
+            # 清除 data_service 中的向量服务实例
+            try:
+                data_service = service_container.get_service('data_service')
+                if hasattr(data_service, 'vector_services'):
+                    # 清除向量服务实例缓存
+                    data_service.vector_services = {}
+            except Exception as e:
+                self.log_warning(f"清除 data_service 中的向量服务实例失败: {e}")
+            
+            # 清除向量服务实例缓存
+            if hasattr(VectorService, '_instance'):
+                VectorService._instance = None
+            
+            self.log_info("✅ 向量服务连接已释放")
+            return True
+        except Exception as e:
+            self.log_warning(f"⚠️  释放向量服务连接失败: {e}")
+            return False
+
+    def _get_folder_info(self, folder_id):
+        """根据folder_id获取文件夹完整信息"""
         if not folder_id:
             return None
-        
-        # 通过DataService获取文件夹信息
         return self.data_service.get_folder_by_id(folder_id)
     
     def _get_folder_name_by_id(self, folder_id):
         """根据folder_id查找对应的folder_name"""
-        folder = self._get_folder_by_id(folder_id)
+        folder = self._get_folder_info(folder_id)
         return folder.name if folder else folder_id
     
     def _get_folder_path_by_id(self, folder_id):
         """根据folder_id获取文件夹路径"""
-        folder = self._get_folder_by_id(folder_id)
+        folder = self._get_folder_info(folder_id)
         return folder.path if folder else ''
     
     def _get_vector_db_path_by_id(self, folder_id):
         """根据folder_id获取向量数据库路径"""
-        folder = self._get_folder_by_id(folder_id)
+        folder = self._get_folder_info(folder_id)
         return folder.vector_db_path if folder else ''
+    
+    def _get_chunk_parameters(self, folder_id=''):
+        """获取分块参数"""
+        chunk_size = 1000
+        chunk_overlap = 200
+        if folder_id:
+            folder = self._get_folder_info(folder_id)
+            if folder:
+                chunk_size = folder.chunk_size if hasattr(folder, 'chunk_size') and folder.chunk_size else 1000
+                chunk_overlap = folder.chunk_overlap if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap else 200
+        else:
+            # 如果没有folder_id，使用配置中的默认值
+            chunk_size = config_manager.get('vector.chunk_size', 1000)
+            chunk_overlap = config_manager.get('vector.chunk_overlap', 200)
+        return chunk_size, chunk_overlap
     
     def _get_file_save_path(self, filename, folder_id=''):
         """构建文件保存路径"""
         if folder_id:
-            # 如果指定了文件夹ID，从数据库获取文件夹路径
-            folder_path = self._get_folder_path_by_id(folder_id)
-            if folder_path:
+            folder = self._get_folder_info(folder_id)
+            if folder and hasattr(folder, 'path') and folder.path:
                 # 确保文件夹存在
-                os.makedirs(folder_path, exist_ok=True)
+                PathManager.ensure_dir(folder.path)
                 # 直接使用原始文件名，确保包含中文
-                return os.path.join(folder_path, filename)
+                return os.path.join(folder.path, filename)
             else:
                 # 如果获取路径失败，回退到原方法
-                folder_name = self._get_folder_name_by_id(folder_id)
-                folder_path = os.path.join(DATA_DIR, folder_name)
-                os.makedirs(folder_path, exist_ok=True)
+                folder_name = folder.name if folder else folder_id
+                folder_path = PathManager.get_folder_path(folder_name)
+                PathManager.ensure_dir(folder_path)
                 return os.path.join(folder_path, filename)
         else:
             # 否则保存到根目录，直接使用原始文件名
@@ -71,8 +111,7 @@ class DocumentService(BaseService):
     def save_document(self, file, folder_id=''):
         """保存文档到文件系统和数据库"""
         # 检查文件名是否为空
-        if file.filename == '':
-            raise ValueError('文件名不能为空')
+        ValidationUtils.validate_string_parameter('文件名', file.filename, min_length=1)
         
         # 保留原始文件名，确保中文文件名不被截断
         original_filename = file.filename
@@ -98,13 +137,7 @@ class DocumentService(BaseService):
         now = datetime.now().isoformat()
         
         # 获取分块参数，优先从文件夹获取
-        chunk_size = 1000
-        chunk_overlap = 200
-        if folder_id:
-            folder = self.data_service.get_folder_by_id(folder_id)
-            if folder:
-                chunk_size = folder.chunk_size if hasattr(folder, 'chunk_size') and folder.chunk_size else 1000
-                chunk_overlap = folder.chunk_overlap if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap else 200
+        chunk_size, chunk_overlap = self._get_chunk_parameters(folder_id)
         
         # 将文档信息保存到数据库，通过DataService层
         self.data_service.create_document(
@@ -136,10 +169,7 @@ class DocumentService(BaseService):
         documents = []
         for doc in db_documents:
             # 获取文件夹名称
-            folder_name = ''
-            if doc.folder_id:
-                folder = self.data_service.get_folder_by_id(doc.folder_id)
-                folder_name = folder.name if folder else ''
+            folder_name = self._get_folder_name_by_id(doc.folder_id) if doc.folder_id else ''
             
             documents.append({
                 'name': doc.name,
@@ -165,8 +195,7 @@ class DocumentService(BaseService):
     def delete_document(self, filename, folder_name=''):
         """删除指定文档/文件"""
         # 参数验证
-        if not filename:
-            raise ValueError('文件名不能为空')
+        ValidationUtils.validate_string_parameter('文件名', filename, min_length=1)
         
         # 构建文件路径，直接使用原始文件名
         if folder_name:
@@ -194,29 +223,29 @@ class DocumentService(BaseService):
         if os.path.exists(file_path) and os.path.isfile(file_path):
             try:
                 os.remove(file_path)
-                return {
-                    'deleted_file': filename,
-                    'folder': folder_name,
-                    'message': f'文档 {filename} 已成功删除',
-                    'success': True
-                }
+                return self.build_response(
+                    success=True,
+                    message=f'文档 {filename} 已成功删除',
+                    deleted_file=filename,
+                    folder=folder_name
+                )
             except Exception as e:
                 self.log_error(f"删除文件 {file_path} 时出错: {e}")
-                return {
-                    'deleted_file': filename,
-                    'folder': folder_name,
-                    'message': f'删除文档 {filename} 失败: {str(e)}',
-                    'success': False
-                }
+                return self.build_response(
+                    success=False,
+                    message=f'删除文档 {filename} 失败: {str(e)}',
+                    deleted_file=filename,
+                    folder=folder_name
+                )
         
         # 文件不存在的情况
         self.log_warning(f"尝试删除不存在的文件: {file_path}")
-        return {
-            'deleted_file': filename,
-            'folder': folder_name,
-            'message': f'文档 {filename} 不存在',
-            'success': True  # 返回True，因为文件已经不存在
-        }
+        return self.build_response(
+            success=True,
+            message=f'文档 {filename} 不存在',
+            deleted_file=filename,
+            folder=folder_name
+        )
     
     def get_folders(self):
         """获取文件夹列表"""
@@ -241,8 +270,7 @@ class DocumentService(BaseService):
         """创建文件夹/知识库"""
         # 保留原始文件夹名称，确保中文文件夹名不被截断
         # 只对文件夹名进行基本验证，不使用secure_filename（会移除中文等非ASCII字符）
-        if not folder_name or not folder_name.strip():
-            raise ValueError('文件夹名称不能为空')
+        ValidationUtils.validate_string_parameter('文件夹名称', folder_name, min_length=1)
         
         # 检查文件夹是否已存在（数据库中）
         existing_folder = self.data_service.get_folder_by_name(folder_name)
@@ -276,29 +304,9 @@ class DocumentService(BaseService):
             chunk_overlap=chunk_overlap
         )
         
-        # 只有当embedding_model不为空时才初始化向量数据库
+        # 向量数据库表会在首次添加文档时自动创建
         if embedding_model:
-            try:
-                from app.services.vector.vector_db_service_mp import VectorDBServiceMP
-                from app.core.config import config_manager
-                
-                # 获取向量数据库配置
-                vector_db_path = os.path.join(config_manager.get_user_data_dir(), 'Retrieval-Augmented Generation', 'vector_db', folder_name)
-                
-                # 初始化向量数据库服务（使用进程隔离）
-                vector_db_service = VectorDBServiceMP(vector_db_path, embedding_model, folder_name)
-                
-                # 触发向量存储初始化
-                # 这里会创建空的Chroma实例
-                vector_store = vector_db_service.vector_store
-                
-                # 不要关闭服务，保持运行状态以便后续使用
-                
-                # 记录初始化成功
-                self.log_info(f"✅ 知识库向量数据库初始化成功: {folder_name}, 嵌入模型: {embedding_model}")
-            except Exception as e:
-                # 向量数据库初始化失败不影响文件夹创建
-                self.log_warning(f"⚠️  知识库向量数据库初始化失败: {e}")
+            self.log_info(f"✅ 知识库配置成功: {folder_name}, 嵌入模型: {embedding_model}")
         
         return {
             'id': folder_id,
@@ -317,23 +325,8 @@ class DocumentService(BaseService):
         if not folder:
             raise ValueError('文件夹不存在')
         
-        # 通过DataService获取该文件夹下的所有文档
-        db_documents = self.data_service.get_documents_by_folder_id(folder.id)
-        
-        # 转换为前端需要的格式
-        files = []
-        for doc in db_documents:
-            # 从文件系统获取文件大小和修改时间
-            file_size = os.path.getsize(doc.path) if os.path.exists(doc.path) else 0
-            modified_at = os.path.getmtime(doc.path) if os.path.exists(doc.path) else 0
-            
-            files.append({
-                'name': doc.name,
-                'path': doc.path,
-                'size': file_size,
-                'modified_at': modified_at
-            })
-        return files
+        # 调用 get_files_in_folder_by_id 方法
+        return self.get_files_in_folder_by_id(folder.id)
     
     def delete_all_documents(self):
         """删除所有文档，包括所有文件夹、文件和向量数据库"""
@@ -379,72 +372,31 @@ class DocumentService(BaseService):
                     self.log_error(f"删除目录 {dir_path} 时出错: {e}")
                     skipped_count += 1
         
-        # 4. 删除向量数据库文件夹
+        # 4. 删除向量数据库表
         try:
-            from app.core.config import config_manager
-            import shutil
-            import time
+            # 调用向量服务清理方法
+            self._cleanup_vector_services()
             
-            # 尝试释放向量服务连接
-            try:
-                from app.services.vector.vector_service import VectorService
-                from app.services.vector.vector_db_service_mp import VectorDBServiceMP
-                from app.core.service_container import service_container
-                
-                # 清除 data_service 中的向量服务实例
-                try:
-                    data_service = service_container.get_service('data_service')
-                    if hasattr(data_service, 'vector_services'):
-                        # 关闭所有向量服务实例
-                        for vector_service_instance in list(data_service.vector_services.values()):
-                            try:
-                                if hasattr(vector_service_instance, 'close'):
-                                    vector_service_instance.close()
-                            except Exception as e:
-                                self.log_warning(f"关闭向量服务实例失败: {e}")
-                        # 清除向量服务实例缓存
-                        data_service.vector_services = {}
-                except Exception as e:
-                    self.log_warning(f"清除 data_service 中的向量服务实例失败: {e}")
-                
-                # 先关闭所有 VectorDBServiceMP 实例
-                for instance in list(VectorDBServiceMP._instances.values()):
-                    try:
-                        instance.close()
-                    except Exception as e:
-                        self.log_warning(f"关闭 VectorDBServiceMP 实例失败: {e}")
-                
-                # 清除向量服务实例缓存
-                if hasattr(VectorService, '_instance'):
-                    VectorService._instance = None
-                # 清除进程隔离的向量数据库服务实例缓存
-                VectorDBServiceMP._instances = {}
-                
-                self.log_info("✅ 向量服务连接已释放")
-                # 等待连接完全释放
-                time.sleep(3)
-            except Exception as e:
-                self.log_warning(f"⚠️  释放向量服务连接失败: {e}")
-            
-            # 构建向量数据库根路径
+            # 连接到LanceDB并删除所有向量表
             vector_db_root = PathManager.get_vector_db_root()
-            if os.path.exists(vector_db_root) and os.path.isdir(vector_db_root):
-                # 尝试多次删除
-                max_retries = 3
-                for attempt in range(max_retries):
-                    try:
-                        shutil.rmtree(vector_db_root)
-                        # 重新创建空的vector_db目录
-                        PathManager.ensure_dir(vector_db_root)
-                        self.log_info(f"✅ 向量数据库文件夹已清空: {vector_db_root}")
-                        break
-                    except Exception as e:
-                        self.log_warning(f"⚠️  第 {attempt + 1} 次清空向量数据库失败: {e}")
-                        if attempt < max_retries - 1:
-                            time.sleep(1)
+            import lancedb
+            db = lancedb.connect(vector_db_root)
+            
+            # 获取所有表名
+            table_names = db.table_names()
+            
+            # 删除所有表
+            for table_name in table_names:
+                try:
+                    db.drop_table(table_name)
+                    self.log_info(f"✅ 向量数据库表已删除: {table_name}")
+                except Exception as e:
+                    self.log_warning(f"⚠️  删除向量数据库表 {table_name} 失败: {e}")
+            
+            self.log_info(f"✅ 所有向量数据库表已清空")
         except Exception as e:
-            # 向量数据库删除失败不影响其他操作
-            self.log_warning(f"⚠️  向量数据库清空失败: {e}")
+            # 向量数据库表删除失败不影响其他操作
+            self.log_warning(f"⚠️  向量数据库表清空失败: {e}")
         
         # 5. 重新初始化DATA_DIR目录（如果被删除）
         os.makedirs(DATA_DIR, exist_ok=True)
@@ -496,69 +448,24 @@ class DocumentService(BaseService):
         # 3. 删除数据库中的文件夹（级联删除文件夹下的所有文档和分块）
         self.data_service.delete_folder(folder.id)
         
-        # 4. 删除相关向量数据库文件
+        # 4. 删除相关向量数据库表
         if vector_db_path:
             try:
-                from app.core.config import config_manager
-                import shutil
-                import time
+                # 构建表名，直接使用文件夹名称作为表名
+                table_name = folder_name.replace(' ', '_').lower()
                 
-                # 尝试释放向量服务连接
-                try:
-                    from app.services.vector.vector_service import VectorService
-                    from app.services.vector.vector_db_service_mp import VectorDBServiceMP
-                    from app.core.service_container import service_container
-                    
-                    # 清除 data_service 中的向量服务实例
-                    try:
-                        data_service = service_container.get_service('data_service')
-                        if hasattr(data_service, 'vector_services'):
-                            # 关闭所有向量服务实例
-                            for vector_service_instance in list(data_service.vector_services.values()):
-                                try:
-                                    if hasattr(vector_service_instance, 'close'):
-                                        vector_service_instance.close()
-                                except Exception as e:
-                                    self.log_warning(f"关闭向量服务实例失败: {e}")
-                            # 清除向量服务实例缓存
-                            data_service.vector_services = {}
-                    except Exception as e:
-                        self.log_warning(f"清除 data_service 中的向量服务实例失败: {e}")
-                    
-                    # 先关闭所有 VectorDBServiceMP 实例
-                    for instance in list(VectorDBServiceMP._instances.values()):
-                        try:
-                            instance.close()
-                        except Exception as e:
-                            self.log_warning(f"关闭 VectorDBServiceMP 实例失败: {e}")
-                    
-                    # 清除向量服务实例缓存
-                    if hasattr(VectorService, '_instance'):
-                        VectorService._instance = None
-                    # 清除进程隔离的向量数据库服务实例缓存
-                    VectorDBServiceMP._instances = {}
-                    
-                    self.log_info("✅ 向量服务连接已释放")
-                    # 等待连接完全释放
-                    time.sleep(3)
-                except Exception as e:
-                    self.log_warning(f"⚠️  释放向量服务连接失败: {e}")
+                # 清除向量服务实例
+                self._cleanup_vector_services()
                 
-                if os.path.exists(vector_db_path) and os.path.isdir(vector_db_path):
-                    # 尝试多次删除
-                    max_retries = 3
-                    for attempt in range(max_retries):
-                        try:
-                            shutil.rmtree(vector_db_path)
-                            self.log_info(f"✅ 向量数据库文件夹已删除: {vector_db_path}")
-                            break
-                        except Exception as e:
-                            self.log_warning(f"⚠️  第 {attempt + 1} 次删除向量数据库失败: {e}")
-                            if attempt < max_retries - 1:
-                                time.sleep(1)
+                # 连接到LanceDB并删除对应表
+                import lancedb
+                db = lancedb.connect(PathManager.get_vector_db_root())
+                if table_name in db.table_names():
+                    db.drop_table(table_name)
+                    self.log_info(f"✅ 向量数据库表已删除: {table_name}")
             except Exception as e:
-                # 向量数据库删除失败不影响文件夹删除
-                self.log_warning(f"⚠️  向量数据库删除失败: {e}")
+                # 向量数据库表删除失败不影响文件夹删除
+                self.log_warning(f"⚠️  向量数据库表删除失败: {e}")
         
         # 5. 删除文件系统中的文件夹
         if folder_path and os.path.exists(folder_path) and os.path.isdir(folder_path):
@@ -585,8 +492,7 @@ class DocumentService(BaseService):
     
     def get_files_in_folder_by_id(self, folder_id):
         """通过folder_id获取指定文件夹中的文件"""
-        if not folder_id:
-            raise ValueError('文件夹ID不能为空')
+        ValidationUtils.validate_string_parameter('文件夹ID', folder_id, min_length=1)
         
         # 通过DataService获取该文件夹下的所有文档
         db_documents = self.data_service.get_documents_by_folder_id(folder_id)
@@ -608,8 +514,7 @@ class DocumentService(BaseService):
     
     def get_document_details(self, file_id):
         """获取文件详情"""
-        if not file_id:
-            raise ValueError('文件ID不能为空')
+        ValidationUtils.validate_string_parameter('文件ID', file_id, min_length=1)
         
         # 这里简化处理，直接将file_id视为文件名
         file_name = file_id
@@ -638,11 +543,10 @@ class DocumentService(BaseService):
     
     def delete_folder_by_id(self, folder_id):
         """通过folder_id删除文件夹/知识库"""
-        if not folder_id:
-            raise ValueError('文件夹ID不能为空')
+        ValidationUtils.validate_string_parameter('文件夹ID', folder_id, min_length=1)
         
         # 通过DataService获取文件夹信息
-        folder = self.data_service.get_folder_by_id(folder_id)
+        folder = self._get_folder_info(folder_id)
         if not folder:
             raise ValueError('指定ID的文件夹不存在')
         
@@ -651,11 +555,10 @@ class DocumentService(BaseService):
     
     def get_folder_by_id(self, folder_id):
         """通过folder_id获取文件夹详细信息"""
-        if not folder_id:
-            raise ValueError('文件夹ID不能为空')
+        ValidationUtils.validate_string_parameter('文件夹ID', folder_id, min_length=1)
         
         # 通过DataService获取文件夹信息
-        folder = self.data_service.get_folder_by_id(folder_id)
+        folder = self._get_folder_info(folder_id)
         if not folder:
             raise ValueError('指定ID的文件夹不存在')
         
@@ -677,147 +580,88 @@ class DocumentService(BaseService):
         
         return folder_info
     
-    def upload_document(self, file, folder_id=''):
-        """上传文件到文件系统并进行向量化处理"""
+
+    
+    def _process_document(self, file, folder_id=''):
+        """通用文档处理流程"""
         try:
             original_filename = file.filename
-            self.log_info(f"📤 开始上传文档: 文件名='{original_filename}', folder_id='{folder_id}'")
+            self.log_info(f"📤 开始处理文档: 文件名='{original_filename}', folder_id='{folder_id}'")
             
             # 1. 保存文件到文件系统和数据库
             save_result = self.save_document(file, folder_id)
             file_path = save_result['full_path']
             self.log_info(f"✅ 文档已保存到: {file_path}")
             
-            # 2. 加载文档
-            documents = self._load_document(file_path)
+            # 2. 加载文档 - 直接调用 DocumentLoader
+            self.log_info(f"📄 加载文档: {file_path}")
+            loader = DocumentLoader()
+            documents = loader.load_document(file_path)
+            self.log_info(f"✅ 成功加载文档，共 {len(documents)} 个文档对象")
             
-            # 3. 分割文档
-            split_documents, chunk_size, chunk_overlap = self._split_document(documents, folder_id)
+            # 3. 分割文档 - 使用 TextSplitter
+            split_documents = TextSplitter.split_documents(documents)
+            self.log_info(f"✅ 文档分割完成，生成 {len(split_documents)} 个文本块")
             
             # 4. 向量化文档
             document_id = save_result.get('id', str(uuid.uuid4()))
-            vector_result = self._vectorize_document(split_documents, document_id, file_path, folder_id)
+            vector_result = {}
+            try:
+                self.log_info(f"🔢 开始向量化文档: 文本块数量={len(split_documents)}, 知识库='{folder_id}'")
+                
+                # 直接通过 data_service 获取向量仓库实例并执行向量化（使用from_documents）
+                vector_repo = self.data_service.upload_document_vectors(folder_id=folder_id, documents=split_documents)
+                
+                # 检查向量存储是否成功初始化
+                if vector_repo.vector_store:
+                    self.log_info(f"✅ 文档向量化成功: 生成 {len(split_documents)} 个向量, 知识库='{folder_id}'")
+                    vector_result = {
+                        'vectorized': True,
+                        'vector_count': len(split_documents),
+                        'message': '文档向量化成功'
+                    }
+                else:
+                    self.log_error(f"❌ 文档向量化失败, 知识库='{folder_id}'")
+                    vector_result = {
+                        'vectorized': False,
+                        'vector_count': 0,
+                        'message': '文档向量化失败',
+                        'error': '向量存储初始化失败'
+                    }
+            except Exception as e:
+                self.log_error(f"❌ 文档向量化失败: {str(e)}")
+                vector_result = {
+                    'vectorized': False,
+                    'vector_count': 0,
+                    'message': f'文档向量化失败: {str(e)}',
+                    'error': str(e)
+                }
             
             # 5. 准备返回信息
-            return self._prepare_response(save_result, original_filename, file_path, folder_id, document_id, split_documents, chunk_size, chunk_overlap, vector_result)
+            return {
+                'filename': save_result['filename'],
+                'message': f'文件 {save_result['filename']} 处理成功',
+                'document_id': document_id,
+                'full_path': file_path,
+                'folder_name': folder_id,
+                'vector_info': vector_result
+            }
             
         except Exception as e:
             self.log_error(f"❌ 文件 {file.filename} 处理失败: {str(e)}")
-            return {
+            base_error_response = {
                 'filename': file.filename,
                 'message': f'文件 {file.filename} 处理失败: {str(e)}',
-                'file_path': file.filename,
-                'document_info': {},
+                'document_id': '',
                 'full_path': '',
                 'folder_name': folder_id,
-                'chunk_info': {},
                 'vector_info': {}
             }
+            return base_error_response
     
-    def _load_document(self, file_path):
-        """加载文档内容"""
-        from app.utils.rag.document_loader import DocumentLoader
-        
-        self.log_info(f"📄 加载文档: {file_path}")
-        load_result = DocumentLoader.load_document(file_path)
-        
-        # 检查是否有错误
-        if 'error' in load_result:
-            error_msg = load_result.get('error', '文档加载失败')
-            self.log_error(f"❌ {error_msg}")
-            raise Exception(error_msg)
-        
-        # 检查是否有文档
-        documents = load_result.get('documents', [])
-        if not documents:
-            error_msg = '文档加载失败：未找到文档内容'
-            self.log_error(f"❌ {error_msg}")
-            raise Exception(error_msg)
-        
-        self.log_info(f"✅ 成功加载文档，共 {len(documents)} 个文档对象")
-        return documents
-    
-    def _split_document(self, documents, folder_id=''):
-        """分割文档为文本块"""
-        from app.utils.rag.text_splitter import TextSplitter
-        
-        # 将folder_id添加到文档的metadata中
-        if folder_id:
-            for doc in documents:
-                if hasattr(doc, 'metadata'):
-                    doc.metadata['folder_id'] = folder_id
-        
-        # 从文件夹获取分块参数
-        chunk_size = 1000
-        chunk_overlap = 200
-        if folder_id:
-            folder = self.data_service.get_folder_by_id(folder_id)
-            if folder:
-                chunk_size = folder.chunk_size if hasattr(folder, 'chunk_size') and folder.chunk_size else 1000
-                chunk_overlap = folder.chunk_overlap if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap else 200
-        else:
-            # 如果没有folder_id，使用配置中的默认值
-            chunk_size = config_manager.get('vector.chunk_size', 1000)
-            chunk_overlap = config_manager.get('vector.chunk_overlap', 200)
-        
-        self.log_info(f"✂️  开始分割文档... 使用参数: chunk_size={chunk_size}, chunk_overlap={chunk_overlap}")
-        split_result = TextSplitter.split_documents(documents, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-        
-        if not split_result['success']:
-            error_msg = f"文档分割失败: {split_result['error']}"
-            self.log_error(f"❌ {error_msg}")
-            raise Exception(error_msg)
-        
-        split_documents = split_result['split_documents']
-        self.log_info(f"✅ 文档分割完成，生成 {len(split_documents)} 个文本块")
-        return split_documents, chunk_size, chunk_overlap
-    
-    def _vectorize_document(self, split_documents, document_id, file_path, folder_id):
-        """向量化文档并存储"""
-        self.log_info("🔢 开始向量化文档...")
-        vector_result = self.vector_service.vectorize_documents(
-            split_documents,
-            document_id,
-            file_path,
-            folder_id=folder_id
-        )
-        
-        if vector_result['vectorized']:
-            self.log_info(f"✅ 向量化成功，生成 {vector_result['vector_count']} 个向量")
-        else:
-            self.log_warning(f"⚠️  向量化部分失败: {vector_result.get('error', '未知错误')}")
-        
-        return vector_result
-    
-    def _prepare_response(self, save_result, original_filename, file_path, folder_id, document_id, split_documents, chunk_size, chunk_overlap, vector_result):
-        """准备返回信息"""
-        document_info = {
-            'document_id': document_id,
-            'file_path': file_path,
-            'filename': save_result['filename'],
-            'split_documents_count': len(split_documents),
-            'chunk_size': chunk_size,
-            'chunk_overlap': chunk_overlap
-        }
-        
-        chunk_info = {
-            'total_chunks': len(split_documents),
-            'chunk_size': chunk_size,
-            'chunk_overlap': chunk_overlap
-        }
-        
-        self.log_info(f"📊 文档处理完成: 文件='{original_filename}', 文本块={len(split_documents)}, 向量={vector_result['vector_count']}")
-        
-        return {
-            'filename': save_result['filename'],
-            'message': f'文件 {save_result['filename']} 上传成功',
-            'file_path': save_result['filename'],
-            'document_info': document_info,
-            'full_path': file_path,
-            'folder_name': folder_id,
-            'chunk_info': chunk_info,
-            'vector_info': vector_result
-        }
+    def upload_document(self, file, folder_id=''):
+        """上传文件到文件系统并进行向量化处理"""
+        return self._process_document(file, folder_id)
     
     def search_file_content(self, query):
         """搜索文件内容"""

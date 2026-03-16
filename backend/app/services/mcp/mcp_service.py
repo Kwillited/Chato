@@ -46,6 +46,20 @@ class MCPService(BaseService):
         """
         return self._get_default_config()
 
+    def initialize_mcp_client(self, mcp_config: Optional[Dict] = None) -> bool:
+        """初始化 MCP 服务（仅注册配置，不建立连接）
+        
+        Args:
+            mcp_config: MCP 配置，如果为 None 则从配置文件读取
+            
+        Returns:
+            bool: 是否初始化成功
+        """
+        if mcp_config is None:
+            mcp_config = self.get_mcp_config()
+        
+        return self.mcp_client_manager.initialize_client(mcp_config)
+    
     async def initialize_mcp(self, mcp_config: Optional[Dict] = None) -> bool:
         """初始化 MCP 服务
         

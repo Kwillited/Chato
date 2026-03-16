@@ -184,17 +184,29 @@ class MessageService(BaseService):
             full_message_text += "\n\n" + "\n\n".join(file_contents)
         
         # 调试RAG调用
-        self.log_debug(f"RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
+        self.log_info(f"RAG: rag_enabled={rag_enabled}, message={full_message_text[:20]}{'...' if len(full_message_text) > 20 else ''}")
         
         # 调用RAG系统构造增强提示，传递完整的ragConfig
         context_docs = None
         if rag_enabled:
-            self.log_debug("准备执行RAG搜索")
+            self.log_info("准备执行RAG搜索")
             # 执行RAG搜索获取上下文文档
-            context_docs, _ = self.vector_service.perform_rag_search(full_message_text, rag_config.get('selectedFolders', []))
-            self.log_debug(f"找到 {len(context_docs)} 个相关文档片段")
+            selected_folders = rag_config.get('selectedFolders', [])
+            folder_id = selected_folders[0] if selected_folders else "default"
+            # 从rag_config获取参数
+            top_k = rag_config.get('topK', 3)
+            score_threshold = rag_config.get('scoreThreshold', 0.7)
+            # 执行向量搜索
+            search_result = self.data_service.search_vectors(
+                full_message_text, 
+                k=top_k, 
+                score_threshold=score_threshold, 
+                folder_id=folder_id
+            )
+            context_docs = search_result.get('results', [])
+            self.log_info(f"找到 {len(context_docs)} 个相关文档片段")
         else:
-            self.log_debug("RAG未启用")
+            self.log_info("RAG未启用")
         
         # 处理网络搜索
         web_search_results = None

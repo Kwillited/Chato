@@ -7,7 +7,7 @@ from app.models.database.models import (
     SystemSetting,
     Folder,
     Document,
-    DocumentChunk
+
 )
 
 from app.models.schemas.pydantic_models import (
@@ -73,7 +73,7 @@ __all__ = [
     'SystemSetting',
     'Folder',
     'Document',
-    'DocumentChunk',
+
     # Pydantic models
     'MessageBase',
     'MessageCreate',

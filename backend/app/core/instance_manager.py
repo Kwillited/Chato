@@ -77,14 +77,14 @@ class InstanceManager(Generic[T]):
                 if cls._cache_strategies[instance_type] == 'lru':
                     instance = cls._caches[instance_type].pop(key)
                     cls._caches[instance_type][key] = instance
-                    print(f"[InstanceManager] 从 LRU 缓存加载实例: {instance_type}, 键: {key[:50]}...")
+                    print(f"[InstanceManager] 从 LRU 缓存加载实例: {instance_type}, 键: {key}")
                 else:
                     instance = cls._caches[instance_type][key]
-                    print(f"[InstanceManager] 从缓存加载实例: {instance_type}, 键: {key[:50]}...")
+                    print(f"[InstanceManager] 从缓存加载实例: {instance_type}, 键: {key}")
                 return instance
             
             # 缓存未命中，创建新实例
-            print(f"[InstanceManager] 创建新实例: {instance_type}, 键: {key[:50]}...")
+            print(f"[InstanceManager] 创建新实例: {instance_type}, 键: {key}")
             instance = create_func()
             
             # 添加到缓存
@@ -93,14 +93,14 @@ class InstanceManager(Generic[T]):
                 if len(cls._caches[instance_type]) >= cls._cache_sizes[instance_type]:
                     # 移除最旧的实例
                     oldest_key, _ = cls._caches[instance_type].popitem(last=False)
-                    print(f"[InstanceManager] 缓存已满，移除最旧实例: {instance_type}, 键: {oldest_key[:50]}...")
+                    print(f"[InstanceManager] 缓存已满，移除最旧实例: {instance_type}, 键: {oldest_key}")
                 # 添加新实例到缓存末尾
                 cls._caches[instance_type][key] = instance
-                print(f"[InstanceManager] 实例已添加到 LRU 缓存: {instance_type}, 键: {key[:50]}...")
+                print(f"[InstanceManager] 实例已添加到 LRU 缓存: {instance_type}, 键: {key}")
             else:
                 # 无界缓存，直接添加
                 cls._caches[instance_type][key] = instance
-                print(f"[InstanceManager] 实例已添加到缓存: {instance_type}, 键: {key[:50]}...")
+                print(f"[InstanceManager] 实例已添加到缓存: {instance_type}, 键: {key}")
             
             # 打印当前缓存状态
             cache_size = len(cls._caches[instance_type])

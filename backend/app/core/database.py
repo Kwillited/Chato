@@ -45,7 +45,7 @@ def get_db():
 def init_alembic_db():
     """初始化数据库，创建所有表"""
     # 导入所有模型，确保Base.metadata包含所有表定义
-    from app.models import Model, ModelVersion, Chat, Message, SystemSetting, Folder, Document, DocumentChunk
+    from app.models import Model, ModelVersion, Chat, Message, SystemSetting, Folder, Document
     # 只创建不存在的表，不删除现有表
     # 这样可以保留数据库中的现有数据
     Base.metadata.create_all(bind=engine)

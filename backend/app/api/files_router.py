@@ -178,7 +178,7 @@ def upload_document(file: UploadFile = File(...), folder_id: str = Form(''), doc
     return {
         'success': True,
         'message': result['message'],
-        'file_path': result['file_path']
+        'file_path': result['full_path']
     }
 
 # 搜索文件内容

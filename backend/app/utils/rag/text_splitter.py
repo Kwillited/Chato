@@ -1,5 +1,5 @@
 """文本分割工具模块 - 提供文档内容分割功能"""
-import uuid
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 class TextSplitter:
@@ -15,108 +15,40 @@ class TextSplitter:
             chunk_overlap: 文本块重叠大小
             
         Returns:
-            dict: 包含分割结果和元数据的字典
+            list: 分割后的文档对象列表
         """
-        # 初始化返回结果
-        result = {
-            'success': True,
-            'original_documents_count': len(documents) if documents else 0,
-            'split_documents_count': 0,
-            'chunk_size': chunk_size,
-            'chunk_overlap': chunk_overlap,
-            'document_id': str(uuid.uuid4())[:8],
-            'sample_chunks': [],
-            'split_documents': [],  # 存储分割后的文档对象
-            'error': None
-        }
-        
         if not documents:
-            result['error'] = '没有可分割的文档'
-            result['success'] = False
-            return result
+            return []
         
-        try:
-            # 从文档对象的metadata中获取folder_id，然后从数据库获取分块参数
-            doc_chunk_size = chunk_size
-            doc_chunk_overlap = chunk_overlap
-            
-            if documents:
-                # 检查文档的metadata中是否有folder_id
-                folder_id = None
-                if hasattr(documents[0], 'metadata') and documents[0].metadata:
-                    folder_id = documents[0].metadata.get('folder_id')
-                
-                # 如果有folder_id，从数据库获取文件夹信息
-                if folder_id:
-                    from app.services.data_service import DataService
-                    data_service = DataService()
-                    folder = data_service.get_folder_by_id(folder_id)
-                    if folder:
-                        if hasattr(folder, 'chunk_size') and folder.chunk_size:
-                            doc_chunk_size = folder.chunk_size
-                        if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap:
-                            doc_chunk_overlap = folder.chunk_overlap
-            
-            # 更新结果中的分块参数
-            result['chunk_size'] = doc_chunk_size
-            result['chunk_overlap'] = doc_chunk_overlap
-            
-            # 动态导入文本分割器
-            from langchain_text_splitters import RecursiveCharacterTextSplitter
-            
-            # 创建文本分割器
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=doc_chunk_size,
-                chunk_overlap=doc_chunk_overlap,
-                separators=["\n\n", "\n", " ", ".", ",", ";"]
-            )
-            
-            # 执行文本分割
-            split_documents = text_splitter.split_documents(documents)
-            result['split_documents_count'] = len(split_documents)
-            result['split_documents'] = split_documents
-            
-            # 生成样本块信息
-            result['sample_chunks'] = TextSplitter._generate_sample_chunks(split_documents)
-            
-        except Exception as e:
-            # 处理分割错误
-            result['error'] = str(e)
-            result['success'] = False
+        # 从文档对象的metadata中获取folder_id，然后从数据库获取分块参数
+        doc_chunk_size = chunk_size
+        doc_chunk_overlap = chunk_overlap
         
-        return result
-    
-    @staticmethod
-    def _generate_sample_chunks(split_documents, max_samples=3, preview_length=100):
-        """生成样本块信息
-        
-        Args:
-            split_documents: 分割后的文档列表
-            max_samples: 最大样本数量
-            preview_length: 预览内容长度
+        if documents:
+            # 检查文档的metadata中是否有folder_id
+            folder_id = None
+            if hasattr(documents[0], 'metadata') and documents[0].metadata:
+                folder_id = documents[0].metadata.get('folder_id')
             
-        Returns:
-            list: 样本块信息列表
-        """
-        sample_chunks = []
+            # 如果有folder_id，从数据库获取文件夹信息
+            if folder_id:
+                from app.services.data_service import DataService
+                data_service = DataService()
+                folder = data_service.get_folder_by_id(folder_id)
+                if folder:
+                    if hasattr(folder, 'chunk_size') and folder.chunk_size:
+                        doc_chunk_size = folder.chunk_size
+                    if hasattr(folder, 'chunk_overlap') and folder.chunk_overlap:
+                        doc_chunk_overlap = folder.chunk_overlap
         
-        # 只取前几个文档作为样本
-        for i, chunk in enumerate(split_documents[:max_samples]):
-            content_preview = chunk.page_content[:preview_length]
-            if len(chunk.page_content) > preview_length:
-                content_preview += '...'
-            
-            # 收集元数据
-            metadata = chunk.metadata.copy() if hasattr(chunk, 'metadata') else {}
-            
-            sample_chunks.append({
-                'chunk_id': i + 1,
-                'content_preview': content_preview,
-                'metadata': metadata,
-                'length': len(chunk.page_content)
-            })
+        # 创建文本分割器
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=doc_chunk_size,
+            chunk_overlap=doc_chunk_overlap
+        )
         
-        return sample_chunks
+        # 执行文本分割
+        return text_splitter.split_documents(documents)
     
     @staticmethod
     def split_text(text, chunk_size=1000, chunk_overlap=200):
@@ -130,14 +62,9 @@ class TextSplitter:
         Returns:
             list: 文本块列表
         """
-        # 动态导入文本分割器
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
-        
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", " ", ".", ",", ";"]
+            chunk_overlap=chunk_overlap
         )
         
-        chunks = text_splitter.split_text(text)
-        return chunks
+        return text_splitter.split_text(text)

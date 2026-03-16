@@ -14,5 +14,19 @@
     "args": [
       "freesearch-mcpserver@latest"
     ]
+  },
+  "open-websearch": {
+    "transport": "stdio",
+    "command": "npx",
+    "args": [
+      "open-websearch@latest"
+    ]
+  },
+  "mcpServers": {
+    "transport": "stdio",
+    "mcp-playwright-scraper": {
+      "command": "python",
+      "args": ["-m", "mcp_playwright_scraper"]
+    }
   }
 }

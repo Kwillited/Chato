@@ -42,6 +42,29 @@ def init_db():
     init_alembic_db()
     logger.info(f"SQLite数据库初始化成功，数据库文件: {db_path}")
 
+
+def init_vector_db():
+    """初始化向量数据库，确保数据库文件存在"""
+    try:
+        from app.utils.path_manager import PathManager
+        import lancedb
+        
+        # 获取向量数据库根路径
+        vector_db_root = PathManager.get_vector_db_root()
+        
+        # LanceDB会自动创建不存在的目录，无需手动os.makedirs
+        db = lancedb.connect(vector_db_root)
+        
+        # 可选：验证连接是否成功（比如尝试列出表）
+        table_names = db.table_names()
+        
+        logger.info(f"向量数据库初始化成功，路径: {vector_db_root}，现有表: {table_names}")
+        return True, db  # 返回连接对象供后续使用
+        
+    except Exception as e:
+        logger.error(f"向量数据库初始化失败: {str(e)}")
+        return False, None
+
 # --------------------------
 # 3. 事务管理
 # --------------------------
@@ -967,6 +990,9 @@ def load_data():
     try:
         # 初始化数据库
         init_db()
+        
+        # 初始化向量数据库
+        init_vector_db()
         
         # 如果数据库文件不存在（初次运行），插入默认数据
         if not db_file_exists:

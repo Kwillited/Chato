@@ -117,11 +117,8 @@ def get_embedding_model_service():
 # 向量服务相关依赖
 def get_vector_db_service(vector_db_path: str = '', embedder_model: str = '', knowledge_base_name: str = 'default'):
     """获取向量数据库服务实例"""
-    from app.services.vector.vector_db_service_mp import VectorDBServiceMP
-    return VectorDBServiceMP(
-        vector_db_path=vector_db_path,
-        embedder_model=embedder_model,
-        knowledge_base_name=knowledge_base_name
-    )
+    # 现在直接返回向量仓库实例，因为不再使用进程隔离的向量服务
+    from app.core.service_container import service_container
+    return service_container.get_service('vector_repository')
 
 

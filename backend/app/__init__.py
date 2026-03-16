@@ -23,9 +23,9 @@ def register_services():
     from app.repositories.setting_repository import SettingRepository
     from app.repositories.embedding_model_repository import EmbeddingModelRepository
     from app.repositories.document_repository import DocumentRepository
-    from app.repositories.document_chunk_repository import DocumentChunkRepository
+
     from app.repositories.folder_repository import FolderRepository
-    from app.repositories.vector_repository import VectorRepository
+    from app.repositories.lancedb_repository import LanceDBRepository
     
     service_container.register_service('chat_repository', ChatRepository)
     service_container.register_service('message_repository', MessageRepository)
@@ -33,9 +33,8 @@ def register_services():
     service_container.register_service('setting_repository', SettingRepository)
     service_container.register_service('embedding_model_repository', EmbeddingModelRepository)
     service_container.register_service('document_repository', DocumentRepository)
-    service_container.register_service('document_chunk_repository', DocumentChunkRepository)
     service_container.register_service('folder_repository', FolderRepository)
-    service_container.register_service('vector_repository', VectorRepository)
+    service_container.register_service('lancedb_repository', LanceDBRepository)
     
     # 注册业务服务
     from app.services.chat.chat_service import ChatService

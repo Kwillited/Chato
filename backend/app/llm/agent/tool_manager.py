@@ -24,19 +24,27 @@ class ToolManager:
         
         # 通过服务容器获取 MCPService 实例
         mcp_service = service_container.get_service('mcp_service')
-        await mcp_service.initialize_mcp(mcp_config)
-        tools = mcp_service.mcp_client_manager.get_tools()
-        
-        # 构建工具映射
-        self.tools_map = {t.name: t for t in tools} if tools else {}
+        # 只初始化客户端配置，不获取工具
+        mcp_service.initialize_mcp_client(mcp_config)
+        # 工具将在实际需要时获取
+        self.tools_map = {}
     
     def get_tools(self) -> List[Any]:
         """
         获取工具列表
         
         Returns:
-            工具列表
+            List[Any]: 工具列表
         """
+        if not self.tools_map:
+            # 首次调用时获取工具
+            try:
+                mcp_service = service_container.get_service('mcp_service')
+                # 只初始化 MCP 客户端配置（不建立连接）
+                mcp_service.initialize_mcp_client()
+                # 工具将在实际需要时通过 get_tools_by_server 获取
+            except Exception as e:
+                logger.error(f"初始化 MCP 失败: {e}")
         return list(self.tools_map.values())
     
     def get_tool_by_name(self, tool_name: str) -> Optional[Any]:

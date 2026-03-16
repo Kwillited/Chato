@@ -136,24 +136,8 @@ class Document(Base):
     # 关系：属于一个文件夹
     folder = relationship("Folder", back_populates="documents")
     
-    # 关系：一个文档包含多个分块
-    chunks = relationship("DocumentChunk", back_populates="document", cascade="all, delete-orphan")
 
 
-class DocumentChunk(Base):
-    """文档分块表"""
-    __tablename__ = "document_chunks"
-    
-    id = Column(String, primary_key=True)
-    document_id = Column(String, ForeignKey("documents.id", ondelete="CASCADE"))
-    chunk_index = Column(Integer)  # 分块索引
-    content = Column(Text, nullable=False)  # 分块内容
-    extra_metadata = Column(Text)  # 分块元数据
-    vector_id = Column(String)  # Chroma向量ID
-    vector_collection = Column(String)  # 向量所属集合
-    
-    # 关系：属于一个文档
-    document = relationship("Document", back_populates="chunks")
 
 
 class EmbeddingModel(Base):

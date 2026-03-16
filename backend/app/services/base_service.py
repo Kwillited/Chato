@@ -148,3 +148,13 @@ class BaseService:
         """
         container = cls.get_service_container()
         return container.get_service(service_name)
+    
+    @staticmethod
+    def build_response(success=True, message='', **kwargs):
+        """构建统一的响应格式"""
+        response = {
+            'success': success,
+            'message': message
+        }
+        response.update(kwargs)
+        return response

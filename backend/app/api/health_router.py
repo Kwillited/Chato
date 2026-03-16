@@ -16,7 +16,8 @@ async def initialize_mcp():
         try:
             from app.core.service_container import service_container
             mcp_service = service_container.get_service('mcp_service')
-            await mcp_service.initialize_mcp()
+            # 只初始化客户端配置，不获取工具
+            mcp_service.initialize_mcp_client()
             mcp_initialized = True
         except Exception as e:
             from app.core.logger import logger

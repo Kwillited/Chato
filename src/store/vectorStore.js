@@ -44,9 +44,6 @@ export const useVectorStore = defineStore('vector', {
     loading: false,
     error: null,
     uploadProgress: 0,
-    // 向量库状态
-    vectorStores: [], // 支持多向量库
-    currentVectorStore: null,
 
     // 兼容ragStore的files属性，用于存储当前文件夹中的文件列表
     files: [],
@@ -183,98 +180,7 @@ export const useVectorStore = defineStore('vector', {
       }
     },
 
-    // 生成增强响应
-    async generateRagResponse(query, chatHistory, k = 5) {
-      try {
-        const response = await apiUtils.wrapApiCall(this, async () => {
-          // 调用后端API生成增强响应
-          const response = await apiService.post('/vectors/enhanced-prompt', {
-            query,
-            chatHistory,
-            k,
-            ragConfig: {
-              enabled: this.config.enabled,
-              topK: this.config.retrieval.topK,
-              scoreThreshold: this.config.retrieval.threshold,
-              searchType: this.config.retrieval.mode
-            }
-          });
-          
-          // 确保正确处理响应格式
-          return response.success ? response : { success: false, error: response.message || '生成增强响应失败' };
-        }, '生成增强响应失败');
-        
-        return response;
-      } catch (error) {
-        return { success: false, error: error.message || '生成增强响应失败' };
-      }
-    },
 
-    // 重新加载向量库
-    async reloadVectorStore() {
-      try {
-        const response = await apiUtils.wrapApiCall(this, async () => {
-          // 调用后端API重新加载向量库
-          const response = await apiService.post('/vectors/manage', {
-            action: 'reload'
-          });
-          
-          // 确保正确处理响应格式
-          if (response.success) {
-            return { success: true, message: response.message || '向量库重新加载成功' };
-          } else {
-            return { success: false, error: response.message || '向量库重新加载失败' };
-          }
-        }, '重新加载向量库失败');
-        
-        return response;
-      } catch (error) {
-        return { success: false, error: error.message || '重新加载向量库失败' };
-      }
-    },
-
-    // 加载向量库列表
-    async loadVectorStores() {
-      try {
-        await apiUtils.wrapApiCall(this, async () => {
-          // 调用后端API获取向量库列表
-          const response = await apiService.get('/vectors/stores');
-          
-          if (response.success && Array.isArray(response.stores)) {
-            this.vectorStores = response.stores;
-            if (response.stores.length > 0 && !this.currentVectorStore) {
-              this.currentVectorStore = response.stores[0].id;
-            }
-          }
-        }, '加载向量库列表失败');
-      } catch (error) {
-        // 错误已在 wrapApiCall 中处理
-      }
-    },
-
-    // 切换向量库
-    async switchVectorStore(storeId) {
-      try {
-        const response = await apiUtils.wrapApiCall(this, async () => {
-          // 调用后端API切换向量库
-          const response = await apiService.post('/vectors/switch', {
-            store_id: storeId
-          });
-          
-          if (response.success) {
-            this.currentVectorStore = storeId;
-            return { success: true, message: response.message || '向量库切换成功' };
-          } else {
-            return { success: false, error: response.message || '向量库切换失败' };
-          }
-        }, '切换向量库失败');
-        
-        return response;
-      } catch (error) {
-        return { success: false, error: error.message || '切换向量库失败' };
-      }
-    },
-    
     // 搜索知识库（兼容ragStore）
     async searchKnowledgeBase(query) {
       if (!query.trim()) return;
