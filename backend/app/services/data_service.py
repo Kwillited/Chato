@@ -497,6 +497,9 @@ class DataService(BaseService):
         Returns:
             删除结果
         """
+        from app.repositories.lancedb_repository import LanceDBRepository
+        vector_repo = LanceDBRepository()
+        
         try:
             # 直接获取向量仓库实例
             vector_repo = self.upload_document_vectors(folder_id)

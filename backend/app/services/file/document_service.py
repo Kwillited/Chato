@@ -422,6 +422,8 @@ class DocumentService(BaseService):
         
         # 1. 获取文件夹信息（包括路径）
         folder = self.data_service.get_folder_by_name(folder_name)
+        
+        # 2. 处理文件夹不存在的情况
         if not folder:
             # 检查文件系统中是否存在
             folder_path = os.path.join(DATA_DIR, folder_name)
@@ -441,33 +443,13 @@ class DocumentService(BaseService):
                 'success': True  # 返回True，因为文件夹已经不存在
             }
         
-        # 2. 从数据库获取路径信息
+        # 3. 从数据库获取路径信息
         folder_path = folder.path
-        vector_db_path = folder.vector_db_path
         
-        # 3. 删除数据库中的文件夹（级联删除文件夹下的所有文档和分块）
+        # 4. 删除数据库中的文件夹（级联删除文件夹下的所有文档和分块）
         self.data_service.delete_folder(folder.id)
         
-        # 4. 删除相关向量数据库表
-        if vector_db_path:
-            try:
-                # 构建表名，直接使用文件夹名称作为表名
-                table_name = folder_name.replace(' ', '_').lower()
-                
-                # 清除向量服务实例
-                self._cleanup_vector_services()
-                
-                # 连接到LanceDB并删除对应表
-                import lancedb
-                db = lancedb.connect(PathManager.get_vector_db_root())
-                if table_name in db.table_names():
-                    db.drop_table(table_name)
-                    self.log_info(f"✅ 向量数据库表已删除: {table_name}")
-            except Exception as e:
-                # 向量数据库表删除失败不影响文件夹删除
-                self.log_warning(f"⚠️  向量数据库表删除失败: {e}")
-        
-        # 5. 删除文件系统中的文件夹
+        # 6. 删除文件系统中的文件夹
         if folder_path and os.path.exists(folder_path) and os.path.isdir(folder_path):
             try:
                 shutil.rmtree(folder_path)
@@ -483,12 +465,13 @@ class DocumentService(BaseService):
                     'message': f'删除文件夹 {folder_name} 失败: {str(e)}',
                     'success': False
                 }
-        else:
-            return {
-                'deleted_folder': folder_name,
-                'message': f'文件夹 {folder_name} 已从数据库中删除',
-                'success': True
-            }
+        
+        # 7. 文件夹路径不存在或不是目录的情况
+        return {
+            'deleted_folder': folder_name,
+            'message': f'文件夹 {folder_name} 已从数据库中删除',
+            'success': True
+        }
     
     def get_files_in_folder_by_id(self, folder_id):
         """通过folder_id获取指定文件夹中的文件"""
@@ -549,6 +532,14 @@ class DocumentService(BaseService):
         folder = self._get_folder_info(folder_id)
         if not folder:
             raise ValueError('指定ID的文件夹不存在')
+        
+        # 删除相关向量数据库表
+        try:
+            # 使用 data_service 来删除向量数据库表
+            self.data_service.delete_vectors_by_folder_id(folder_id)
+        except Exception as e:
+            # 向量数据库表删除失败不影响文件夹删除
+            self.log_warning(f"⚠️  向量数据库表删除失败: {e}")
         
         # 调用现有的delete_folder方法
         return self.delete_folder(folder.name)

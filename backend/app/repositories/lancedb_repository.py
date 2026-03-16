@@ -356,7 +356,7 @@ class LanceDBRepository(BaseRepository):
             raise e
     
     def delete_vectors_by_folder_id(self, folder_id: str):
-        """根据文件夹ID删除相关向量
+        """根据文件夹ID删除相关向量（删除对应表）
         
         Args:
             folder_id (str): 文件夹ID
@@ -365,21 +365,26 @@ class LanceDBRepository(BaseRepository):
             dict: 删除结果
         """
         try:
-            if not self._vector_store:
-                raise ValueError("向量存储未初始化")
+            from app.core.logger import logger
             
-            # 使用过滤器删除指定文件夹的向量
-            if hasattr(self._vector_store, "table"):
-                # 使用LanceDB的删除语法
-                deleted = self._vector_store.table.delete(f"folder_id = '{folder_id}'")
+            # 确保连接到LanceDB
+            if not self.conn:
+                self.connect()
+            
+            # 直接删除表
+            try:
+                self.conn.drop_table(folder_id)
+                logger.info(f"✅ 已删除表 {folder_id}")
                 return {
                     'success': True,
-                    'deleted_count': deleted
+                    'deleted_count': 0
                 }
-            
-            return {
-                'success': True,
-                'deleted_count': 0
-            }
+            except Exception as e:
+                # 表不存在时不报错
+                logger.info(f"📁 表 {folder_id} 不存在，无需删除")
+                return {
+                    'success': True,
+                    'deleted_count': 0
+                }
         except Exception as e:
             raise e
