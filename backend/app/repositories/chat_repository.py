@@ -156,18 +156,19 @@ class ChatRepository(BaseRepository):
         """删除对话"""
         # 从缓存中删除对话
         chats = self.cache_repo.get('chats') or {}
+        
+        # 无论对话是否在缓存中，都设置脏标记，确保从数据库中删除
+        with cache_manager._lock:
+            dirty_flags = cache_manager._dirty_flags.get('chats', {})
+            dirty_flags[chat_id] = True
+            cache_manager._dirty_flags['chats'] = dirty_flags
+        
+        # 如果对话在缓存中，从缓存中删除
         if chat_id in chats:
-            # 先将对话标记为脏，以便在保存时从数据库中删除
-            # 直接操作cache_manager的脏标记字典，确保被删除的对话也被标记为脏
-            with cache_manager._lock:
-                dirty_flags = cache_manager._dirty_flags.get('chats', {})
-                dirty_flags[chat_id] = True
-                cache_manager._dirty_flags['chats'] = dirty_flags
-            # 从缓存中删除
             del chats[chat_id]
             self.cache_repo.set('chats', chats)
-            return True
-        return False
+        
+        return True
     
     def delete_all_chats(self):
         """删除所有对话"""
