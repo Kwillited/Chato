@@ -1,43 +1,47 @@
 <template>
   <div v-if="folders.length > 0" class="folders-list">
-    <div v-for="folder in folders" :key="folder.id || folder.path"
-      class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-500 transition-all duration-300"
-      @dragover.prevent="handleFolderDragOver($event, folder)"
-      @dragleave.prevent="handleFolderDragLeave"
-      @drop.prevent="handleFolderDrop($event, folder)"
-      @dblclick="handleFolderDoubleClick(folder)"
-      @click="handleFolderClick(folder)"
-      :class="{
-        // 拖拽状态样式优化
-        'border-primary bg-blue-50 dark:border-blue-400 dark:bg-blue-900/20 ring-2 ring-blue-200 dark:ring-blue-800/50 transform scale-[1.02]': draggingFolder === folder,
-        'bg-gray-300 dark:bg-dark-400 border-gray-500 dark:border-gray-200': (localSelectedFolder ? localSelectedFolder.id === folder.id : selectedFolder && selectedFolder.id === folder.id) && draggingFolder !== folder
-      }"
+    <DragDropZone
+      v-for="folder in folders"
+      :key="folder.id || folder.path"
+      container-class="relative"
+      overlay-radius="rounded-lg"
+      overlay-text="释放文件到此文件夹"
+      sub-text=""
+      icon-class="text-lg mb-0"
+      main-text-class="text-xs"
+      @drop="(files) => handleFolderDrop(files, folder)"
     >
-      <div class="folder-header flex items-center justify-between">
-        <div class="folder-info flex items-center">
-          <i class="fa-solid fa-folder text-gray-500 dark:text-gray-400 mr-2"></i>
-          <span class="font-medium text-sm text-gray-700 dark:text-gray-300">{{ folder.name }}</span>
-          <!-- 优化上传提示信息 -->
-          <div v-if="draggingFolder === folder" class="ml-2 text-xs font-semibold text-primary bg-primary/10 dark:bg-primary/20 px-2 py-0.5 rounded-full animate-pulse">
-            <i class="fa-solid fa-upload mr-1 text-xs"></i>释放以上传
+      <div
+        class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-500 transition-all duration-300"
+        @dblclick="handleFolderDoubleClick(folder)"
+        @click="handleFolderClick(folder)"
+        :class="{
+          'bg-gray-300 dark:bg-dark-400 border-gray-500 dark:border-gray-200': (localSelectedFolder ? localSelectedFolder.id === folder.id : selectedFolder && selectedFolder.id === folder.id)
+        }"
+      >
+        <div class="folder-header flex items-center justify-between">
+          <div class="folder-info flex items-center">
+            <i class="fa-solid fa-folder text-gray-500 dark:text-gray-400 mr-2"></i>
+            <span class="font-medium text-sm text-gray-700 dark:text-gray-300">{{ folder.name }}</span>
           </div>
+          <Button
+            shape="full"
+            size="md"
+            icon="fa-trash-can"
+            tooltip="删除此知识库文件夹"
+            @click.stop="handleDeleteFolder(folder)"
+            class="text-gray-500 hover:text-red-500 text-sm"
+          />
         </div>
-        <Button
-          shape="full"
-          size="md"
-          icon="fa-trash-can"
-          tooltip="删除此知识库文件夹"
-          @click.stop="handleDeleteFolder(folder)"
-          class="text-gray-500 hover:text-red-500 text-sm"
-        />
       </div>
-    </div>
+    </DragDropZone>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { Button } from '../library/index.js';
+import DragDropZone from '../common/DragDropZone.vue';
 import { useFileStore } from '../../store/fileStore.js';
 
 // 初始化stores
@@ -50,8 +54,6 @@ defineProps({
   }
 });
 
-// 当前悬停的文件夹
-const draggingFolder = ref(null);
 // 选中的文件夹 - 从fileStore获取
 const selectedFolder = computed(() => fileStore.currentFolder);
 // 本地选中状态，用于即时视觉反馈
@@ -61,43 +63,13 @@ let clickTimer = null;
 // 上次点击的文件夹
 let _lastClickedFolder = null;
 
-// 处理文件夹拖拽悬停
-const handleFolderDragOver = (event, folder) => {
-  event.preventDefault();
-  event.stopPropagation();
-  draggingFolder.value = folder;
-};
-
-// 处理文件夹拖拽离开 - 优化以避免闪烁
-  const handleFolderDragLeave = (event) => {
-    // 获取当前鼠标位置
-    const rect = event.currentTarget.getBoundingClientRect();
-    // 使用requestAnimationFrame在下一帧检查鼠标位置
-    requestAnimationFrame(() => {
-      // 检查鼠标是否仍在文件夹元素的边界内
-      const mouseX = event.clientX;
-      const mouseY = event.clientY;
-      
-      // 如果鼠标仍然在文件夹元素的边界内，则不清除拖拽状态
-      if (mouseX >= rect.left && mouseX <= rect.right && mouseY >= rect.top && mouseY <= rect.bottom) {
-        return; // 鼠标仍在文件夹内，保持拖拽状态
-      }
-      
-      // 鼠标确实离开了文件夹区域
-      draggingFolder.value = null;
-    });
-  };
-  
-  // 处理文件夹拖拽放置
-  const handleFolderDrop = (event, folder) => {
-    draggingFolder.value = null;
-    const files = Array.from(event.dataTransfer.files);
-    
-    if (files && files.length > 0) {
+// 处理文件夹拖拽放置
+const handleFolderDrop = (files, folder) => {
+  if (files && files.length > 0) {
     // 直接调用fileStore方法批量上传文件到指定文件夹
     fileStore.batchUploadFiles(files, folder.id);
   }
-  };
+};
 
 // 处理文件夹点击事件
 const handleFolderClick = (folder) => {
@@ -211,11 +183,7 @@ onMounted(() => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-/* 拖拽上传样式 */
-.folder-item.border-primary {
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-  background-color: #eff6ff;
-}/* 文件夹头部样式 */
+/* 文件夹头部样式 */
 .folder-header {
   display: flex;
   align-items: center;

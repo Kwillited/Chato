@@ -14,12 +14,12 @@
     <!-- 拖拽提示区域 -->
     <div
       v-if="isDragOver"
-      class="absolute inset-0 flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-primary dark:border-blue-400 rounded-3xl opacity-100 pointer-events-none transition-all duration-300 z-20 animate-pulse"
-      :class="overlayClass"
+      class="absolute inset-0 flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-primary dark:border-blue-400 opacity-100 pointer-events-none transition-all duration-300 z-20 animate-pulse"
+      :class="[overlayClass, overlayRadius]"
     >
-      <i class="fa-solid fa-cloud-arrow-up text-primary dark:text-blue-400 text-4xl mb-2"></i>
-      <span class="text-primary dark:text-blue-400 font-medium">{{ overlayText || '释放文件以上传' }}</span>
-      <span class="text-sm text-gray-600 dark:text-gray-300 mt-1">{{ subText || '或点击上传按钮' }}</span>
+      <i class="fa-solid fa-cloud-arrow-up text-primary dark:text-blue-400" :class="iconClass"></i>
+      <span class="text-primary dark:text-blue-400 font-medium" :class="mainTextClass">{{ overlayText || '释放文件以上传' }}</span>
+      <span v-if="subText" class="text-gray-600 dark:text-gray-300" :class="subTextClass">{{ subText }}</span>
     </div>
   </div>
 </template>
@@ -38,6 +38,26 @@ defineProps({
   overlayClass: {
     type: String,
     default: ''
+  },
+  // 覆盖层圆角类名
+  overlayRadius: {
+    type: String,
+    default: 'rounded-3xl'
+  },
+  // 图标类名
+  iconClass: {
+    type: String,
+    default: 'text-4xl mb-2'
+  },
+  // 主文本类名
+  mainTextClass: {
+    type: String,
+    default: ''
+  },
+  // 次文本类名
+  subTextClass: {
+    type: String,
+    default: 'text-sm mt-1'
   },
   // 覆盖层主文本
   overlayText: {

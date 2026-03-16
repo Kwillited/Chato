@@ -47,7 +47,7 @@
                 class="h-6 w-6 flex items-center justify-center transition-colors hover:bg-gray-100 text-gray-500 dark:hover:bg-dark-700 dark:text-gray-300 rounded-full"
                 @click="handleMcpService"
               >
-                <i class="fa-solid fa-gear text-xs"></i>
+                <i class="fa-solid fa-screwdriver-wrench text-xs"></i>
               </button>
             </Tooltip>
           </div>
