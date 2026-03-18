@@ -10,10 +10,10 @@
       <div class="text-sm text-neutral mt-1">版本 v1.0.0</div>
     </div>
 
-    <div class="card p-6 mb-6 depth-1 hover:depth-2 transition-all duration-300">
+    <Card class="p-6 mb-6">
       <h4 class="font-medium mb-3">关于应用</h4>
       <p class="text-sm text-gray-700">Chato新生代全栈AI应用平台，满足你所想、符合你所需</p>
-    </div>
+    </Card>
 
     <div class="space-y-3">
       <button
@@ -53,5 +53,6 @@
 </template>
 
 <script setup>
+import { Card } from '../library/index.js';
 // 关于页面组件逻辑
 </script>

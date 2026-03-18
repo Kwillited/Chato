@@ -15,8 +15,7 @@ from .file_utils import FileUtils
 from .prompt_manager import prompt_manager, PromptManager
 from .message_builder import MessageBuilder
 
-# 回调管理器
-from .callback_manager import CallbackManager, register_callback, trigger_callback, get_callback_manager
+
 
 # 消息处理模块
 from .message import MessageSystem, AgentSystem
@@ -70,11 +69,7 @@ __all__ = [
     'PromptManager',
     'MessageBuilder',
     
-    # 回调管理器
-    'CallbackManager',
-    'register_callback',
-    'trigger_callback',
-    'get_callback_manager',
+
     
     # 消息处理模块
     'MessageSystem',

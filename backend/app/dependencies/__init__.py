@@ -99,11 +99,6 @@ def get_document_service():
     return service_container.get_service('document_service')
 
 
-def get_vector_service():
-    """获取向量服务实例"""
-    return service_container.get_service('vector_service')
-
-
 def get_message_service():
     """获取消息服务实例"""
     return service_container.get_service('message_service')

@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col md:flex-row gap-6 max-w-6xl mx-auto h-full">
-    <div class="card px-4 py-4 pb-0 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
+    <Card class="px-4 py-4 pb-0 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-medium">已配置模型</h4>
         <div class="relative w-40">
@@ -74,39 +74,20 @@
           </div>
         </template>
       </div>
-    </div>
+    </Card>
 
-    <div class="card px-4 py-4 pb-0 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col">
+    <Card class="px-4 py-4 pb-0 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
-        <div class="relative inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 shadow-sm">
-          <button 
-            @click="switchTab('inference')"
-            class="relative px-2 py-1 text-xs font-medium rounded-full transition-all duration-200 z-10"
-            :class="activeTab === 'inference' 
-              ? 'text-white font-medium' 
-              : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-            "
-          >
-            推理模型
-          </button>
-          <button 
-            @click="switchTab('vector')"
-            class="relative px-2 py-1 text-xs font-medium rounded-full transition-all duration-200 z-10"
-            :class="activeTab === 'vector' 
-              ? 'text-white font-medium' 
-              : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-            "
-          >
-            向量模型
-          </button>
-          <span 
-            class="absolute inset-0.5 bg-gray-800 dark:bg-gray-700 rounded-full transition-all duration-300 ease-in-out"
-            :style="{
-              transform: activeTab === 'inference' ? 'translateX(0)' : 'translateX(100%)',
-              width: '50%'
-            }"
-          ></span>
-        </div>
+        <TabSwitcher
+          :tabs="[
+            { id: 'inference', name: '推理模型' },
+            { id: 'vector', name: '向量模型' }
+          ]"
+          :active-tab="activeTab"
+          :border-radius="'8px'"
+          tab-class="px-2 py-1 text-xs"
+          @tab-change="switchTab"
+        />
         <div class="relative w-40">
           <input
             type="text"
@@ -183,7 +164,7 @@
           </div>
         </template>
       </div>
-    </div>
+    </Card>
 
     <!-- 默认模型设置已移至系统设置中的对话设置部分 -->
   </div>
@@ -226,6 +207,8 @@ import { showNotification } from '../../utils/notificationUtils.js';
 import ModelSettingsDrawer from '../models/ModelSettingsDrawer.vue';
 import EmbeddingModelSettingsDrawer from '../models/EmbeddingModelSettingsDrawer.vue';
 import ModelVersionForm from '../models/ModelVersionForm.vue';
+import TabSwitcher from '../common/TabSwitcher.vue';
+import { Card } from '../library/index.js';
 
 // 初始化store
 const settingsStore = useSettingsStore();

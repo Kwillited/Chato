@@ -5,6 +5,7 @@ from langchain_core.vectorstores import VectorStore
 from langchain_community.vectorstores import LanceDB
 import lancedb
 import os
+from lancedb.query import MatchQuery, PhraseQuery
 
 class LanceDBRepository(BaseRepository):
     """LanceDB向量数据库仓储类，封装所有向量数据库相关的操作"""
@@ -155,6 +156,17 @@ class LanceDBRepository(BaseRepository):
                 table_name=table_name,
                 mode=mode  # 设置模式，避免覆盖
             )
+            
+            # 如果是新建表，创建全文搜索索引
+            if not table_exists:
+                logger.info(f"🔍 为表 {table_name} 创建全文搜索索引")
+                # 直接从连接中获取表并创建索引
+                try:
+                    table = self.conn.open_table(table_name)
+                    table.create_fts_index("text", replace=True)
+                    logger.info(f"✅ 表 {table_name} 全文搜索索引创建成功")
+                except Exception as e:
+                    logger.warning(f"⚠️ 创建全文搜索索引时出错: {e}")
         except Exception as e:
             logger.error(f"❌ 向量存储初始化失败: {e}")
             raise
@@ -196,15 +208,13 @@ class LanceDBRepository(BaseRepository):
         
         return self
     
-    def search(self, query: str, k: int = 3, score_threshold: float = None, table_name: str = None, embedder_model: str = None) -> List[Any]:
-        """搜索相关文档 - 简化实现，直接调用 similarity_search_with_score
+    def similarity_search(self, query: str, k: int = 3, score_threshold: float = None) -> List[Any]:
+        """相似度搜索相关文档 - 调用 similarity_search_with_score
         
         Args:
             query: 查询文本
             k: 返回结果数量，默认3
             score_threshold: 相似度分数阈值，低于该阈值的结果将被过滤
-            table_name: 表名，如果提供则加载该表
-            embedder_model: 嵌入模型名称，如果未加载则使用
             
         Returns:
             List[Any]: 相关文档列表
@@ -212,12 +222,60 @@ class LanceDBRepository(BaseRepository):
         from app.core.logger import logger
         
         try:
-            logger.info(f"🔍 开始搜索，查询文本: {query[:50]}...")
-            logger.info(f"📋 搜索参数: k={k}, score_threshold={score_threshold}, table_name={table_name}")
+            logger.info(f"🔍 开始相似度搜索，查询文本: {query[:50]}...")
+            logger.info(f"📋 相似度搜索参数: k={k}, score_threshold={score_threshold}")
+            
+            # 直接调用 similarity_search_with_score 方法
+            logger.info("🔗 执行向量相似度搜索")
+            results = self._vector_store.similarity_search_with_score(query, k=k)
+            
+            logger.info(f"📊 搜索结果数量: {len(results)}")
+            
+            # 打印详细的搜索结果
+            for i, (doc, score) in enumerate(results):
+                logger.info(f"📋 相似度搜索结果 {i+1}: 分数={score:.4f}, 内容预览={doc.page_content[:50]}...")
+            
+            # 如果设置了分数阈值，过滤结果
+            if score_threshold is not None:
+                logger.info(f"🎯 应用分数阈值: {score_threshold}")
+                filtered_results = [(doc, score) for doc, score in results if score >= score_threshold]
+                logger.info(f"📊 过滤后结果数量: {len(filtered_results)}")
+                results = filtered_results
+            
+            # 只返回文档对象，不返回分数
+            docs = [doc for doc, score in results]
+            logger.info(f"✅ 相似度搜索完成，返回 {len(docs)} 个文档")
+            return docs
+        except Exception as e:
+            logger.error(f"❌ 相似度搜索失败: {e}")
+            raise e
+    
+    def search(self, query: str, search_type: str = "similarity", k: int = 3, score_threshold: float = None, table_name: str = None, embedder_model: str = None, case_sensitive: bool = False) -> List[Any]:
+        """搜索相关文档 - 根据 search_type 选择搜索方式
+        
+        Args:
+            query: 查询文本
+            search_type: 搜索类型，"similarity" 表示相似度搜索，"keyword" 表示关键词搜索，默认 "similarity"
+            k: 返回结果数量，默认3
+            score_threshold: 相似度分数阈值，仅在 similarity 搜索时使用
+            table_name: 表名，如果提供则加载该表
+            embedder_model: 嵌入模型名称，如果未加载则使用
+            case_sensitive: 是否区分大小写，仅在 keyword 搜索时使用，默认 False
+            
+        Returns:
+            List[Any]: 相关文档列表
+        """
+        from app.core.logger import logger
+        
+        try:
+            search_type = search_type.lower()
+            
+            # 统一的初始化逻辑
+            logger.info(f"📋 搜索参数: search_type={search_type}, k={k}, score_threshold={score_threshold}, table_name={table_name}, case_sensitive={case_sensitive}")
             
             # 如果提供了表名，加载指定的表
             if table_name:
-                logger.info(f"📁 准备加载表: {table_name}")
+                logger.info(f"� 准备加载表: {table_name}")
                 # 加载嵌入模型
                 if not self.embedding:
                     logger.info(f"🤖 加载嵌入模型: {embedder_model or '默认模型'}")
@@ -238,29 +296,105 @@ class LanceDBRepository(BaseRepository):
                 except Exception as e:
                     logger.warning(f"⚠️  无法获取向量数量: {e}")
             
-            # 直接调用 similarity_search_with_score 方法
-            logger.info("🔗 执行向量相似度搜索")
-            results = self._vector_store.similarity_search_with_score(query, k=k)
-            
-            logger.info(f"📊 搜索结果数量: {len(results)}")
-            
-            # 打印详细的搜索结果
-            for i, (doc, score) in enumerate(results):
-                logger.info(f"📋 搜索结果 {i+1}: 分数={score:.4f}, 内容预览={doc.page_content[:50]}...")
-            
-            # 如果设置了分数阈值，过滤结果
-            if score_threshold is not None:
-                logger.info(f"🎯 应用分数阈值: {score_threshold}")
-                filtered_results = [(doc, score) for doc, score in results if score >= score_threshold]
-                logger.info(f"📊 过滤后结果数量: {len(filtered_results)}")
-                results = filtered_results
-            
-            # 只返回文档对象，不返回分数
-            docs = [doc for doc, score in results]
-            logger.info(f"✅ 搜索完成，返回 {len(docs)} 个文档")
-            return docs
+            # 根据搜索类型调用对应的方法
+            if search_type == "similarity":
+                logger.info("� 使用相似度搜索方式")
+                return self.similarity_search(
+                    query=query,
+                    k=k,
+                    score_threshold=score_threshold
+                )
+            elif search_type == "keyword":
+                logger.info("🔑 使用关键词搜索方式")
+                return self.keyword_search(
+                    query=query,
+                    k=k,
+                    case_sensitive=case_sensitive
+                )
+            else:
+                raise ValueError(f"不支持的搜索类型: {search_type}，支持的类型有 'similarity' 和 'keyword'")
         except Exception as e:
             logger.error(f"❌ 搜索失败: {e}")
+            raise e
+    
+    def keyword_search(self, query: str, k: int = 10, case_sensitive: bool = False) -> Dict[str, List[Any]]:
+        """关键词搜索文档 - 使用LanceDB的查询API实现多种搜索方式
+        
+        Args:
+            query: 查询关键词
+            k: 返回结果数量，默认10
+            case_sensitive: 是否区分大小写，默认False
+            
+        Returns:
+            Dict[str, List[Any]]: 包含三种搜索结果的字典
+                - exact_match: 精确匹配结果
+                - fuzzy_match: 模糊匹配结果
+                - phrase_match: 短语匹配结果
+        """
+        from app.core.logger import logger
+        
+        try:
+            logger.info(f"🔑 开始关键词搜索，查询关键词: {query}")
+            logger.info(f"📋 关键词搜索参数: k={k}, case_sensitive={case_sensitive}")
+            
+            if not hasattr(self._vector_store, "table"):
+                logger.error("❌ 向量存储表不存在")
+                raise ValueError("向量存储表不存在")
+            
+            table = self._vector_store.table
+            
+            # 辅助函数：将DataFrame转换为Document对象列表
+            def convert_to_docs(df):
+                docs = []
+                from langchain_core.documents import Document
+                for _, row in df.iterrows():
+                    content = row.get('text', '') or row.get('page_content', '')
+                    doc = Document(
+                        page_content=content,
+                        metadata={k: v for k, v in row.items() if k not in ['text', 'page_content', 'vector']}
+                    )
+                    docs.append(doc)
+                return docs
+            
+            # 1. 精确匹配查询
+            logger.info("🔍 执行精确匹配查询")
+            exact_query = MatchQuery(query, "text")
+            exact_results = table.search(exact_query).limit(k).to_pandas()
+            exact_docs = convert_to_docs(exact_results)
+            logger.info(f"✅ 精确匹配找到 {len(exact_docs)} 个文档")
+            
+            # 2. 模糊匹配（允许拼写错误）
+            logger.info("🔍 执行模糊匹配查询")
+            fuzzy_query = MatchQuery(query, "text", fuzziness=2)  # 允许2个字符的编辑距离
+            fuzzy_results = table.search(fuzzy_query).limit(k).to_pandas()
+            fuzzy_docs = convert_to_docs(fuzzy_results)
+            logger.info(f"✅ 模糊匹配找到 {len(fuzzy_docs)} 个文档")
+            
+            # 3. 短语查询
+            logger.info("🔍 执行短语匹配查询")
+            phrase_query = PhraseQuery(query, "text")
+            phrase_results = table.search(phrase_query).limit(k).to_pandas()
+            phrase_docs = convert_to_docs(phrase_results)
+            logger.info(f"✅ 短语匹配找到 {len(phrase_docs)} 个文档")
+            
+            # 打印详细的搜索结果
+            for i, doc in enumerate(exact_docs):
+                logger.info(f"📋 精确匹配结果 {i+1}: 内容预览={doc.page_content[:50]}...")
+            
+            for i, doc in enumerate(fuzzy_docs):
+                logger.info(f"📋 模糊匹配结果 {i+1}: 内容预览={doc.page_content[:50]}...")
+            
+            for i, doc in enumerate(phrase_docs):
+                logger.info(f"📋 短语匹配结果 {i+1}: 内容预览={doc.page_content[:50]}...")
+            
+            logger.info("✅ 关键词搜索完成，返回三种搜索结果")
+            return {
+                "exact_match": exact_docs,
+                "fuzzy_match": fuzzy_docs,
+                "phrase_match": phrase_docs
+            }
+        except Exception as e:
+            logger.error(f"❌ 关键词搜索失败: {e}")
             raise e
     
     def clear_vector_store(self) -> bool:

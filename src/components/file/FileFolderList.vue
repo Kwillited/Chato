@@ -12,11 +12,11 @@
       @drop="(files) => handleFolderDrop(files, folder)"
     >
       <div
-        class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-500 transition-all duration-300"
+        class="folder-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mb-2 cursor-pointer hover:border-gray-400 dark:hover:border-gray-400 transition-all duration-300 bg-white dark:bg-gray-800"
         @dblclick="handleFolderDoubleClick(folder)"
         @click="handleFolderClick(folder)"
         :class="{
-          'bg-gray-300 dark:bg-dark-400 border-gray-500 dark:border-gray-200': (localSelectedFolder ? localSelectedFolder.id === folder.id : selectedFolder && selectedFolder.id === folder.id)
+          'bg-gray-300 dark:bg-gray-700 border-gray-500 dark:border-gray-500': (localSelectedFolder ? localSelectedFolder.id === folder.id : selectedFolder && selectedFolder.id === folder.id)
         }"
       >
         <div class="folder-header flex items-center justify-between">

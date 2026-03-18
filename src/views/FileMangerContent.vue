@@ -75,7 +75,7 @@
         <!-- 网格视图 -->
         <div v-if="settingsStore.systemSettings.viewMode === 'grid'" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           <div v-for="file in filteredFiles" :key="file.id || file.path" 
-               class="bg-transparent dark:bg-transparent rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow p-3 cursor-pointer flex flex-col items-center justify-center h-40 relative">
+               class="bg-transparent dark:bg-transparent rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow p-3 cursor-pointer flex flex-col items-center justify-center h-40 relative group">
             <!-- 文件图标 -->
             <div class="text-primary text-4xl mb-2">
               <i v-if="file.type === 'pdf'" class="fa-solid fa-file-pdf"></i>
@@ -90,8 +90,24 @@
             <div class="text-sm font-medium text-center truncate w-full" :title="file.name">{{ file.name }}</div>
             <!-- 文件大小 -->
             <div class="text-xs text-gray-500 mt-1">{{ formatFileSize(file.size) }}</div>
-            <!-- 操作按钮 -->
-            <div class="absolute top-2 right-2 opacity-0 hover:opacity-100 transition-opacity">
+            <!-- 底部操作按钮 -->
+            <div class="flex space-x-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button 
+                shape="full"
+                size="sm"
+                icon="fa-info-circle" 
+                tooltip="属性" 
+                @click.stop="handleFileProperties(file)"
+                class="text-gray-500 hover:text-blue-500 w-6 h-6 p-1"
+              />
+              <Button 
+                shape="full"
+                size="sm"
+                icon="fa-eye" 
+                tooltip="预览" 
+                @click.stop="handlePreviewFile(file)"
+                class="text-gray-500 hover:text-green-500 w-6 h-6 p-1"
+              />
               <Button 
                 shape="full"
                 size="sm"
@@ -192,13 +208,7 @@
     @cancel="showDeleteModal = false"
   />
   
-  <!-- 文件夹信息模态框 -->
-  <FolderInfoModal
-    :visible="showFolderInfoModal"
-    :title="`文件夹信息 - ${folderInfoData?.name || ''}`"
-    :folder-info="folderInfoData"
-    @close="showFolderInfoModal = false"
-  />
+
 </template>
 
 <script setup>
@@ -227,7 +237,6 @@ const KnowledgeGraphVisualization = defineAsyncComponent({
 });
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
-import FolderInfoModal from '../components/file/FolderInfoModal.vue';
 import { useNotification } from '../composables/useNotification.js';
 
 // 初始化stores
@@ -265,8 +274,6 @@ const folders = ref([]);
 const isSliderActive = ref(true);
 const showDeleteModal = ref(false); // 确认删除模态框显示状态
 const fileIdToDelete = ref(null); // 要删除的文件ID
-const showFolderInfoModal = ref(false); // 文件夹信息模态框显示状态
-const folderInfoData = ref(null); // 文件夹信息数据
 
 // 初始化时加载文件夹
 const loadFolders = async () => {
@@ -520,30 +527,34 @@ const handleDeleteConfirm = async () => {
   }
 };
 
-// 处理文件夹信息
-const handleFileProperties = async () => {
+// 处理文件或文件夹属性
+const handleFileProperties = async (item) => {
   try {
-    if (!selectedFolder.value) {
-      showError('请先选择一个文件夹');
-      return;
-    }
+    // 显示右侧面板
+    uiStore.setRightPanelVisible(true);
     
-    // 调用fileStore获取文件夹详细信息
-    const folderInfo = await fileStore.getFolderInfo(selectedFolder.value.id);
-    
-    if (folderInfo) {
-      // 显示文件夹详细信息
-      console.log('文件夹详细信息:', folderInfo);
-      // 设置文件夹信息数据
-      folderInfoData.value = folderInfo;
-      // 显示模态框
-      showFolderInfoModal.value = true;
+    if (item.type) {
+      // 如果是文件，触发事件通知右侧面板显示文件属性
+      eventBus.emit('showFileProperties', item);
     } else {
-      showError('获取文件夹信息失败');
+      // 如果是文件夹，触发事件通知右侧面板显示文件夹属性
+      eventBus.emit('showFolderProperties', item);
     }
   } catch (error) {
-    console.error('获取文件夹信息失败:', error);
-    showError(`获取文件夹信息失败: ${error.message || String(error)}`);
+    console.error('处理属性失败:', error);
+    showError(`处理属性失败: ${error.message || String(error)}`);
+  }
+};
+
+// 处理文件预览
+const handlePreviewFile = async (file) => {
+  try {
+    console.log('预览文件:', file);
+    // 这里可以添加文件预览的逻辑
+    showSuccess(`正在预览文件: ${file.name}`);
+  } catch (error) {
+    console.error('预览文件失败:', error);
+    showError(`预览文件失败: ${error.message || String(error)}`);
   }
 };
 

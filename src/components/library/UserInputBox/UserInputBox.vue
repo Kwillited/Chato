@@ -4,7 +4,7 @@
   <div id="UserInputBox" class="border-t-0 pb-4 px-6 transition-colors duration-300 ease-in-out" :class="{ 'pt-4': activeView !== 'chat' }">
     <div class="relative w-full max-w-4xl mx-auto">
       <DragDropZone @drop="handleDrop">
-        <div class="bg-white dark:bg-dark-700 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md focus-within:shadow-md transition-all duration-300 ease-in-out relative">
+        <Card darkComet class="rounded-3xl hover:shadow-md focus-within:shadow-md transition-all duration-300 ease-in-out relative">
         <!-- 智能体选择和MCP工具 - 合并到卡片内部 -->
         <div class="px-3 py-1.5 border-b border-gray-200 flex items-center gap-2">
           <div class="flex items-center gap-2">
@@ -12,7 +12,7 @@
             <div class="relative inline-block">
               <Tooltip content="选择智能体">
                 <button
-                  class="h-6 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-dark-700 px-3 rounded-lg transition-all duration-300 ease-in-out hover:bg-gray-100 dark:hover:bg-dark-600 hover:text-primary cursor-pointer btn-secondary"
+                  class="h-6 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-3 rounded-lg border border-transparent dark:border-gray-600 transition-all duration-300 ease-in-out hover:bg-gray-100 dark:hover:bg-dark-600 hover:text-primary cursor-pointer btn-secondary"
                   @click="toggleAgentDropdown"
                 >
 
@@ -22,7 +22,7 @@
               </Tooltip>
               <div
                 ref="agentDropdown"
-                class="absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-dark-700 z-50 rounded-lg border border-gray-200 dark:border-gray-700 shadow-md"
+                class="absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-700 z-50 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md"
                 :class="{ 'hidden': !showAgentDropdown }"
                 style="z-index: 1000 !important"
               >
@@ -44,7 +44,7 @@
             <!-- MCP工具按钮 -->
             <Tooltip content="MCP工具">
               <button
-                class="h-6 w-6 flex items-center justify-center transition-colors hover:bg-gray-100 text-gray-500 dark:hover:bg-dark-700 dark:text-gray-300 rounded-full"
+                class="h-6 w-6 flex items-center justify-center transition-colors hover:bg-gray-100 text-gray-500 dark:hover:bg-gray-700 dark:text-gray-300 rounded-full"
                 @click="handleMcpService"
               >
                 <i class="fa-solid fa-screwdriver-wrench text-xs"></i>
@@ -64,7 +64,7 @@
             />
             
             <!-- 分隔栏 -->
-            <div class="h-4 w-px bg-gray-200 dark:bg-dark-700 mx-0.5"></div>
+            <div class="h-4 w-px bg-gray-200 dark:bg-gray-600 mx-0.5"></div>
             
             <!-- 主题切换按钮 -->
             <Button 
@@ -96,7 +96,7 @@
               <!-- 用户功能下拉菜单 -->
               <div 
                 v-if="showUserMenu"
-                class="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-14 rounded-lg shadow-lg border z-50 dropdown-content flex flex-col items-center py-2 bg-white border-gray-200 dark:bg-dark-800 dark:border-dark-700"
+                class="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-14 rounded-lg shadow-lg border z-50 dropdown-content flex flex-col items-center py-2 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-600"
               >
                 <Button 
                   icon="fa-exchange"
@@ -132,7 +132,7 @@
         
         <!-- 可上滑展开的参数设置区域 -->
         <transition name="slide-up">
-          <div v-if="showParamsPanel" class="border-b border-gray-200 overflow-hidden transition-all duration-300 ease-in-out">
+          <div v-if="showParamsPanel" class="border-b border-gray-200 dark:border-gray-600 overflow-hidden transition-all duration-300 ease-in-out">
             <div class="px-3 py-3 flex items-center gap-3">
               <!-- 左换页按钮 -->
               <button
@@ -157,7 +157,7 @@
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'temperature'"
-                          class="absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs transition-opacity duration-200"
+                          class="absolute z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-500 rounded-lg shadow-lg p-3 text-sm max-w-xs transition-opacity duration-200"
                           :style="tooltipStyle"
                         >
                           <div class="font-medium mb-1 dark:text-white">温度参数说明</div>
@@ -195,7 +195,7 @@
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'topP'"
-                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
                           :style="tooltipStyle"
                         >
                           <div class="font-medium mb-1 dark:text-white">Top-p参数说明</div>
@@ -232,7 +232,7 @@
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'topK'"
-                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
                           :style="tooltipStyle"
                         >
                           <div class="font-medium mb-1 dark:text-white">Top-k参数说明</div>
@@ -269,7 +269,7 @@
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'maxLength'"
-                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
                           :style="tooltipStyle"
                         >
                           <div class="font-medium mb-1 dark:text-white">最大长度参数说明</div>
@@ -309,7 +309,7 @@
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'threshold'"
-                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
                           :style="tooltipStyle"
                         >
                           <div class="font-medium mb-1 dark:text-white">检索相关性阈值说明</div>
@@ -346,7 +346,7 @@
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'topK'"
-                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
                           :style="tooltipStyle"
                         >
                           <div class="font-medium mb-1 dark:text-white">检索文档数量说明</div>
@@ -383,7 +383,7 @@
                         <!-- 悬停提示弹窗 -->
                         <div
                           v-if="activeTooltip === 'retrievalMode'"
-                          class="click-tooltip absolute z-50 bg-white dark:bg-dark-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
+                          class="click-tooltip absolute z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 text-sm max-w-xs animate-fade-in"
                           :style="tooltipStyle"
                         >
                           <div class="font-medium mb-1 dark:text-white">检索模式说明</div>
@@ -432,13 +432,13 @@
         
         <div
           v-if="uploadedFiles.length > 0"
-          class="flex flex-wrap gap-2 p-2 border-b border-gray-200 pb-3"
+          class="flex flex-wrap gap-2 p-2 border-b border-gray-200 dark:border-gray-600 pb-3"
         >
           <!-- 显示已上传的文件 -->
           <div
             v-for="(file, index) in uploadedFiles"
             :key="index"
-            class="flex items-center justify-between p-3 bg-gray-50 dark:bg-dark-600 rounded-lg text-xs group transition-colors duration-300 ease-in-out min-w-[120px] max-w-[180px] flex-1"
+            class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-600 rounded-lg text-xs group transition-colors duration-300 ease-in-out min-w-[120px] max-w-[180px] flex-1 border border-transparent dark:border-gray-500"
           >
             <div class="flex items-start gap-2 truncate max-w-[80px]">
               <i :class="['fa', getFileIcon(file.name), 'text-gray-500 mt-0 text-xl']"></i>
@@ -468,7 +468,7 @@
         <!-- 拖拽提示区域 - 移动到外层，覆盖整个卡片容器 -->
         <div
           v-if="isDragOver"
-          class="absolute inset-0 flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-primary dark:border-blue-400 rounded-3xl opacity-100 pointer-events-none transition-all duration-300 z-20 animate-pulse"
+          class="absolute inset-0 flex flex-col items-center justify-center bg-blue-50 dark:bg-blue-900/20 border-2 border-dashed border-primary dark:border-blue-400 rounded-[20px] opacity-100 pointer-events-none transition-all duration-300 z-20 animate-pulse"
         >
           <i class="fa-solid fa-cloud-arrow-up text-primary dark:text-blue-400 text-4xl mb-2"></i>
           <span class="text-primary dark:text-blue-400 font-medium">释放文件以上传</span>
@@ -547,13 +547,13 @@
                   }"
                 @click="toggleAgent"
               >
-                <i class="fa-solid fa-gear"></i>
+                <i class="fa-solid fa-cogs"></i>
               </button>
             </Tooltip>
             <div class="relative">
               <Tooltip :content="availableModels.length > 1 ? '选择AI模型' : '只有一个可用模型'">
                 <button
-                  class="h-8 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-dark-700 px-3 rounded-lg transition-all duration-300 ease-in-out"
+                  class="h-8 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-3 rounded-lg border border-transparent dark:border-gray-600 transition-all duration-300 ease-in-out"
                   :class="{
                     'btn-secondary hover:bg-gray-100 dark:hover:bg-dark-600 hover:text-primary cursor-pointer': availableModels.length > 1,
                     'cursor-default opacity-70': availableModels.length <= 1
@@ -566,7 +566,7 @@
               </Tooltip>
               <div
                 ref="modelDropdown"
-                class="dropdown absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-dark-700 z-50 shadow-lg rounded-lg border border-gray-200 dark:border-gray-700 animate-fade-in"
+                class="dropdown absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-700 z-50 shadow-lg rounded-lg border border-gray-200 dark:border-gray-600 animate-fade-in"
                 :class="{ 'hidden': !showModelDropdown }"
                 style="z-index: 1000 !important"
               >
@@ -602,7 +602,7 @@
             </button>
           </Tooltip>
         </div>
-      </div>
+      </Card>
       </DragDropZone>
       <div v-if="showShortcutHint" class="text-center text-xs text-gray-400 dark:text-gray-500 mt-[18px] transition-opacity duration-300">
         按Shift+Enter换行，Enter发送
@@ -623,7 +623,7 @@ import { useModelUtils } from '../../../composables/useModelUtils.js';
 // 使用通知组合式函数
 const { showSuccess, showError } = useNotification();
 import DragDropZone from '../../common/DragDropZone.vue';
-import { Button } from '../../../components/library/index.js';
+import { Button, Card } from '../../../components/library/index.js';
 
 // 接收从父组件传递的视图状态
 const _props = defineProps({
@@ -1316,7 +1316,7 @@ const getFileIcon = (fileName) => {
 
 /* 深色模式滑块样式 */
 .dark .slider {
-  background: #374151;
+  background: #4b5563;
 }
 
 .dark .slider:hover {
@@ -1324,25 +1324,25 @@ const getFileIcon = (fileName) => {
 }
 
 .dark .slider::-webkit-slider-thumb {
-  background: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+  background: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.2);
 }
 
 .dark .slider::-webkit-slider-thumb:hover {
-  background: #3b82f6;
+  background: #60a5fa;
   transform: scale(1.2);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
 }
 
 .dark .slider::-moz-range-thumb {
-  background: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+  background: #93c5fd;
+  box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.2);
 }
 
 .dark .slider::-moz-range-thumb:hover {
-  background: #3b82f6;
+  background: #60a5fa;
   transform: scale(1.2);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
 }
 
 /* 淡入动画 */

@@ -76,39 +76,53 @@ class MCPService(BaseService):
 
     def get_mcp_tools(self):
         """获取MCP工具列表"""
-        tools = self.mcp_client_manager.get_tools()
-        # 转换工具格式，提取必要的信息
-        tool_list = []
-        for i, tool in enumerate(tools):
-            try:
-                tool_info = {
-                    "id": i + 1,
-                    "name": getattr(tool, 'name', f"Tool {i + 1}"),
-                    "description": getattr(tool, 'description', "No description available"),
-                    "type": "custom"
-                }
-                tool_list.append(tool_info)
-            except Exception as e:
-                self.logger.error(f"解析工具信息失败: {e}")
-        return tool_list
+        try:
+            # 获取MCP配置
+            config = self.get_mcp_config()
+            # 调用客户端管理器获取工具列表，传递配置
+            tools = self.mcp_client_manager.get_tools(config)
+            # 转换工具格式，提取必要的信息
+            tool_list = []
+            for i, tool in enumerate(tools):
+                try:
+                    tool_info = {
+                        "id": i + 1,
+                        "name": getattr(tool, 'name', f"Tool {i + 1}"),
+                        "description": getattr(tool, 'description', "No description available"),
+                        "type": "custom"
+                    }
+                    tool_list.append(tool_info)
+                except Exception as e:
+                    self.logger.error(f"解析工具信息失败: {e}")
+            return tool_list
+        except Exception as e:
+            self.logger.error(f"获取MCP工具列表失败: {e}")
+            return []
     
     async def get_mcp_tools_by_server(self, server_name: str):
         """根据服务器名称获取MCP工具列表"""
-        tools = await self.mcp_client_manager.get_tools_by_server(server_name)
-        # 转换工具格式，提取必要的信息
-        tool_list = []
-        for i, tool in enumerate(tools):
-            try:
-                tool_info = {
-                    "id": i + 1,
-                    "name": getattr(tool, 'name', f"Tool {i + 1}"),
-                    "description": getattr(tool, 'description', "No description available"),
-                    "type": "custom"
-                }
-                tool_list.append(tool_info)
-            except Exception as e:
-                self.logger.error(f"解析工具信息失败: {e}")
-        return tool_list
+        try:
+            # 获取MCP配置
+            config = self.get_mcp_config()
+            # 调用客户端管理器获取工具列表，传递配置
+            tools = await self.mcp_client_manager.get_tools_by_server(server_name, config)
+            # 转换工具格式，提取必要的信息
+            tool_list = []
+            for i, tool in enumerate(tools):
+                try:
+                    tool_info = {
+                        "id": i + 1,
+                        "name": getattr(tool, 'name', f"Tool {i + 1}"),
+                        "description": getattr(tool, 'description', "No description available"),
+                        "type": "custom"
+                    }
+                    tool_list.append(tool_info)
+                except Exception as e:
+                    self.logger.error(f"解析工具信息失败: {e}")
+            return tool_list
+        except Exception as e:
+            self.logger.error(f"获取MCP工具列表失败: {e}")
+            return []
 
     def get_mcp_servers(self):
         """获取MCP服务器列表"""

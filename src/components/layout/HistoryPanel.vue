@@ -38,8 +38,8 @@
               <div
                 v-for="chat in group.chats"
                 :key="chat.id"
-                class="p-2 rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:bg-gray-200 dark:hover:bg-dark-500 hover:shadow-md min-h-9 flex items-center relative focus-within:outline-2 focus-within:outline-gray-400 dark:focus-within:outline-gray-500 focus-within:outline-offset-2"
-                :class="{ 'font-semibold bg-gray-300 dark:bg-dark-400': isActiveChat(chat.id), pinned: chat.pinned }"
+                class="p-2 rounded-lg cursor-pointer transition-all duration-300 ease-in-out hover:border hover:border-gray-400 dark:hover:border-gray-500 hover:shadow-md min-h-9 flex items-center relative focus-within:outline-2 focus-within:outline-gray-400 dark:focus-within:outline-gray-500 focus-within:outline-offset-2 border border-transparent"
+                :class="{ 'font-semibold bg-gray-300 dark:bg-gray-700': isActiveChat(chat.id), pinned: chat.pinned }"
                 @click="handleChatSelect(chat.id)"
               >
                 <div class="flex items-center w-full">

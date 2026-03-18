@@ -7,55 +7,55 @@
       <SearchBar v-model="searchQuery" placeholder="搜索服务器..." />
     </div>
 
-    <div class="overflow-y-auto overflow-x-hidden flex-grow scrollbar-thin">
-      <div class="p-2 space-y-4">
-        <!-- 服务器分类标题 -->
-        <div class="tool-category">
-          <h3 class="text-xs font-medium text-gray-500 mb-2 px-2">MCP 服务器</h3>
-          
-          <!-- 加载状态：使用骨架屏提升体验 -->
-          <SkeletonLoader v-if="isLoading" type="tools" :count="3" />
+    <div class="folder-container p-2">
+      <!-- 服务器分类标题 -->
+      <h3 v-if="filteredTools.length > 0" class="text-sm font-medium text-gray-700 dark:text-white mt-2 mb-2 px-2">MCP 服务器 ({{ filteredTools.length }})</h3>
+    </div>
+    
+    <div class="overflow-y-auto flex-1 scrollbar-thin">
+      <div class="folder-container px-2 py-0">
+        <!-- 加载状态：使用骨架屏提升体验 -->
+        <SkeletonLoader v-if="isLoading" type="tools" :count="3" />
 
-          <!-- 过滤后的工具列表 -->
-          <div v-else-if="filteredTools.length > 0">
-            <div v-for="tool in filteredTools" :key="tool.id" class="tool-item p-3 rounded-lg bg-white border border-gray-100 dark:bg-dark-700 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all duration-300 relative" @click="handleToolClick(tool)">
-              <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                  <div class="flex items-center space-x-3">
-                    <div :class="getToolIconClass(tool.type)" class="w-8 h-8 rounded-full flex items-center justify-center">
-                      <i :class="getToolIcon(tool.type)"></i>
-                    </div>
-                    <div>
-                      <p class="font-medium text-sm">{{ tool.name }}</p>
-                      <p class="text-xs text-gray-500">{{ tool.description }}</p>
-                    </div>
+        <!-- 过滤后的工具列表 -->
+        <div v-else-if="filteredTools.length > 0">
+          <div v-for="tool in filteredTools" :key="tool.id" :class="['tool-item border rounded-lg p-3 mb-2 cursor-pointer transition-all duration-300', selectedTool && selectedTool.id === tool.id ? 'border-gray-500 dark:border-gray-500 bg-gray-300 dark:bg-gray-700' : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:border-gray-400 dark:hover:border-gray-400']" @click="handleToolClick(tool)">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <div class="flex items-center space-x-3">
+                  <div :class="getToolIconClass(tool.type)" class="w-8 h-8 rounded-full flex items-center justify-center">
+                    <i :class="getToolIcon(tool.type)"></i>
+                  </div>
+                  <div>
+                    <p class="font-medium text-sm">{{ tool.name }}</p>
+                    <p class="text-xs text-gray-500">{{ tool.description }}</p>
                   </div>
                 </div>
-                <Button 
-                  shape="full"
-                  size="icon"
-                  variant="secondary"
-                  class="text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                  @click.stop="handleDeleteTool(tool.id)"
-                  icon="fa-trash"
-                  tooltip="删除此工具"
-                />
               </div>
+              <Button 
+                shape="full"
+                size="icon"
+                variant="secondary"
+                class="text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                @click.stop="handleDeleteTool(tool.id)"
+                icon="fa-trash"
+                tooltip="删除此工具"
+              />
             </div>
           </div>
-          <div v-else class="text-center p-4">
-            <p class="text-xs text-gray-400 mb-3">没有找到匹配的工具</p>
-            <Button 
-              size="sm"
-              variant="dark"
-              class="px-4 py-1.5"
-              @click="enterMcpManagement"
-              tooltip="进入MCP管理页面"
-              icon="fa-tools"
-            >
-              进入MCP管理
-            </Button>
-          </div>
+        </div>
+        <div v-else class="text-center p-4">
+          <p class="text-xs text-gray-400 mb-3">没有找到匹配的工具</p>
+          <Button 
+            size="sm"
+            variant="dark"
+            class="px-4 py-1.5"
+            @click="enterMcpManagement"
+            tooltip="进入MCP管理页面"
+            icon="fa-tools"
+          >
+            进入MCP管理
+          </Button>
         </div>
       </div>
     </div>
@@ -106,6 +106,8 @@ const isDeletingTool = ref(false);
 const tools = ref([]);
 // 加载状态
 const isLoading = ref(false);
+// 选中的工具
+const selectedTool = ref(null);
 
 // 使用搜索组合式函数
 const { searchQuery, filteredTools } = useSearch({
@@ -266,6 +268,8 @@ const getToolIcon = (toolType) => {
 
 // 处理工具点击事件
 const handleToolClick = (tool) => {
+  // 更新选中的工具
+  selectedTool.value = tool;
   // 切换到MCP管理视图并传递服务器名称
   navigateToMcpManagement(tool.name);
   console.log('切换到MCP管理视图，服务器:', tool.name);

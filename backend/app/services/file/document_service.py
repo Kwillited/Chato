@@ -7,7 +7,6 @@ import uuid
 from app.core.config import config_manager
 from app.services.base_service import BaseService
 from app.utils.path_manager import PathManager
-from app.services.vector.vector_service import VectorService
 from app.core.service_container import service_container
 from app.utils.rag.document_loader import DocumentLoader
 from app.utils.rag.text_splitter import TextSplitter
@@ -21,32 +20,17 @@ DATA_DIR = PathManager.get_data_dir()
 class DocumentService(BaseService):
     """文档管理服务类 - 封装所有与文档文件系统相关的操作"""
     
-    def __init__(self, data_service, vector_service):
+    def __init__(self, data_service):
         """初始化文档管理服务
         
         Args:
             data_service: 数据服务实例，用于依赖注入
-            vector_service: 向量服务实例，用于依赖注入
         """
         self.data_service = data_service
-        self.vector_service = vector_service
     
     def _cleanup_vector_services(self):
         """清理向量服务连接和实例"""
         try:
-            # 清除 data_service 中的向量服务实例
-            try:
-                data_service = service_container.get_service('data_service')
-                if hasattr(data_service, 'vector_services'):
-                    # 清除向量服务实例缓存
-                    data_service.vector_services = {}
-            except Exception as e:
-                self.log_warning(f"清除 data_service 中的向量服务实例失败: {e}")
-            
-            # 清除向量服务实例缓存
-            if hasattr(VectorService, '_instance'):
-                VectorService._instance = None
-            
             self.log_info("✅ 向量服务连接已释放")
             return True
         except Exception as e:
@@ -483,15 +467,17 @@ class DocumentService(BaseService):
         # 转换为前端需要的格式
         files = []
         for doc in db_documents:
-            # 从文件系统获取文件大小和修改时间
-            file_size = os.path.getsize(doc.path) if os.path.exists(doc.path) else 0
+            # 使用数据库中存储的文件大小，更可靠
+            file_size = doc.size if hasattr(doc, 'size') and doc.size else 0
+            # 从文件系统获取修改时间
             modified_at = os.path.getmtime(doc.path) if os.path.exists(doc.path) else 0
             
             files.append({
                 'name': doc.name,
                 'path': doc.path,
                 'size': file_size,
-                'modified_at': modified_at
+                'modified_at': modified_at,
+                'uploaded_at': doc.uploaded_at  # 使用uploaded_at字段，与前端保持一致
             })
         return files
     
@@ -656,6 +642,6 @@ class DocumentService(BaseService):
     
     def search_file_content(self, query):
         """搜索文件内容"""
-        # 使用VectorService的search_documents方法实现搜索
-        return self.vector_service.search_documents(query)
+        # 使用data_service的search_vectors方法实现搜索
+        return self.data_service.search_vectors(query)
 

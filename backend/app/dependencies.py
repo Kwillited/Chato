@@ -40,8 +40,3 @@ def get_mcp_service():
 def get_setting_service():
     """获取设置服务实例"""
     return service_container.get_service('setting_service')
-
-
-def get_vector_service():
-    """获取向量服务实例"""
-    return service_container.get_service('vector_service')

@@ -94,20 +94,9 @@ h2, h3 {
   border-color: #374151;
 }
 
-/* 卡片深色模式样式 */
-.dark .card {
-  background-color: var(--tw-dark-800, #1E293B);
-  color: white;
-}
 
-/* 卡片阴影深色模式样式 */
-.dark .depth-1 {
-  box-shadow: var(--tw-shadow-card-dark, 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.25));
-}
 
-.dark .hover\:depth-2:hover {
-  box-shadow: var(--tw-shadow-dropdown-dark, 0 10px 25px rgba(0, 0, 0, 0.2), 0 6px 10px rgba(0, 0, 0, 0.15));
-}
+
 
 /* 头像边框深色模式样式 */
 .dark .border-white {
@@ -689,24 +678,7 @@ input:checked + .toggle-slider:before {
   line-height: 1.5;
 }
 
-/* 新增的模块化和立体感样式 */
-.card {
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.05),
-    0 1px 3px rgba(0, 0, 0, 0.1);
-  transition:
-    box-shadow 0.3s ease,
-    border-color 0.3s ease;
-}
-.card:hover {
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.07),
-    0 4px 10px rgba(0, 0, 0, 0.05);
-  border-color: #d1d5db;
-}
+
 .dropdown {
   border-radius: 10px;
   box-shadow: var(--tw-shadow-dropdown);
@@ -897,39 +869,6 @@ input:checked + .toggle-slider:before {
 }
 
 /* #panelContainer 边框样式已移除 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 2px;
-}
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.8);
-}
-
-/* 自定义滚动条类 - 静止时隐藏，滚动时显示 */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 0px;
-  height: 0px;
-  transition: width 0.2s ease, height 0.2s ease;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 2px;
-}
-/* 只在滚动时显示滚动条 */
-.custom-scrollbar.scrolling::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
 .bg-gradient-subtle {
   background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
 }
@@ -1034,25 +973,7 @@ input:checked + .toggle-slider:before {
   transform: translateY(-1px);
 }
 
-/* 优化设置卡片样式 */
-.settings-section .card {
-  border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow:
-    0 4px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -1px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  position: relative;
-}
 
-.settings-section .card:hover {
-  box-shadow:
-    0 10px 15px -3px rgba(0, 0, 0, 0.07),
-    0 4px 6px -2px rgba(0, 0, 0, 0.04);
-  border-color: #cbd5e1;
-  transform: translateY(-2px);
-}
 
 /* 优化设置区域滚动条 */
 .settings-section::-webkit-scrollbar {
@@ -1178,9 +1099,7 @@ textarea:focus,
 #MessageInputArea textarea,
 #MessageInputArea textarea:focus,
 #UserInputBox textarea,
-#UserInputBox textarea:focus,
-.card textarea,
-.card textarea:focus {
+#UserInputBox textarea:focus {
   outline: none !important;
   border: none !important;
   box-shadow: none !important;

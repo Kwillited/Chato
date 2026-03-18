@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6 max-w-2xl mx-auto">
-    <div class="card p-5 depth-1 hover:depth-2 transition-all duration-300">
+    <Card class="p-5">
       <div class="flex items-center">
         <img
           src="https://picsum.photos/id/64/60/60"
@@ -12,12 +12,12 @@
           <div class="text-sm text-neutral">Administrator@example.com</div>
         </div>
       </div>
-    </div>
+    </Card>
 
     <!-- 导出和删除按钮 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <!-- 导出对话卡片 -->
-      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 bg-white dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-gray-600">
+      <Card class="p-4">
         <div class="flex justify-between items-center">
           <h3 class="font-medium text-sm text-gray-700 dark:text-gray-200">导出对话</h3>
           <Button
@@ -30,9 +30,9 @@
             class="w-8 h-8 p-1.5 text-gray-500 dark:text-gray-300 hover:text-primary hover:bg-primary/10 rounded-full transition-colors duration-200"
           />
         </div>
-      </div>
+      </Card>
       <!-- 删除对话卡片 -->
-      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 bg-white dark:bg-dark-700 rounded-lg border border-gray-200 dark:border-gray-600">
+      <Card class="p-4">
         <div class="flex justify-between items-center">
           <h3 class="font-medium text-sm text-gray-700 dark:text-gray-200">删除对话</h3>
           <Button
@@ -45,10 +45,10 @@
             class="w-8 h-8 p-1.5 text-gray-500 dark:text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors duration-200"
           />
         </div>
-      </div>
+      </Card>
     </div>
 
-    <div class="card depth-1 hover:depth-2 transition-all duration-300">
+    <Card>
       <!-- 选项卡导航 -->
       <div class="border-b">
         <div class="flex">
@@ -158,7 +158,7 @@
       <div v-show="activeTab === 'notification'" class="p-4">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- 新消息通知卡片 -->
-          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+          <Card class="p-4">
             <SettingItem
               type="toggle"
               title="新消息通知"
@@ -166,10 +166,10 @@
               v-model="settingsStore.notificationsConfig.newMessage"
               @change="settingsStore.saveSettings"
             />
-          </div>
+          </Card>
           
           <!-- 声音提示卡片 -->
-          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+          <Card class="p-4">
             <SettingItem
               type="toggle"
               title="声音提示"
@@ -177,10 +177,10 @@
               v-model="settingsStore.notificationsConfig.sound"
               @change="settingsStore.saveSettings"
             />
-          </div>
+          </Card>
           
           <!-- 系统通知卡片 -->
-          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+          <Card class="p-4">
             <SettingItem
               type="toggle"
               title="系统通知"
@@ -188,10 +188,10 @@
               v-model="settingsStore.notificationsConfig.system"
               @change="settingsStore.saveSettings"
             />
-          </div>
+          </Card>
           
           <!-- 通知显示时间卡片 -->
-          <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300">
+          <Card class="p-4">
             <SettingItem
               type="select"
               title="通知显示时间"
@@ -200,10 +200,10 @@
               :options="displayTimeOptions"
               @change="settingsStore.saveSettings"
             />
-          </div>
+          </Card>
         </div>
       </div>
-    </div>
+    </Card>
     
     <!-- 确认删除所有对话模态框 -->
     <ConfirmationModal
@@ -226,7 +226,7 @@ import { useChatStore } from '../../store/chatStore.js';
 import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import SettingItem from '../common/SettingItem.vue';
-import { Button } from '../library/index.js';
+import { Button, Card } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
 import { useModelUtils } from '../../composables/useModelUtils.js';
 

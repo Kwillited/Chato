@@ -5,15 +5,15 @@
       <div v-for="file in currentFiles" :key="file.path"
         class="file-item border border-gray-300 dark:border-gray-600 rounded-lg p-3 mt-1 mb-2 cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-500 transition-all duration-300"
       >
-        <div class="file-header flex items-center justify-between">
+        <div class="file-header flex items-center">
           <div class="flex items-center">
             <i class="fa-solid fa-file text-gray-500 dark:text-gray-400 mr-2"></i>
             <span class="font-medium text-sm text-gray-700 dark:text-gray-300">{{ file.name }}</span>
           </div>
-          <span class="text-xs text-gray-500 dark:text-gray-400">{{ formatFileSize(file.size) }}</span>
         </div>
-        <div class="file-meta text-xs text-gray-500 dark:text-gray-400 mt-1">
-          {{ file.created_at ? new Date(file.created_at).toLocaleDateString() : '未知时间' }}
+        <div class="file-meta flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <span>{{ file.uploaded_at ? new Date(file.uploaded_at).toLocaleDateString() : '未知时间' }}</span>
+          <span>{{ formatFileSize(file.size) }}</span>
         </div>
       </div>
     </div>

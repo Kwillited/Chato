@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6 max-w-2xl mx-auto">
-    <div class="card depth-1 hover:depth-2 transition-all duration-300">
+    <Card>
       <!-- 选项卡导航 -->
       <div class="border-b">
         <div class="flex">
@@ -41,12 +41,8 @@
               </select>
             </div>
           </div>
-
-
         </div>
       </div>
-
-
 
       <!-- 路径设置选项卡 -->
       <div v-show="activeTab === 'paths'" class="p-4">
@@ -84,7 +80,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </Card>
   </div>
 </template>
 
@@ -93,6 +89,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useVectorStore } from '../../store/vectorStore.js';
+import { Card } from '../library/index.js';
 
 const vectorStore = useVectorStore();
 // 活动选项卡，默认为基本设置

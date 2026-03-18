@@ -12,7 +12,7 @@
     <div class="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       
       <!-- 配置管理卡片（上面的卡片） -->
-      <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex flex-col">
+      <Card class="p-4 flex flex-col">
         <!-- 标题 -->
         <h3 class="text-sm font-semibold mb-4">配置管理</h3>
         
@@ -86,39 +86,29 @@
   ></textarea>
           </div>
         </div>
-      </div>
+      </Card>
       
       <!-- 下方左右卡片 -->
       <div class="flex-1 flex flex-col md:flex-row gap-4 overflow-hidden">
         <!-- 工具列表卡片（左侧） -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col overflow-hidden">
-          <!-- 标题、服务器选择和搜索框 -->
+        <Card class="p-4 flex-1 min-w-[300px] flex flex-col overflow-hidden">
+          <!-- 标题和搜索框 -->
           <div class="mb-4 flex-shrink-0 flex flex-col space-y-2">
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center">
               <h3 class="text-sm font-semibold">MCP 工具列表</h3>
-              <select
-                v-model="currentServer"
-                @change="handleServerChange"
-                class="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              >
-                <option value="">所有服务器</option>
-                <option v-for="server in servers" :key="server.name" :value="server.name">
-                  {{ server.name }}
-                </option>
-              </select>
             </div>
+            <!-- 搜索框 -->
             <div class="relative flex-1">
               <input
                 type="text"
                 v-model="searchQuery"
                 placeholder="搜索工具..."
                 class="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-                @input="handleSearch"
               >
               <i class="fa-solid fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
             </div>
           </div>
-          <div class="space-y-2 overflow-y-auto flex-1">
+          <div class="space-y-2 overflow-y-auto flex-1 scrollbar-thin">
             <div v-for="tool in filteredTools" :key="tool.id" 
                  class="bg-white dark:bg-dark-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow p-3 cursor-pointer flex items-center justify-between relative"
                  @click="selectTool(tool)">
@@ -150,10 +140,10 @@
               <SkeletonLoader type="tools" :count="5" />
             </div>
           </div>
-        </div>
+        </Card>
         
         <!-- 工具详情卡片（右侧） -->
-        <div class="card p-4 depth-1 hover:depth-2 transition-all duration-300 flex-1 min-w-[300px] flex flex-col overflow-hidden">
+        <Card class="p-4 flex-1 min-w-[300px] flex flex-col overflow-hidden">
           <!-- 标题 -->
           <div class="mb-4 flex-shrink-0">
             <h3 class="text-sm font-semibold">工具详情</h3>
@@ -166,7 +156,7 @@
           </div>
           
           <!-- 工具详情内容 -->
-          <div v-else class="flex-1 space-y-4 overflow-y-auto">
+          <div v-else class="flex-1 space-y-4 overflow-y-auto scrollbar-thin">
             <!-- 工具基本信息 -->
             <div>
               <h4 class="text-xs font-medium text-gray-500 mb-2">基本信息</h4>
@@ -186,7 +176,7 @@
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
     
@@ -208,7 +198,7 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { showNotification } from '../utils/notificationUtils.js';
-import { Button } from '../components/library/index.js';
+import { Button, Card } from '../components/library/index.js';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
 import { useSettingsStore } from '../store/settingsStore.js';
@@ -240,8 +230,6 @@ const isDragging = ref(false);
 
 // 工具详情相关
 const selectedTool = ref(null);
-// 服务器列表
-const servers = ref([]);
 // 使用 useRouteState 管理 currentServer 状态
 const { state: currentServer, setState: setCurrentServer } = useRouteState('server', '');
 // 路由对象
@@ -263,11 +251,6 @@ const filteredTools = computed(() => {
   
   return result;
 });
-
-// 处理搜索
-const handleSearch = () => {
-  // 搜索逻辑已在computed中处理
-};
 
 // 刷新工具列表
 const refreshTools = async () => {
@@ -440,16 +423,44 @@ const triggerJsonUpload = () => {
   jsonFileInput.value?.click();
 };
 
+// 处理JSON文件内容
+const processJsonFile = (content) => {
+  try {
+    // 检查内容是否为空
+    if (!content || !content.trim()) {
+      showNotification('JSON文件为空', 'error');
+      return false;
+    }
+    
+    // 验证是否为有效的JSON
+    JSON.parse(content);
+    // 设置到配置输入框
+    configInput.value = content;
+    showNotification('JSON文件加载成功', 'success');
+    return true;
+  } catch (error) {
+    let errorMessage = '无效的JSON文件';
+    if (error instanceof SyntaxError) {
+      if (error.message.includes('Unexpected end of JSON input')) {
+        errorMessage = 'JSON文件不完整或为空';
+      } else if (error.message.includes('Unexpected token')) {
+        errorMessage = 'JSON格式错误：' + error.message;
+      }
+    }
+    showNotification(errorMessage, 'error');
+    console.error('Invalid JSON file:', error);
+    return false;
+  }
+};
+
 // 拖拽相关方法
-const handleDragOver = (event) => {
+const handleDragEvent = (event) => {
   event.preventDefault();
   isDragging.value = true;
 };
 
-const handleDragEnter = (event) => {
-  event.preventDefault();
-  isDragging.value = true;
-};
+const handleDragOver = handleDragEvent;
+const handleDragEnter = handleDragEvent;
 
 const handleDragLeave = (event) => {
   event.preventDefault();
@@ -464,35 +475,9 @@ const handleDrop = (event) => {
   if (files && files.length > 0) {
     const file = files[0];
     if (file.name.toLowerCase().endsWith('.json')) {
-      // 处理拖拽的JSON文件
       const reader = new FileReader();
       reader.onload = (e) => {
-        try {
-          const content = e.target.result;
-          
-          // 检查内容是否为空
-          if (!content || !content.trim()) {
-            showNotification('JSON文件为空', 'error');
-            return;
-          }
-          
-          // 验证是否为有效的JSON
-          JSON.parse(content);
-          // 设置到配置输入框
-          configInput.value = content;
-          showNotification('JSON文件加载成功', 'success');
-        } catch (error) {
-          let errorMessage = '无效的JSON文件';
-          if (error instanceof SyntaxError) {
-            if (error.message.includes('Unexpected end of JSON input')) {
-              errorMessage = 'JSON文件不完整或为空';
-            } else if (error.message.includes('Unexpected token')) {
-              errorMessage = 'JSON格式错误：' + error.message;
-            }
-          }
-          showNotification(errorMessage, 'error');
-          console.error('Invalid JSON file:', error);
-        }
+        processJsonFile(e.target.result);
       };
       reader.onerror = () => {
         showNotification('文件读取失败', 'error');
@@ -510,35 +495,9 @@ const handleJsonUpload = async (event) => {
   if (!file) return;
   
   try {
-    // 读取文件内容
     const reader = new FileReader();
     reader.onload = (e) => {
-      try {
-        const content = e.target.result;
-        
-        // 检查内容是否为空
-        if (!content || !content.trim()) {
-          showNotification('JSON文件为空', 'error');
-          return;
-        }
-        
-        // 验证是否为有效的JSON
-        JSON.parse(content);
-        // 设置到配置输入框
-        configInput.value = content;
-        showNotification('JSON文件加载成功', 'success');
-      } catch (error) {
-        let errorMessage = '无效的JSON文件';
-        if (error instanceof SyntaxError) {
-          if (error.message.includes('Unexpected end of JSON input')) {
-            errorMessage = 'JSON文件不完整或为空';
-          } else if (error.message.includes('Unexpected token')) {
-            errorMessage = 'JSON格式错误：' + error.message;
-          }
-        }
-        showNotification(errorMessage, 'error');
-        console.error('Invalid JSON file:', error);
-      }
+      processJsonFile(e.target.result);
     };
     reader.onerror = () => {
       showNotification('文件读取失败', 'error');
@@ -571,9 +530,29 @@ const saveConfig = async () => {
       }
     }
     
-    // 调用实际的配置保存API
-    // 如果配置为空，发送空对象
-    const requestBody = isEmptyConfig ? {} : JSON.parse(configInput.value);
+    // 获取当前完整配置
+    const currentConfig = await apiService.get('/mcp/config');
+    
+    // 构建请求体
+    let requestBody;
+    if (currentServer.value) {
+      // 只更新当前服务器的配置
+      requestBody = { ...currentConfig };
+      if (isEmptyConfig) {
+        // 清空当前服务器配置
+        delete requestBody[currentServer.value];
+      } else {
+        // 解析配置，提取服务器配置
+        const parsedConfig = JSON.parse(configInput.value);
+        // 提取当前服务器的配置（即使配置中包含其他服务器，也只使用当前服务器的）
+        if (parsedConfig[currentServer.value]) {
+          requestBody[currentServer.value] = parsedConfig[currentServer.value];
+        }
+      }
+    } else {
+      // 更新完整配置
+      requestBody = isEmptyConfig ? {} : JSON.parse(configInput.value);
+    }
     
     const result = await apiService.post('/mcp/config', requestBody);
     showNotification(result.message || (isEmptyConfig ? '配置已清空' : '配置保存成功'), 'success');
@@ -634,41 +613,6 @@ const selectTool = (tool) => {
   console.log('Selected tool:', tool.name);
 };
 
-// 编辑工具
-const editTool = () => {
-  if (!selectedTool.value) return;
-  
-  // 这里可以添加编辑工具的逻辑，例如打开编辑模态框
-  showNotification('编辑工具功能开发中', 'info');
-  console.log('Edit tool:', selectedTool.value.name);
-};
-
-// 复制工具
-const duplicateTool = async () => {
-  if (!selectedTool.value) return;
-  
-  try {
-    // 创建工具的副本
-    const duplicatedTool = {
-      ...selectedTool.value,
-      id: Date.now(), // 生成新ID
-      name: `${selectedTool.value.name} (副本)`,
-      config: JSON.parse(JSON.stringify(selectedTool.value.config || {})) // 深拷贝配置
-    };
-    
-    // 添加到工具列表
-    tools.value.push(duplicatedTool);
-    
-    // 选择新复制的工具
-    selectedTool.value = duplicatedTool;
-    
-    showNotification('工具复制成功', 'success');
-  } catch (error) {
-    console.error('Failed to duplicate tool:', error);
-    showNotification('工具复制失败', 'error');
-  }
-};
-
 // 从后端获取当前的MCP配置
 const fetchCurrentConfig = async () => {
   try {
@@ -679,7 +623,21 @@ const fetchCurrentConfig = async () => {
     
     // 使用 apiService 获取配置
     const config = await apiService.get('/mcp/config');
-    configInput.value = JSON.stringify(config, null, 2);
+    if (currentServer.value) {
+      // 显示包含服务器名的完整结构
+      const serverConfig = config[currentServer.value];
+      if (serverConfig) {
+        const configWithServerName = {
+          [currentServer.value]: serverConfig
+        };
+        configInput.value = JSON.stringify(configWithServerName, null, 2);
+      } else {
+        configInput.value = '';
+      }
+    } else {
+      // 显示完整配置
+      configInput.value = JSON.stringify(config, null, 2);
+    }
   } catch (error) {
     console.error('获取配置失败:', error);
     // 如果API调用失败，尝试从后端的默认配置中获取
@@ -690,8 +648,6 @@ const fetchCurrentConfig = async () => {
 // 组件挂载时加载工具和配置
 onMounted(async () => {
   console.log('McpMangerContent组件挂载');
-  // 加载服务器列表
-  await loadServers();
   // 根据当前服务器状态加载工具列表
   if (currentServer.value) {
     await loadToolsByServer(currentServer.value);
@@ -702,25 +658,7 @@ onMounted(async () => {
   await fetchCurrentConfig();
 });
 
-// 加载服务器列表
-const loadServers = async () => {
-  try {
-    const data = await apiService.get('/mcp/servers');
-    servers.value = data || [];
-  } catch (error) {
-    console.error('加载服务器列表失败:', error);
-    servers.value = [];
-  }
-};
-
-// 处理服务器切换
-const handleServerChange = async () => {
-  console.log('服务器切换:', currentServer.value);
-  // 使用 useRouteState 提供的方法更新状态和路由
-  setCurrentServer(currentServer.value);
-};
-
-// 监听 currentServer 变化，加载工具列表
+// 监听 currentServer 变化，加载工具列表和配置
 watch(currentServer, async (newServerName) => {
   console.log('服务器名称变化:', newServerName);
   if (newServerName) {
@@ -729,29 +667,15 @@ watch(currentServer, async (newServerName) => {
     // 加载所有MCP工具
     await refreshTools();
   }
+  // 重新获取配置，显示当前服务器的配置
+  await fetchCurrentConfig();
 });
 </script>
 
 <style scoped>
 /* 组件特定样式 - 遵循项目整体风格 */
 
-/* 确保滚动条样式与项目整体一致 */
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
 
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 20px;
-}
-
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(156, 163, 175, 0.7);
-}
 
 /* 配置输入textarea样式 */
 .config-textarea {

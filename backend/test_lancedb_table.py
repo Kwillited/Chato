@@ -11,7 +11,7 @@ def inspect_lancedb_table():
     """查看LanceDB表内容"""
     
     # 指定表路径
-    table_path = r"C:\Users\admin\AppData\Local\Chato\Retrieval-Augmented Generation\vector_db\9ac33f41.lance"
+    table_path = r"C:\Users\admin\AppData\Local\Chato\Retrieval-Augmented Generation\vector_db\a749a8b2.lance"
     
     print(f"=" * 80)
     print(f"正在检查 LanceDB 表: {table_path}")

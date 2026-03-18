@@ -11,18 +11,16 @@ from app.utils import ValidationUtils
 class MessageService(BaseService):
     """消息服务类，封装所有消息相关的业务逻辑"""
     
-    def __init__(self, chat_service, vector_service, web_search_service):
+    def __init__(self, chat_service, web_search_service):
         """初始化消息服务
         
         Args:
             chat_service: 对话服务实例，用于依赖注入
-            vector_service: 向量服务实例，用于依赖注入
             web_search_service: 网络搜索服务实例，用于依赖注入
         """
         super().__init__()
         from app.core.service_container import service_container
         self.chat_service = chat_service
-        self.vector_service = vector_service
         self.web_search_service = web_search_service
         self.data_service = service_container.get_service('data_service')
     

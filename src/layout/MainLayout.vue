@@ -60,10 +60,16 @@
           flexShrink: 0
         }"
       >
-        <RightPanel 
+        <!-- 根据当前激活的内容视图显示不同的右侧面板 -->
+        <FileRightPanel 
           :saved-width="savedRightPanelWidth" 
           :is-initial-loading="isInitialLoading"
-          v-if="uiStore.rightPanelVisible"
+          v-if="uiStore.rightPanelVisible && uiStore.activeContent === 'fileManager'"
+        />
+        <AgentRightPanel 
+          :saved-width="savedRightPanelWidth" 
+          :is-initial-loading="isInitialLoading"
+          v-else-if="uiStore.rightPanelVisible"
         />
       </div>
     </div>
@@ -77,7 +83,8 @@ import { useChatStore } from '../store/chatStore.js';
 import { usePanelResize } from '../composables/usePanelResize.js';
 import LayoutHeader from '../components/layout/LayoutHeader.vue';
 import LeftPanel from '../components/layout/LeftPanel.vue';
-import RightPanel from '../components/layout/RightPanel.vue';
+import AgentRightPanel from '../components/layout/AgentRightPanel.vue';
+import FileRightPanel from '../components/layout/FileRightPanel.vue';
 
 // Props
 const props = defineProps({

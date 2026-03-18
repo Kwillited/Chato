@@ -499,10 +499,8 @@ class DataService(BaseService):
         """
         from app.repositories.lancedb_repository import LanceDBRepository
         vector_repo = LanceDBRepository()
-        
+
         try:
-            # 直接获取向量仓库实例
-            vector_repo = self.upload_document_vectors(folder_id)
             # 删除相关向量
             result = vector_repo.delete_vectors_by_folder_id(folder_id)
             return {

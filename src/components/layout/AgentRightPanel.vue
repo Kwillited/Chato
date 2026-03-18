@@ -5,33 +5,22 @@
     <!-- 右侧面板内容 -->
     <div class="h-full flex flex-col">
       <!-- 面板切换按钮 -->
-      <div class="p-3 pb-0">
-        <div class="flex space-x-1 bg-gray-100 dark:bg-dark-700 p-1 rounded-lg">
-          <button
-            class="flex-1 text-xs py-1 px-2 rounded transition-all duration-300"
-            :class="{
-              'bg-transparent dark:bg-dark-600 text-gray-900 dark:text-white shadow-sm': activePanel === 'context',
-              'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-600': activePanel !== 'context'
-            }"
-            @click="activePanel = 'context'"
-          >
-            上下文管理
-          </button>
-          <button
-            class="flex-1 text-xs py-1 px-2 rounded transition-all duration-300"
-            :class="{
-              'bg-transparent dark:bg-dark-600 text-gray-900 dark:text-white shadow-sm': activePanel === 'prompt',
-              'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-600': activePanel !== 'prompt'
-            }"
-            @click="activePanel = 'prompt'"
-          >
-            提示词工程
-          </button>
-        </div>
+      <div class="p-2 pb-0">
+        <TabSwitcher
+          :tabs="[
+            { id: 'context', name: '上下文管理' },
+            { id: 'prompt', name: '提示词工程' }
+          ]"
+          :active-tab="activePanel"
+          :border-radius="'8px'"
+          container-class="w-full"
+          tab-class="px-2 py-1 text-xs"
+          @tab-change="(tab) => activePanel = tab"
+        />
       </div>
       
       <!-- 面板内容区域 -->
-      <div class="flex-1 p-3">
+      <div class="flex-1 p-2">
         <!-- 上下文管理面板 -->
         <div v-if="activePanel === 'context'" class="flex flex-col">
           <!-- 上下文概述 -->
@@ -126,19 +115,15 @@
         <div v-else-if="activePanel === 'prompt'" class="h-full flex flex-col">
           <div class="panel-section flex-1 flex flex-col">
             <!-- 提示词类型选择标签页 -->
-            <div class="flex space-x-1 mb-2 bg-gray-100 dark:bg-dark-700 p-1 rounded-lg">
-              <button
-                v-for="tab in reorderedPromptTabs"
-                :key="tab.id"
-                class="flex-1 text-xs py-1 px-2 rounded transition-all duration-300"
-                :class="{
-                  'bg-transparent dark:bg-dark-600 text-gray-900 dark:text-white shadow-sm': activePromptTab === tab.id,
-                  'text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-dark-600': activePromptTab !== tab.id
-                }"
-                @click="activePromptTab = tab.id"
-              >
-                {{ tab.name }}
-              </button>
+            <div class="mb-2">
+              <TabSwitcher
+                :tabs="reorderedPromptTabs"
+                :active-tab="activePromptTab"
+                :border-radius="'8px'"
+                container-class="w-full"
+                tab-class="px-2 py-1 text-xs"
+                @tab-change="(tab) => activePromptTab = tab"
+              />
             </div>
             
             <!-- 提示词编辑区域 -->
@@ -237,6 +222,7 @@ import { showNotification } from '../../utils/notificationUtils.js';
 import { ref, watch } from 'vue';
 // 导入公共工具函数
 import { formatTime } from '../../utils/time.js';
+import TabSwitcher from '../common/TabSwitcher.vue';
 
 // 定义props
 const _props = defineProps({

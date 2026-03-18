@@ -107,55 +107,18 @@
       </div>
       
       <!-- 设置页面选项卡 - 只在设置页面显示 -->
-      <div v-if="activeContent === 'settings'" class="relative inline-flex rounded-full bg-gray-100 dark:bg-gray-800 p-0.5 shadow-sm items-center w-80">
-        <button 
-          @click="handleSettingsTabClick('general')"
-          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
-          :class="uiStore.activeSection === 'general' 
-            ? 'text-white font-medium' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-          "
-        >
-          基本设置
-        </button>
-        <button 
-          @click="handleSettingsTabClick('models')"
-          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
-          :class="uiStore.activeSection === 'models' 
-            ? 'text-white font-medium' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-          "
-        >
-          模型配置
-        </button>
-        <button 
-          @click="handleSettingsTabClick('rag')"
-          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
-          :class="uiStore.activeSection === 'rag' 
-            ? 'text-white font-medium' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-          "
-        >
-          知识库配置
-        </button>
-        <button 
-          @click="handleSettingsTabClick('about')"
-          class="relative flex-1 py-1.5 text-sm font-medium rounded-full transition-all duration-200 z-10 text-center"
-          :class="uiStore.activeSection === 'about' 
-            ? 'text-white font-medium' 
-            : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-          "
-        >
-          关于
-        </button>
-        <!-- 滑动块 -->
-        <span 
-          class="absolute top-0.5 bottom-0.5 bg-gray-800 dark:bg-gray-700 rounded-full transition-all duration-300 ease-in-out"
-          :style="{
-            left: getSettingsTabLeft(),
-            width: '25%'
-          }"
-        ></span>
+      <div v-if="activeContent === 'settings'" class="items-center w-80">
+        <TabSwitcher
+          :tabs="[
+            { id: 'general', name: '基本设置' },
+            { id: 'models', name: '模型配置' },
+            { id: 'rag', name: '知识库配置' },
+            { id: 'about', name: '关于' }
+          ]"
+          :active-tab="uiStore.activeSection"
+          container-class="items-center w-full"
+          @tab-change="handleSettingsTabClick"
+        />
       </div>
     </div>
   </div>
@@ -169,6 +132,7 @@ import { useUiStore } from '../../store/uiStore.js';
 import { useChatStore } from '../../store/chatStore.js';
 import { Button } from '../library/index.js';
 import { formatDate } from '../../utils/time.js';
+import TabSwitcher from '../common/TabSwitcher.vue';
 
 // Props
 const props = defineProps({
@@ -278,18 +242,7 @@ const handleSettingsTabClick = (section) => {
   uiStore.setActiveSection(section);
 };
 
-// 计算设置选项卡滑动块的位置
-const getSettingsTabLeft = () => {
-  const activeSection = uiStore.activeSection || 'general';
-  const sectionIndex = {
-    general: 0,
-    models: 1,
-    rag: 2,
-    about: 3
-  }[activeSection] || 0;
-  
-  return `${sectionIndex * 25}%`;
-};
+
 
 // 生命周期钩子
 onMounted(() => {

@@ -43,7 +43,6 @@ def register_services():
     from app.services.settings.setting_service import SettingService
     from app.services.mcp.mcp_service import MCPService
     from app.services.file.document_service import DocumentService
-    from app.services.vector.vector_service import VectorService
     from app.services.message.message_service import MessageService
     from app.services.web.web_search_service import WebSearchService
     
@@ -52,10 +51,9 @@ def register_services():
     service_container.register_service('embedding_model_service', EmbeddingModelService)
     service_container.register_service('setting_service', SettingService, 'setting_repository')
     service_container.register_service('mcp_service', MCPService, 'setting_service')
-    service_container.register_service('vector_service', VectorService)
     service_container.register_service('web_search_service', WebSearchService)
-    service_container.register_service('document_service', DocumentService, 'data_service', 'vector_service')
-    service_container.register_service('message_service', MessageService, 'chat_service', 'vector_service', 'web_search_service')
+    service_container.register_service('document_service', DocumentService, 'data_service')
+    service_container.register_service('message_service', MessageService, 'chat_service', 'web_search_service')
 
 # FastAPI应用实例
 def create_app(lifespan=None):

@@ -1,0 +1,40 @@
+/* 滚动条样式 - scrollbar-thin */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* 自定义滚动条类 - 静止时隐藏，滚动时显示 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 2px;
+}
+
+/* 只在滚动时显示滚动条 */
+.custom-scrollbar.scrolling::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}

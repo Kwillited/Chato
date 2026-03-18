@@ -8,7 +8,6 @@ from app.api.models_router import router as models_router
 from app.api.mcp_router import router as mcp_router
 from app.api.embedding_models_router import router as embedding_models_router
 from app.api.settings_router import router as settings_router
-from app.api.vector_router import router as vector_router
 from app.api.messages_router import router as messages_router
 
 __all__ = ['register_routes']
@@ -25,4 +24,3 @@ def register_routes(app):
     app.include_router(mcp_router, tags=['mcp'])
     app.include_router(embedding_models_router, tags=['embedding-models'])
     app.include_router(settings_router, tags=['settings'])
-    app.include_router(vector_router, tags=['vectors'])
