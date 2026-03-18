@@ -3,14 +3,8 @@
     <Card class="px-4 py-4 pb-0 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-medium">已配置模型</h4>
-        <div class="relative w-40">
-          <input
-            type="text"
-            v-model="configuredModelsSearch"
-            placeholder="搜索模型..."
-            class="w-full text-xs pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-          />
-          <i class="fa-solid fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+        <div class="w-40">
+          <SearchBar v-model="configuredModelsSearch" placeholder="搜索模型..." />
         </div>
       </div>
 
@@ -88,14 +82,8 @@
           tab-class="px-2 py-1 text-xs"
           @tab-change="switchTab"
         />
-        <div class="relative w-40">
-          <input
-            type="text"
-            v-model="unconfiguredModelsSearch"
-            placeholder="搜索模型..."
-            class="w-full text-xs pl-7 pr-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
-          />
-          <i class="fa-solid fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs"></i>
+        <div class="w-40">
+          <SearchBar v-model="unconfiguredModelsSearch" placeholder="搜索模型..." />
         </div>
       </div>
 
@@ -208,6 +196,7 @@ import ModelSettingsDrawer from '../models/ModelSettingsDrawer.vue';
 import EmbeddingModelSettingsDrawer from '../models/EmbeddingModelSettingsDrawer.vue';
 import ModelVersionForm from '../models/ModelVersionForm.vue';
 import TabSwitcher from '../common/TabSwitcher.vue';
+import SearchBar from '../common/SearchBar.vue';
 import { Card } from '../library/index.js';
 
 // 初始化store

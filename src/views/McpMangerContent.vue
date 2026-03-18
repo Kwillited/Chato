@@ -98,15 +98,7 @@
               <h3 class="text-sm font-semibold">MCP 工具列表</h3>
             </div>
             <!-- 搜索框 -->
-            <div class="relative flex-1">
-              <input
-                type="text"
-                v-model="searchQuery"
-                placeholder="搜索工具..."
-                class="w-full pl-8 pr-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
-              >
-              <i class="fa-solid fa-search absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm"></i>
-            </div>
+            <SearchBar v-model="searchQuery" placeholder="搜索工具..." />
           </div>
           <div class="space-y-2 overflow-y-auto flex-1 scrollbar-thin">
             <div v-for="tool in filteredTools" :key="tool.id" 
@@ -201,6 +193,7 @@ import { showNotification } from '../utils/notificationUtils.js';
 import { Button, Card } from '../components/library/index.js';
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
+import SearchBar from '../components/common/SearchBar.vue';
 import { useSettingsStore } from '../store/settingsStore.js';
 import { useRouteState } from '../composables/useRouteState';
 import { eventBus } from '../services/eventBus.js';

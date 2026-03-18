@@ -1,22 +1,31 @@
 <template>
-  <div class="search-container py-2 transition-all duration-300">
-    <div class="relative">
+  <div
+    :class="[
+      'search-container',
+      $attrs.class
+    ]"
+    v-bind="$attrs"
+  >
+    <div class="search-input-wrapper">
       <input
         type="text"
         v-model="localSearchQuery"
         :placeholder="placeholder"
-        class="w-full px-3 py-0.5 pl-8 rounded-[15px] bg-gray-50 border border-gray-200 text-sm text-slate-700 dark:text-white placeholder-gray-400 dark:placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all duration-300"
+        class="search-input"
+        :style="{ 'border-radius': rounded }"
         @input="handleInput"
         @focus="$emit('focus')"
         @blur="$emit('blur')"
       />
-      <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-slate-300 text-sm"></i>
+      <i class="search-icon fa-solid fa-search"></i>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue';
+
+defineOptions({ name: 'SearchBar', inheritAttrs: false });
 
 // 定义props
 const props = defineProps({
@@ -27,6 +36,10 @@ const props = defineProps({
   placeholder: {
     type: String,
     default: '搜索对话...'
+  },
+  rounded: {
+    type: String,
+    default: '15px'
   }
 });
 
@@ -54,6 +67,65 @@ const handleInput = (event) => {
 </script>
 
 <style scoped>
-/* 搜索框样式已通过内联class实现 */
-/* 如需添加额外样式，可以在此处定义 */
+/* 搜索框容器 */
+.search-container {
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+/* 搜索输入包装器 */
+.search-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* 搜索输入框 */
+.search-input {
+  width: 100%;
+  padding: 0.125rem 0.75rem 0.125rem 2rem;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  font-size: 0.875rem;
+  color: #374151;
+  transition: all 0.3s ease;
+}
+
+/* 搜索图标 */
+.search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.875rem;
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+/* 输入框焦点状态 */
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+}
+</style>
+
+<style>
+/* 暗色模式支持 */
+.dark .search-input {
+  background-color: #1f2937;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.dark .search-input::placeholder {
+  color: #9ca3af;
+}
+
+.dark .search-icon {
+  color: #9ca3af;
+}
+
+.dark .search-input:focus {
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
 </style>

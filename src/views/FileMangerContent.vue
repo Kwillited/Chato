@@ -6,16 +6,7 @@
       <!-- 左侧区域：搜索框 -->
       <div class="flex-1 min-w-0">
         <!-- 搜索框 -->
-        <div class="relative w-full min-w-[200px]">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="搜索文件..."
-            class="w-full pl-10 pr-4 py-0 h-6 text-sm border border-gray-300 rounded-[15px] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            @input="handleSearch"
-          >
-          <i class="fa-solid fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-        </div>
+        <SearchBar v-model="searchQuery" placeholder="搜索文件..." @input="handleSearch" />
       </div>
       
       <!-- 中间标题 -->
@@ -237,6 +228,7 @@ const KnowledgeGraphVisualization = defineAsyncComponent({
 });
 import ConfirmationModal from '../components/common/ConfirmationModal.vue';
 import SkeletonLoader from '../components/common/SkeletonLoader.vue';
+import SearchBar from '../components/common/SearchBar.vue';
 import { useNotification } from '../composables/useNotification.js';
 
 // 初始化stores
