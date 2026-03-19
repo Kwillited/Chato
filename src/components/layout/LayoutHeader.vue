@@ -5,36 +5,37 @@
       <!-- 隐藏左侧面板按钮和新增会话按钮 - 只在非设置页面显示 -->
       <template v-if="activeContent !== 'settings'">
         <!-- 隐藏左侧面板按钮 -->
-        <Button 
-          shape="full"
-          size="md"
-          icon="fa-bars"
-          tooltip="隐藏左侧面板"
-          @click="handleSideMenuToggle"
-        />
+        <Tooltip content="隐藏左侧面板">
+          <Button 
+            shape="full"
+            size="md"
+            icon="bars"
+            @click="handleSideMenuToggle"
+          />
+        </Tooltip>
         <!-- 新增会话按钮 -->
-        <Button 
-          id="newChat"
-          shape="full"
-          size="md"
-          icon="fa-comment-dots"
-          tooltip="新对话"
-          @click="handleNewChat"
-        />
+        <Tooltip content="新对话">
+          <Button 
+            id="newChat"
+            shape="full"
+            size="md"
+            icon="comment-dots"
+            @click="handleNewChat"
+          />
+        </Tooltip>
       </template>
       <!-- 设置面板：返回按钮和系统设置标题 -->
       <div v-else class="flex items-center space-x-2">
         <!-- 返回按钮 -->
-        <Button 
-          shape="full"
-          size="md"
-          icon="fa-chevron-left"
-          tooltip="返回上一级"
-          @click="handleBack"
-          class="transition-all duration-300 hover:bg-gray-100 dark:hover:bg-dark-700"
-        />
-        <!-- 系统设置标题 -->
-        <h2 class="text-lg font-bold text-dark dark:text-white transition-all duration-300">系统设置</h2>
+        <Tooltip content="返回上一级">
+          <button
+            class="flex items-center ml-4 pr-3 py-1.5 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-300 rounded-full"
+            @click="handleBack"
+          >
+            <i class="fa-solid fa-chevron-left text-black dark:text-white transition-colors duration-300"></i>
+            <span class="text-lg font-bold transition-all duration-300">系统设置</span>
+          </button>
+        </Tooltip>
       </div>
     </div>
     
@@ -50,24 +51,26 @@
     <div class="flex space-x-2">
       <!-- 视图切换按钮 -->
       <div v-if="activeContent === 'chat'" class="relative flex items-center justify-center">
-        <Button 
-          shape="full"
-          size="md"
-          :icon="uiStore.activeView === 'chat' ? 'fa-sitemap' : 'fa-comments'"
-          :tooltip="`切换到${uiStore.activeView === 'chat' ? '上下文工程可视化' : '对话'}视图`"
-          @click="toggleView"
-        />
+        <Tooltip :content="`切换到${uiStore.activeView === 'chat' ? '上下文工程可视化' : '对话'}视图`">
+          <Button 
+            shape="full"
+            size="md"
+            :icon="uiStore.activeView === 'chat' ? 'sitemap' : 'comments'"
+            @click="toggleView"
+          />
+        </Tooltip>
       </div>
       <!-- 历史对话按钮（带下拉菜单） - 只在非设置页面显示 -->
       <div v-if="activeContent !== 'settings'" class="relative hover-scale">
-        <Button 
-          id="historyChat"
-          shape="full"
-          size="md"
-          icon="fa-clock-rotate-left"
-          tooltip="历史对话"
-          @click.stop="toggleHistoryMenu"
-        />
+        <Tooltip content="历史对话">
+          <Button 
+            id="historyChat"
+            shape="full"
+            size="md"
+            icon="clock-rotate-left"
+            @click.stop="toggleHistoryMenu"
+          />
+        </Tooltip>
         
         <!-- 历史对话下拉菜单 -->
         <div 
