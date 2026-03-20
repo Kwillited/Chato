@@ -9,8 +9,6 @@ from app.dependencies import get_model_service
 # 创建模型API路由（前缀统一为 /api/models）
 router = APIRouter(prefix='/api/models')
 
-
-
 # 获取所有模型供应商以及模型版本
 @router.get('')
 @handle_exception()
@@ -73,12 +71,12 @@ def delete_model(model_name: str = Path(...), model_service: ModelService = Depe
     
     return {'message': message}
 
-# 更新模型启用状态
-@router.post('/{model_name}/enabled')
+# 更新模型所有版本的启用状态
+@router.patch('/{model_name}/enabled')
 @handle_exception()
 def update_model_enabled(model_name: str = Path(...), data: dict = Body(...), model_service: ModelService = Depends(get_model_service)):
     enabled = data.get('enabled', True)
-    success, message = model_service.update_model_enabled(model_name, enabled)
+    success, message = model_service.update_model_versions_enabled(model_name, enabled)
     
     if not success:
         raise HTTPException(status_code=404, detail=message)
@@ -101,6 +99,25 @@ def delete_version(model_name: str = Path(...), version_name: str = Path(...), m
             raise HTTPException(status_code=400, detail=message)
         else:
             raise HTTPException(status_code=400, detail=message)
+    
+    return {
+        'message': message,
+        'model': model
+    }
+
+# 设置默认模型版本
+@router.patch('/{model_name}/versions/{version_name}/default')
+@handle_exception()
+def set_default_version(model_name: str = Path(...), version_name: str = Path(...), model_service: ModelService = Depends(get_model_service)):
+    success, message, model = model_service.set_default_version(model_name, version_name)
+    
+    if not success:
+        if message == '模型不存在':
+            raise HTTPException(status_code=404, detail=message)
+        elif message == '版本不存在':
+            raise HTTPException(status_code=400, detail=message)
+        else:
+            raise HTTPException(status_code=500, detail=message)
     
     return {
         'message': message,

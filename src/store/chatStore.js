@@ -568,13 +568,19 @@ export const useChatStore = defineStore('chat', {
               let contentToAdd = '';
               let reasoningContentToAdd = '';
               
-              // 处理data.chunk字段和data.reasoning_content字段
+              // 处理data.chunk字段
               if (data.chunk) {
-                contentToAdd = data.chunk;
-              }
-              
-              if (data.reasoning_content) {
-                reasoningContentToAdd = data.reasoning_content;
+                // 检查data.chunk是否为对象，如果是，提取content字段
+                if (typeof data.chunk === 'object' && data.chunk.content !== undefined) {
+                  contentToAdd = data.chunk.content;
+                  // 同时检查chunk中是否包含reasoning_content
+                  if (data.chunk.additional_kwargs && data.chunk.additional_kwargs.reasoning_content) {
+                    reasoningContentToAdd = data.chunk.additional_kwargs.reasoning_content;
+                  }
+                } else {
+                  // 如果data.chunk不是对象，直接使用
+                  contentToAdd = data.chunk;
+                }
               }
               
               // 确保内容更新能够触发Vue响应式更新
@@ -835,7 +841,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 准备消息发送参数
-    prepareMessageParams(content, model, deepThinking, webSearchEnabled, agent, modelParams) {
+    prepareMessageParams(content, model, reasoning, webSearchEnabled, agent, modelParams) {
       // 构建 selectedMessageIds 数组
       const selectedMessageIds = this.buildSelectedMessageIds();
       console.log('构建的 selectedMessageIds:', selectedMessageIds);
@@ -853,7 +859,7 @@ export const useChatStore = defineStore('chat', {
         messageParams: {
           model: formattedModel,
           modelParams: modelParams,
-          deepThinking: deepThinking,
+          reasoning: reasoning,
           ragConfig: ragConfigToUse,
           webSearchEnabled: webSearchEnabled,
           agent: agent,
@@ -863,7 +869,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 发送消息（使用API服务）
-    async sendMessage(content, model, deepThinking = false, webSearchEnabled = false, agent = false) {
+    async sendMessage(content, model, reasoning = false, webSearchEnabled = false, agent = false) {
       // 验证消息参数
       if (!this.validateMessageParams(content, model)) return;
       
@@ -892,7 +898,7 @@ export const useChatStore = defineStore('chat', {
         
         // 准备消息发送参数
         const { formattedModel, ragConfigToUse, messageParams } = this.prepareMessageParams(
-          content, model, deepThinking, webSearchEnabled, agent, modelParams
+          content, model, reasoning, webSearchEnabled, agent, modelParams
         );
         
         // 检查流式输出支持
@@ -1016,6 +1022,17 @@ export const useChatStore = defineStore('chat', {
             // 再按updatedAt降序排列
             return new Date(b.updatedAt) - new Date(a.updatedAt);
           });
+          
+          // 保留当前对话的消息
+          if (this.currentChatId) {
+            const currentChat = this.chats.find(c => c.id === this.currentChatId);
+            if (currentChat && currentChat.messages) {
+              const newChatIndex = chats.findIndex(c => c.id === this.currentChatId);
+              if (newChatIndex !== -1) {
+                chats[newChatIndex].messages = currentChat.messages;
+              }
+            }
+          }
           
           this.chats = chats;
           

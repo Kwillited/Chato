@@ -3,30 +3,56 @@ from langchain.agents import create_agent
 from langchain_ollama import ChatOllama
 from langchain.tools import tool
 
-# 1. 定义工具
-@tool
-def get_weather(city: str) -> str:
-    """获取指定城市的天气"""
-    return f"{city}检索失败。"
-
-# 2. 创建 Agent (使用新的 create_agent)
-agent = create_agent(
-    model=ChatOllama(model="qwen2.5:7b"),  # 使用 Ollama 的 qwen2.5:7b 模型
-    tools=[get_weather],
-    system_prompt="""你是一个严谨的天气助手。"""
+# 启用 reasoning 模式
+model = ChatOllama(
+    model="qwen3:0.6b",
+    reasoning=True,
+    temperature=0.7
 )
 
-# 使用 astream_events 实现事件流
-async def run_agent():
-    print("=== 原始事件流输出 ===")
-    async for event in agent.astream_events(
-        {"messages": [("user", "上海天气怎么样？")]},
-        version="v2"
-    ):
-        # 直接打印完整的原始事件
-        print(event)
-        print()
+agent = create_agent(
+    model=model,
+    tools=[],
+    system_prompt="你是一个助手"
+)
 
-# 运行异步函数
-if __name__ == "__main__":
-    asyncio.run(run_agent())
+response = agent.invoke({
+    "messages": [{"role": "user", "content": "strawberry 这个词有多少个字母 r？"}]
+})
+
+# 正确方式：按字典访问
+last_message = response["messages"][-1]
+
+print("=" * 50)
+print("【调试信息】")
+print(f"消息类型: {type(last_message)}")
+print(f"是否有 content_blocks 属性: {hasattr(last_message, 'content_blocks')}")
+print(f"是否有 additional_kwargs 属性: {hasattr(last_message, 'additional_kwargs')}")
+print("=" * 50)
+print()
+
+# 方法1：检查是否有 content_blocks
+if hasattr(last_message, 'content_blocks') and last_message.content_blocks:
+    print("【使用方法1】content_blocks 方式")
+    for block in last_message.content_blocks:
+        if isinstance(block, dict):
+            if block.get("type") == "reasoning":
+                print(f"推理过程: {block.get('reasoning', block.get('text', ''))}")
+            elif block.get("type") == "text":
+                print(f"最终答案: {block.get('text', '')}")
+else:
+    # 方法2：直接获取 content
+    print("【使用方法2】直接 content 方式")
+    print(f"直接回答: {last_message.content}")
+    
+# 方法3：检查 additional_kwargs（Ollama 可能把推理内容放这里）
+if hasattr(last_message, 'additional_kwargs'):
+    reasoning = last_message.additional_kwargs.get('reasoning')
+    if reasoning:
+        print(f"【使用方法3】additional_kwargs 方式")
+        print(f"推理过程 (additional_kwargs): {reasoning}")
+    else:
+        print(f"【使用方法3】additional_kwargs 中没有 'reasoning' 字段")
+        print(f"additional_kwargs 内容: {last_message.additional_kwargs}")
+else:
+    print("【使用方法3】对象没有 additional_kwargs 属性")

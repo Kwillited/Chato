@@ -21,7 +21,7 @@ export const useUiStore = defineStore('ui', {
     paths: [
       'leftNavWidth',
       'rightPanelWidth',
-      'isDeepThinking',
+      'isReasoning',
       'isWebSearchEnabled',
       'isAgentEnabled',
       'activePanel'
@@ -56,7 +56,7 @@ export const useUiStore = defineStore('ui', {
     activeView: 'chat', // 视图模式：'chat'为对话视图，'Graph'为图谱视图
 
     // 功能按钮状态
-    isDeepThinking: false, // 深度思考模式
+    isReasoning: false, // 深度思考模式
     isWebSearchEnabled: false, // 联网搜索模式
     isAgentEnabled: false, // 智能体模式
   }),
@@ -257,8 +257,8 @@ export const useUiStore = defineStore('ui', {
     /**
      * 切换深度思考模式
      */
-    toggleDeepThinking() {
-      this.toggleState('isDeepThinking');
+    toggleReasoning() {
+      this.toggleState('isReasoning');
     },
 
     /**
@@ -284,11 +284,11 @@ export const useUiStore = defineStore('ui', {
     },
 
     /**
-     * 设置深度思考模式
+     * 设置推理模式
      * @param {boolean} value - 是否启用
      */
-    setDeepThinking(value) {
-      this.isDeepThinking = value;
+    setReasoning(value) {
+      this.isReasoning = value;
     },
 
     /**
@@ -364,8 +364,8 @@ export const useUiStore = defineStore('ui', {
      */
     handleRouteQueryParams(query) {
       // 处理深度思考模式
-      if (query.deepThinking !== undefined) {
-        this.isDeepThinking = query.deepThinking === 'true';
+      if (query.reasoning !== undefined) {
+        this.isReasoning = query.reasoning === 'true';
       }
       
       // 处理联网搜索模式

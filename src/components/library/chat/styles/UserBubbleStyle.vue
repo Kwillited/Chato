@@ -1,5 +1,11 @@
 <template>
-  <div class="flex justify-end max-w-[85%]">
+  <UserBubbleEditStyle 
+    v-if="isEditing" 
+    :message="message"
+    @cancel="cancelEdit"
+    @save="saveEdit"
+  />
+  <div v-else class="flex justify-end max-w-[85%]">
     <div class="relative group flex flex-col items-end">
       <!-- 文件列表 - 放在消息气泡上方 -->
       <div v-if="messageValue.files && messageValue.files.length > 0" class="flex flex-wrap gap-2 mb-2">
@@ -25,22 +31,17 @@
         v-if="messageContent || messageValue.error || messageValue.isTyping"
         :class="[
           'bg-gray-200 dark:bg-dark-500 text-gray-800 rounded-2xl rounded-tr-none px-5 py-3 shadow-lg overflow-hidden',
-          // 始终根据内容自动调整宽度，但不超过max-w-full
           'w-fit',
-          // 最大宽度限制
           'max-w-full'
         ]"
       >
-        <!-- 文字内容 -->
         <div v-if="messageContent" class="markdown-content text-gray-800 dark:text-gray-100 leading-relaxed" v-html="formattedContent" :key="updateKey"></div>
         
-        <!-- 错误状态显示 -->
         <div v-if="messageValue.error" class="chat-error mt-2">
           <i class="fa-solid fa-circle-exclamation text-red-500 mr-1"></i>
           <span>{{ messageValue.error }}</span>
         </div>
         
-        <!-- 打字动画 -->
         <Loading 
           v-if="messageValue.isTyping" 
           type="typing" 
@@ -51,10 +52,8 @@
         />
       </div>
       
-      <!-- 操作按钮 -->
       <div class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-end w-full max-w-[85%]">
         <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <!-- 编辑按钮 - 仅对用户消息显示 -->
           <Tooltip v-if="!messageValue.isTyping" content="编辑消息">
             <button class="edit-btn text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full transition-all duration-200" @click="startEditMessage">
               <i class="fa-solid fa-pen"></i>
@@ -140,6 +139,7 @@ import { ref } from 'vue'
 import { Tooltip, Loading } from '../../index.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
 import { getFileIcon, getFileExtension, formatFileSize } from '../../../../utils/file.js'
+import UserBubbleEditStyle from './UserBubbleEditStyle.vue'
 
 const props = defineProps({
   message: {
@@ -149,7 +149,9 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['editMessage'])
+const emit = defineEmits(['editMessage', 'saveEditMessage', 'cancelEditMessage'])
+
+const isEditing = ref(false)
 
 // 使用公共聊天气泡逻辑
 const { 
@@ -163,11 +165,21 @@ const {
 
 // 编辑消息（用户消息）
 const startEditMessage = () => {
-  // 发射编辑事件给父组件处理
-  emit('editMessage', {
-    id: messageValue.value.id,
-    content: messageValue.value.content
+  isEditing.value = true
+}
+
+// 取消编辑
+const cancelEdit = () => {
+  isEditing.value = false
+  emit('cancelEditMessage', {
+    id: messageValue.value.id
   })
+}
+
+// 保存编辑
+const saveEdit = (data) => {
+  isEditing.value = false
+  emit('saveEditMessage', data)
 }
 
 // 文件预览相关状态

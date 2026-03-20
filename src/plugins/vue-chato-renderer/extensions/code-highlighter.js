@@ -97,7 +97,15 @@ export class CodeHighlighter {
           delete element.dataset.highlighted
         }
       })
-      hljs.highlightAll()
+      
+      // 跳过 mermaid 语言的高亮，因为 highlight.js 不支持
+      const nonMermaidElements = Array.from(codeElements).filter(element => {
+        return !element.className.includes('language-mermaid')
+      })
+      
+      nonMermaidElements.forEach(element => {
+        hljs.highlightElement(element)
+      })
     }
   }
 
@@ -107,6 +115,9 @@ export class CodeHighlighter {
    */
   highlightElement(element) {
     if (typeof hljs !== 'undefined' && element) {
+      // 跳过 mermaid 语言的高亮，因为 highlight.js 不支持
+      if (element.className.includes('language-mermaid')) return
+      
       // 移除 data-highlighted 属性，确保重新高亮
       if (element.dataset.highlighted) {
         delete element.dataset.highlighted

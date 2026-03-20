@@ -9,7 +9,7 @@
     </div>
 
     <!-- 模型配置设置部分 -->
-    <div class="settings-section hidden h-full overflow-y-auto p-6 scrollbar-hidden" id="models-section">
+    <div class="settings-section hidden h-full p-6 scrollbar-hidden" id="models-section">
       <ModelsSettings />
     </div>
 

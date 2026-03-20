@@ -63,7 +63,6 @@ export const useSettingsStore = defineStore('settings', {
       darkMode: false,
       streamingEnabled: true,
       chatStyle: 'bubble',
-      defaultModel: '',
       viewMode: 'grid',
     },
 
@@ -169,16 +168,7 @@ export const useSettingsStore = defineStore('settings', {
       });
     },
     
-    // 设置默认模型
-    setDefaultModel(model) {
-      this.systemSettings.defaultModel = model;
-      this.saveSettings();
-    },
-    
-    // 获取默认模型
-    getDefaultModel() {
-      return this.systemSettings.defaultModel;
-    },
+
 
     // 更新通知配置
     updateNotificationsConfig(config) {
@@ -232,7 +222,6 @@ export const useSettingsStore = defineStore('settings', {
         streamingEnabled: true,
         chatStyle: 'bubble',
         viewMode: 'grid',
-        defaultModel: '',
       };
 
       this.modelParams = {
@@ -262,8 +251,7 @@ export const useSettingsStore = defineStore('settings', {
             darkMode: systemSettings.dark_mode,
             chatStyle: systemSettings.chat_style,
             viewMode: systemSettings.view_mode,
-            streamingEnabled: systemSettings.streaming_enabled,
-            defaultModel: systemSettings.default_model
+            streamingEnabled: systemSettings.streaming_enabled
           };
           this.systemSettings = { ...this.systemSettings, ...updatedSystemSettings };
           
@@ -290,7 +278,6 @@ export const useSettingsStore = defineStore('settings', {
           chat_style: this.systemSettings.chatStyle,
           view_mode: this.systemSettings.viewMode,
           streaming_enabled: this.systemSettings.streamingEnabled,
-          default_model: this.systemSettings.defaultModel,
           // 通知设置
           newMessage: this.notificationsConfig.newMessage,
           sound: this.notificationsConfig.sound,
@@ -385,7 +372,6 @@ export const useSettingsStore = defineStore('settings', {
           chat_style: this.systemSettings.chatStyle,
           view_mode: this.systemSettings.viewMode,
           streaming_enabled: this.systemSettings.streamingEnabled,
-          default_model: this.systemSettings.defaultModel,
           // 通知设置
           newMessage: this.notificationsConfig.newMessage,
           sound: this.notificationsConfig.sound,
@@ -548,12 +534,17 @@ export const useSettingsStore = defineStore('settings', {
       const available = [];
       
       this.models.forEach(model => {
-        if (model.configured && model.enabled && model.versions) {
+        if (model.configured && model.versions) {
           model.versions.forEach(version => {
             if (version && version.version_name) {
-              // 与select组件保持一致：只使用version_name构建模型标识
-              // 格式：model.name-version_name
-              available.push(`${model.name}-${version.version_name}`);
+              // 检查是否是默认模型版本
+              const isDefaultVersion = model.is_default && model.default_version === version.version_name;
+              // 包含启用的版本或默认版本
+              if (version.enabled || isDefaultVersion) {
+                // 与select组件保持一致：只使用version_name构建模型标识
+                // 格式：model.name-version_name
+                available.push(`${model.name}-${version.version_name}`);
+              }
             }
           });
         }
@@ -605,7 +596,7 @@ export const useSettingsStore = defineStore('settings', {
     async toggleModelEnabled(modelName, enabled) {
       await this._wrapModelApiCall(async () => {
         // 调用后端API更新启用状态
-        await apiService.post(`/models/${modelName}/enabled`, {
+        await apiService.patch(`/models/${modelName}/enabled`, {
           enabled: enabled
         });
         
@@ -627,7 +618,8 @@ export const useSettingsStore = defineStore('settings', {
           api_key: versionConfig.apiKey,
           api_base_url: versionConfig.apiBaseUrl,
           version_name: versionConfig.versionName,
-          streaming_config: versionConfig.streamingConfig
+          streaming_config: versionConfig.streamingConfig,
+          enabled: true // 新添加的版本默认启用
         };
         
         console.log('发送的API请求数据:', JSON.stringify(modelConfig));
@@ -653,7 +645,8 @@ export const useSettingsStore = defineStore('settings', {
           api_key: versionConfig.apiKey,
           api_base_url: versionConfig.apiBaseUrl,
           version_name: versionConfig.versionName,
-          streaming_config: versionConfig.streamingConfig
+          streaming_config: versionConfig.streamingConfig,
+          enabled: versionConfig.enabled !== false // 编辑时保持原有启用状态，默认启用
         };
         
         // 调用API保存配置
@@ -689,6 +682,48 @@ export const useSettingsStore = defineStore('settings', {
       });
       
       return true;
+    },
+
+    // 设置默认模型版本
+    async setDefaultModelVersion(modelName, versionName) {
+      // 查找模型和版本信息用于通知
+      const model = this.models.find(m => m.name === modelName);
+      const version = model?.versions?.find(v => v.version_name === versionName);
+      const versionNameForNotification = version?.custom_name || versionName;
+      
+      await this._wrapModelApiCall(async () => {
+        // 调用后端API设置默认模型版本
+        await apiService.patch(`/models/${modelName}/versions/${versionName}/default`);
+        
+        // 重新加载模型列表以更新状态
+        await this.loadModels();
+      }, {
+        errorMessage: '设置默认模型版本失败',
+        successMessage: `已将${modelName}的版本 ${versionNameForNotification} 设置为默认`,
+        showSuccessNotification: true,
+        showErrorNotification: true
+      });
+    },
+
+    // 设置默认嵌入模型版本
+    async setDefaultEmbeddingModelVersion(modelName, versionName) {
+      // 查找模型和版本信息用于通知
+      const model = this.embeddingModels.find(m => m.name === modelName);
+      const version = model?.versions?.find(v => v.version_name === versionName);
+      const versionNameForNotification = version?.custom_name || versionName;
+      
+      await this._wrapModelApiCall(async () => {
+        // 调用后端API设置默认嵌入模型版本
+        await apiService.put(`/embedding-models/${modelName}/versions/${versionName}/default`);
+        
+        // 重新加载模型列表以更新状态
+        await this.loadEmbeddingModels();
+      }, {
+        errorMessage: '设置默认嵌入模型版本失败',
+        successMessage: `已将${modelName}的版本 ${versionNameForNotification} 设置为默认`,
+        showSuccessNotification: true,
+        showErrorNotification: true
+      });
     },
 
     // 重置模型设置为默认值

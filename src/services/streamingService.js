@@ -141,7 +141,7 @@ export const streamingService = {
    * @returns {Promise} 流式请求Promise
    */
   sendStreamingMessage: async (chatId, message, files, options = {}, onMessage, onError, onComplete) => {
-    const { model = 'GPT-4', modelParams = {}, ragConfig = {}, deepThinking = false, agent = false, webSearchEnabled = false, selectedMessageIds = [] } = options;
+    const { model = 'GPT-4', modelParams = {}, ragConfig = {}, reasoning = false, agent = false, webSearchEnabled = false, selectedMessageIds = [] } = options;
     
     try {
       // 处理文件，转换为可序列化的格式
@@ -155,7 +155,7 @@ export const streamingService = {
         modelParams,
         ragConfig,
         stream: true,  // 传递stream参数给后端
-        deepThinking, // 传递deepThinking参数给后端
+        reasoning, // 传递reasoning参数给后端
         agent, // 传递agent参数给后端
         webSearchEnabled, // 传递webSearchEnabled参数给后端
         selectedMessageIds // 传递selectedMessageIds参数给后端

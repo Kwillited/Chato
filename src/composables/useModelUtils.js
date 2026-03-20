@@ -6,17 +6,22 @@ export function useModelUtils(modelStore) {
     const versions = [];
     
     modelStore.allModels.forEach(model => {
-      if (model.configured && model.enabled && model.versions) {
+      if (model.configured && model.versions) {
         model.versions.forEach(version => {
           const versionName = version?.version_name;
           if (versionName) {
-            const id = `${model.name}-${versionName}`;
-            const displayName = `${model.name}-${version.custom_name || versionName}`;
-            
-            versions.push({
-              id,
-              displayName
-            });
+            // 检查是否是默认模型版本
+            const isDefaultVersion = model.is_default && model.default_version === versionName;
+            // 包含启用的版本或默认版本
+            if (version.enabled || isDefaultVersion) {
+              const id = `${model.name}-${versionName}`;
+              const displayName = `${model.name}-${version.custom_name || versionName}`;
+              
+              versions.push({
+                id,
+                displayName
+              });
+            }
           }
         });
       }

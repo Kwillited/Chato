@@ -66,14 +66,15 @@ class ModelConverter:
                     'custom_name': version.custom_name,
                     'api_key': version.api_key,
                     'api_base_url': version.api_base_url,
-                    'streaming_config': bool(version.streaming_config)
+                    'streaming_config': bool(version.streaming_config),
+                    'enabled': bool(version.enabled),
+                    'default_model': bool(version.default_model)
                 })
         
         return {
             'name': model_row.name,
             'description': model_row.description,
             'configured': bool(model_row.configured),
-            'enabled': bool(model_row.enabled),
             'icon_url': model_row.icon_url,
             'icon_blob': getattr(model_row, 'icon_blob', None),
             'versions': version_list

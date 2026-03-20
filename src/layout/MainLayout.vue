@@ -199,10 +199,7 @@ watch(
 
 // 组件卸载时清理
 onUnmounted(() => {
-  // 确保移除所有事件监听器
-  document.removeEventListener('mousemove', resizePanel);
-  document.removeEventListener('mouseup', stopResize);
-  document.removeEventListener('mouseleave', stopResize);
+  // 确保移除窗口大小变化监听
   window.removeEventListener('resize', updateTitlePosition);
 });
 </script>

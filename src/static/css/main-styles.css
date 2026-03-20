@@ -6,6 +6,16 @@
   --select-arrow-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
   --select-arrow-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
   
+  /* z-index 层级体系 */
+  --z-base: 1;
+  --z-card: 10;
+  --z-panel: 50;
+  --z-adjuster: 40;
+  --z-loading: 60;
+  --z-dropdown: 100;
+  --z-dialog: 1000;
+  --z-drawer: 1001;
+  
   /* 聊天气泡样式 */
   --chat-bubble-ai-bg: #ffffff;
   --chat-bubble-ai-border: #f1f5f9;
@@ -94,20 +104,12 @@ h2, h3 {
   border-color: #374151;
 }
 
-
-
-
-
 /* 头像边框深色模式样式 */
 .dark .border-white {
   border-color: #475569;
 }
 
-/* 设置项深色模式样式 */
-.dark .setting-item {
-  background-color: #334155;
-  border-radius: 0.5rem;
-}
+
 
 /* 文本颜色深色模式样式 */
 .dark .text-neutral {
@@ -228,8 +230,6 @@ h2, h3 {
     display: inline-flex;
     align-items: center;
     gap: 3px;
-  }
-  .typing-indicator {
     padding: 5px 0;
   }
   .typing-indicator span {
@@ -264,7 +264,7 @@ h2, h3 {
     cursor: col-resize;
     background-color: transparent;
     transition: background-color 0.2s;
-    z-index: 40;
+    z-index: var(--z-adjuster);
     position: relative;
   }
   .resizer:hover,
@@ -283,19 +283,7 @@ h2, h3 {
   }
 
 }
-.dropdown-content {
-  animation: dropdownFade 0.2s ease-in-out;
-}
-@keyframes dropdownFade {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+
 .slider {
   -webkit-appearance: none;
   appearance: none;
@@ -511,7 +499,7 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-dialog);
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -613,11 +601,11 @@ input:checked + .toggle-slider:before {
   position: fixed;
   top: 0;
   right: 0;
-  width: 300px;
+  width: 35vw;
   height: 100%;
   background-color: white;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
-  z-index: 1001;
+  z-index: var(--z-drawer);
   transform: translateX(100%);
   transition: transform 0.3s ease;
   overflow-y: auto;
@@ -633,7 +621,7 @@ input:checked + .toggle-slider:before {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
+  z-index: var(--z-dialog);
   opacity: 0;
   visibility: hidden;
   transition: all 0.3s ease;
@@ -655,7 +643,7 @@ input:checked + .toggle-slider:before {
   justify-content: center;
   align-items: center;
   pointer-events: none;
-  z-index: 10;
+  z-index: var(--z-card);
 }
 .thinking-block {
   background-color: #f0f7ff;
@@ -678,13 +666,6 @@ input:checked + .toggle-slider:before {
   line-height: 1.5;
 }
 
-
-.dropdown {
-  border-radius: 10px;
-  box-shadow: var(--tw-shadow-dropdown);
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
-}
 .user-message {
   background-color: #4f46e5;
   color: white;
@@ -770,10 +751,10 @@ input:checked + .toggle-slider:before {
   border: 1px solid #f1f5f9;
 }
 .panel-header {
-  z-index: 10;
+  z-index: var(--z-card);
   position: relative;
-  height: 47px; /* panel-headerg高度 */
-  min-height: 47px;/* panel-headerg高度 */
+  height: 47px;
+  min-height: 47px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -809,7 +790,6 @@ input:checked + .toggle-slider:before {
   align-items: center;
   justify-content: center;
 }
-/* .panel-header::after 伪元素已删除，避免与border-bottom样式重叠 */
 .btn {
   transition: all 0.2s ease;
   border-radius: 8px;
@@ -867,8 +847,6 @@ input:checked + .toggle-slider:before {
 #leftNav {
   border-right: none;
 }
-
-/* #panelContainer 边框样式已移除 */
 .bg-gradient-subtle {
   background: linear-gradient(to bottom, #f8fafc 0%, #f1f5f9 100%);
 }
@@ -960,19 +938,6 @@ input:checked + .toggle-slider:before {
   border-bottom: none;
   position: relative;
 }
-/* 优化设置项样式 */
-.setting-item {
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 12px;
-  background-color: white;
-  border: 1px solid transparent;
-}
-.setting-item:hover {
-  background-color: rgba(79, 70, 229, 0.03);
-  border-color: rgba(79, 70, 229, 0.1);
-  transform: translateY(-1px);
-}
-
 
 
 /* 优化设置区域滚动条 */
@@ -1017,11 +982,7 @@ input:checked + .toggle-slider:before {
   line-height: 1.4;
 }
 
-/* CSS变量定义 */
-:root {
-  --select-arrow-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748B' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-  --select-arrow-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-}
+
 
 /* 统一输入框和选择框样式 */
 .input-field {

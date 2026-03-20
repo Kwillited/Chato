@@ -135,13 +135,13 @@ class DataService(BaseService):
                         'custom_name': version.custom_name,
                         'api_key': version.api_key,
                         'api_base_url': version.api_base_url,
-                        'streaming_config': version.streaming_config
+                        'streaming_config': version.streaming_config,
+                        'enabled': bool(version.enabled)
                     })
                 model_list.append({
                     'name': model.name,
                     'description': model.description,
                     'configured': bool(model.configured),
-                    'enabled': bool(model.enabled),
                     'icon_url': model.icon_url,
                     'icon_blob': model.icon_blob,
                     'versions': version_list
@@ -173,13 +173,13 @@ class DataService(BaseService):
                         'custom_name': version.custom_name,
                         'api_key': version.api_key,
                         'api_base_url': version.api_base_url,
-                        'streaming_config': version.streaming_config
+                        'streaming_config': version.streaming_config,
+                        'enabled': bool(version.enabled)
                     })
                 model_data = {
                     'name': db_model.name,
                     'description': db_model.description,
                     'configured': bool(db_model.configured),
-                    'enabled': bool(db_model.enabled),
                     'icon_url': db_model.icon_url,
                     'icon_blob': db_model.icon_blob,
                     'versions': version_list
@@ -210,7 +210,6 @@ class DataService(BaseService):
                     name=model['name'],
                     description=model['description'],
                     configured=model['configured'],
-                    enabled=model['enabled'],
                     icon_url=model.get('icon_url', ''),
                     icon_blob=model.get('icon_blob', None)
                 )
@@ -225,7 +224,8 @@ class DataService(BaseService):
                                 custom_name=version.get('custom_name', ''),
                                 api_key=version.get('api_key', ''),
                                 api_base_url=version.get('api_base_url', ''),
-                                streaming_config=version.get('streaming_config', False)
+                                streaming_config=version.get('streaming_config', False),
+                                enabled=version.get('enabled', False)
                             )
                 # 设置脏标记
                 self.memory_repo.set_dirty_flag('models')
@@ -249,7 +249,6 @@ class DataService(BaseService):
                         'streamingEnabled': system_setting.streaming_enabled,
                         'chatStyle': system_setting.chat_style,
                         'viewMode': system_setting.view_mode,
-                        'defaultModel': system_setting.default_model,
                         'vector_db_path': system_setting.vector_db_path,
                         'default_top_k': system_setting.default_top_k,
                         'default_score_threshold': system_setting.default_score_threshold,
@@ -284,7 +283,6 @@ class DataService(BaseService):
                     'streaming_enabled': value.get('streamingEnabled', True),
                     'chat_style': value.get('chatStyle', 'bubble'),
                     'view_mode': value.get('viewMode', 'grid'),
-                    'default_model': value.get('defaultModel', ''),
                     'vector_db_path': value.get('vector_db_path', ''),
                     'default_top_k': value.get('default_top_k', 3),
                     'default_score_threshold': value.get('default_score_threshold', 0.7),

@@ -283,7 +283,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: var(--z-dropdown);
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 

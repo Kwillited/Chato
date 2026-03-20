@@ -71,7 +71,6 @@ class ModelService(BaseService):
             name=model['name'],
             description=model['description'],
             configured=model['configured'],
-            enabled=model['enabled'],
             icon_url=model['icon_url'],
             icon_blob=model.get('icon_blob', None)
         )
@@ -150,6 +149,8 @@ class ModelService(BaseService):
                 version = {}  # 初始化为空对象，只添加必要的字段
                 if target_version_name:  # 只有当version_name有值时才添加
                     version['version_name'] = target_version_name
+                    # 新创建的版本默认启用
+                    version['enabled'] = True
                 model['versions'].append(version)
             
             # 将配置信息写入到该版本中，只添加必要的字段
@@ -164,18 +165,17 @@ class ModelService(BaseService):
             if 'api_base_url' in data:
                 version['api_base_url'] = data['api_base_url']
             version['streaming_config'] = data.get('streaming_config', False)  # 流式配置
+            # 更新启用状态
+            version['enabled'] = data.get('enabled', True)
+            # 更新默认模型状态
+            version['default_model'] = data.get('default_model', version.get('default_model', False))
             
             # 更新模型的顶级配置字段
-            # 对于首次配置的模型，默认设置为启用状态
+            # 对于首次配置的模型，默认设置为已配置
             is_first_configuration = not model.get('configured')
             model.update({
-                'configured': True,
-                'enabled': True if is_first_configuration else data.get('enabled', model.get('enabled', True))
+                'configured': True
             })
-            
-            # 额外确保首次配置时的enabled状态为True
-            if is_first_configuration:
-                model['enabled'] = True
             
             # 先设置脏标记，确保数据会被保存
             self.data_service.set_dirty_flag('models')
@@ -188,13 +188,16 @@ class ModelService(BaseService):
             self._update_model_in_db(model)
             
             # 更新或创建模型版本
+            # 对于新创建的版本，默认启用
+            is_new_version = not version.get('enabled')
             self.model_repo.update_model_version(
                 model_id=model_id,
                 version_name=version['version_name'],
                 custom_name=version.get('custom_name', ''),
                 api_key=version.get('api_key', ''),
                 api_base_url=version.get('api_base_url', ''),
-                streaming_config=version.get('streaming_config', False)
+                streaming_config=version.get('streaming_config', False),
+                enabled=is_new_version or version.get('enabled', True)
             )
             
             return True, f'模型 {model_name} 已配置', self._filter_icon_blob(model)
@@ -231,8 +234,7 @@ class ModelService(BaseService):
             
             # 重置模型的顶级配置字段
             model.update({
-                'configured': False,
-                'enabled': False
+                'configured': False
             })
             
             # 设置脏标记，确保数据会被保存
@@ -253,9 +255,9 @@ class ModelService(BaseService):
             self.log_error(f"删除模型配置失败: {str(e)}")
             return False, f'删除模型配置失败: {str(e)}'
 
-    def update_model_enabled(self, model_name, enabled):
+    def update_model_versions_enabled(self, model_name, enabled):
         """
-        更新模型启用状态
+        更新模型所有版本的启用状态
         
         Args:
             model_name: 模型名称
@@ -273,20 +275,29 @@ class ModelService(BaseService):
                 if not model:
                     return False, '模型不存在'
             
-            # 先更新内存中的模型启用状态
-            model['enabled'] = enabled
+            # 更新内存中模型的所有版本的启用状态
+            if 'versions' in model:
+                for version in model['versions']:
+                    version['enabled'] = enabled
             
             # 设置脏标记，确保数据会被保存
             self.data_service.set_dirty_flag('models')
             
-            # 更新数据库中的模型信息
-            self._update_model_in_db(model)
+            # 从数据库获取模型ID
+            model_row = self.model_repo.get_model_by_name(model_name)
+            model_id = model_row.id
             
-            return True, f'模型 {model_name} 启用状态已更新'
+            # 更新数据库中模型的所有版本的启用状态
+            versions = self.model_repo.get_model_versions(model_id)
+            for version in versions:
+                version.enabled = enabled
+                self.model_repo.update(version)
+            
+            return True, f'模型 {model_name} 的所有版本已{'启用' if enabled else '禁用'}'
         except Exception as e:
             # 使用BaseService的日志方法
-            self.log_error(f"更新模型启用状态失败: {str(e)}")
-            return False, f'更新模型启用状态失败: {str(e)}'
+            self.log_error(f"更新模型版本启用状态失败: {str(e)}")
+            return False, f'更新模型版本启用状态失败: {str(e)}'
 
     def delete_version(self, model_name, version_name):
         """
@@ -323,7 +334,6 @@ class ModelService(BaseService):
             # 如果模型没有版本了，设置为未配置
             if not model['versions']:
                 model['configured'] = False
-                model['enabled'] = False
             
             # 设置脏标记，确保数据会被保存
             self.data_service.set_dirty_flag('models')
@@ -343,6 +353,72 @@ class ModelService(BaseService):
             # 使用BaseService的日志方法
             self.log_error(f"删除模型版本失败: {str(e)}")
             return False, f'删除模型版本失败: {str(e)}', None
+    
+    def set_default_version(self, model_name, version_name):
+        """
+        设置默认模型版本
+        
+        Args:
+            model_name: 模型名称
+            version_name: 版本名称
+            
+        Returns:
+            元组: (成功标志, 消息, 模型对象)
+        """
+        try:
+            # 先从内存获取模型
+            model = self.data_service.get_model_by_name(model_name)
+            if not model:
+                # 如果内存中没有，从SQLite加载
+                model = self._load_model_from_db(model_name)
+                if not model:
+                    return False, '模型不存在', None
+            
+            # 检查模型是否有versions数组
+            if 'versions' not in model or not model['versions']:
+                return False, '该模型没有版本信息', None
+            
+            # 查找匹配的版本
+            version = next((v for v in model['versions'] if v['version_name'] == version_name), None)
+            if not version:
+                return False, '版本不存在', None
+            
+            # 先将所有模型的所有版本的default_model设置为False
+            for m in self.data_service.get_models():
+                if 'versions' in m:
+                    for v in m['versions']:
+                        v['default_model'] = False
+            
+            # 将当前版本设置为默认
+            version['default_model'] = True
+            model['is_default'] = True
+            model['default_version'] = version_name
+            
+            # 设置脏标记，确保数据会被保存
+            self.data_service.set_dirty_flag('models')
+            
+            # 从数据库获取模型ID
+            model_row = self.model_repo.get_model_by_name(model_name)
+            model_id = model_row.id
+            
+            # 更新数据库中的所有模型版本
+            for m in self.data_service.get_models():
+                m_row = self.model_repo.get_model_by_name(m['name'])
+                if m_row:
+                    for v in m['versions']:
+                        v_row = self.model_repo.get_model_version(m_row.id, v['version_name'])
+                        if v_row:
+                            v_row.default_model = v.get('default_model', False)
+                            self.model_repo.update(v_row)
+            
+            # 更新数据库中的模型信息
+            self._update_model_in_db(model)
+            
+            return True, f'版本 {version_name} 已成功设置为默认', self._filter_icon_blob(model)
+        except Exception as e:
+            # 使用BaseService的日志方法
+            self.log_error(f"设置默认模型版本失败: {str(e)}")
+            return False, f'设置默认模型版本失败: {str(e)}', None
         
     def get_model_icon(self, filename: str):
         """

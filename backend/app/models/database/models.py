@@ -12,7 +12,6 @@ class Model(Base):
     name = Column(String, unique=True, nullable=False)
     description = Column(Text)
     configured = Column(Boolean, default=False)
-    enabled = Column(Boolean, default=False)
     icon_url = Column(String)
     icon_blob = Column(Text)  # SQLite中使用TEXT存储二进制数据
     
@@ -31,6 +30,8 @@ class ModelVersion(Base):
     api_key = Column(String)
     api_base_url = Column(String)
     streaming_config = Column(Boolean, default=False)
+    default_model = Column(Boolean, default=False)
+    enabled = Column(Boolean, default=True)
     
     # 关系：多个版本属于一个模型
     model = relationship("Model", back_populates="versions")
@@ -87,7 +88,6 @@ class SystemSetting(Base):
     streaming_enabled = Column(Boolean, default=True)
     chat_style = Column(String, default="bubble")
     view_mode = Column(String, default="grid")
-    default_model = Column(String, default="")
     # 通知相关字段
     new_message = Column(Boolean, default=True)
     sound = Column(Boolean, default=True)
@@ -149,7 +149,6 @@ class EmbeddingModel(Base):
     description = Column(Text)
     type = Column(String, default="huggingface")  # huggingface, openai, ollama
     configured = Column(Boolean, default=False)
-    enabled = Column(Boolean, default=False)
     icon_url = Column(String)
     
     # 关系：一个嵌入模型可以有多个版本
@@ -168,6 +167,8 @@ class EmbeddingVersion(Base):
     api_base_url = Column(String)  # 用于自定义API地址
     model_path = Column(String)  # 用于本地模型的路径
     dimension = Column(Integer)  # 向量维度
+    default_model = Column(Boolean, default=False)
+    enabled = Column(Boolean, default=True)
     
     # 关系：多个版本属于一个嵌入模型
     model = relationship("EmbeddingModel", back_populates="versions")

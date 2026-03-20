@@ -77,11 +77,19 @@
             <p v-if="errors.apiBaseUrl" class="text-xs text-red-500 mt-1">{{ errors.apiBaseUrl }}</p>
           </div>
 
-          <div class="pt-4 border-t border-gray-100 dark:border-gray-700">
-            <label class="flex items-center">
-              <input type="checkbox" v-model="streamingConfig" class="rounded text-primary focus:ring-primary dark:bg-gray-700 dark:border-gray-600" />
-              <span class="ml-2 text-sm dark:text-gray-300">是否支持流式响应</span>
-            </label>
+          <div class="pt-4 border-t border-gray-100 dark:border-gray-700 space-y-4">
+            <div>
+              <label class="flex items-center">
+                <input type="checkbox" v-model="streamingConfig" class="rounded text-primary focus:ring-primary dark:bg-gray-700 dark:border-gray-600" />
+                <span class="ml-2 text-sm dark:text-gray-300">是否支持流式响应</span>
+              </label>
+            </div>
+            <div>
+              <label class="flex items-center">
+                <input type="checkbox" v-model="enabled" class="rounded text-primary focus:ring-primary dark:bg-gray-700 dark:border-gray-600" />
+                <span class="ml-2 text-sm dark:text-gray-300">启用此版本</span>
+              </label>
+            </div>
           </div>
         </div>
       </form>
@@ -136,6 +144,7 @@ const modelCustomName = ref('');
 const apiKey = ref('');
 const apiBaseUrl = ref('');
 const streamingConfig = ref(false);
+const enabled = ref(true); // 默认启用
 
 // 判断是否为Ollama模型
 const isOllama = computed(() => {
@@ -167,6 +176,7 @@ watch(() => props.visible, (newValue) => {
     const modelName = props.modelName || '';
     const streamEnabledModels = ['GitHubModel', 'OpenAI', 'Anthropic', 'GoogleAI', 'DeepSeek', 'Ollama'];
     streamingConfig.value = streamEnabledModels.includes(modelName);
+    enabled.value = true; // 默认启用
     clearErrors();
     
     // 如果是编辑模式，填充表单数据
@@ -223,7 +233,8 @@ const handleSubmit = async () => {
       apiKey: apiKey.value,
       apiBaseUrl: apiBaseUrl.value,
       versionName: modelVersion.value,
-      streamingConfig: streamingConfig.value
+      streamingConfig: streamingConfig.value,
+      enabled: enabled.value
     };
 
     if (isEditMode.value) {
@@ -272,6 +283,8 @@ const populateFormData = (data) => {
   apiBaseUrl.value = data.apiBaseUrl || data.api_base_url || '';
   // 处理 streamingConfig 或 streaming_config 或 streaming 字段
   streamingConfig.value = data.streamingConfig || data.streaming_config || data.streaming || false;
+  // 处理 enabled 字段
+  enabled.value = data.enabled !== false;
 };
 
 

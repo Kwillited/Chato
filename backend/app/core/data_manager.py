@@ -196,7 +196,8 @@ def load_models_from_db():
                     'custom_name': version.custom_name,
                     'api_key': version.api_key,
                     'api_base_url': version.api_base_url,
-                    'streaming_config': version.streaming_config
+                    'streaming_config': version.streaming_config,
+                    'enabled': bool(version.enabled)
                 })
             
             # 添加模型到列表
@@ -204,7 +205,6 @@ def load_models_from_db():
                 'name': model.name,
                 'description': model.description,
                 'configured': bool(model.configured),
-                'enabled': bool(model.enabled),
                 'icon_url': model.icon_url,
                 'icon_blob': model.icon_blob,
                 'versions': version_list
@@ -247,7 +247,8 @@ def load_embedding_models_from_db():
                     'api_key': version.api_key,
                     'api_base_url': version.api_base_url,
                     'model_path': version.model_path,
-                    'dimension': version.dimension
+                    'dimension': version.dimension,
+                    'enabled': bool(version.enabled)
                 })
             
             # 添加模型到列表
@@ -257,7 +258,6 @@ def load_embedding_models_from_db():
                 'description': model.description,
                 'type': model.type,
                 'configured': bool(model.configured),
-                'enabled': bool(model.enabled),
                 'icon_url': model.icon_url,
                 'versions': version_list
             })
@@ -293,7 +293,6 @@ def load_settings_from_db():
                 'streamingEnabled': system_setting.streaming_enabled,
                 'chatStyle': system_setting.chat_style,
                 'viewMode': system_setting.view_mode,
-                'defaultModel': system_setting.default_model,
                 'vector_db_path': system_setting.vector_db_path,
                 'default_top_k': system_setting.default_top_k,
                 'default_score_threshold': system_setting.default_score_threshold,
@@ -394,7 +393,6 @@ def insert_default_embedding_models():
                 'description': provider['description'],
                 'type': provider['type'],
                 'configured': provider['configured'],
-                'enabled': provider['enabled'],
                 'icon_url': provider.get('icon_url', '')
             }
             
@@ -412,7 +410,8 @@ def insert_default_embedding_models():
                     'api_key': version.get('api_key', ''),
                     'api_base_url': version.get('api_base_url', ''),
                     'model_path': version.get('model_path', ''),
-                    'dimension': version.get('dimension', 0)
+                    'dimension': version.get('dimension', 0),
+                    'enabled': version.get('enabled', False)
                 }
                 embedding_model_repo.create_model_version(version_data)
         
@@ -574,7 +573,6 @@ def insert_default_models():
                 name=model['name'],
                 description=model['description'],
                 configured=model['configured'],
-                enabled=model['enabled'],
                 icon_url=model.get('icon_url', ''),
                 icon_blob=model.get('icon_blob', None)
             )
@@ -591,7 +589,8 @@ def insert_default_models():
                     custom_name=version_data.get('custom_name', ''),
                     api_key=version_data.get('api_key', ''),
                     api_base_url=version_data.get('api_base_url', ''),
-                    streaming_config=version_data.get('streaming_config', False)
+                    streaming_config=version_data.get('streaming_config', False),
+                    enabled=version_data.get('enabled', False)
                 )
             
             for version in model.get('versions', []):
@@ -770,7 +769,6 @@ def save_models_to_db():
                 name=model['name'],
                 description=model['description'],
                 configured=model['configured'],
-                enabled=model['enabled'],
                 icon_url=model.get('icon_url', ''),
                 icon_blob=model.get('icon_blob', None)
             )
@@ -801,7 +799,8 @@ def save_models_to_db():
                     custom_name=version_data.get('custom_name', ''),
                     api_key=version_data.get('api_key', ''),
                     api_base_url=version_data.get('api_base_url', ''),
-                    streaming_config=version_data.get('streaming_config', False)
+                    streaming_config=version_data.get('streaming_config', False),
+                    enabled=version_data.get('enabled', False)
                 )
             
             for version in new_versions:
@@ -860,7 +859,6 @@ def save_embedding_models_to_db():
                 'description': model['description'],
                 'type': model['type'],
                 'configured': model['configured'],
-                'enabled': model['enabled'],
                 'icon_url': model.get('icon_url', '')
             }
             
@@ -899,7 +897,8 @@ def save_embedding_models_to_db():
                     'api_key': version.get('api_key', ''),
                     'api_base_url': version.get('api_base_url', ''),
                     'model_path': version.get('model_path', ''),
-                    'dimension': version.get('dimension', 0)
+                    'dimension': version.get('dimension', 0),
+                    'enabled': version.get('enabled', False)
                 }
                 
                 # 检查版本是否已存在
@@ -948,7 +947,6 @@ def save_settings_to_db():
                 'streaming_enabled': system_data.get('streamingEnabled', True),
                 'chat_style': system_data.get('chatStyle', 'bubble'),
                 'view_mode': system_data.get('viewMode', 'grid'),
-                'default_model': system_data.get('defaultModel', ''),
                 # 通知相关字段
                 'new_message': system_data.get('newMessage', True),
                 'sound': system_data.get('sound', False),

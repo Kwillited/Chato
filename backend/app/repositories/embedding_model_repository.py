@@ -29,8 +29,7 @@ class EmbeddingModelRepository(BaseRepository):
         db = self.get_db()
         try:
             query = db.query(EmbeddingModel)
-            if enabled_only:
-                query = query.filter(EmbeddingModel.enabled == True)
+            # 不再过滤enabled字段，因为该字段已移至EmbeddingVersion表
             return query.all()
         finally:
             if not hasattr(self, '_db') or not self._db:
@@ -243,15 +242,7 @@ class EmbeddingModelRepository(BaseRepository):
         """
         db = self.get_db()
         try:
-            # 优先返回启用的模型，否则返回第一个模型
-            enabled_model = db.query(EmbeddingModel).filter(
-                EmbeddingModel.enabled == True
-            ).first()
-            
-            if enabled_model:
-                return enabled_model
-            
-            # 返回第一个模型
+            # 直接返回第一个模型，因为enabled字段已移至EmbeddingVersion表
             return db.query(EmbeddingModel).first()
         finally:
             if not hasattr(self, '_db') or not self._db:

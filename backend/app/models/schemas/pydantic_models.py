@@ -124,7 +124,7 @@ class SendMessageRequest(BaseModel):
     modelParams: Optional[ModelParam] = Field(default_factory=ModelParam)
     ragConfig: Optional[RAGConfig] = Field(default_factory=RAGConfig)
     stream: Optional[bool] = False
-    deepThinking: Optional[bool] = False
+    reasoning: Optional[bool] = False
     agent: Optional[bool] = False
     webSearchEnabled: Optional[bool] = False
     files: Optional[List[FileInfo]] = Field(default_factory=list)
@@ -184,7 +184,6 @@ class SystemSettings(BaseModel):
     streaming_enabled: bool = True
     chat_style: str = "bubble"
     view_mode: str = "grid"
-    default_model: str = ""
     # 通知相关字段
     newMessage: bool = True
     sound: bool = True
@@ -198,7 +197,6 @@ class PatchSystemSettings(BaseModel):
     streaming_enabled: bool | None = None
     chat_style: str | None = None
     view_mode: str | None = None
-    default_model: str | None = None
     # 通知相关字段
     newMessage: bool | None = None
     sound: bool | None = None

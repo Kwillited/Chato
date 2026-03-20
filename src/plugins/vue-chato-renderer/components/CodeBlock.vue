@@ -85,6 +85,9 @@ const copyCode = async () => {
 
 // 处理代码高亮
 const handleHighlight = () => {
+  // 跳过 mermaid 语言的高亮，因为 highlight.js 不支持
+  if (props.language === 'mermaid') return
+  
   const codeElement = document.getElementById(codeBlockId)
   if (codeElement) {
     codeHighlighter.highlightElement(codeElement)
@@ -245,7 +248,6 @@ const svgVNode = computed(() => {
 // 渲染 Mermaid 图表
 const renderMermaid = async () => {
   if (isRendering.value) {
-    renderTimer.value = setTimeout(renderMermaid, 50)
     return
   }
   
@@ -280,38 +282,44 @@ const isCodeBlockEnded = (code) => {
 
 // 组件更新时处理
 onUpdated(() => {
-  // 只有当代码块结束时才进行高亮
-  if (isCodeBlockEnded(props.code)) {
+  // 对于非 Mermaid 代码，只有当代码块结束时才进行高亮
+  if (!props.isMermaid && isCodeBlockEnded(props.code)) {
     // 延迟处理，确保 DOM 已更新
     setTimeout(() => {
       handleHighlight()
+    }, 100)
+  }
+  
+  // 对于 Mermaid 代码，不需要等待代码块结束
+  if (props.isMermaid) {
+    // 延迟处理，确保 DOM 已更新
+    setTimeout(() => {
+      // Mermaid 代码不需要高亮，只需要确保容器高度正确
+      const container = document.getElementById(mermaidContainerId)
+      if (container) {
+        // 根据代码行数计算高度，每行 30px，最少 300px，最多 800px
+        const height = Math.min(Math.max(300, codeLines.value.length * 30), 800)
+        container.style.height = `${height}px`
+      }
     }, 100)
   }
 })
 
 // 当代码变化时重新处理
 watch(() => props.code, (newCode) => {
-  // 只有当代码块结束时才进行高亮
-  if (isCodeBlockEnded(newCode)) {
+  // 对于非 Mermaid 代码，只有当代码块结束时才进行高亮
+  if (!props.isMermaid && isCodeBlockEnded(newCode)) {
     // 重新高亮代码
     setTimeout(handleHighlight, 100)
   }
   
-  // 如果是 Mermaid 图表，重新渲染
+  // 如果是 Mermaid 图表，立即渲染
   if (props.isMermaid) {
-    // 检查是否有新的换行符
-    const newLines = (newCode.match(/\n/g) || []).length
-    const oldLines = (tempCodeBuffer.value.match(/\n/g) || []).length
+    // 立即渲染，移除防抖
+    renderMermaid()
     
     // 更新临时缓冲区
     tempCodeBuffer.value = newCode
-    
-    // 只有当代码长度增加且包含新的换行符时，才进行渲染
-    if (newCode.length > lastCodeLength.value && newLines > oldLines) {
-      // 立即渲染，移除防抖
-      renderMermaid()
-    }
-    
     // 更新最后代码长度
     lastCodeLength.value = newCode.length
   }

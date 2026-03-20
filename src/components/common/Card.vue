@@ -64,8 +64,10 @@ const hoverClasses = computed(() => (props.hoverable ? 'hoverable' : ''));
 .card-wrapper {
   position: relative;
   border-radius: 20px;
-  overflow: hidden; /* 必须裁剪 */
+  overflow: visible; /* 允许下拉菜单显示 */
   display: flex;
+  flex-direction: column;
+  min-height: 0; /* 重要：允许flex子项缩小到内容以下 */
   transition: all 0.3s ease;
   /* 默认保持你原来的背景色逻辑 */
   background-color: white; 
@@ -78,8 +80,10 @@ const hoverClasses = computed(() => (props.hoverable ? 'hoverable' : ''));
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1;
+  z-index: var(--z-base);
   pointer-events: none;
+  overflow: hidden; /* 限制流光效果在卡片边界内 */
+  border-radius: 20px; /* 与卡片容器相同的圆角 */
 }
 
 .comet-rotate-layer {
@@ -122,13 +126,14 @@ const hoverClasses = computed(() => (props.hoverable ? 'hoverable' : ''));
 /* 内容层（遮罩层） */
 .card-content {
   position: relative;
-  z-index: 10;
+  z-index: var(--z-card);
   flex: 1;
   margin: 2px; /* 边框厚度 */
   border-radius: 18px;
   background: inherit; /* 自动跟随父级背景 */
   display: flex;
   flex-direction: column;
+  min-height: 0; /* 重要：允许flex子项缩小到内容以下 */
 }
 
 /* --- 状态样式 --- */
@@ -147,13 +152,11 @@ const hoverClasses = computed(() => (props.hoverable ? 'hoverable' : ''));
 .standard-border {
   border: 1px solid #e2e8f0;
 }
-.standard-border .card-content { margin: 0; }
-
-/* 3. 悬浮效果 */
-.hoverable:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+.standard-border .card-content { 
+  margin: 0; 
+  border-radius: 19px;
 }
+
 </style>
 
 <style>
@@ -163,7 +166,15 @@ const hoverClasses = computed(() => (props.hoverable ? 'hoverable' : ''));
   border-color: rgba(255, 255, 255, 0.1);
 }
 
-.dark .card-wrapper.hoverable:hover {
-  background-color: #4b5563; /* gray-600，悬浮时稍微亮一点点 */
+/* Enter 按钮暗色模式支持 */
+.dark button.text-black.bg-white {
+  background-color: #374151;
+  color: white;
+  border-color: #4b5563;
+}
+
+.dark button.text-black.bg-white:hover {
+  background-color: #4b5563;
+  border-color: #6b7280;
 }
 </style>

@@ -29,7 +29,7 @@ const chatStore = useChatStore();
 const router = useRouter();
 
 // 处理发送消息事件
-const handleSendMessage = async (message, model, deepThinking = false, webSearchEnabled = false, agent = false) => {
+const handleSendMessage = async (message, model, reasoning = false, webSearchEnabled = false, agent = false) => {
   if (message.trim() || chatStore.uploadedFiles.length > 0) {
     // 先确保有当前对话（如果没有则创建）
     if (!chatStore.currentChatId) {
@@ -37,7 +37,7 @@ const handleSendMessage = async (message, model, deepThinking = false, webSearch
     }
     
     // 先发送消息，确保isTyping消息立即添加
-    chatStore.sendMessage(message, model, deepThinking, webSearchEnabled, agent);
+    chatStore.sendMessage(message, model, reasoning, webSearchEnabled, agent);
     
     // 使用路由跳转到聊天对话页面
     if (chatStore.currentChatId) {

@@ -51,7 +51,7 @@ class MessageService(BaseService):
         rag_config = data.get('ragConfig', {})
         rag_enabled = rag_config.get('enabled', False)
         stream = data.get('stream', False)
-        deep_thinking = data.get('deepThinking', False)
+        reasoning = data.get('reasoning', False)
         use_agent = data.get('agent', False)
         web_search_enabled = data.get('webSearchEnabled', False)
         files = data.get('files', [])
@@ -69,7 +69,7 @@ class MessageService(BaseService):
             'rag_enabled': rag_enabled,
             'rag_config': rag_config,  # 添加完整的ragConfig
             'stream': stream,
-            'deep_thinking': deep_thinking,
+            'reasoning': reasoning,
             'use_agent': use_agent,
             'web_search_enabled': web_search_enabled,
             'files': files,
@@ -146,7 +146,7 @@ class MessageService(BaseService):
         rag_enabled = parsed_data['rag_enabled']
         rag_config = parsed_data['rag_config']
         stream = parsed_data['stream']
-        deep_thinking = parsed_data['deep_thinking']
+        reasoning = parsed_data['reasoning']
         use_agent = parsed_data['use_agent']
         web_search_enabled = parsed_data['web_search_enabled']
         files = parsed_data['files']
@@ -167,7 +167,7 @@ class MessageService(BaseService):
             # 重要：当设置为 0 时，会导致 Ollama 的 qwen2.5 模型出现断言错误
             # 但 qwen3 模型不受此影响
             'stream': stream,  # 将 stream 参数添加到 model_params 中
-            'deepThinking': deep_thinking  # 添加深度思考参数
+            'reasoning': reasoning  # 添加推理参数
         }
         # 合并用户自定义参数，但强制保留 frequency_penalty 的默认值
         # 这样做是为了确保所有对话都使用一致的重复惩罚值，避免前端缓存旧设置导致的问题

@@ -66,7 +66,7 @@ class BaseModel(ABC):
             return self._format_response(f"Error: {str(e)}")
 
     async def chat_stream(self, messages: List[Dict[str, str]], model_params: Dict[str, Any]) -> AsyncIterator[Dict[str, Any]]:
-        """流式对话"""
+        """流式对话（直接返回LLM原始事件流）"""
         logger.info(f"🔧 LLM参数传递: Original stream params: {model_params}")
         
         try:
@@ -80,35 +80,13 @@ class BaseModel(ABC):
             if not self.llm:
                 raise RuntimeError("LLM instance is not initialized")
 
-            # 3. 异步流式调用
-            async for chunk in self.llm.astream(langchain_messages, **call_kwargs):
-                
-                content = None
-                reasoning_content = None
-                # 兼容不同厂商返回的 chunk 格式
-                if hasattr(chunk, 'content'):
-                    # 先提取 reasoning_content 从 additional_kwargs
-                    if hasattr(chunk, 'additional_kwargs') and isinstance(chunk.additional_kwargs, dict):
-                        reasoning_content = chunk.additional_kwargs.get('reasoning_content')
-                    # 再提取 content 字段
-                    content = chunk.content
-                elif isinstance(chunk, dict):
-                    # 先提取 reasoning_content 从 additional_kwargs
-                    reasoning_content = chunk.get('additional_kwargs', {}).get('reasoning_content')
-                    # 再提取 content 字段
-                    content = chunk.get('content')
-                elif isinstance(chunk, str):
-                    content = chunk
-                
-                if content or reasoning_content is not None:
-                    yield {'content': content, 'reasoning_content': reasoning_content}
+            # 3. 使用astream_events v2进行异步流式调用，直接返回原始事件
+            async for event in self.llm.astream_events(langchain_messages, version="v2", **call_kwargs):
+                yield event
                     
         except Exception as e:
             logger.error(f"🔧 LLM错误: Streaming error: {e}")
             yield {'error': str(e)}
-        
-        logger.info("🔧 LLM调用: Stream invocation completed")
-        yield {'done': True}
 
     def _format_response(self, content: str, reasoning_content: Optional[str] = None) -> Dict[str, Any]:
         """统一响应格式"""

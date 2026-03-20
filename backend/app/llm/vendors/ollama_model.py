@@ -37,7 +37,7 @@ class OllamaModel(BaseModel):
         reasoning = None
         
         for key, value in model_params.items():
-            if key == 'deepThinking':
+            if key == 'reasoning':
                 reasoning = value
             elif key in mapping:
                 ollama_options[mapping[key]] = value

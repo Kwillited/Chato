@@ -133,7 +133,7 @@ import { useRouter } from 'vue-router';
 import { useNavigation } from '../../composables/useNavigation.js';
 import { useUiStore } from '../../store/uiStore.js';
 import { useChatStore } from '../../store/chatStore.js';
-import { Button } from '../library/index.js';
+import { Button, Tooltip } from '../library/index.js';
 import { formatDate } from '../../utils/time.js';
 import TabSwitcher from '../common/TabSwitcher.vue';
 

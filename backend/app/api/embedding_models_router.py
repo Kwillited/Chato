@@ -227,7 +227,7 @@ async def update_embedding_model_enabled(
     data: dict = Body(...),
     embedding_model_service = Depends(get_embedding_model_service)
 ):
-    """更新嵌入模型启用状态
+    """更新嵌入模型所有版本的启用状态
     
     Args:
         model_name (str): 模型名称
@@ -237,7 +237,7 @@ async def update_embedding_model_enabled(
         Dict[str, Any]: 更新结果
     """
     enabled = data.get('enabled', True)
-    success, message = embedding_model_service.update_model_enabled(model_name, enabled)
+    success, message = embedding_model_service.update_model_versions_enabled(model_name, enabled)
     if not success:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=message)
@@ -265,6 +265,37 @@ async def delete_embedding_model_version(
         Dict[str, Any]: 删除结果
     """
     success, message, model = embedding_model_service.delete_version(model_name, version_name)
+    if not success:
+        from fastapi import HTTPException
+        if message == '模型不存在':
+            raise HTTPException(status_code=404, detail=message)
+        elif message == '版本不存在':
+            raise HTTPException(status_code=400, detail=message)
+        else:
+            raise HTTPException(status_code=500, detail=message)
+    return {
+        "success": True,
+        "message": message,
+        "model": model
+    }
+
+@router.put("/{model_name}/versions/{version_name}/default", tags=["embedding-models"])
+@handle_api_errors()
+async def set_default_embedding_model_version(
+    model_name: str = Path(...),
+    version_name: str = Path(...),
+    embedding_model_service = Depends(get_embedding_model_service)
+):
+    """设置默认嵌入模型版本
+    
+    Args:
+        model_name (str): 模型名称
+        version_name (str): 版本名称
+        
+    Returns:
+        Dict[str, Any]: 设置结果
+    """
+    success, message, model = embedding_model_service.set_default_version(model_name, version_name)
     if not success:
         from fastapi import HTTPException
         if message == '模型不存在':

@@ -42,7 +42,6 @@ class SettingService(BaseService):
                 'streaming_enabled': system_settings.get('streamingEnabled', True),
                 'chat_style': system_settings.get('chatStyle', 'bubble'),
                 'view_mode': system_settings.get('viewMode', 'grid'),
-                'default_model': system_settings.get('defaultModel', ""),
                 # 通知相关字段
                 'newMessage': system_settings.get('newMessage', True),
                 'sound': system_settings.get('sound', False),
@@ -61,7 +60,6 @@ class SettingService(BaseService):
                 'streaming_enabled': getattr(system_setting, 'streaming_enabled', True) or True,
                 'chat_style': getattr(system_setting, 'chat_style', 'bubble') or 'bubble',
                 'view_mode': getattr(system_setting, 'view_mode', 'grid') or 'grid',
-                'default_model': getattr(system_setting, 'default_model', "") or "",
                 # 通知相关字段
                 'newMessage': getattr(system_setting, 'new_message', True) or True,
                 'sound': getattr(system_setting, 'sound', False) or False,
@@ -78,7 +76,6 @@ class SettingService(BaseService):
                 'streaming_enabled': True,
                 'chat_style': 'bubble',
                 'view_mode': 'grid',
-                'default_model': "",
                 # 通知相关默认值
                 'newMessage': True,
                 'sound': True,
@@ -106,7 +103,6 @@ class SettingService(BaseService):
             'streaming_enabled': 'streamingEnabled',
             'chat_style': 'chatStyle',
             'view_mode': 'viewMode',
-            'default_model': 'defaultModel',
             'new_message': 'newMessage',
             'display_time': 'displayTime'
         }
@@ -135,7 +131,6 @@ class SettingService(BaseService):
             'streaming_enabled': system_settings.get('streamingEnabled', True),
             'chat_style': system_settings.get('chatStyle', 'bubble'),
             'view_mode': system_settings.get('viewMode', 'grid'),
-            'default_model': system_settings.get('defaultModel', ''),
             'newMessage': system_settings.get('newMessage', True),
             'sound': system_settings.get('sound', False),
             'system': system_settings.get('system', True),

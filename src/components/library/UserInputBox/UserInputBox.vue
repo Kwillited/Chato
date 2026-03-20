@@ -10,122 +10,108 @@
           <div class="flex items-center gap-2">
             <!-- 智能体选择 -->
             <div class="relative inline-block">
-              <Tooltip content="选择智能体">
-                <button
-                  class="h-6 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-3 rounded-lg border border-transparent dark:border-gray-600 transition-all duration-300 ease-in-out hover:bg-gray-100 dark:hover:bg-dark-600 hover:text-primary cursor-pointer btn-secondary"
-                  @click="toggleAgentDropdown"
-                >
-
-                  <span>{{ currentAgentDisplayName }}</span>
-                  <i class="fa-solid fa-chevron-down text-xs text-neutral"></i>
-                </button>
-              </Tooltip>
-              <div
-                ref="agentDropdown"
-                class="absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-700 z-50 rounded-lg border border-gray-200 dark:border-gray-600 shadow-md"
-                :class="{ 'hidden': !showAgentDropdown }"
-                style="z-index: 1000 !important"
-              >
-                <div class="py-1">
-                  <button
-                    v-for="agent in availableAgents"
-                    :key="agent.value"
-                    class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors border-l-2 border-transparent"
-                  :class="{ 'border-l-3 border-gray-800 dark:border-gray-200 font-medium': agent.value === currentAgent }"
-                    @click="selectAgent(agent.value)"
-                  >
-                    <i :class="['fa-solid', agent.icon, 'mr-2 text-sm']"></i>
-                    {{ agent.displayName }}
-                  </button>
-                </div>
-              </div>
+              <DropdownSelect
+                v-model="currentAgent"
+                :options="availableAgents"
+                tooltip="选择智能体"
+                size="small"
+                margin="mb-4"
+                @change="selectAgent"
+              />
             </div>
             
             <!-- MCP工具按钮 -->
             <Tooltip content="MCP工具">
-              <button
-                class="h-6 w-6 flex items-center justify-center transition-colors hover:bg-gray-100 text-gray-500 dark:hover:bg-gray-700 dark:text-gray-300 rounded-full"
+              <Button
+                icon="screwdriver-wrench"
+                size="sm"
+                shape="full"
                 @click="handleMcpService"
-              >
-                <i class="fa-solid fa-screwdriver-wrench text-xs"></i>
-              </button>
+              />
             </Tooltip>
           </div>
           
           <!-- 应用控制按钮 -->
           <div class="flex-1 flex items-center gap-2 justify-end">
             <!-- 直接显示视图按钮 -->
-            <Button 
-              icon="fa-columns"
-              tooltip="视图"
-              @click="toggleViewPanel"
-              size="sm"
-              shape="full"
-            />
+            <Tooltip content="视图">
+              <Button 
+                icon="columns"
+                @click="toggleViewPanel"
+                size="sm"
+                shape="full"
+              />
+            </Tooltip>
             
             <!-- 分隔栏 -->
             <div class="h-4 w-px bg-gray-200 dark:bg-gray-600 mx-0.5"></div>
             
             <!-- 主题切换按钮 -->
-            <Button 
-              :icon="settingsStore.systemSettings.darkMode ? 'fa-sun' : 'fa-moon'"
-              tooltip="切换主题"
-              @click="handleToggleTheme"
-              size="sm"
-              shape="full"
-            />
+            <Tooltip content="切换主题">
+              <Button 
+                :icon="settingsStore.systemSettings.darkMode ? 'sun' : 'moon'"
+                @click="handleToggleTheme"
+                size="sm"
+                shape="full"
+              />
+            </Tooltip>
             
-            <Button 
-              icon="fa-gear"
-              tooltip="系统设置"
-              @click="handleSystemSettingsClick"
-              size="sm"
-              shape="full"
-            />
+            <Tooltip content="系统设置">
+              <Button 
+                icon="gear"
+                @click="handleSystemSettingsClick"
+                size="sm"
+                shape="full"
+              />
+            </Tooltip>
             
             <!-- 用户按钮带下拉菜单 -->
             <div class="relative">
-                <Button 
-                  icon="fa-user-circle"
-                  @click.stop="toggleUserMenu"
-                  size="sm"
-                  shape="full"
-                  class="i:text-base"
-                />
+                <Tooltip content="用户菜单">
+                  <Button 
+                    icon="user-circle"
+                    @click.stop="toggleUserMenu"
+                    size="sm"
+                    shape="full"
+                    class="i:text-base"
+                  />
+                </Tooltip>
               
               <!-- 用户功能下拉菜单 -->
               <div 
                 v-if="showUserMenu"
                 class="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 w-14 rounded-lg shadow-lg border z-50 dropdown-content flex flex-col items-center py-2 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-600"
               >
-                <Button 
-                  icon="fa-exchange"
-                  tooltip="切换账户"
-                  @click="handleSwitchAccount"
-                  size="lg"
-                  shape="full"
-                />
+                <Tooltip content="切换账户">
+                  <Button 
+                    icon="exchange"
+                    @click="handleSwitchAccount"
+                    size="sm"
+                    shape="full"
+                  />
+                </Tooltip>
                 <div class="my-1 w-8 border-t border-gray-200 dark:border-dark-700"></div>
-                <Button 
-                  icon="fa-arrow-right-from-bracket"
-                  tooltip="退出账号"
-                  @click="handleLogout"
-                  size="lg"
-                  shape="full"
-                  class="text-red-500"
-                />
+                <Tooltip content="退出账号">
+                  <Button 
+                    icon="arrow-right-from-bracket"
+                    @click="handleLogout"
+                    size="sm"
+                    shape="full"
+                    class="text-red-500"
+                  />
+                </Tooltip>
               </div>
             </div>
             
             <!-- 展开/折叠控制按钮 -->
             <div class="ml-2">
-              <button
-                class="h-6 w-6 flex items-center justify-center text-sm text-gray-600 dark:text-gray-300 hover:text-primary transition-all duration-300 ease-in-out"
+              <Button
+                icon="chevron-down"
+                size="sm"
+                shape="full"
                 @click="toggleParamsPanel"
                 :class="{ 'rotate-180': showParamsPanel }"
-              >
-                <i class="fa-solid fa-chevron-down text-xs"></i>
-              </button>
+              />
             </div>
           </div>
         </div>
@@ -481,7 +467,7 @@
               <button
                   class="btn-secondary w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 ease-in-out"
                   :class="{
-                      'text-gray-500 dark:text-gray-300 hover:text-primary': uploadedFiles.length === 0,
+                      'text-neutral dark:text-neutral hover:text-primary': uploadedFiles.length === 0,
                       'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': uploadedFiles.length > 0
                     }"
                 @click="triggerFileUpload"
@@ -498,15 +484,15 @@
               multiple
               accept=".txt,.pdf,.doc,.docx,.md,.jpg,.jpeg,.png,.gif,.csv,.xlsx,.pptx"
             >
-            <!-- 深度思考切换按钮 -->
-            <Tooltip content="深度思考">
+            <!-- 推理切换按钮 -->
+            <Tooltip content="推理">
               <button
                 class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out"
                 :class="{
-                    'text-gray-500 dark:text-gray-300 hover:text-primary': !isDeepThinking,
-                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': isDeepThinking
+                    'text-neutral dark:text-neutral hover:text-primary': !isReasoning,
+                    'text-black dark:text-white hover:text-gray-800 dark:hover:text-gray-200': isReasoning
                   }"
-                @click="toggleDeepThinking"
+                @click="toggleReasoning"
               >
                 <i class="fa-solid fa-lightbulb"></i>
               </button>
@@ -516,8 +502,8 @@
               <button
                 class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out"
                 :class="{
-                    'text-gray-500 dark:text-gray-300 hover:text-primary': uiStore.activePanel !== 'rag',
-                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': uiStore.activePanel === 'rag'
+                    'text-neutral dark:text-neutral hover:text-primary': uiStore.activePanel !== 'rag',
+                    'text-black dark:text-white hover:text-gray-800 dark:hover:text-gray-200': uiStore.activePanel === 'rag'
                   }"
                 @click="toggleKnowledgeBase"
               >
@@ -529,8 +515,8 @@
               <button
                 class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out"
                 :class="{
-                    'text-gray-500 dark:text-gray-300 hover:text-primary': !isWebSearchEnabled,
-                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': isWebSearchEnabled
+                    'text-neutral dark:text-neutral hover:text-primary': !isWebSearchEnabled,
+                    'text-black dark:text-white hover:text-gray-800 dark:hover:text-gray-200': isWebSearchEnabled
                   }"
                 @click="toggleWebSearch"
               >
@@ -542,8 +528,8 @@
               <button
                 class="btn-secondary flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-300 ease-in-out"
                 :class="{
-                    'text-gray-500 dark:text-gray-300 hover:text-primary': !isAgentEnabled,
-                    'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/40': isAgentEnabled
+                    'text-neutral dark:text-neutral hover:text-primary': !isAgentEnabled,
+                    'text-black dark:text-white hover:text-gray-800 dark:hover:text-gray-200': isAgentEnabled
                   }"
                 @click="toggleAgent"
               >
@@ -551,37 +537,14 @@
               </button>
             </Tooltip>
             <div class="relative">
-              <Tooltip :content="availableModels.length > 1 ? '选择AI模型' : '只有一个可用模型'">
-                <button
-                  class="h-8 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 px-3 rounded-lg border border-transparent dark:border-gray-600 transition-all duration-300 ease-in-out"
-                  :class="{
-                    'btn-secondary hover:bg-gray-100 dark:hover:bg-dark-600 hover:text-primary cursor-pointer': availableModels.length > 1,
-                    'cursor-default opacity-70': availableModels.length <= 1
-                  }"
-                  @click="toggleModelDropdown"
-                >
-                  <span>{{ currentModelDisplayName }}</span>
-                  <i v-if="availableModels.length > 1" class="fa-solid fa-chevron-down text-xs text-neutral"></i>
-                </button>
-              </Tooltip>
-              <div
-                ref="modelDropdown"
-                class="dropdown absolute left-0 bottom-full mb-2 w-48 bg-white dark:bg-gray-700 z-50 shadow-lg rounded-lg border border-gray-200 dark:border-gray-600 animate-fade-in"
-                :class="{ 'hidden': !showModelDropdown }"
-                style="z-index: 1000 !important"
-              >
-                <div class="py-1">
-                  <button
-                    v-for="model in orderedModels"
-                    :key="model.value"
-                    class="model-option w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-dark-600 transition-colors border-l-2 border-transparent"
-                    :class="{ 'border-l-3 border-gray-800 dark:border-gray-200 font-medium': model.value === currentModel }"
-                    @click="selectModel(model.value)"
-                  >
-                    {{ model.displayName }}
-                  </button>
-                </div>
-              </div>
+              <DropdownSelect
+                v-model="currentModel"
+                :options="orderedModels"
+                :tooltip="availableModels.length > 1 ? '选择AI模型' : '只有一个可用模型'"
+                :disabled="availableModels.length <= 1"
+                size="medium"
+                @change="selectModel"
+              />
             </div>
           </div>
           <button
@@ -619,10 +582,12 @@ import { Tooltip } from '../index.js';
 import { useNotification } from '../../../composables/useNotification.js';
 import { useNavigation } from '../../../composables/useNavigation.js';
 import { useModelUtils } from '../../../composables/useModelUtils.js';
+import { eventBus } from '../../../services/eventBus.js';
 
 // 使用通知组合式函数
 const { showSuccess, showError } = useNotification();
 import DragDropZone from '../../common/DragDropZone.vue';
+import DropdownSelect from '../../common/DropdownSelect.vue';
 import { Button, Card } from '../../../components/library/index.js';
 
 // 接收从父组件传递的视图状态
@@ -660,12 +625,8 @@ const isDragOver = ref(false);
 
 // 使用ref引用DOM元素
 const fileInput = ref(null);
-const modelDropdown = ref(null);
-const agentDropdown = ref(null);
 
 // 本地UI状态
-const showModelDropdown = ref(false);
-const showAgentDropdown = ref(false);
 const showParamsPanel = ref(false);
 // 新增状态：检查是否有活动的流式输出
 const hasActiveStreaming = ref(false);
@@ -692,7 +653,7 @@ const nextPage = () => {
 };
 
 // 从uiStore获取功能按钮状态
-const isDeepThinking = computed(() => uiStore.isDeepThinking);
+const isReasoning = computed(() => uiStore.isReasoning);
 const isWebSearchEnabled = computed(() => uiStore.isWebSearchEnabled);
 const isAgentEnabled = computed(() => uiStore.isAgentEnabled);
 
@@ -723,9 +684,9 @@ const modelParams = computed(() => modelStore.currentModelParams);
 
 
 
-// 切换深度思考模式
-const toggleDeepThinking = () => {
-  uiStore.toggleDeepThinking();
+// 切换推理模式
+const toggleReasoning = () => {
+  uiStore.toggleReasoning();
 };
 
 // 切换联网搜索模式
@@ -733,20 +694,44 @@ const toggleWebSearch = () => {
   uiStore.toggleWebSearch();
 };
 
-// 从store获取当前聊天的模型，优先使用当前对话的模型，否则使用settingsStore中的默认模型
+// 从store获取当前聊天的模型，优先使用当前对话的模型，否则从模型数据中获取默认模型
 // 注意：聊天界面选择模型不会修改系统默认设置，只影响当前聊天
-const currentModel = ref(chatStore.currentChat?.model || settingsStore.systemSettings.defaultModel);
+const getDefaultModel = () => {
+  // 首先检查当前对话是否有模型设置
+  if (chatStore.currentChat?.model) {
+    return chatStore.currentChat.model;
+  }
+  
+  // 然后检查是否有默认模型（通过模型的is_default标志）
+  const defaultModel = modelStore.models.find(model => model.is_default);
+  if (defaultModel && defaultModel.default_version) {
+    return `${defaultModel.name}-${defaultModel.default_version}`;
+  }
+  
+  // 最后使用第一个可用模型
+  const firstModel = modelStore.models[0];
+  if (firstModel && firstModel.default_version) {
+    return `${firstModel.name}-${firstModel.default_version}`;
+  }
+  return null;
+};
 
-// 监听系统默认模型变化，更新当前模型（如果用户没有手动选择过）
+const currentModel = ref(getDefaultModel());
+
+// 监听模型列表变化，更新当前模型（如果用户没有手动选择过）
 let userHasSelectedModel = false;
 
 watch(
-  () => settingsStore.systemSettings.defaultModel,
-  (newDefaultModel) => {
-    if (!userHasSelectedModel && newDefaultModel) {
-      currentModel.value = newDefaultModel;
+  () => modelStore.models,
+  () => {
+    if (!userHasSelectedModel) {
+      const defaultModel = getDefaultModel();
+      if (defaultModel) {
+        currentModel.value = defaultModel;
+      }
     }
-  }
+  },
+  { deep: true }
 );
 
 // 获取当前模型的显示名称，与默认模型下拉框显示规则保持一致
@@ -758,8 +743,8 @@ const currentModelDisplayName = computed(() => {
   
   // 当currentModel为空或无效时，使用默认模型名称
   if (!currentModel.value || !modelStore.allModels.length) {
-    // 优先使用系统默认模型，如果没有则使用第一个可用模型
-    const defaultModel = settingsStore.systemSettings.defaultModel || availableModels.value[0];
+    // 从模型数据中获取默认模型
+    const defaultModel = getDefaultModel();
     if (defaultModel) {
       return getModelDisplayName(defaultModel);
     }
@@ -810,12 +795,12 @@ const handleSendMessage = async () => {
     // 先保存当前需要发送的消息内容和模型
     const messageToSend = messageInput.value;
     const modelToUse = currentModel.value;
-    const deepThinking = isDeepThinking.value;
+    const reasoning = isReasoning.value;
     const webSearchEnabled = isWebSearchEnabled.value;
     const agent = isAgentEnabled.value; // 根据当前状态设置agent字段
     
     // 立即发送消息
-    emit('messageSubmitted', messageToSend, modelToUse, deepThinking, webSearchEnabled, agent);
+    emit('messageSubmitted', messageToSend, modelToUse, reasoning, webSearchEnabled, agent);
     // 发送消息后立即检查是否有流式输出
     checkForActiveStreaming();
   }
@@ -894,35 +879,16 @@ watch(
 
 
 
-// 切换模型下拉菜单显示状态
-const toggleModelDropdown = () => {
-  // 只有当可用模型数量大于1时才允许切换下拉菜单
-  if (availableModels.value.length > 1) {
-    showModelDropdown.value = !showModelDropdown.value;
-    // 关闭智能体下拉菜单
-    showAgentDropdown.value = false;
-  }
-};
-
 // 选择模型
 const selectModel = (model) => {
   currentModel.value = model;
   // 设置标志，表明用户已经手动选择了模型
   userHasSelectedModel = true;
-  showModelDropdown.value = false;
-};
-
-// 切换智能体下拉菜单显示状态
-const toggleAgentDropdown = () => {
-  showAgentDropdown.value = !showAgentDropdown.value;
-  // 关闭模型下拉菜单
-  showModelDropdown.value = false;
 };
 
 // 选择智能体
 const selectAgent = (agent) => {
   currentAgent.value = agent;
-  showAgentDropdown.value = false;
 };
 
 // 切换参数面板显示状态
@@ -1079,24 +1045,60 @@ const toggleKnowledgeBase = () => {
   }
 };
 
-// 点击外部关闭下拉菜单
-const handleClickOutside = (event) => {
-  // 关闭模型下拉菜单
-  if (modelDropdown.value && !modelDropdown.value.contains(event.target) &&
-      !event.target.closest('button') && showModelDropdown.value) {
-    showModelDropdown.value = false;
+// 点击外部关闭下拉菜单 - 已移至 DropdownSelect 组件内部实现
+
+// 事件监听器引用
+let quoteMessageUnsubscribe = null;
+let regenerateMessageUnsubscribe = null;
+
+// 处理引用消息
+const handleQuoteMessageEvent = (data) => {
+  const quotedContent = data.content ? `> ${data.content.replace(/\n/g, '\n> ')}\n\n` : '';
+  messageInput.value = quotedContent + messageInput.value;
+  showSuccess('已引用消息');
+};
+
+// 处理重新生成消息
+const handleRegenerateMessageEvent = (data) => {
+  const currentChat = chatStore.currentChat;
+  if (!currentChat) return;
+  
+  // 找到对应的用户消息
+  const messages = currentChat.messages;
+  const targetIndex = messages.findIndex(msg => {
+    const msgValue = msg?.value || msg;
+    return msgValue.timestamp === data.timestamp || msgValue.id === data.messageId;
+  });
+  
+  if (targetIndex > 0) {
+    // 找到前一个用户消息
+    for (let i = targetIndex - 1; i >= 0; i--) {
+      const msg = messages[i];
+      const msgValue = msg?.value || msg;
+      if (msgValue.role === 'user') {
+        // 重新发送这个用户消息
+        const userMessage = msgValue.content || msgValue.text || '';
+        const modelToUse = currentModel.value;
+        const reasoning = isReasoning.value;
+        const webSearchEnabled = isWebSearchEnabled.value;
+        const agent = isAgentEnabled.value;
+        
+        // 删除当前AI消息和之后的消息
+        currentChat.messages.splice(targetIndex);
+        
+        // 发送消息
+        emit('messageSubmitted', userMessage, modelToUse, reasoning, webSearchEnabled, agent);
+        checkForActiveStreaming();
+        return;
+      }
+    }
   }
   
-  // 关闭智能体下拉菜单
-  if (agentDropdown.value && !agentDropdown.value.contains(event.target) &&
-      !event.target.closest('button') && showAgentDropdown.value) {
-    showAgentDropdown.value = false;
-  }
+  showError('未找到对应的用户消息');
 };
 
 // 生命周期钩子
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
   // 添加点击外部区域关闭用户菜单的事件监听
   document.addEventListener('click', closeMenusOnClickOutside);
   
@@ -1116,6 +1118,10 @@ onMounted(() => {
   setTimeout(() => {
     checkForActiveStreaming();
   }, 0);
+  
+  // 订阅事件总线事件
+  quoteMessageUnsubscribe = eventBus.on('quoteMessage', handleQuoteMessageEvent);
+  regenerateMessageUnsubscribe = eventBus.on('regenerateMessage', handleRegenerateMessageEvent);
 });
 
 // 处理视图按钮点击事件 - 切换右侧面板
@@ -1180,8 +1186,15 @@ const closeMenusOnClickOutside = (event) => {
 };
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
   document.removeEventListener('click', closeMenusOnClickOutside);
+  
+  // 取消订阅事件总线事件
+  if (quoteMessageUnsubscribe) {
+    quoteMessageUnsubscribe();
+  }
+  if (regenerateMessageUnsubscribe) {
+    regenerateMessageUnsubscribe();
+  }
 });
 
 // 处理文件拖放
@@ -1361,14 +1374,4 @@ const getFileIcon = (fileName) => {
   animation: fadeIn 0.2s ease-in-out;
 }
 
-/* 下拉菜单动画 */
-/* 修复下拉菜单闪烁问题，保持原始展开方向 */
-.dropdown-content {
-  /* 移除可能导致闪烁的动画 */
-  animation: none !important;
-  /* 确保菜单使用HTML中定义的正确定位和展开方向 */
-  opacity: 1;
-  /* 避免过渡效果导致的闪烁 */
-  transition: none !important;
-}
 </style>

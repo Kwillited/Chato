@@ -3,12 +3,13 @@
     v-if="uiStore.leftNavVisible && uiStore.activePanel !== 'settings'"
     id="panelContainer" 
     ref="leftPanel"
-    class="h-full flex-shrink-0 z-40 overflow-hidden transition-all duration-300" 
+    class="h-full flex-shrink-0 overflow-hidden transition-all duration-300" 
     :style="{
       width: uiStore.leftNavWidth,
       minWidth: '200px',
       maxWidth: '370px',
-      flexShrink: 0
+      flexShrink: 0,
+      zIndex: 'var(--z-panel)'
     }"
   >
     <!-- 面板内容 -->

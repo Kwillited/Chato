@@ -33,7 +33,7 @@
                 <p class="text-sm text-gray-600 dark:text-dark-text-secondary">输入Token: {{ getInputTokens() }}</p>
                 <p class="text-sm text-gray-600 dark:text-dark-text-secondary">输出Token: {{ getOutputTokens() }}</p>
                 <p class="text-sm text-gray-600 dark:text-dark-text-secondary">总Token: {{ getTotalTokens() }}</p>
-                <p class="text-sm text-gray-600 dark:text-dark-text-secondary">最新更新: {{ getLastUpdateTime() }}</p>
+
               </div>
             </Card>
           </div>

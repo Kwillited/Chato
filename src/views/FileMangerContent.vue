@@ -721,7 +721,7 @@ const handleContentChanged = async (event) => {
 
 .toggle-label {
   position: relative;
-  z-index: 1;
+  z-index: var(--z-base);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -87,35 +87,7 @@
             v-model="settingsStore.systemSettings.streamingEnabled"
           />
 
-          <div class="setting-item p-3 rounded-lg">
-            <div>
-              <div class="font-medium text-sm">默认模型</div>
-              <div class="text-xs text-neutral mt-0.5">新对话默认使用的AI模型</div>
 
-              <!-- 自定义下拉框实现 -->
-              <div class="relative">
-                <!-- 当没有模型时，显示一个只读的输入框 -->
-                <input
-                  v-if="!isLoading && allModelVersions.length === 0"
-                  type="text"
-                  value="请先配置模型"
-                  class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none bg-gray-50 text-gray-500 cursor-not-allowed"
-                  readonly
-                />
-                <!-- 正常的下拉框 -->
-                <select
-                  v-else
-                  class="input-field w-full text-sm px-2 py-1.5 mt-2 focus:outline-none focus:ring-1 focus:ring-primary"
-                  v-model="defaultModel"
-                  @change="setDefaultModel"
-                >
-                  <option v-if="isLoading" value="">加载中...</option>
-                  <option v-else-if="allModelVersions.length > 0" :value="''" disabled>选择默认模型</option>
-                  <option v-for="version in allModelVersions" :key="version.id" :value="version.id">{{ version.displayName }}</option>
-                </select>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
       
@@ -220,27 +192,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSettingsStore } from '../../store/settingsStore.js';
 import { useChatStore } from '../../store/chatStore.js';
-import { eventBus } from '../../services/eventBus.js';
 import { showNotification } from '../../utils/notificationUtils.js';
 import SettingItem from '../common/SettingItem.vue';
 import { Button, Card } from '../library/index.js';
 import ConfirmationModal from '../common/ConfirmationModal.vue';
-import { useModelUtils } from '../../composables/useModelUtils.js';
 
 const settingsStore = useSettingsStore();
-const modelStore = useSettingsStore();
 const chatStore = useChatStore();
 
-// 使用模型工具
-const { allModelVersions } = useModelUtils(modelStore);
-
 // 状态管理
-const isLoading = ref(false);
-const models = ref([]);
-const defaultModel = ref('');
 const activeTab = ref('chat'); // 默认选中对话设置选项卡
 // 对话管理相关状态
 const showDeleteAllModal = ref(false);
@@ -271,103 +234,9 @@ const displayTimeOptions = [
 
 // 所有可用的模型版本已从 useModelUtils 中获取
 
-// 从后端加载模型列表
-async function loadModels() {
-  try {
-    isLoading.value = true;
-    
-    // 从模型设置store获取模型数据
-    if (modelStore.allModels && modelStore.allModels.length > 0) {
-      models.value = modelStore.allModels;
-    } else {
-      // 如果模型数据尚未加载，则触发加载
-      await modelStore.loadModels();
-      models.value = modelStore.allModels;
-    }
-    
-    // 加载系统设置中的默认模型
-    defaultModel.value = settingsStore.getDefaultModel();
-    
-    // 如果系统设置中没有默认模型，但模型存储中有选择，则使用它
-    if (!defaultModel.value && modelStore.selectedModel) {
-      defaultModel.value = modelStore.selectedModel;
-      settingsStore.setDefaultModel(defaultModel.value);
-    }
-    
-    // 如果有模型但没有选择默认模型，自动选择第一个模型
-    if (!defaultModel.value && allModelVersions.value.length > 0) {
-      defaultModel.value = allModelVersions.value[0].id;
-      settingsStore.setDefaultModel(defaultModel.value);
-      modelStore.selectModel(defaultModel.value);
-      eventBus.emit('modelSelected', { model: defaultModel.value });
-    }
-    
-    // 确保在没有模型时，默认显示为空字符串，这样可以显示disabled的提示选项
-    if (allModelVersions.value.length === 0) {
-      defaultModel.value = '';
-    }
-  } catch (error) {
-    console.error('加载模型列表失败:', error);
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-// 设置默认模型
-function setDefaultModel() {
-  if (!defaultModel.value) return;
-  
-  try {
-    // 设置到系统设置中
-    settingsStore.setDefaultModel(defaultModel.value);
-    
-    // 同步到模型设置store
-    modelStore.selectModel(defaultModel.value);
-    
-    // 发送模型选择变更事件
-    eventBus.emit('modelSelected', { model: defaultModel.value });
-    
-    // 显示成功提示
-    showNotification('默认模型已设置', 'success');
-  } catch (error) {
-    console.error('设置默认模型失败:', error);
-    showNotification('设置失败: ' + error.message, 'error');
-  }
-}
-
-// 监听模型列表更新
-function handleModelsUpdated({ models: updatedModels }) {
-  models.value = updatedModels;
-  
-  // 检查当前默认模型是否仍然存在于可用模型中
-  const isDefaultModelStillAvailable = allModelVersions.value.some(
-    version => version.id === defaultModel.value
-  );
-  
-  // 如果默认模型不再可用，且还有其他可用模型，则自动选择第一个可用模型
-  if (!isDefaultModelStillAvailable && allModelVersions.value.length > 0) {
-    defaultModel.value = allModelVersions.value[0].id;
-    settingsStore.setDefaultModel(defaultModel.value);
-    modelStore.selectModel(defaultModel.value);
-    eventBus.emit('modelSelected', { model: defaultModel.value });
-    showNotification('默认模型已更新为: ' + allModelVersions.value[0].displayName, 'success');
-  } else if (!isDefaultModelStillAvailable && allModelVersions.value.length === 0) {
-    // 如果没有可用模型，清除默认模型设置
-    defaultModel.value = '';
-    settingsStore.setDefaultModel('');
-    modelStore.selectModel('');
-  }
-}
-
-onMounted(async () => {
+onMounted(() => {
   // 确保深色模式立即应用
   settingsStore.applyDarkMode();
-  
-  // 加载模型列表和默认模型设置
-  await loadModels();
-  
-  // 监听模型列表更新事件
-  eventBus.on('modelsUpdated', handleModelsUpdated);
 });
 
 // 监听系统设置变化，自动保存
@@ -380,10 +249,7 @@ watch(
   { deep: true }
 );
 
-onUnmounted(() => {
-  // 移除事件监听
-  eventBus.off('modelsUpdated', handleModelsUpdated);
-});
+
 
 // 设置聊天样式
 const setChatStyle = (style) => {

@@ -63,25 +63,25 @@ class EmbeddingModelService(BaseService):
             for model in models:
                 versions = self.data_service.get_embedding_model_versions(model.id)
                 model_list.append({
-                    'id': model.id,
-                    'name': model.name,
-                    'description': model.description,
-                    'type': model.type,
-                    'enabled': model.enabled,
-                    'configured': model.configured,
-                    'versions': [
-                        {
-                            'id': version.id,
-                            'version_name': version.version_name,
-                            'custom_name': version.custom_name,
-                            'api_key': version.api_key,
-                            'api_base_url': version.api_base_url,
-                            'model_path': version.model_path,
-                            'dimension': version.dimension
-                        }
-                        for version in versions
-                    ]
-                })
+                'id': model.id,
+                'name': model.name,
+                'description': model.description,
+                'type': model.type,
+                'configured': model.configured,
+                'versions': [
+                    {
+                        'id': version.id,
+                        'version_name': version.version_name,
+                        'custom_name': version.custom_name,
+                        'api_key': version.api_key,
+                        'api_base_url': version.api_base_url,
+                        'model_path': version.model_path,
+                        'dimension': version.dimension,
+                        'enabled': version.enabled
+                    }
+                    for version in versions
+                ]
+            })
             
             return model_list
         except Exception as e:
@@ -109,7 +109,6 @@ class EmbeddingModelService(BaseService):
                 'name': model.name,
                 'description': model.description,
                 'type': model.type,
-                'enabled': model.enabled,
                 'configured': model.configured,
                 'versions': [
                     {
@@ -119,7 +118,8 @@ class EmbeddingModelService(BaseService):
                         'api_key': version.api_key,
                         'api_base_url': version.api_base_url,
                         'model_path': version.model_path,
-                        'dimension': version.dimension
+                        'dimension': version.dimension,
+                        'enabled': version.enabled
                     }
                     for version in versions
                 ]
@@ -150,7 +150,6 @@ class EmbeddingModelService(BaseService):
                 'name': updated_model.name,
                 'description': updated_model.description,
                 'type': updated_model.type,
-                'enabled': updated_model.enabled,
                 'configured': updated_model.configured,
                 'versions': [
                     {
@@ -160,7 +159,8 @@ class EmbeddingModelService(BaseService):
                         'api_key': version.api_key,
                         'api_base_url': version.api_base_url,
                         'model_path': version.model_path,
-                        'dimension': version.dimension
+                        'dimension': version.dimension,
+                        'enabled': version.enabled
                     }
                     for version in versions
                 ]
@@ -217,7 +217,6 @@ class EmbeddingModelService(BaseService):
                 'name': default_model.name,
                 'description': default_model.description,
                 'type': default_model.type,
-                'enabled': default_model.enabled,
                 'configured': default_model.configured,
                 'versions': versions
             }
@@ -294,7 +293,9 @@ class EmbeddingModelService(BaseService):
                     'api_key': data.get('api_key', ''),
                     'api_base_url': data.get('api_base_url', ''),
                     'model_path': data.get('model_path', ''),
-                    'dimension': data.get('dimension', 0)
+                    'dimension': data.get('dimension', 0),
+                    'enabled': data.get('enabled', True),
+                    'default_model': data.get('default_model', False)
                 }
                 self.data_service.create_embedding_model_version(version_data)
             else:
@@ -306,7 +307,9 @@ class EmbeddingModelService(BaseService):
                         'api_key': data.get('api_key', version.api_key),
                         'api_base_url': data.get('api_base_url', version.api_base_url),
                         'model_path': data.get('model_path', version.model_path),
-                        'dimension': data.get('dimension', version.dimension)
+                        'dimension': data.get('dimension', version.dimension),
+                        'enabled': data.get('enabled', version.enabled),
+                        'default_model': data.get('default_model', version.default_model)
                     }
                 )
             
@@ -314,8 +317,7 @@ class EmbeddingModelService(BaseService):
             self.data_service.update_embedding_model(
                 model.id,
                 {
-                    'configured': True,
-                    'enabled': True
+                    'configured': True
                 }
             )
             
@@ -352,8 +354,7 @@ class EmbeddingModelService(BaseService):
             self.data_service.update_embedding_model(
                 model.id,
                 {
-                    'configured': False,
-                    'enabled': False
+                    'configured': False
                 }
             )
             
@@ -362,9 +363,9 @@ class EmbeddingModelService(BaseService):
             self.log_error(f"删除嵌入模型配置失败: {str(e)}", exc_info=True)
             return False, f'删除嵌入模型配置失败: {str(e)}'
 
-    def update_model_enabled(self, model_name, enabled):
+    def update_model_versions_enabled(self, model_name, enabled):
         """
-        更新嵌入模型启用状态
+        更新嵌入模型所有版本的启用状态
         
         Args:
             model_name: 模型名称
@@ -379,18 +380,18 @@ class EmbeddingModelService(BaseService):
             if not model:
                 return False, '模型不存在'
             
-            # 更新模型启用状态
-            self.data_service.update_embedding_model(
-                model.id,
-                {
-                    'enabled': enabled
-                }
-            )
+            # 更新模型所有版本的启用状态
+            versions = self.data_service.get_embedding_model_versions(model.id)
+            for version in versions:
+                self.data_service.update_embedding_model_version(
+                    version.id,
+                    {'enabled': enabled}
+                )
             
-            return True, f'嵌入模型 {model_name} 启用状态已更新'
+            return True, f'嵌入模型 {model_name} 的所有版本已{'启用' if enabled else '禁用'}'
         except Exception as e:
-            self.log_error(f"更新嵌入模型启用状态失败: {str(e)}", exc_info=True)
-            return False, f'更新嵌入模型启用状态失败: {str(e)}'
+            self.log_error(f"更新嵌入模型版本启用状态失败: {str(e)}", exc_info=True)
+            return False, f'更新嵌入模型版本启用状态失败: {str(e)}'
 
     def delete_version(self, model_name, version_name):
         """
@@ -425,8 +426,7 @@ class EmbeddingModelService(BaseService):
                 self.data_service.update_embedding_model(
                     model.id,
                     {
-                        'configured': False,
-                        'enabled': False
+                        'configured': False
                     }
                 )
             
@@ -437,3 +437,47 @@ class EmbeddingModelService(BaseService):
         except Exception as e:
             self.log_error(f"删除嵌入模型版本失败: {str(e)}", exc_info=True)
             return False, f'删除嵌入模型版本失败: {str(e)}', None
+    
+    def set_default_version(self, model_name, version_name):
+        """
+        设置默认嵌入模型版本
+        
+        Args:
+            model_name: 模型名称
+            version_name: 版本名称
+            
+        Returns:
+            元组: (成功标志, 消息, 模型对象)
+        """
+        try:
+            # 查找模型
+            model = self.data_service.get_embedding_model_by_name(model_name)
+            if not model:
+                return False, '模型不存在', None
+            
+            # 查找匹配的版本
+            versions = self.data_service.get_embedding_model_versions(model.id)
+            version = next((v for v in versions if v.version_name == version_name), None)
+            if not version:
+                return False, '版本不存在', None
+            
+            # 先将所有嵌入模型的所有版本的default_model设置为False
+            for m in self.data_service.get_all_embedding_models():
+                m_versions = self.data_service.get_embedding_model_versions(m.id)
+                for v in m_versions:
+                    v.default_model = False
+                    self.data_service.update_embedding_model_version(v.id, {'default_model': False})
+            
+            # 将当前版本设置为默认
+            version.default_model = True
+            self.data_service.update_embedding_model_version(version.id, {'default_model': True})
+            
+            # 重新获取更新后的模型信息
+            updated_model = self.get_model_by_name(model_name)
+            updated_model['is_default'] = True
+            updated_model['default_version'] = version_name
+            
+            return True, f'版本 {version_name} 已成功设置为默认', updated_model
+        except Exception as e:
+            self.log_error(f"设置默认嵌入模型版本失败: {str(e)}", exc_info=True)
+            return False, f'设置默认嵌入模型版本失败: {str(e)}', None

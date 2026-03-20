@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col md:flex-row gap-6 max-w-6xl mx-auto h-full">
+  <div class="flex flex-col md:flex-row gap-6 max-w-6xl mx-auto h-full overflow-hidden">
     <Card class="px-4 py-4 pb-0 flex-1 min-w-[300px] flex flex-col">
       <div class="flex items-center justify-between mb-4">
         <h4 class="font-medium">已配置模型</h4>
@@ -35,8 +35,8 @@
                 <label class="relative inline-flex items-center cursor-pointer mr-2">
                   <input
                     type="checkbox"
-                    :checked="model.enabled"
-                    @change="toggleModelEnabled(model)"
+                    :checked="isModelEnabled(model)"
+                    @change="model.type === 'embedding' ? toggleEmbeddingModelEnabled(model) : toggleModelEnabled(model)"
                     class="sr-only peer"
                   />
                   <div class="w-9 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary"></div>
@@ -55,15 +55,43 @@
                 </button>
               </div>
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">已配置版本</div>
-            <div class="flex flex-wrap gap-2">
-              <span v-for="version in model.versions || []" :key="version.version_name || version"
-                        class="text-xs text-blue-500 dark:text-blue-400 cursor-pointer hover:text-blue-700 dark:hover:text-blue-300 transition-colors bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded flex items-center"
-                        @click="editModelVersion({...model, selected_version: version})">{{ version.custom_name || version.version_name }}<button 
-                      class="ml-1 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
-                      @click.stop="deleteModelVersion(model, version)">
-                      <i class="fa-solid fa-circle-xmark"></i>
-                    </button></span>
+            <div class="w-full overflow-x-auto">
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th class="text-left py-1 px-2 font-bold text-gray-600 dark:text-gray-400">已配置版本</th>
+                    <th class="text-center py-1 px-2 font-bold text-gray-600 dark:text-gray-400 w-16">默认</th>
+                    <th class="text-center py-1 px-2 font-bold text-gray-600 dark:text-gray-400 w-16">删除</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="version in model.versions || []" :key="version.version_name || version" class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td class="py-2 px-2 text-blue-500 dark:text-blue-400 cursor-pointer hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                        @click="editModelVersion({...model, selected_version: version})">{{ version.custom_name || version.version_name }}</td>
+                    <td class="py-2 px-2 text-center">
+                      <label class="relative inline-flex items-center justify-center cursor-pointer h-full">
+                        <input
+                          type="radio"
+                          name="default-version"
+                          :checked="model.is_default && model.default_version === version.version_name"
+                          @change="setDefaultVersion(model, version)"
+                          class="w-3 h-3 text-primary border-gray-300 rounded focus:ring-primary"
+                        />
+                      </label>
+                    </td>
+                    <td class="py-2 px-2 text-center">
+                      <button 
+                        class="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                        @click.stop="deleteModelVersion(model, version)">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  <tr v-if="!(model.versions && model.versions.length)">
+                    <td colspan="3" class="py-2 px-2 text-center text-gray-500 dark:text-gray-400">暂无配置版本</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </template>
@@ -482,10 +510,18 @@ const deleteModelConfig = async (model) => {
   }
 };
 
+// 检查模型是否启用（基于版本的enabled状态）
+const isModelEnabled = (model) => {
+  // 检查模型是否有版本，以及是否有任何版本启用
+  return model.versions && model.versions.some(version => version.enabled);
+};
+
 // 切换模型启用状态 - 使用modelStore中的方法
 const toggleModelEnabled = async (model) => {
   try {
-    const newEnabledState = !model.enabled;
+    // 计算新的启用状态
+    const currentEnabled = isModelEnabled(model);
+    const newEnabledState = !currentEnabled;
     
     // 检查模型类型，调用相应的方法
     if (model.type === 'embedding') {
@@ -612,7 +648,9 @@ const deleteEmbeddingModelConfig = async (model) => {
 // 切换嵌入模型启用状态
 const toggleEmbeddingModelEnabled = async (model) => {
   try {
-    const newEnabledState = !model.enabled;
+    // 计算新的启用状态
+    const currentEnabled = isModelEnabled(model);
+    const newEnabledState = !currentEnabled;
     
     // 使用modelStore更新启用状态
     await modelStore.toggleEmbeddingModelEnabled(model.name, newEnabledState);
@@ -622,6 +660,24 @@ const toggleEmbeddingModelEnabled = async (model) => {
     console.error('更新嵌入模型启用状态失败:', error);
     // 恢复原始状态
     await loadEmbeddingModels();
+  }
+};
+
+// 设置默认版本
+const setDefaultVersion = async (model, version) => {
+  try {
+    // 检查模型类型，调用相应的方法
+    if (model.type === 'embedding') {
+      // 嵌入模型
+      await modelStore.setDefaultEmbeddingModelVersion(model.name, version.version_name);
+    } else {
+      // LLM模型
+      await modelStore.setDefaultModelVersion(model.name, version.version_name);
+    }
+    // modelStore内部会处理通知和加载模型列表
+  } catch (error) {
+    // modelStore内部已处理错误通知
+    console.error('设置默认模型版本失败:', error);
   }
 };
 </script>

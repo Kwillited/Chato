@@ -266,7 +266,7 @@ export const apiService = {
   chat: {
     
     sendMessage: async (chatId, message, files, options = {}) => {
-      const { model = 'GPT-4', stream = false, modelParams = {}, ragConfig = {}, deepThinking = false, agent = false, webSearchEnabled = false, selectedMessageIds = [] } = options;
+      const { model = 'GPT-4', stream = false, modelParams = {}, ragConfig = {}, reasoning = false, agent = false, webSearchEnabled = false, selectedMessageIds = [] } = options;
       
       // 使用合并后的单个端点，通过stream参数控制响应类型
       const endpoint = `/chats/${chatId}/messages`;
@@ -284,7 +284,7 @@ export const apiService = {
           ragConfig,
           files: processedFiles,
           stream, // 传递stream参数给后端
-          deepThinking, // 传递deepThinking参数给后端
+          reasoning, // 传递reasoning参数给后端
           agent, // 传递agent参数给后端
           webSearchEnabled, // 传递webSearchEnabled参数给后端
           selectedMessageIds // 传递selectedMessageIds参数给后端

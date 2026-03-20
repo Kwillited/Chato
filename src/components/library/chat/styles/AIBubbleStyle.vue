@@ -77,6 +77,16 @@
       <div v-if="!messageValue.isTyping && (formattedContent || messageValue.reasoning_content || messageValue.error || messageValue.status === 'tool_executed' || messageValue.content || messageValue.text || messageValue.toolExecutions?.length > 0 || messageValue.toolCalls?.length > 0)" class="text-sm text-gray-500 dark:text-gray-400 mt-3 ml-3 flex items-center justify-between">
         <span>{{ formatTime(messageValue.timestamp || messageValue.time) }}</span>
         <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <Tooltip content="引用消息">
+            <button class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full transition-all duration-200" @click="handleQuoteMessage">
+              <i class="fa-solid fa-quote-left"></i>
+            </button>
+          </Tooltip>
+          <Tooltip content="重新生成">
+            <button class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full transition-all duration-200" @click="handleRegenerateMessage">
+              <i class="fa-solid fa-rotate-right"></i>
+            </button>
+          </Tooltip>
           <Tooltip content="复制消息内容">
             <button class="copy-btn text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-2 rounded-full transition-all duration-200" @click="copyMessageContent">
               <i class="fa-solid fa-copy"></i>
@@ -89,12 +99,13 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import { Tooltip, ToolExecutionStatus } from '../../index.js'
 import AIMessage from '../AIChat/AIMessage.vue'
 import { formatTime } from '../../../../utils/time.js'
 import { useChatBubble } from '../../../../composables/useChatBubble.js'
 import iconService from '../../../../services/iconService'
+import { eventBus } from '../../../../services/eventBus.js'
 
 const props = defineProps({
   message: {
@@ -128,6 +139,21 @@ const modelIconUrl = computed(() => {
   return iconService.getIconUrl(modelName);
 });
 
+// 处理引用消息
+const handleQuoteMessage = () => {
+  eventBus.emit('quoteMessage', {
+    messageId: messageValue.value.id,
+    content: messageValue.value.content || messageValue.value.text || ''
+  });
+};
+
+// 处理重新生成消息
+const handleRegenerateMessage = () => {
+  eventBus.emit('regenerateMessage', {
+    messageId: messageValue.value.id,
+    timestamp: messageValue.value.timestamp
+  });
+};
 
 </script>
 
